@@ -75,6 +75,7 @@ const INPUT = { mx: 0, my: 0, cx: 0, cy: 0, act: false, actEdge: false, keys: {}
 const COARSE = typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches;
 const SET = { sens: 1, invert: false, autoCam: true, quality: COARSE ? 'mid' : 'high', dist: 1, view: 'shoulder', side: 'right', music: 0.6, sfx: 0.8 };
 try { Object.assign(SET, JSON.parse(localStorage.getItem('genesisSettings') || '{}')); } catch (e) { }
+{ const qm = /[?&]q=(low|mid|high)\b/.exec(location.search); if (qm) SET.quality = qm[1]; } // ?q=low|mid|high: force the quality for this visit (a crashed phone tab cannot reach the settings menu)
 Game.P = P; Game.CAM = CAM; Game.INPUT = INPUT; Game.SET = SET;
 Object.defineProperty(Game, 'UI', { get: () => G.UI }); Game.FX = FX; Game.angDiff = angDiff;
 Game.saveSettings = () => { try { localStorage.setItem('genesisSettings', JSON.stringify(SET)); } catch (e) { } };
@@ -1014,12 +1015,41 @@ function dialogCam(dt) {
 let tAll = 0, lastNow = performance.now(), dayTickT = 0;
 const PERF = Game.perf = { avg: 16.7, scale: 1, t: 0 };
 { const m = /[?&]shadowrate=([12])\b/.exec(location.search); if (m) R.shadowRate = R.shadowLock = +m[1]; } // ?shadowrate=1 / 2 pins the shadow update rate (for comparing); without it the rate follows the frame time
+/* v18.4 P15 — keeping the frame rate steady instead of chasing the highest one.
+   · SET.fps: 'auto' (default) / '30' / '60'. A lock skips display frames (main.js) so every frame is the same length: an even 30 looks smoother, and runs
+     cooler, than a 45–55 that wobbles. 'auto' starts unlocked; only if the picture is still slow after the resolution has been lowered it locks to 30
+     (once, with a note), tries unlocked again after two minutes, and if that is slow again it stays locked.
+   · Resolution (PERF.scale, 0.6–1): judged by p90 of the last 120 frame times (the slow end), not the average, in steps of 0.75 s: p90 over 1.3× the target
+     frame time → 0.1 smaller at once; p90 within 1.1× of it, no drop for 30 s and 8 s since the last rise → 0.05 bigger.
+   · Shadow map every 2nd frame (R.shadowRate) when p90 stays over 1.25× the target for 3 s (back after 3 s of good frames). ?shadowrate=1|2 pins it.
+   Game.fpsTarget() → 0 (display rate) / 30 / 60 · Game.perfTick(rawMs, dt) · PERF.hist (ring of the last 120 frame times). */
+PERF.hist = new Float32Array(120); PERF.hn = 0; PERF.slow = PERF.fast = 0; PERF.autoLock = false; PERF.lockAt = 0; PERF.trial = 0; PERF.sticky = false; PERF.dropAt = -99; PERF.raiseAt = -99; PERF.lockN = 0; PERF.ceil = 1; PERF.ceilAt = -999;
+Game.fpsTarget = () => { const m = SET.fps; return m === '30' ? 30 : m === '60' ? 60 : PERF.autoLock ? 30 : 0; };
+function p90() { const n = Math.min(PERF.hn, 120); if (n < 30) return PERF.avg; const a = Array.prototype.slice.call(PERF.hist, 0, n).sort((x, y) => x - y); return a[Math.floor(n * 0.9)]; }
+PERF.p90 = p90;
+function perfTick(rawMs, dt) {
+  if (!(rawMs > 0 && rawMs < 250) || document.hidden) return;
+  PERF.avg += (rawMs - PERF.avg) * 0.05; PERF.hist[PERF.hn++ % 120] = rawMs; PERF.t += dt; if (PERF.t < 0.75) return; PERF.t = 0;
+  const tg = Game.fpsTarget(), tgt = tg ? 1000 / tg : 16.7, p = p90(), old = PERF.scale;
+  // shadow update rate
+  PERF.slow = p > tgt * 1.25 ? PERF.slow + 1 : 0; PERF.fast = p <= tgt * 1.1 ? PERF.fast + 1 : 0;
+  if (R.shadowLock) R.shadowRate = R.shadowLock; else if (PERF.slow >= 4) R.shadowRate = 2; else if (PERF.fast >= 4) R.shadowRate = 1;
+  // resolution
+  if (tAll - PERF.ceilAt > 180) PERF.ceil = 1; // (a ceiling set by a failed rise is forgotten after three minutes)
+  if (p > tgt * 1.3 && PERF.scale > 0.6) { PERF.scale = Math.max(0.6, PERF.scale - 0.1); if (tAll - PERF.raiseAt < 25) { PERF.ceil = PERF.scale; PERF.ceilAt = tAll; } PERF.dropAt = tAll; } // a drop soon after a rise: that size was too much, do not try it again for a while
+  else if (p <= tgt * 1.1 && PERF.scale < PERF.ceil && tAll - PERF.dropAt > 30 && tAll - PERF.raiseAt > 12) { PERF.scale = Math.min(PERF.ceil, PERF.scale + 0.05); PERF.raiseAt = tAll; }
+  if (old !== PERF.scale) G.UI.resize();
+  // auto frame lock
+  if (SET.fps !== '30' && SET.fps !== '60') {
+    if (!PERF.autoLock) { PERF.lockN = p > 22 && PERF.scale <= 0.8 ? PERF.lockN + 1 : 0;
+      if (PERF.lockN >= 4 && Game.mode === 'play') { PERF.autoLock = true; PERF.lockAt = tAll; PERF.lockN = 0; PERF.hn = 0; if (PERF.trial) PERF.sticky = true; if (!PERF.told) { PERF.told = 1; G.UI.toast('화면을 부드럽게 · 30프레임으로 맞췄어요 (설정에서 바꿀 수 있어요)'); } } }
+    else if (!PERF.sticky && tAll - PERF.lockAt > 120) { PERF.autoLock = false; PERF.trial = 1; PERF.hn = 0; PERF.lockN = 0; } // try unlocked again
+  }
+}
+Game.perfTick = perfTick;
 Game.frame = function (now) {
   const rawMs = now - lastNow; let dt = Math.max(0, Math.min(0.05, rawMs / 1000)); lastNow = now; tAll += dt; // never backwards (clock jumps)
-  // adaptive resolution: if frames get slow (heavy views, weak phones), render fewer pixels instead of stuttering
-  if (rawMs > 0 && rawMs < 250 && !document.hidden) { PERF.avg += (rawMs - PERF.avg) * 0.05; PERF.t += dt;
-    if (PERF.t > 1.5) { PERF.t = 0; const old = PERF.scale; // v17.3 P13: slow for 3 s → redraw the shadow map every 2nd frame (R.shadowRate); back to every frame after 3 s of fast frames
-      PERF.slow = PERF.avg > 21 ? (PERF.slow || 0) + 1 : 0; PERF.fast = PERF.avg < 14.5 ? (PERF.fast || 0) + 1 : 0; if (R.shadowLock) R.shadowRate = R.shadowLock; else if (PERF.slow >= 2) R.shadowRate = 2; else if (PERF.fast >= 2) R.shadowRate = 1; if (PERF.avg > 27 && PERF.scale > 0.62) PERF.scale = Math.max(0.6, PERF.scale - 0.1); else if (PERF.avg < 18 && PERF.scale < 1) PERF.scale = Math.min(1, PERF.scale + 0.05); if (old !== PERF.scale) G.UI.resize(); } }
+  perfTick(rawMs, dt); // adaptive resolution / frame lock / shadow rate (below)
   if (Game.mode === 'play' && W) {
     const modal = G.UI.modal();
     if (!modal) { S.time += dt / SEC_PER_HOUR * (EP.timeScale || 1); if (S.time >= 26) { G.UI.toast('너무 늦었어요… 그 자리에서 잠이 들었다'); newDay(); } }

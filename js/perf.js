@@ -93,7 +93,7 @@ P.report = function () { const p = pct(), n = Math.max(1, tot.n), sec = {}; for 
     '33ms초과': s33, '50ms초과': s50, '33ms초과_분당': +(s33 / mins()).toFixed(2), '50ms초과_분당': +(s50 / mins()).toFixed(2), 튐원인: over,
     JS평균ms: +(tot.work / n).toFixed(2), 구간평균ms: sec, 애니메이션ms: +(tot.anim / n).toFixed(2), 메시ms: +(tot.mesh / n).toFixed(2), 관성ms: +(tot.inert / n).toFixed(3),
     삼각형분해K: Object.fromEntries(BK.map((k, i) => [k, Math.round(tot.bt[i] / n / 1000)])), 호출분해: Object.fromEntries(BK.map((k, i) => [k, +(tot.bd[i] / n).toFixed(1)])), 호출평균: Math.round(tot.draws / n), 호출최대: tot.maxDraws, 삼각형평균: Math.round(tot.tris / n), 삼각형최대: Math.round(tot.maxTris),
-    힙MB: mem ? +(mem.usedJSHeapSize / 1048576).toFixed(1) : null, 할당MB_초: mem ? +(alloc / 1048576 / ((clock() - since) / 1000)).toFixed(2) : null, GC추정: mem ? gcs : null, 그림자갱신: R.shadowRate || 1, 워커: Game.mw ? { 켬: Game.mw.ok, 완료: Game.mw.done, 평균ms: Game.mw.done ? +(Game.mw.ms / Game.mw.done).toFixed(0) : 0, 대기: Game.mw.pend.size, 실패: Game.mw.fail } : null, 튀는프레임: P.spikes }; };
+    힙MB: mem ? +(mem.usedJSHeapSize / 1048576).toFixed(1) : null, 할당MB_초: mem ? +(alloc / 1048576 / ((clock() - since) / 1000)).toFixed(2) : null, GC추정: mem ? gcs : null, 그림자갱신: R.shadowRate || 1, 프레임설정: (() => { const P = Game.perf; return { 설정: Game.SET.fps || 'auto', 목표: Game.fpsTarget ? Game.fpsTarget() || '화면 주사율' : null, 자동고정: !!(P && P.autoLock), 배율: P && +P.scale.toFixed(2), p90ms: P && P.p90 ? +P.p90().toFixed(1) : null }; })(), 워커: Game.mw ? { 켬: Game.mw.ok, 완료: Game.mw.done, 평균ms: Game.mw.done ? +(Game.mw.ms / Game.mw.done).toFixed(0) : 0, 대기: Game.mw.pend.size, 실패: Game.mw.fail } : null, 튀는프레임: P.spikes }; };
 window.__perfReport = P.report;
 
 // ---- overlay

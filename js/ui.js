@@ -350,6 +350,7 @@ function renderMenu(tab, body) {
       <div class="set"><span>주민이 먼저 말 걸기</span><div class="seg">${[['often', '자주'], ['some', '가끔'], ['off', '끄기']].map(q => `<button data-ch="${q[0]}" class="${(SET.chatty || 'some') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>움직임 느낌</span><div class="seg">${[['wild', '야숨처럼'], ['heavy', '묵직하게'], ['bal', '균형'], ['snappy', '경쾌하게']].map(q => `<button data-fl="${q[0]}" class="${(SET.feel || 'wild') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>글자·버튼 크기</span><div class="seg">${[['s', '작게'], ['m', '보통'], ['l', '크게'], ['xl', '최대']].map(q => `<button data-ui="${q[0]}" class="${(SET.ui || 'm') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
+      <div class="set"><span>프레임 (끊김이 있으면 30 고정)</span><div class="seg">${[['auto', '자동'], ['30', '30 고정'], ['60', '60']].map(q => `<button data-fps="${q[0]}" class="${(SET.fps || 'auto') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>그래픽 품질</span><div class="seg">${[['low', '낮음'], ['mid', '보통'], ['high', '높음']].map(q => `<button data-q="${q[0]}" class="${SET.quality === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>진행 상황</span><div class="seg"><button id="sSave">저장하기</button><button id="sTitle">타이틀로</button></div></div>`;
     $('sSens').oninput = e => { SET.sens = +e.target.value; Game.saveSettings(); };
@@ -369,6 +370,7 @@ function renderMenu(tab, body) {
       if (b.dataset.ch) { SET.chatty = b.dataset.ch; Game.saveSettings(); renderMenu('set', body); }
       if (b.dataset.fl) { SET.feel = b.dataset.fl; Game.saveSettings(); renderMenu('set', body); G.UI.toast(G.Motion.FEEL[SET.feel].n + ' · ' + (SET.feel === 'wild' ? '빠르게 출발하고, 급히 멈추면 살짝 미끄러지며, 방향 전환이 시원해요' : SET.feel === 'heavy' ? '관성이 크고 멈출 때 미끄러져요' : SET.feel === 'snappy' ? '바로 가속하고 즉시 방향을 바꿔요' : '자연스러운 기본값')); }
       if (b.dataset.ui) { SET.ui = b.dataset.ui; Game.saveSettings(); UI.applyUIScale(); renderMenu('set', body); }
+      if (b.dataset.fps) { SET.fps = b.dataset.fps; if (Game.perf) { Game.perf.autoLock = false; Game.perf.sticky = false; Game.perf.trial = 0; Game.perf.hn = 0; } Game.saveSettings(); renderMenu('set', body); }
       if (b.dataset.q) { SET.quality = b.dataset.q; Game.saveSettings(); Game.applyQuality(); renderMenu('set', body); }
       if (b.id === 'sSave') { Game.save(); }
       if (b.id === 'sTitle') { Game.save(true); UI.closePanel(); G.Main.toTitle(); } };
