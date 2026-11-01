@@ -225,13 +225,13 @@ Game.start = function (epId, fresh, preview) {
   let saved = null; if (!fresh) { try { saved = JSON.parse(localStorage.getItem(KEY(epId)) || 'null'); } catch (e) { } }
   S = saved && saved.v === 2 ? saved : newState(EP);
   // world
-  W = new World(EP.spec); W.buildTerrain();
-  EP.build(W, Game);
-  W.finishStatics();
+  if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
+  if (window.__bc) __bc('build'); EP.build(W, Game);
+  if (window.__bc) __bc('statics'); W.finishStatics();
   // nodes
   buildNodeSets();
   // npcs
-  ENT.npcs = {}; for (const d of EP.npcs) addNPC(d);
+  if (window.__bc) __bc('npcs'); ENT.npcs = {}; for (const d of EP.npcs) addNPC(d);
   // pens, sites (player-built pens, fields and stations join the episode's lists first)
   if (G.Build) G.Build.attach(S, W);
   for (const pen of EP.pens || []) { if (!S.herds[pen.id]) S.herds[pen.id] = { list: (pen.init || []).map(a => a.slice()), trough: pen.trough0 || 0, hay: 0, rods: 0, joy: 0, woolDays: 0, milk: false, wool: false }; }
@@ -245,7 +245,7 @@ Game.start = function (epId, fresh, preview) {
   if (G.Combat) G.Combat.reset(S); if (G.Vitals) G.Vitals.reset(); if (G.Phys) G.Phys.reset(); if (G.Loot) G.Loot.reset(); if (G.Lock) G.Lock.reset(); if (G.Life) G.Life.reset(); if (G.Ride) G.Ride.reset(S); if (G.NpcAI) G.NpcAI.reset(S); Q.firstFrame = true; Game.refreshLook();
   CAM.yaw = P.face + PI; CAM.pitch = camCfg().pRest; snapCam();
   if (!R.grass) R.grassInit(SET.quality === 'high' ? 9000 : SET.quality === 'mid' ? 5000 : 1, 40);
-  Game.applyQuality();
+  if (window.__bc) __bc('quality'); Game.applyQuality();
   if (preview) { Game.mode = 'title'; S.time = EP.titleTime || 17.2; if (EP.onLoad) EP.onLoad(S, Game); return; }
   Game.mode = 'play';
   G.UI.enterGame();

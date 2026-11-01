@@ -1,5 +1,13 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><script>/* v18.5: crash breadcrumb. Each stage is written to localStorage; if the tab dies, the next visit shows the last stage reached. */
+(function(){var K='genesisBC',prev=null;try{prev=localStorage.getItem(K);}catch(e){}
+window.__bc=function(s){try{localStorage.setItem(K,s+' @'+Math.round(performance.now())+'ms | '+location.search);}catch(e){}};
+window.__bcDone=function(){try{localStorage.setItem(K,'OK');}catch(e){}};
+window.__bc('start');
+if(prev&&prev!=='OK'){addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#400c;color:#fff;font:12px/1.4 sans-serif;padding:8px 10px;border-radius:8px;white-space:pre-wrap';d.textContent='지난번에 멈춘 곳: '+prev+'\n(눌러서 닫기)';d.onclick=function(){d.remove();};document.body.appendChild(d);});}
+})();</script>
+</head><body>
 <title>약속의 길</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <script>(function(){try{if(!document.querySelector('meta[name=viewport]')){var m=document.createElement('meta');m.name='viewport';m.content='width=device-width,initial-scale=1,viewport-fit=cover';(document.head||document.documentElement).appendChild(m);}}catch(e){}})();</script>
@@ -477,49 +485,49 @@ body.busy #hint,body.cine #hint,body.photo #hint{visibility:hidden}
 <div id="fader"></div>
 <div id="loadErr" hidden>이 기기에서는 3D 그래픽(WebGL2)을 사용할 수 없어요. 최신 브라우저에서 다시 열어 주세요.</div>
 
-<script src="js/core.js?v=1793543401"></script>
-<script src="js/audio.js?v=1793543401"></script>
-<script src="js/models.js?v=1793543401"></script>
-<script src="js/motion.js?v=1793543401"></script>
-<script src="js/world.js?v=1793543401"></script>
-<script src="js/game.js?v=1793543401"></script>
-<script src="js/ui.js?v=1793543401"></script>
-<script src="js/combat.js?v=1793543401"></script>
-<script src="js/life.js?v=1793543401"></script>
-<script src="js/shots.js?v=1793543401"></script>
-<script src="js/mood.js?v=1793543401"></script>
-<script src="js/companion.js?v=1793543401"></script>
-<script src="js/weather.js?v=1793543401"></script>
-<script src="js/vitals.js?v=1793543401"></script>
-<script src="js/survival.js?v=1793543401"></script>
-<script src="js/wilds.js?v=1793543401"></script>
-<script src="js/hearth.js?v=1793543401"></script>
-<script src="js/climb.js?v=1793543401"></script>
-<script src="js/physics.js?v=1793543401"></script>
-<script src="js/loot.js?v=1793543401"></script>
-<script src="js/lockon.js?v=1793543401"></script>
-<script src="js/build.js?v=1793543401"></script>
-<script src="js/ride.js?v=1793543401"></script>
-<script src="js/npcai.js?v=1793543401"></script>
-<script src="js/greet.js?v=1793543401"></script>
-<script src="js/bond.js?v=1793543401"></script>
-<script src="js/qcam.js?v=1793543401"></script>
-<script src="js/climate.js?v=1793543401"></script>
-<script src="js/chem.js?v=1793543401"></script>
-<script src="js/deeds.js?v=1793543401"></script>
-<script src="js/travel.js?v=1793543401"></script>
-<script src="js/sling.js?v=1793543401"></script>
-<script src="js/acts.js?v=1793543401"></script>
-<script src="js/opening.js?v=1793543401"></script>
-<script src="js/ep_joseph.js?v=1793543401"></script>
-<script src="js/ep_joseph_life.js?v=1793543401"></script>
-<script src="js/pantry.js?v=1793543401"></script>
-<script src="js/fireside.js?v=1793543401"></script>
-<script src="js/sites.js?v=1793543401"></script>
-<script src="js/focus.js?v=1793543401"></script>
-<script src="js/cuisine.js?v=1793543401"></script>
-<script src="js/delights.js?v=1793543401"></script>
-<script src="js/perf.js?v=1793543401"></script>
-<script src="js/main.js?v=1793543401"></script>
+<script src="js/core.js?v=1793544362"></script>
+<script src="js/audio.js?v=1793544362"></script>
+<script src="js/models.js?v=1793544362"></script>
+<script src="js/motion.js?v=1793544362"></script>
+<script src="js/world.js?v=1793544362"></script>
+<script src="js/game.js?v=1793544362"></script>
+<script src="js/ui.js?v=1793544362"></script>
+<script src="js/combat.js?v=1793544362"></script>
+<script src="js/life.js?v=1793544362"></script>
+<script src="js/shots.js?v=1793544362"></script>
+<script src="js/mood.js?v=1793544362"></script>
+<script src="js/companion.js?v=1793544362"></script>
+<script src="js/weather.js?v=1793544362"></script>
+<script src="js/vitals.js?v=1793544362"></script>
+<script src="js/survival.js?v=1793544362"></script>
+<script src="js/wilds.js?v=1793544362"></script>
+<script src="js/hearth.js?v=1793544362"></script>
+<script src="js/climb.js?v=1793544362"></script>
+<script src="js/physics.js?v=1793544362"></script>
+<script src="js/loot.js?v=1793544362"></script>
+<script src="js/lockon.js?v=1793544362"></script>
+<script src="js/build.js?v=1793544362"></script>
+<script src="js/ride.js?v=1793544362"></script>
+<script src="js/npcai.js?v=1793544362"></script>
+<script src="js/greet.js?v=1793544362"></script>
+<script src="js/bond.js?v=1793544362"></script>
+<script src="js/qcam.js?v=1793544362"></script>
+<script src="js/climate.js?v=1793544362"></script>
+<script src="js/chem.js?v=1793544362"></script>
+<script src="js/deeds.js?v=1793544362"></script>
+<script src="js/travel.js?v=1793544362"></script>
+<script src="js/sling.js?v=1793544362"></script>
+<script src="js/acts.js?v=1793544362"></script>
+<script src="js/opening.js?v=1793544362"></script>
+<script src="js/ep_joseph.js?v=1793544362"></script>
+<script src="js/ep_joseph_life.js?v=1793544362"></script>
+<script src="js/pantry.js?v=1793544362"></script>
+<script src="js/fireside.js?v=1793544362"></script>
+<script src="js/sites.js?v=1793544362"></script>
+<script src="js/focus.js?v=1793544362"></script>
+<script src="js/cuisine.js?v=1793544362"></script>
+<script src="js/delights.js?v=1793544362"></script>
+<script src="js/perf.js?v=1793544362"></script>
+<script src="js/main.js?v=1793544362"></script>
 
 </body></html>

@@ -44,7 +44,8 @@ addEventListener('pagehide', () => { if (playing) Game.save(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing) Game.save(true); });
 let lastRun = 0; // v18.4 P15: with a frame lock (30 / 60) display frames are skipped so that the ones that run are evenly spaced
 Main.shouldRun = now => { const tg = Game.fpsTarget ? Game.fpsTarget() : 0; if (tg && now - lastRun < 1000 / tg - 2.5) return false; lastRun = now; return true; };
-function loop(now) { if (!Main.shouldRun(now)) { requestAnimationFrame(loop); return; } try { Game.frame(now); } catch (e) { console.error(e); if (!Main.errShown) { Main.errShown = 1; UI.toast('문제가 생겼어요: ' + (e && e.message || e)); } } requestAnimationFrame(loop); }
+let okFrames = 0;
+function loop(now) { if (window.__bc && ++okFrames === 1) __bc('frame1'); if (window.__bcDone && okFrames === 600) __bcDone(); if (!Main.shouldRun(now)) { requestAnimationFrame(loop); return; } try { Game.frame(now); } catch (e) { console.error(e); if (!Main.errShown) { Main.errShown = 1; UI.toast('문제가 생겼어요: ' + (e && e.message || e)); } } requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 window.__G = G;
 })(window.G);
