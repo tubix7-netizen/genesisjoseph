@@ -1078,21 +1078,23 @@ env.booth = function (g, M, r) { // 초막 (Succoth booth, 창 33:17)
 const scaledM = (M, k) => m4mul(m4(), M, m4trs(m4(), 0, 0, 0, 0, 0, 0, k, k, k));
 /* v13 natural trees: a tapering trunk that forks into limbs, each limb ending in its own cluster of many small leaf
    clumps (irregular silhouette, sky gaps, light tops and darker undersides) instead of a few big spheres */
+/* v18.6: on phones (G.treeLod = 1) the leaf masses are tessellated coarser and there are fewer of them (a little bigger each): trees were ~83% of the world's triangles. ?trees=hi keeps the full detail. */
 function limbTree(g, M, r, o) {
+  const lod = G.treeLod ? 1 : 0, nClump = lod ? Math.max(6, Math.round(o.clumps * 0.68)) : o.clumps, sA = lod ? 6 : 8, sB = lod ? 4 : 5;
   const bark = o.bark || 0x6e5440, th = o.trunk, tr = o.tr; g.cyl(tr * 0.62, tr, th, 9, { m: M, at: [0, th / 2, 0], rz: (r() - 0.5) * 0.08, c: bark, j: 0.05 });
   for (let i = 0; i < 3; i++) g.sph(tr * 0.75, 6, 4, { m: M, at: [Math.cos(i * 2.1) * tr * 0.8, 0.06, Math.sin(i * 2.1) * tr * 0.8], s: [1.6, 0.5, 1], ry: i * 2.1, c: bark, flat: true }); // root flare
   const n = o.limbs, C = o.cols;
   for (let i = 0; i < n; i++) { const a = i / n * PI * 2 + r() * 0.6, el = o.spread * (0.7 + r() * 0.5), L = o.limb * (0.75 + r() * 0.4), y0 = th * (0.82 + r() * 0.15);
     const ex = Math.cos(a) * Math.sin(el) * L, ey = y0 + Math.cos(el) * L, ez = Math.sin(a) * Math.sin(el) * L;
     const lm = m4mul(m4(), M, m4trs(m4(), 0, y0, 0, -a, 0, 0)); g.cyl(tr * 0.2, tr * 0.45, L, 6, { m: lm, at: [Math.sin(el) * L / 2, Math.cos(el) * L / 2, 0], rz: -el, c: bark, j: 0.04 });
-    const R0 = o.crown * (0.8 + r() * 0.4); for (let k = 0; k < o.clumps; k++) { const u = r() * PI * 2, v = Math.acos(1 - 2 * r()) * 0.75, d = Math.cbrt(r()) * R0;
+    const R0 = o.crown * (0.8 + r() * 0.4); for (let k = 0; k < nClump; k++) { const u = r() * PI * 2, v = Math.acos(1 - 2 * r()) * 0.75, d = Math.cbrt(r()) * R0;
       const x = ex + Math.cos(u) * Math.sin(v) * d, z = ez + Math.sin(u) * Math.sin(v) * d, y = ey + Math.cos(v) * d * o.flat;
       const up = clamp((y - ey + R0 * 0.3) / (R0 * 1.2), 0, 1), c0 = C[Math.floor(r() * C.length)];
       // v16.1: soft, rounded leaf masses (smooth shading, more facets) with a smaller tuft on many of them, so the crown reads as
       // clustered leaves instead of cut gems
-      const lr = o.leaf * (0.6 + r() * 0.55), lc = mixHex(mixHex(c0, 0x1c2812, 0.38 * (1 - up)), 0xd8e0a0, 0.12 * up);
-      g.sph(lr, 8, 5, { m: M, at: [x, y, z], s: [1, 0.78, 1], ry: r() * 6, c: lc, j: 0.07, sw: 0.6 });
-      if (r() < 0.6) { const ta = r() * PI * 2; g.sph(lr * 0.55, 6, 4, { m: M, at: [x + Math.cos(ta) * lr * 0.75, y + lr * 0.35, z + Math.sin(ta) * lr * 0.75], s: [1, 0.8, 1], c: mixHex(lc, 0xe8f0a8, 0.1), j: 0.08, sw: 0.7 }); } } }
+      const lr = o.leaf * (0.6 + r() * 0.55) * (lod ? 1.16 : 1), lc = mixHex(mixHex(c0, 0x1c2812, 0.38 * (1 - up)), 0xd8e0a0, 0.12 * up);
+      g.sph(lr, sA, sB, { m: M, at: [x, y, z], s: [1, 0.78, 1], ry: r() * 6, c: lc, j: 0.07, sw: 0.6 });
+      if (r() < (lod ? 0.4 : 0.6)) { const ta = r() * PI * 2; g.sph(lr * 0.55, lod ? 5 : 6, lod ? 3 : 4, { m: M, at: [x + Math.cos(ta) * lr * 0.75, y + lr * 0.35, z + Math.sin(ta) * lr * 0.75], s: [1, 0.8, 1], c: mixHex(lc, 0xe8f0a8, 0.1), j: 0.08, sw: 0.7 }); } } }
 }
 env.olive = function (g, M, r) { M = scaledM(M, 1.55); // v12: 4–5 m
   limbTree(g, M, r, { trunk: 1.2, tr: 0.2, limbs: 4, spread: 0.85, limb: 1.25, crown: 1.0, clumps: 14, leaf: 0.42, flat: 0.8, bark: 0x7a6a58, cols: [0x8a9a5b, 0x7d8f50, 0x99a868, 0xa0aa78] });
@@ -1111,7 +1113,7 @@ env.acacia = function (g, M, r) { M = scaledM(M, 1.4); // v13: the umbrella thor
   for (let i = 0; i < 5; i++) { const a = i / 5 * PI * 2 + r() * 0.5, el = 0.55 + r() * 0.35, L = 1.6 + r() * 0.6, lm = m4mul(m4(), M, m4trs(m4(), 0.12, 1.55, 0, -a, 0, 0));
     g.cyl(0.035, 0.07, L, 5, { m: lm, at: [Math.sin(el) * L / 2, Math.cos(el) * L / 2, 0], rz: -el, c: bark, j: 0.05 });
     const ex = 0.12 + Math.cos(a) * Math.sin(el) * L, ez = Math.sin(a) * Math.sin(el) * L, ey = 1.55 + Math.cos(el) * L;
-    for (let k = 0; k < 9; k++) { const u = r() * PI * 2, d = Math.sqrt(r()) * 1.0; g.sph(0.42 + r() * 0.25, 9, 5, { m: M, at: [ex + Math.cos(u) * d, ey + 0.08 + (r() - 0.5) * 0.18, ez + Math.sin(u) * d], s: [1.3, 0.32, 1.3], ry: r() * 6, c: mixHex([0x7a9a48, 0x86a650, 0x6e8e42][k % 3], 0x26301a, k % 4 === 0 ? 0.3 : 0), j: 0.05, sw: 0.5 }); } }
+    for (let k = 0; k < 9; k++) { const u = r() * PI * 2, d = Math.sqrt(r()) * 1.0; g.sph(0.42 + r() * 0.25, G.treeLod ? 7 : 9, G.treeLod ? 4 : 5, { m: M, at: [ex + Math.cos(u) * d, ey + 0.08 + (r() - 0.5) * 0.18, ez + Math.sin(u) * d], s: [1.3, 0.32, 1.3], ry: r() * 6, c: mixHex([0x7a9a48, 0x86a650, 0x6e8e42][k % 3], 0x26301a, k % 4 === 0 ? 0.3 : 0), j: 0.05, sw: 0.5 }); } }
 };
 env.fig = function (g, M, r) { M = scaledM(M, 1.5);
   limbTree(g, M, r, { trunk: 1.1, tr: 0.18, limbs: 5, spread: 1.0, limb: 1.1, crown: 0.95, clumps: 12, leaf: 0.5, flat: 0.7, bark: 0x9a8a78, cols: [0x4f8a38, 0x5e9a40, 0x68a446, 0x3e7a2e] });

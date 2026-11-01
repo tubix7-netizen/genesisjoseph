@@ -346,6 +346,7 @@ function renderMenu(tab, body) {
       <div class="set"><span>시점</span><div class="seg"><button data-v="shoulder" class="${SET.view !== 'classic' ? 'on' : ''}">숄더뷰</button><button data-v="classic" class="${SET.view === 'classic' ? 'on' : ''}">일반 3인칭</button></div></div>
       <div class="set"><span>어깨 방향</span><div class="seg"><button data-sd="right" class="${SET.side !== 'left' ? 'on' : ''}">오른쪽</button><button data-sd="left" class="${SET.side === 'left' ? 'on' : ''}">왼쪽</button></div></div>
       <div class="set"><span>카메라 자동 따라가기</span><div class="seg"><button data-a="1" class="${SET.autoCam ? 'on' : ''}">켜기</button><button data-a="0" class="${SET.autoCam ? '' : 'on'}">끄기</button></div></div>
+      <div class="set"><span>고정 시야 (요셉이 보는 쪽으로 카메라가 따라가요 · 오른쪽 스틱으로 둘러보기)</span><div class="seg"><button data-fx="1" class="${SET.fixView ? 'on' : ''}">켜기</button><button data-fx="0" class="${SET.fixView ? '' : 'on'}">끄기</button></div></div>
       <div class="set"><span>카메라 위아래 반전</span><div class="seg"><button data-i="0" class="${SET.invert ? '' : 'on'}">기본</button><button data-i="1" class="${SET.invert ? 'on' : ''}">반전</button></div></div>
       <div class="set"><span>주민이 먼저 말 걸기</span><div class="seg">${[['often', '자주'], ['some', '가끔'], ['off', '끄기']].map(q => `<button data-ch="${q[0]}" class="${(SET.chatty || 'some') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>움직임 느낌</span><div class="seg">${[['wild', '야숨처럼'], ['heavy', '묵직하게'], ['bal', '균형'], ['snappy', '경쾌하게']].map(q => `<button data-fl="${q[0]}" class="${(SET.feel || 'wild') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
@@ -365,6 +366,7 @@ function renderMenu(tab, body) {
       if (b.dataset.au) { SET.auto = b.dataset.au; Game.saveSettings(); renderMenu('set', body); }
       if (b.dataset.v) { SET.view = b.dataset.v; Game.saveSettings(); renderMenu('set', body); }
       if (b.dataset.sd) { SET.side = b.dataset.sd; Game.saveSettings(); renderMenu('set', body); }
+      if (b.dataset.fx) { SET.fixView = b.dataset.fx === '1'; Game.saveSettings(); renderMenu('set', body); }
       if (b.dataset.a) { SET.autoCam = b.dataset.a === '1'; Game.saveSettings(); renderMenu('set', body); }
       if (b.dataset.i) { SET.invert = b.dataset.i === '1'; Game.saveSettings(); renderMenu('set', body); }
       if (b.dataset.ch) { SET.chatty = b.dataset.ch; Game.saveSettings(); renderMenu('set', body); }

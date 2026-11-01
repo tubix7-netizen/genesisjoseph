@@ -204,6 +204,8 @@ function build(W, Game) {
   const P = (fn, x, z, o) => {
     if (fn === 'egHouse' && o) { // v12: houses were one low storey; raise them to a proper two-storey height (model and collider together)
       o = Object.assign({}, o); if (o.args && o.args[0]) o.args = [Object.assign({}, o.args[0], { h: (o.args[0].h || 3) * 1.45 })]; if (o.col) o.col = Object.assign({}, o.col, { h: (o.col.h || 3) * 1.45 }); }
+    // v18.8: on phones (GG.treeLod) the trees standing beside the roads are left out — trees were most of the world's triangles. Trees near a story place (SPOTS / PADS) are kept.
+    if (GG.treeLod && typeof fn === 'string' && CANOPY[fn] && roadD(x, z) < 11 && !(o && o.keep) && !PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r + 12) && !Object.keys(SPOTS).some(k => { const q = SPOTS[k]; return Array.isArray(q) && Math.hypot(x - q[0], z - q[1]) < 12; })) { W.skippedTrees = (W.skippedTrees || 0) + 1; return { x, y: W.heightAt(x, z), z }; }
     if (typeof fn === 'string') o = Object.assign({ kind: fn }, o || {}); // v16.1: lets W.place give it a default collider by name
     if (fn === 'palmRow' && (!o || o.col === undefined)) { const n = (o && o.args && o.args[0]) || 3, a = (o && o.ry) || 0; for (let i = 0; i < n; i++) W.addCol({ x: x + Math.cos(a) * i * 4, z: z - Math.sin(a) * i * 4, r: 0.32, h: 5 }); }
     const res = W.place(typeof fn === 'string' && ENVX[fn] ? ENVX[fn] : fn, x, z, o);

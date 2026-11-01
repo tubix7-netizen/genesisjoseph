@@ -306,7 +306,7 @@ void main(){
 }`;
 const FS_COMMON = `
 uniform vec3 uSunDir,uSunCol,uSkyAmb,uGndAmb,uFogCol,uCamPos;uniform float uFogDen,uShadowOn,uShadowTexel;
-uniform vec2 uFogX; // v18.3 P10: x = how much the haze glows towards the sun, y = how fast the air thins with height (0, 0 = the old fog exactly)
+uniform vec3 uFogX; // (z = v18.6 draw-distance factor: 1 = the old 105–170 m full-fog band, 0.7 = 74–119 m)  // v18.3 P10: x = how much the haze glows towards the sun, y = how fast the air thins with height (0, 0 = the old fog exactly)
 uniform highp sampler2DShadow uShadow;
 float shadowF(vec4 S){
   if(uShadowOn<0.5)return 1.0;
@@ -321,7 +321,7 @@ vec3 tone(vec3 c){c*=0.98;c=clamp((c*(2.51*c+0.03))/(c*(2.43*c+0.59)+0.14),0.0,1
 vec3 fog(vec3 c,vec3 w){
   vec3 rv=w-uCamPos;float d=length(rv);
   float hk=exp(-max(rv.y,0.0)*uFogX.y); // things above the eye stand in thinner air (a valley is hazier than a ridge)
-  float f=1.0-exp(-d*uFogDen*hk);f=f*f*(3.0-2.0*f);f=max(f,smoothstep(105.0,170.0,d));
+  float f=1.0-exp(-d*uFogDen*hk);f=f*f*(3.0-2.0*f);f=max(f,smoothstep(105.0*uFogX.z,170.0*uFogX.z,d));
   float sc=pow(max(dot(rv/max(d,1e-3),uSunDir),0.0),5.0); // looking towards the sun the haze glows with its light
   return mix(c,uFogCol+uSunCol*(uFogX.x*sc),clamp(f,0.0,1.0));}
 `;
@@ -587,12 +587,12 @@ R.mesh = function (src) {
 R.applyCells = function (m, data, cells) {
   if (m.freed) return; const m2 = R.mesh(data); gl.deleteBuffer(m.buf); gl.deleteVertexArray(m.vao); m.buf = m2.buf; m.vao = m2.vao; m.cells = cells;
 };
-function drawStatic(m) { // draws the cells of m that are inside the current frustum (R.noCellCull = true draws it whole, for comparing)
+function drawStatic(m, cam, far) { // draws the cells of m that are inside the current frustum (R.noCellCull = true draws it whole, for comparing); v18.6: with cam/far, cells wholly beyond the draw distance (all fog there) are skipped too
   gl.bindVertexArray(m.vao); const cs = m.cells;
   if (!cs || R.noCellCull) { gl.drawArrays(gl.TRIANGLES, 0, m.count); return; }
   let first = -1, cnt = 0;
   for (let i = 0; i < cs.length; i++) { const e = cs[i];
-    if (visible(e.bs)) { if (first < 0) first = e.first; cnt += e.count; } else if (first >= 0) { gl.drawArrays(gl.TRIANGLES, first, cnt); first = -1; cnt = 0; } }
+    if (visible(e.bs) && !(cam && far && Math.hypot(e.bs[0] - cam[0], e.bs[2] - cam[2]) - e.bs[3] > far)) { if (first < 0) first = e.first; cnt += e.count; } else if (first >= 0) { gl.drawArrays(gl.TRIANGLES, first, cnt); first = -1; cnt = 0; } }
   if (first >= 0) gl.drawArrays(gl.TRIANGLES, first, cnt);
 }
 // indexed mesh: identical vertices (all 11 floats) are merged so smooth surfaces are shaded once per vertex
@@ -638,14 +638,14 @@ function instVao(mesh, ib) {
    both the shadow pass and the main pass. Now each instance is tested against the current frustum and only the ones that could be seen
    are drawn — the picture is the same (compared pixel by pixel). A distance cut at the fog limit was tried too, but a far tree can still
    tint a pixel there, so it is left out. The shadow pass has its own buffer so the two passes never overwrite one buffer in a frame. */
-function instDraw(s, shadow, cam) {
+function instDraw(s, shadow, cam, farArg) {
   let n = s.n, vao = s.vao;
   if (n > 8 && s.data && R.noInstCull !== true && R.noInstCull !== (shadow ? 'shadow' : 'main')) { // R.noInstCull = true / 'shadow' / 'main' switches it off (for comparing)
     const d = s.data, o = s.cdata || (s.cdata = new Float32Array(d.length)), bs = s.mesh.bs, br = (bs ? bs[3] + Math.hypot(bs[0], bs[2]) : 4), by = bs ? bs[1] : 0;
-    n = 0;
+    n = 0; const far = farArg || (!shadow && cam && R.farK < 1 ? R_FAR : 0); // v18.6: with a shortened draw distance (phones) instances wholly beyond it (all fog) are skipped
     for (let i = 0, N = s.n; i < N; i++) {
-      const b = i * 8, sc = d[b + 4] || 1, x = d[b], y = d[b + 1] + by * sc, z = d[b + 2], r = br * sc + 1.5; let ok = true;
-      for (let p = 0; p < 24; p += 4) if (FR[p] * x + FR[p + 1] * y + FR[p + 2] * z + FR[p + 3] < -r) { ok = false; break; }
+      const b = i * 8, sc = d[b + 4] || 1, x = d[b], y = d[b + 1] + by * sc, z = d[b + 2], r = br * sc + 1.5; let ok = !(far && Math.hypot(x - cam[0], z - cam[2]) - r > far);
+      if (ok) for (let p = 0; p < 24; p += 4) if (FR[p] * x + FR[p + 1] * y + FR[p + 2] * z + FR[p + 3] < -r) { ok = false; break; }
       if (ok) { const q = n * 8; for (let k = 0; k < 8; k++) o[q + k] = d[b + k]; n++; }
     }
     if (!n) return;
@@ -713,7 +713,7 @@ function visible(bs, mm) {
   return true;
 }
 R.visible = visible;
-const R_FAR = 172; R.FAR = R_FAR; // v16.6 draw distance: beyond it the fog is total, so nothing is drawn
+let R_FAR = 172; R.FAR = R_FAR; R.farK = 1; R.setFarK = k => { k = Math.max(0.5, Math.min(1, k)); if (k === R.farK) return; R.farK = k; R_FAR = 172 * k; R.FAR = R_FAR; }; // v18.6: phones draw less far (the full-fog band moves in with it, so the picture stays consistent) // v16.6 draw distance: beyond it the fog is total, so nothing is drawn
 function farOff(m, c, d) { const b = m.bs; return Math.hypot(b[0] - c[0], b[2] - c[2]) - b[3] > d; }
 
 R.skyOn = !/[?&]sky=0\b/.test(location.search); R.fogX = R.skyOn ? [0.6, 0.03] : [0, 0]; R.cloudSh = R.skyOn ? 1 : 0; // v18.3 P10: ?sky=0 = the old look
@@ -730,7 +730,7 @@ function setCommon(P, S) {
   if (u.uGndAmb) gl.uniform3fv(u.uGndAmb, S.env.gndAmb);
   if (u.uFogCol) gl.uniform3fv(u.uFogCol, S.env.fogCol);
   if (u.uFogDen) gl.uniform1f(u.uFogDen, S.env.fogDen);
-  if (u.uFogX) gl.uniform2f(u.uFogX, R.fogX[0], R.fogX[1]); // v18.3 P10 (R.fogX = [0, 0] switches the new fog off)
+  if (u.uFogX) gl.uniform3f(u.uFogX, R.fogX[0], R.fogX[1], R.farK); // v18.3 P10 (R.fogX = [0, 0] switches the new fog off)
   if (u.uCloudSh) gl.uniform1f(u.uCloudSh, R.cloudSh * Math.min(1, (S.env.cloud || 0) * 1.2));
   if (u.uTime) gl.uniform1f(u.uTime, S.time);
   if (u.uWind) gl.uniform1f(u.uWind, S.env.wind);
@@ -785,11 +785,14 @@ R.render = function (S, W, H) {
     // static + terrain
     let P = R.P.dLit; gl.useProgram(P.p); setCommonDepth(P, SV);
     for (const m of S.terrain) if (visible(m.bs)) { gl.bindVertexArray(m.vao); gl.drawArrays(gl.TRIANGLES, 0, m.count); }
-    for (const m of S.statics) if (m.shadow !== false && !(m.cullDist && farOff(m, S.cam, 40)) && visible(m.bs)) drawStatic(m);
+    // v18.6: only things that could throw a shadow into the map's ±ext square are drawn: a caster of height h at horizontal distance D from the focus reaches it only if h ≥ D·tan(sun height),
+    // so with ~16 m the tallest caster that matters, D ≤ ext·1.42 + 16/tan(sun) (cells wholly beyond that are skipped; R.noShadowFar = true draws them all, for comparing)
+    const sunH = Math.hypot(sd[0], sd[2]), shFar = R.noShadowFar ? 0 : Math.min(150, ext * 1.42 + 16 * sunH / Math.max(sd[1], 0.08));
+    for (const m of S.statics) if (m.shadow !== false && !(m.cullDist && farOff(m, S.cam, 40)) && visible(m.bs)) drawStatic(m, shFar ? f : null, shFar);
     for (const d of S.dyn) if (d.shadow !== false && visible(d.mesh.bs, d.m)) { gl.uniformMatrix4fv(P.U.uModel, false, d.m); gl.bindVertexArray(d.mesh.vao); R.draw(d.mesh); }
     gl.uniformMatrix4fv(P.U.uModel, false, IDM);
     P = R.P.dInst; gl.useProgram(P.p); setCommonDepth(P, SV);
-    for (const s of S.insts) if (s.n && s.shadow && visible(s.bs)) instDraw(s, true, S.cam);
+    for (const s of S.insts) if (s.n && s.shadow && visible(s.bs)) instDraw(s, true, f, shFar);
     P = R.P.dSkin; gl.useProgram(P.p); setCommonDepth(P, SV);
     for (const k of S.skinned) { if (k.shadow === false || (k.bs && !visible(k.bs))) continue; gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindVertexArray(k.mesh.vao); R.draw(k.mesh); }
     gl.disable(gl.POLYGON_OFFSET_FILL); gl.enable(gl.CULL_FACE);
@@ -811,7 +814,7 @@ R.render = function (S, W, H) {
   // statics + dynamic
   P = R.P.lit; gl.useProgram(P.p); setCommon(P, S);
   gl.disable(gl.CULL_FACE);
-  for (const m of S.statics) if (!farOff(m, S.cam, m.cullDist || R_FAR) && visible(m.bs)) drawStatic(m);
+  for (const m of S.statics) if (!farOff(m, S.cam, m.cullDist || R_FAR) && visible(m.bs)) drawStatic(m, R.farK < 1 ? S.cam : null, m.cullDist || R_FAR);
   for (const d of S.dyn) {
     if (!visible(d.mesh.bs, d.m)) continue;
     gl.uniformMatrix4fv(P.U.uModel, false, d.m);

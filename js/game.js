@@ -225,6 +225,7 @@ Game.start = function (epId, fresh, preview) {
   let saved = null; if (!fresh) { try { saved = JSON.parse(localStorage.getItem(KEY(epId)) || 'null'); } catch (e) { } }
   S = saved && saved.v === 2 ? saved : newState(EP);
   // world
+  { const tm = /[?&]trees=(hi|lo)\b/.exec(location.search); G.treeLod = tm ? (tm[1] === 'lo' ? 1 : 0) : (COARSE && SET.quality !== 'high' ? 1 : 0); } // v18.6 tree detail (phones: lighter)
   if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
   if (window.__bc) __bc('build'); EP.build(W, Game);
   if (window.__bc) __bc('statics'); W.finishStatics();
@@ -261,6 +262,7 @@ Game.dispose = function () {
 };
 Game.applyQuality = function () {
   const q = SET.quality; R.setShadow(q === 'high' ? 2048 : q === 'mid' ? 1024 : 0);
+  R.setFarK(PERF.farMax = (/[?&]far=(\d(?:\.\d+)?)\b/.exec(location.search) || [])[1] ? +RegExp.$1 : (COARSE ? (q === 'high' ? 0.85 : q === 'mid' ? 0.7 : 0.6) : 1)); // v18.6 phone draw distance (?far=1 for the old one)
   R.cloudSh = R.skyOn && q !== 'low' ? 1 : 0; // v18.3 P10: cloud shadows (a little noise per pixel) are off on the lowest quality, as are shadows; ?sky=0 turns the whole new sky/fog look off
   if (R.grass) R.grass.n = q === 'high' ? 9000 : q === 'mid' ? 5000 : 0;
   Game.dpr = Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : q === 'mid' ? 1.5 : 1);
@@ -281,7 +283,7 @@ const CAM_AP = { dist: 2.75, off: 0.36, piv: 1.62, fov: 1.0 }, CAM_AL = { dist: 
 function camCfg() { const c = SET.view === 'classic' ? CAM_C : isPortrait() ? CAM_P : CAM_L; return c; }
 Game.camCfg = camCfg;
 // direct swipe-look (drag on empty screen area)
-Game.camDrag = function (dx, dy) { if (G.UI.modal()) return; const c = camCfg(), s = SET.sens; CAM.yaw -= dx * 0.0062 * s; CAM.pitch = clamp(CAM.pitch + (SET.invert ? -dy : dy) * 0.0045 * s, c.pMin, c.pMax); CAM.last = 0; };
+Game.camDrag = function (dx, dy) { if (G.UI.modal()) return; CAM.lookT = 0; const c = camCfg(), s = SET.sens; CAM.yaw -= dx * 0.0062 * s; CAM.pitch = clamp(CAM.pitch + (SET.invert ? -dy : dy) * 0.0045 * s, c.pMin, c.pMax); CAM.last = 0; };
 
 // =================================================================== OUTFIT / PLAYER LOOK
 function setOutfit(key) { S.outfit = key; Game.refreshLook(); }
@@ -930,7 +932,12 @@ function updateCamera(dt, snap) {
   CAM.yv = lerp(CAM.yv || 0, live ? -ex * (sh ? 2.8 : 3.2) * s * fine : 0, kr); CAM.pv = lerp(CAM.pv || 0, live ? ey * 1.7 * s * fine : 0, kr);
   if (live || Math.abs(CAM.yv) + Math.abs(CAM.pv) > 0.01) { CAM.yaw += CAM.yv * dt; CAM.pitch = clamp(CAM.pitch + CAM.pv * dt, pMin, pMax); }
   if (live) CAM.last = 0; else CAM.last += dt;
-  if (SET.autoCam && CAM.last > 1.2 && P.spd > 1.5 && !G.UI.busy() && aw < 0.05) {
+  if (live) CAM.lookT = 0; else CAM.lookT = (CAM.lookT === undefined ? 9 : CAM.lookT) + dt;
+  /* v18.7 고정 시야 (SET.fixView): while the hero can be controlled the camera swings round to look the way he faces; the right stick (or a screen drag) looks around freely and, half a second after
+     it is released, the camera comes back behind him. Off = the camera is exactly as before. Not while aiming, in a talk / menu / cutscene, or when he is down. */
+  const fix = SET.fixView && Game.mode === 'play' && !G.UI.busy() && !Game.cineOn && aw < 0.02 && !P.downed;
+  if (fix) { if (!live && CAM.lookT > 0.5) { const wantF = P.face + PI; CAM.yaw += angDiff(CAM.yaw, wantF) * Math.min(1, dt * 2.6); } }
+  else if (SET.autoCam && CAM.last > 1.2 && P.spd > 1.5 && !G.UI.busy() && aw < 0.05) {
     const want = Math.atan2(P.vx, P.vz) + PI; const lat = Math.abs(Math.sin(angDiff(CAM.yaw, want)));
     CAM.yaw += angDiff(CAM.yaw, want) * Math.min(1, dt * (sh ? 0.4 : 0.55) * (0.3 + lat)) * Math.min(1, P.spd / 4);
     CAM.pitch += (pRest - CAM.pitch) * Math.min(1, dt * 0.4);
@@ -1034,6 +1041,8 @@ function perfTick(rawMs, dt) {
   // shadow update rate
   PERF.slow = p > tgt * 1.25 ? PERF.slow + 1 : 0; PERF.fast = p <= tgt * 1.1 ? PERF.fast + 1 : 0;
   if (R.shadowLock) R.shadowRate = R.shadowLock; else if (PERF.slow >= 4) R.shadowRate = 2; else if (PERF.fast >= 4) R.shadowRate = 1;
+  // v18.6 draw distance: still slow after the shadows are halved and the picture is at 70% size or less → draw a little less far (never raised again until the quality is set)
+  if (Game.mode === 'play' && PERF.slow >= 6 && R.shadowRate === 2 && PERF.scale <= 0.7 && R.farK > 0.5) { R.setFarK(R.farK - 0.1); PERF.slow = 0; }
   // resolution
   if (tAll - PERF.ceilAt > 180) PERF.ceil = 1; // (a ceiling set by a failed rise is forgotten after three minutes)
   if (p > tgt * 1.3 && PERF.scale > 0.6) { PERF.scale = Math.max(0.6, PERF.scale - 0.1); if (tAll - PERF.raiseAt < 25) { PERF.ceil = PERF.scale; PERF.ceilAt = tAll; } PERF.dropAt = tAll; } // a drop soon after a rise: that size was too much, do not try it again for a while
