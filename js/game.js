@@ -187,7 +187,7 @@ function mwAsk(key, look, lod, d, hot) {
 /* v17.3 P13: static chunks are sorted into cells (see R.applyCells) by a second worker, so the one that builds people is never kept waiting. */
 const CW = Game.cw = { w: null, id: 0, pend: new Map(), done: 0 };
 Game.cellAsk = function (m, g) {
-  if (!CW.w || g.d.length < 6000 * 33) return; const data = new Float32Array(g.d), id = ++CW.id; CW.pend.set(id, m); CW.w.postMessage({ cell: id, data, C: 12 }, [data.buffer]);
+  if (!CW.w || g.length < 6000 * 33) return; const data = g, id = ++CW.id; CW.pend.set(id, m); CW.w.postMessage({ cell: id, data, C: 12 }, [data.buffer]);
 };
 (function cwStart() {
   if (typeof Worker === 'undefined' || location.protocol === 'file:' || /[?&]mw=0\b/.test(location.search)) return;
