@@ -22,7 +22,7 @@ const DEF = {
   flute: ['피리 불기', { hold: 1, walk: 1, d: '갈대 피리로 목동의 노래를 불어요' }], dance: ['춤추기', { hold: 1 }], dance2: ['원무 추기', { hold: 1 }], pet: ['동물 쓰다듬기', { dur: 2.8, d: '가까운 양·염소·나귀를 쓰다듬어요' }],
   eat: ['먹기', { dur: 2.3, walk: 1, hide: 1 }], drink: ['마시기', { dur: 1.4, walk: 1, hide: 1 }] };
 // v12: only what belongs in Joseph's world — rest, prayer, a greeting, and care for animals (dances, cheers, flute… removed from the sheet)
-const TABS = [['rest', '쉬기', ['sitg', 'kneelRest', 'lie', 'warmHands']], ['faith', '기도', ['pray', 'prostrate']], ['social', '인사', ['wave', 'bow']], ['play', '돌보기', ['pet', 'photo', 'travel']]];
+const TABS = [['rest', '쉬기', ['sitg', 'kneelRest', 'lie', 'warmHands']], ['faith', '기도', ['pray', 'prostrate']], ['social', '인사', ['wave', 'bow']], ['play', '돌보기', ['pet', 'photo']]];
 Ac.DEF = DEF;
 Ac.walkable = k => !!(DEF[k] && DEF[k][1].walk);
 Ac.locks = () => false;
@@ -125,12 +125,10 @@ Ac.open = function () {
   UI.openPanel('동작', TABS.map(t => [t[0], t[1]]), cur, (tab, body) => {
     UI._emoTab = tab; const T = TABS.find(t => t[0] === tab);
     body.innerHTML = `<div class="emo-grid">${T[2].map(k => k === 'photo' ? `<button class="emo" data-photo="1"><b>사진 모드</b><span>화면의 표시를 숨겨요</span></button>`
-      : k === 'travel' ? `<button class="emo${G.Travel && G.Travel.on ? ' on' : ''}" data-travel="1"><b>영화처럼 보기</b><span>걸을 때 카메라가 영화처럼 따라와요</span></button>`
       : `<button class="emo${P.emote && P.emote.k === k ? ' on' : ''}" data-k="${k}"><b>${DEF[k][0]}</b><span>${DEF[k][1].d || (DEF[k][1].rest ? '쉬면 기력이 빨리 차요' : DEF[k][1].walk ? '걸으면서도 할 수 있어요' : DEF[k][1].hold ? '움직이면 멈춰요' : '')}</span></button>`).join('')}</div>
       <p class="emo-note">${tab === 'rest' ? '앉거나 누워 쉬면 기력이 2.5배 빨리 차고 배도 덜 고파요. 밤에 누우면 그대로 잠들 수 있어요.' : tab === 'faith' ? '제단 앞이 아니어도 어디서나 기도할 수 있어요.' : tab === 'social' ? '가까운 주민들이 손을 흔들어 주거나 같이 웃어 줘요.' : '피리를 불면 아이들이 춤추고 양들이 모여들어요.'}</p>`;
     body.onclick = e => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.photo) { UI.closePanel(); Ac.photo(true); return; }
-      if (b.dataset.travel) { UI.closePanel(); setTimeout(() => G.Travel && G.Travel.toggle(), 60); return; }
       const k = b.dataset.k; UI.closePanel(); setTimeout(() => Ac.toggle(k), 60); };
   });
 };

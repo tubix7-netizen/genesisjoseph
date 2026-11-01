@@ -38,7 +38,7 @@ D.rec = function (kind, target, o) {
   else D.stats.unseen++;
   return d;
 };
-D.char = function (k) { const s = store(); if (!s) return; s.flags.char = k; if (k === 'trust') D.rec('patience', null, {}); };
+D.char = function (k, slot) { const s = store(); if (!s) return; if (slot) { (s.flags.chars = s.flags.chars || {})[slot] = k; return; } s.flags.char = k; if (k === 'trust') D.rec('patience', null, {}); }; // v18.8: several story choices of character — slot 'coat' (the field), 'credit' (before Pharaoh); no slot = the prison one
 
 // ------------------------------------------------------------------ the rumour
 const TOLD = {

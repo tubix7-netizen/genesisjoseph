@@ -148,7 +148,7 @@ L.gotSince = (st, k) => (Game.S().stats.got[k] || 0) - ((st && st.got[k]) || 0);
    fn() in order so the story state ends up exactly as if the scene had played. */
 const Cine = G.Cine = { on: false };
 Cine.play = function (shots, done, opt) {
-  opt = opt || {}; if (G.Shot) G.Shot.reset(); if (G.Travel && G.Travel.on) G.Travel.stop('cutscene');
+  opt = opt || {}; if (G.Shot) G.Shot.reset();
   // v17.7 P2: glide from the play camera into the first shot instead of cutting (opt.blendIn seconds, default 0.6; opt.cut or a black/title/fade-in first shot cuts as before; farther than 40 m is a cut)
   { const f0 = shots.filter(Boolean)[0], CM = Game.CAM, bi = opt.blendIn === undefined ? 0.6 : opt.blendIn; Cine.enter = !opt.cut && bi > 0 && f0 && !f0.black && !f0.title && !f0.fadeIn && !Cine.hold && Game.mode === 'play' && !Game.cineOn ? { x: CM.x, y: CM.y, z: CM.z, lx: CM.lx === undefined ? CM.tx : CM.lx, ly: CM.ly === undefined ? CM.ty : CM.ly, lz: CM.lz === undefined ? CM.tz : CM.lz, fov: CM.fov || 0.9, dur: bi } : null; }
   Cine.on = true; Game.cineOn = true; Cine.shots = shots.filter(Boolean); Cine.i = -1; Cine.done = done; Cine.opt = opt; Cine.T = 0;

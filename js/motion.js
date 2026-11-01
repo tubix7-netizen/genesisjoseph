@@ -35,7 +35,7 @@ M.FEEL = {
   heavy: { acc: 9.5, dec: 11, turn: 7.5, air: 4.5, brake: 1.3, n: '묵직하게' },
   bal: { acc: 22, dec: 30, turn: 14, air: 8, brake: 1, n: '균형' }, // v10: stops in ≈0.35 s instead of sliding 0.9 m
   snappy: { acc: 42, dec: 48, turn: 24, air: 12, brake: 0.5, n: '경쾌하게' },
-  wild: { acc: 30, dec: 26, turn: 19, air: 10, brake: 0.85, n: '야숨처럼' } }; // v16.7 default: quick to start, a short skid on hard stops, crisp turns
+  wild: { acc: 30, dec: 26, turn: 19, air: 10, brake: 0.85, n: '자유롭게' } }; // v16.7 default: quick to start, a short skid on hard stops, crisp turns
 M.feel = () => M.FEEL[(G.Game && G.Game.SET && G.Game.SET.feel) || 'wild'] || M.FEEL.wild;
 
 // body info from a look (sex / build / age), cached on the rig

@@ -584,16 +584,20 @@ R.mesh = function (src) {
    and the shadow pass touches a lot of them. js/meshworker.js sorts the triangles of the big chunks into 12 m cells in a Web Worker and
    R.applyCells swaps the sorted buffer in (m.cells = each cell's range and bounding sphere); drawStatic then draws only the cells that are
    inside the current frustum, neighbouring visible cells in one call. Until the sorted buffer arrives (or without a worker) the chunk is drawn whole, as before. */
-R.applyCells = function (m, data, cells) {
+R.applyCells = function (m, data, cells, lod) {
   if (m.freed) return; const m2 = R.mesh(data); gl.deleteBuffer(m.buf); gl.deleteVertexArray(m.vao); m.buf = m2.buf; m.vao = m2.vao; m.cells = cells;
+  if (lod && lod.length) { const m3 = R.mesh(lod); m.lbuf = m3.buf; m.lvao = m3.vao; } // v18.9 the far-LOD copy of the same cells (cells[i].lf / lc)
 };
-function drawStatic(m, cam, far) { // draws the cells of m that are inside the current frustum (R.noCellCull = true draws it whole, for comparing); v18.6: with cam/far, cells wholly beyond the draw distance (all fog there) are skipped too
+function drawStatic(m, cam, far, lodD) { // draws the cells of m that are inside the current frustum (R.noCellCull = true draws it whole, for comparing); v18.6: with cam/far, cells wholly beyond the draw distance (all fog there) are skipped too
   gl.bindVertexArray(m.vao); const cs = m.cells;
   if (!cs || R.noCellCull) { gl.drawArrays(gl.TRIANGLES, 0, m.count); return; }
-  let first = -1, cnt = 0;
+  let first = -1, cnt = 0; const lod = lodD && m.lvao && cam && !R.noLod, L = lod ? [] : null; // v18.9: cells farther than lodD from the camera are drawn from the simplified copy (second pass below)
   for (let i = 0; i < cs.length; i++) { const e = cs[i];
-    if (visible(e.bs) && !(cam && far && Math.hypot(e.bs[0] - cam[0], e.bs[2] - cam[2]) - e.bs[3] > far)) { if (first < 0) first = e.first; cnt += e.count; } else if (first >= 0) { gl.drawArrays(gl.TRIANGLES, first, cnt); first = -1; cnt = 0; } }
+    let ok = visible(e.bs) && !(cam && far && Math.hypot(e.bs[0] - cam[0], e.bs[2] - cam[2]) - e.bs[3] > far);
+    if (ok && lod && e.lc !== undefined && Math.hypot(e.bs[0] - cam[0], e.bs[2] - cam[2]) > lodD) { if (e.lc) L.push(e); ok = false; }
+    if (ok) { if (first < 0) first = e.first; cnt += e.count; } else if (first >= 0) { gl.drawArrays(gl.TRIANGLES, first, cnt); first = -1; cnt = 0; } }
   if (first >= 0) gl.drawArrays(gl.TRIANGLES, first, cnt);
+  if (L && L.length) { gl.bindVertexArray(m.lvao); let lf = -1, lc = 0; for (const e of L) { if (lf >= 0 && lf + lc === e.lf) lc += e.lc; else { if (lf >= 0) gl.drawArrays(gl.TRIANGLES, lf, lc); lf = e.lf; lc = e.lc; } } if (lf >= 0) gl.drawArrays(gl.TRIANGLES, lf, lc); }
 }
 // indexed mesh: identical vertices (all 11 floats) are merged so smooth surfaces are shaded once per vertex
 /* v17.2 P12: the welding step is pure (no GL), so a Web Worker can run it (js/meshworker.js); R.meshWelded then only uploads */
@@ -624,7 +628,7 @@ R.updateMesh = function (m, src) {
   const data = src instanceof Float32Array ? src : new Float32Array(src.d);
   gl.bindBuffer(gl.ARRAY_BUFFER, m.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW); m.count = data.length / 11; if (src instanceof GB) m.bs = src.bounds();
 };
-R.free = function (m) { if (!m) return; m.freed = true; gl.deleteBuffer(m.buf); gl.deleteVertexArray(m.vao); if (m.ibuf) gl.deleteBuffer(m.ibuf); if (m.ibufS) gl.deleteBuffer(m.ibufS); if (m.vaoS) gl.deleteVertexArray(m.vaoS); };
+R.free = function (m) { if (!m) return; m.freed = true; gl.deleteBuffer(m.buf); gl.deleteVertexArray(m.vao); if (m.ibuf) gl.deleteBuffer(m.ibuf); if (m.ibufS) gl.deleteBuffer(m.ibufS); if (m.vaoS) gl.deleteVertexArray(m.vaoS); if (m.lbuf) gl.deleteBuffer(m.lbuf); if (m.lvao) gl.deleteVertexArray(m.lvao); };
 // instanced: mesh + instance buffer (8 floats: x,y,z,rotY, scale, r,g,b)
 function instVao(mesh, ib) {
   const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
@@ -814,7 +818,7 @@ R.render = function (S, W, H) {
   // statics + dynamic
   P = R.P.lit; gl.useProgram(P.p); setCommon(P, S);
   gl.disable(gl.CULL_FACE);
-  for (const m of S.statics) if (!farOff(m, S.cam, m.cullDist || R_FAR) && visible(m.bs)) drawStatic(m, R.farK < 1 ? S.cam : null, m.cullDist || R_FAR);
+  for (const m of S.statics) if (!farOff(m, S.cam, m.cullDist || R_FAR) && visible(m.bs)) drawStatic(m, R.farK < 1 || R.lodDist ? S.cam : null, R.farK < 1 ? (m.cullDist || R_FAR) : 0, R.lodDist);
   for (const d of S.dyn) {
     if (!visible(d.mesh.bs, d.m)) continue;
     gl.uniformMatrix4fv(P.U.uModel, false, d.m);

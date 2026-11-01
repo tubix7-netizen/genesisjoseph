@@ -204,8 +204,11 @@ function build(W, Game) {
   const P = (fn, x, z, o) => {
     if (fn === 'egHouse' && o) { // v12: houses were one low storey; raise them to a proper two-storey height (model and collider together)
       o = Object.assign({}, o); if (o.args && o.args[0]) o.args = [Object.assign({}, o.args[0], { h: (o.args[0].h || 3) * 1.45 })]; if (o.col) o.col = Object.assign({}, o.col, { h: (o.col.h || 3) * 1.45 }); }
-    // v18.8: on phones (GG.treeLod) the trees standing beside the roads are left out — trees were most of the world's triangles. Trees near a story place (SPOTS / PADS) are kept.
-    if (GG.treeLod && typeof fn === 'string' && CANOPY[fn] && roadD(x, z) < 11 && !(o && o.keep) && !PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r + 12) && !Object.keys(SPOTS).some(k => { const q = SPOTS[k]; return Array.isArray(q) && Math.hypot(x - q[0], z - q[1]) < 12; })) { W.skippedTrees = (W.skippedTrees || 0) + 1; return { x, y: W.heightAt(x, z), z }; }
+    // v18.8: on phones (GG.treeLod) the trees standing beside the roads are left out, and the forest is thinned by a third (trees were most of the world's triangles); trees near a story place (SPOTS / PADS) are kept.
+    if (GG.treeLod && typeof fn === 'string' && CANOPY[fn] && !(o && o.keep)) {
+      const road = roadD(x, z) < 11, thin = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1 < 0.34;
+      if ((road || thin) && !PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r + 12) && !Object.keys(SPOTS).some(k => { const q = SPOTS[k]; return Array.isArray(q) && Math.hypot(x - q[0], z - q[1]) < 12; })) { W.skippedTrees = (W.skippedTrees || 0) + 1; return { x, y: W.heightAt(x, z), z }; }
+    }
     if (typeof fn === 'string') o = Object.assign({ kind: fn }, o || {}); // v16.1: lets W.place give it a default collider by name
     if (fn === 'palmRow' && (!o || o.col === undefined)) { const n = (o && o.args && o.args[0]) || 3, a = (o && o.ry) || 0; for (let i = 0; i < n; i++) W.addCol({ x: x + Math.cos(a) * i * 4, z: z - Math.sin(a) * i * 4, r: 0.32, h: 5 }); }
     const res = W.place(typeof fn === 'string' && ENVX[fn] ? ENVX[fn] : fn, x, z, o);
@@ -526,6 +529,9 @@ const steps = {
       J('내가 내 형들을 찾으오니, 청하건대 그들이 양 치는 곳을 내게 가르쳐 주소서.', '창세기 37:16'),
       N('man', '그들이 여기서 떠났느니라. 내가 그들의 말을 들으니 「도단으로 가자」 하더라.', '창세기 37:17'),
       N('man', '도단은 북쪽 골짜기 너머, 우물이 많은 평원이다. …젊은이, 그 고운 옷이 눈에 잘 띄는구먼. 몸조심하게.', '', 'tender'),
+      { n: '요셉', t: '요셉은 무엇이라 대답했을까? (어느 쪽도 정답은 아니에요. 요셉의 마음을 골라 보세요)', choices: [
+        { t: '"네, 조심하겠습니다. 아버지가 주신 소중한 옷이라, 더 곱게 입을게요."', then: () => { GG.Deeds && GG.Deeds.char('care', 'coat'); } },
+        { t: '"아버지께서 사랑으로 주신 옷이니, 자랑스럽게 입고 가겠습니다."', then: () => { GG.Deeds && GG.Deeds.char('pride', 'coat'); } }] },
       J('고맙습니다! 하나님이 당신에게 복 주시기를!', '', 'happy')], () => { G.npcWalk('man', 214, -30, () => G.npcShow('man', false), 1.5); G.go('p_dothan'); }); } } },
   p_dothan: { ch: 1, obj: '형들을 따라 북쪽 도단으로', target: 'spot:dothanView', check: (S, G) => G.P.z < -98,
     done(S, G, next) { cinPlot(S, G, next); }, next: 'p_approach' },
@@ -681,6 +687,8 @@ const steps = {
     enter(S, G, re) { for (const k of ['build', 'build2', 'herd2', 'ride', 'ride2', 'fish', 'hunt']) if (Gm().FEATS[k]) Gm().unlockFeat(k, true); S.flags.free = 1; S.q.born1 = S.q.born2 = 1;
       if (!re && !S.flags.freeIntro) { S.flags.freeIntro = 1; setTimeout(() => narr([
         { kick: '요셉 편 · 끝', title: '여기까지가 성경의 이야기', t: '요셉은 형들과 화해했고, 아버지 야곱과 온 집안이 고센 땅에 자리 잡았습니다. 성경의 이야기는 창세기 50장까지 이어지지만, 이 편은 여기서 막을 내립니다. "당신들은 나를 해하려 하였으나 하나님은 그것을 선으로 바꾸사…" (창 50:20)', ref: '창세기 37–47장' },
+        ...(((S.flags.chars || {}).coat === 'care') ? [{ kick: '요셉의 마음', title: '조심하는 마음', t: '세겜 들판에서 낯선 이의 말을 귀담아듣고 몸을 조심하려 했던 요셉. 그 조심스러움이 먼 길 위에서 요셉을 지켜 주었는지도 몰라요.' }] : ((S.flags.chars || {}).coat === 'pride') ? [{ kick: '요셉의 마음', title: '사랑받은 마음', t: '아버지의 사랑을 자랑스럽게 입고 걸었던 요셉. 그 사랑이 훗날 가장 어두운 곳에서도 요셉을 붙들어 주었는지도 몰라요.' }] : []),
+        ...(((S.flags.chars || {}).credit === 'god') ? [{ kick: '요셉의 마음', title: '돌린 영광', t: '바로 앞에서도 모든 것을 하나님께 돌렸던 요셉. 높아진 자리에서 낮은 마음을 지켰습니다.' }] : ((S.flags.chars || {}).credit === 'duty') ? [{ kick: '요셉의 마음', title: '맡은 책임', t: '맡겨진 일을 힘을 다해 해내겠다고 답했던 요셉. 그 성실함이 일곱 해의 풍년과 흉년을 지켜 냈습니다.' }] : []),
         ...(S.flags.char === 'trust' ? [{ kick: '요셉의 마음', title: '맡긴 마음', t: '옥에서 억울함을 말하는 대신 하나님께 맡긴다고 했던 요셉. 그 마음이 이 긴 이야기를 끝까지 지켜 주었는지도 모릅니다.' }] : S.flags.char === 'protest' ? [{ kick: '요셉의 마음', title: '억울했던 마음', t: '옥에서 억울하다고 토해 냈던 요셉. 그렇게 솔직했기에, 그 마음도 결국 하나님 앞에서 위로를 받았는지도 모릅니다.' }] : []),
         { kick: '자유 여행', title: '이제부터는 마음껏', t: '이제 애굽과 가나안 어디든 자유롭게 다녀도 좋아요. 총리의 집에서 아스낫과 므낫세·에브라임과 시간을 보내고, 고센 마을에서 아버지와 형제들을 만나 부탁을 들어주고, 사람들과 친해지고, 집을 짓고, 밭을 갈고, 가축을 기르고, 외딴 곳의 보물상자와 새로운 곳을 찾아보세요. 옷장에서 옷도 갈아입을 수 있어요.', ref: '' },
         { kick: 'IF 이야기', title: '성경 밖의 이야기', t: '지금부터 펼쳐지는 이야기는 성경에 기록되지 않은 「만약에(IF)」 이야기예요. 성경과 옛 애굽의 역사 자료를 바탕으로 상상해 꾸민 것이라, 실제와 다를 수 있어요.', ref: '' }]), 900); } } },
@@ -1624,7 +1632,10 @@ function answerScene(S, G) {
       { t: '"신들께 제물을 더 바치소서."', ok: false, fb: '요셉은 하나님이 보이신 길을 그대로 전했습니다. 거두고, 쌓고, 나누는 길을.' }] },
     J('그 곡물을 각 성에 쌓아 두어 애굽 땅에 임할 일곱 해 흉년에 대비하시면, 땅이 이 흉년으로 말미암아 망하지 아니하리이다.', '창세기 41:35–36'),
     N('pharaoh', '이와 같이 하나님의 영에 감동된 사람을 우리가 어찌 찾을 수 있으리요.', '창세기 41:38', 'awe'),
-    N('pharaoh', '하나님이 이 모든 것을 네게 보이셨으니 너와 같이 명철하고 지혜 있는 자가 없도다. 너는 내 집을 다스리라. 내 백성이 다 네 명령을 따르리니, 내가 너보다 높은 것은 그 왕좌뿐이니라.', '창세기 41:39–40', 'solemn')],
+    N('pharaoh', '하나님이 이 모든 것을 네게 보이셨으니 너와 같이 명철하고 지혜 있는 자가 없도다. 너는 내 집을 다스리라. 내 백성이 다 네 명령을 따르리니, 내가 너보다 높은 것은 그 왕좌뿐이니라.', '창세기 41:39–40', 'solemn'),
+    { n: '요셉', t: '바로의 말에 요셉은 어떻게 대답했을까? (어느 쪽도 정답은 아니에요)', choices: [
+      { t: '"이는 저의 지혜가 아니라, 하나님께서 보여 주신 것입니다."', then: () => { GG.Deeds && GG.Deeds.char('god', 'credit'); } },
+      { t: '"맡겨 주신 일을 힘을 다해 맡아 하겠습니다."', then: () => { GG.Deeds && GG.Deeds.char('duty', 'credit'); } }] }],
   () => cinInvest(S, G))));
 }
 // v16.8 if the interpretation was interrupted, speaking to 바로 again takes it up from the start of the scene

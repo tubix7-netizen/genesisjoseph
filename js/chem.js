@@ -94,6 +94,20 @@ Ch.scared = function (a) {
   return false;
 };
 
+// ------------------------------------------------------------------ burnt ground (v18.8): every ash cell near the hero is drawn as a flat, dark patch on the ground
+let ashMesh = null, ashD = null, ashKey = '', ashT = 0;
+const ID16 = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+function ashRebuild() {
+  const W = Game.W(), P = Game.P; if (!W || !G.GB) return; const cells = [];
+  for (let cz = 0; cz < N; cz++) for (let cx = 0; cx < N; cx++) { if (!ash[idx(cx, cz)]) continue; const x = Ch.ox + cx + 0.5, z = Ch.oz + cz + 0.5, d = Math.hypot(x - P.x, z - P.z); if (d < 70) cells.push([d, x, z]); }
+  cells.sort((a, b) => a[0] - b[0]); const key = cells.length + ':' + (cells.length ? cells[0][1] + ',' + cells[cells.length - 1][2] : ''); if (key === ashKey) return; ashKey = key;
+  if (!cells.length) { ashD = null; return; }
+  const g = new G.GB(3); for (const c of cells.slice(0, 500)) { const x = c[1], z = c[2], y = Math.max(W.heightAt(x - 0.5, z - 0.5), W.heightAt(x + 0.5, z - 0.5), W.heightAt(x - 0.5, z + 0.5), W.heightAt(x + 0.5, z + 0.5)) + 0.03;
+    g.sph(0.78, 7, 3, { at: [x + Math.sin(x * 12.9 + z * 4.1) * 0.12, y, z + Math.cos(z * 9.7 + x * 3.3) * 0.12], s: [1, 0.07, 0.85 + 0.25 * Math.abs(Math.sin(x * 5.3 + z * 2.1))], ry: x * 7.7 + z * 3.1, c: (Math.floor(x * 3 + z * 5)) % 3 ? 0x2a2622 : 0x38322c, flat: true }); }
+  if (!ashMesh) ashMesh = G.R.mesh(g); else G.R.updateMesh(ashMesh, g); ashMesh.bs = [0, 0, 0, 1e6]; if (!ashD) ashD = { m: ID16, shadow: false, mesh: ashMesh }; ashD.mesh = ashMesh;
+}
+Ch.dyn = function (list) { if (Ch.on && ashD && ashD.mesh) list.push(ashD); };
+
 // ------------------------------------------------------------------ the hero's clothes (wet → colder) and the torch
 function hero(dt) {
   const P = Game.P, Wx = G.Weather && G.Weather.cur || { rain: 0 }, Sv = G.Surv; let roof = 0, heatN = 0; if (Sv && Sv.heatAt) { const h = Sv.heatAt(P.x, P.z); roof = h.roof || 0; heatN = h.heat || 0; }
@@ -119,6 +133,7 @@ Game.CTX.push(function (S, g) {
 Ch.update = function (dt) {
   if (!Ch.on || Game.mode !== 'play' || !Game.W()) return; if (!Ch.ready) { recenter(true); Ch.ready = true; } else recenter(false); hero(dt);
   acc += dt; if (acc >= 0.1) { const s = Math.min(acc, 0.3); acc = 0; step(s); effects(s); }
+  ashT += dt; if (ashT >= 1) { ashT = 0; ashRebuild(); }
 };
 // wet clothes make the cold bite harder
 if (G.Weather && G.Weather.chill) { const c0 = G.Weather.chill; G.Weather.chill = () => { const c = c0(); return Ch.on ? c * (1 + Ch.wetHero) + Ch.wetHero * 3 : c; }; }

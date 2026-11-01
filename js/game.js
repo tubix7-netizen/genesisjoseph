@@ -187,12 +187,12 @@ function mwAsk(key, look, lod, d, hot) {
 /* v17.3 P13: static chunks are sorted into cells (see R.applyCells) by a second worker, so the one that builds people is never kept waiting. */
 const CW = Game.cw = { w: null, id: 0, pend: new Map(), done: 0 };
 Game.cellAsk = function (m, g) {
-  if (!CW.w || g.length < 6000 * 33) return; const data = g, id = ++CW.id; CW.pend.set(id, m); CW.w.postMessage({ cell: id, data, C: 12 }, [data.buffer]);
+  if (!CW.w || g.length < 6000 * 33) return; const data = g, id = ++CW.id; CW.pend.set(id, m); CW.w.postMessage({ cell: id, data, C: 12, gs: R.lodDist ? R.lodGs : 0 }, [data.buffer]);
 };
 (function cwStart() {
   if (typeof Worker === 'undefined' || location.protocol === 'file:' || /[?&]mw=0\b/.test(location.search)) return;
   try { const s = document.querySelector('script[src*="js/core.js"]'); if (!s) return; const w = CW.w = new Worker(new URL('meshworker.js', s.src).href + (s.src.match(/\?.*$/) || [''])[0]);
-    w.onmessage = e => { const r = e.data, m = CW.pend.get(r.cell); CW.pend.delete(r.cell); if (m && r.out) { R.applyCells(m, r.out, r.cells); CW.done++; } };
+    w.onmessage = e => { const r = e.data, m = CW.pend.get(r.cell); CW.pend.delete(r.cell); if (m && r.out) { R.applyCells(m, r.out, r.cells, r.lod); CW.done++; } };
     w.onerror = () => { CW.w = null; }; } catch (e) { CW.w = null; }
 })();
 const lookKey = n => n.lkOf === n.d.look ? n.lk : (n.lkOf = n.d.look, n.lk = JSON.stringify(n.d.look)); // the look's cache key, computed once per look
@@ -225,6 +225,7 @@ Game.start = function (epId, fresh, preview) {
   let saved = null; if (!fresh) { try { saved = JSON.parse(localStorage.getItem(KEY(epId)) || 'null'); } catch (e) { } }
   S = saved && saved.v === 2 ? saved : newState(EP);
   // world
+  { const lm = /[?&]lod=(\d+)\b/.exec(location.search); R.lodDist = lm ? +lm[1] : (COARSE ? 75 : 0); R.lodGs = 0.8; } // v18.9 far LOD (phones): cells beyond 75 m are drawn simplified; ?lod=0 off, ?lod=70 on desktop
   { const tm = /[?&]trees=(hi|lo)\b/.exec(location.search); G.treeLod = tm ? (tm[1] === 'lo' ? 1 : 0) : (COARSE && SET.quality !== 'high' ? 1 : 0); } // v18.6 tree detail (phones: lighter)
   if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
   if (window.__bc) __bc('build'); EP.build(W, Game);
@@ -919,7 +920,6 @@ function updateAnimals(dt, t, night) {
 function updateCamera(dt, snap) {
   if (!Game.cineCam && EP && EP.camera && Game.mode === 'play') { const c = EP.camera(S, Game, dt); if (c) { CAM.x = c.x; CAM.y = c.y; CAM.z = c.z; CAM.lx = c.lx; CAM.ly = c.ly; CAM.lz = c.lz; CAM.fov = c.fov || 1; CAM.tx = P.x; CAM.tz = P.z; CAM.ty = P.y + 1.4; CAM.cDist = undefined; if (c.yaw !== undefined) CAM.yaw = c.yaw; return; } }
   if (Game.cineCam) { const c = Game.cineCam; CAM.x = c.x; CAM.y = c.y; CAM.z = c.z; CAM.lx = c.lx; CAM.ly = c.ly; CAM.lz = c.lz; CAM.fov = c.fov; CAM.tx = P.x; CAM.tz = P.z; CAM.ty = P.y + 1.4; CAM.cDist = undefined; return; }
-  if (G.Travel && G.Travel.apply(dt)) return; // v18.2 P9: the travel cinema camera owns the view while it is on
   const s = SET.sens, sh = SET.view !== 'classic', side = SET.side === 'left' ? -1 : 1;
   const aw = clamp(CAM.aimK || 0, 0, 1), aw2 = aw * aw * (3 - 2 * aw), AC = isPortrait() ? CAM_AP : CAM_AL, shW = sh ? 1 : aw2; // v16.8 over-the-shoulder aim
   let cx = INPUT.cx + ((INPUT.keys.ArrowRight ? 1 : 0) - (INPUT.keys.ArrowLeft ? 1 : 0)), cy = INPUT.cy + ((INPUT.keys.ArrowDown ? 1 : 0) - (INPUT.keys.ArrowUp ? 1 : 0));
@@ -1021,6 +1021,7 @@ function dialogCam(dt) {
 // =================================================================== MAIN UPDATE
 let tAll = 0, lastNow = performance.now(), dayTickT = 0;
 const PERF = Game.perf = { avg: 16.7, scale: 1, t: 0 };
+if (COARSE) R.shadowRate = 2;
 { const m = /[?&]shadowrate=([12])\b/.exec(location.search); if (m) R.shadowRate = R.shadowLock = +m[1]; } // ?shadowrate=1 / 2 pins the shadow update rate (for comparing); without it the rate follows the frame time
 /* v18.4 P15 — keeping the frame rate steady instead of chasing the highest one.
    · SET.fps: 'auto' (default) / '30' / '60'. A lock skips display frames (main.js) so every frame is the same length: an even 30 looks smoother, and runs
@@ -1040,7 +1041,7 @@ function perfTick(rawMs, dt) {
   const tg = Game.fpsTarget(), tgt = tg ? 1000 / tg : 16.7, p = p90(), old = PERF.scale;
   // shadow update rate
   PERF.slow = p > tgt * 1.25 ? PERF.slow + 1 : 0; PERF.fast = p <= tgt * 1.1 ? PERF.fast + 1 : 0;
-  if (R.shadowLock) R.shadowRate = R.shadowLock; else if (PERF.slow >= 4) R.shadowRate = 2; else if (PERF.fast >= 4) R.shadowRate = 1;
+  if (R.shadowLock) R.shadowRate = R.shadowLock; else if (PERF.slow >= 4) R.shadowRate = 2; else if (PERF.fast >= 4) R.shadowRate = COARSE ? 2 : 1; // v18.8: phones keep the shadow map at every 2nd frame (a fresh map is still forced when the hero moves > 2.5 m)
   // v18.6 draw distance: still slow after the shadows are halved and the picture is at 70% size or less → draw a little less far (never raised again until the quality is set)
   if (Game.mode === 'play' && PERF.slow >= 6 && R.shadowRate === 2 && PERF.scale <= 0.7 && R.farK > 0.5) { R.setFarK(R.farK - 0.1); PERF.slow = 0; }
   // resolution
@@ -1118,12 +1119,13 @@ function render(dt) {
   scene.env = env; scene.time = tAll; scene.fov = CAM.fov;
   scene.cam[0] = CAM.x; scene.cam[1] = CAM.y; scene.cam[2] = CAM.z; scene.target[0] = CAM.lx === undefined ? CAM.tx : CAM.lx; scene.target[1] = CAM.ly === undefined ? CAM.ty : CAM.ly; scene.target[2] = CAM.lz === undefined ? CAM.tz : CAM.lz;
   scene.focus[0] = P.x + Math.sin(CAM.yaw + PI) * 8; scene.focus[1] = P.y; scene.focus[2] = P.z + Math.cos(CAM.yaw + PI) * 8;
-  scene.shadowOn = SET.quality !== 'low' && env.night < 0.9; scene.shadowExt = 34;
+  scene.shadowOn = SET.quality !== 'low' && env.night < 0.9; scene.shadowExt = COARSE ? 28 : 34; // v18.9 phones: a smaller shadow square (fewer casters, sharper texels)
   scene.terrain = W.terrain; scene.statics = W.statics; scene.water = W.water;
   scene.insts.length = 0; for (const k in ENT.nodeSets) scene.insts.push(ENT.nodeSets[k]); for (const k in ENT.cropSets) scene.insts.push(ENT.cropSets[k]);
   scene.dyn.length = 0; for (const d of ENT.dyn) scene.dyn.push(d); if (ENT.soilMesh) { const sd = ENT.soilDyn || (ENT.soilDyn = { m: IDM, shadow: false }); sd.mesh = ENT.soilMesh; scene.dyn.push(sd); }
   if (EP.dyn) EP.dyn(scene.dyn, S, Game, tAll);
   if (G.Build) G.Build.dyn(scene.dyn, S, tAll);
+  if (G.Chem && G.Chem.dyn) G.Chem.dyn(scene.dyn);
   scene.skinned.length = 0;
   // player
   const pst = P.pst || (P.pst = {}); const spk = G.UI.speaker && G.UI.speaker(); Object.assign(pst, { talk: !!spk && (spk === EP.hero || spk === '이스라엘'), face: P.face, speed: P.spd, phase: P.phase, air: !P.grounded && !P.swim, act: P.act, actT: P.act ? (P.actT % P.actDur) / P.actDur : 0, idle: 1, limp: P.limp, carry: P.carry ? (P.carryArms ? 'arms' : 'head') : null, staff: (hand() === 'staff' || hand() === 'hoe') && !P.act && !P.ride && !P.carry && !P.sit && !P.kneel && !P.sleeping && !Game.cineOn && !(G.Combat && G.Combat.heldProp()), long: P.look.long, kneel: P.kneel, sleep: P.sleeping, sit: P.sit, ride: !!P.ride, rideSp: P.spd, ridePh: P.ride ? P.ride.ph || 0 : 0, shiver: G.Surv ? G.Surv.shiver : 0 });

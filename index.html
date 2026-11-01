@@ -175,8 +175,6 @@ body.desk #controls .stick,body.desk #controls .cbtn,body.desk #btnLock{display:
 #bossBar small{display:block;margin-top:4px;font-weight:500;font-size:12px}
 body.boss #questBox{visibility:hidden}
 body.dlgcam #questBox,body.dlgcam #mapwrap{opacity:0;transition:opacity .25s}#questBox,#mapwrap{transition:opacity .25s}
-/* v18.2 P9: the travel cinema camera's letterbox (js/travel.js): slides in over the picture, never takes touches */
-#tbars{position:fixed;inset:0;pointer-events:none;z-index:20}#tbars i{position:absolute;left:0;right:0;height:0;background:#000;transition:height .6s ease}#tbars i:first-child{top:0}#tbars i:last-child{bottom:0}#tbars.on i{height:7vh}
 #cine .bar{position:absolute;left:0;right:0;height:9vh;background:#000;transition:height .5s ease;z-index:2}#cine .top{top:0}#cine .bot{bottom:0}
 /* v17.7 P3: the bars slide in when a cutscene starts (#cine.pre = just opened) and out for shots with bars:false (#cine.nobars); #cineGrade tints the picture per shot (shot.grade or the feeling, set in js/life.js) */
 #cine.pre .bar,#cine.nobars .bar{height:0}#cine.nobars .cbox{bottom:14px}#cine.nobars .ctap{top:8px}
@@ -485,49 +483,48 @@ body.busy #hint,body.cine #hint,body.photo #hint{visibility:hidden}
 <div id="fader"></div>
 <div id="loadErr" hidden>이 기기에서는 3D 그래픽(WebGL2)을 사용할 수 없어요. 최신 브라우저에서 다시 열어 주세요.</div>
 
-<script src="js/core.js?v=1793545971"></script>
-<script src="js/audio.js?v=1793545971"></script>
-<script src="js/models.js?v=1793545971"></script>
-<script src="js/motion.js?v=1793545971"></script>
-<script src="js/world.js?v=1793545971"></script>
-<script src="js/game.js?v=1793545971"></script>
-<script src="js/ui.js?v=1793545971"></script>
-<script src="js/combat.js?v=1793545971"></script>
-<script src="js/life.js?v=1793545971"></script>
-<script src="js/shots.js?v=1793545971"></script>
-<script src="js/mood.js?v=1793545971"></script>
-<script src="js/companion.js?v=1793545971"></script>
-<script src="js/weather.js?v=1793545971"></script>
-<script src="js/vitals.js?v=1793545971"></script>
-<script src="js/survival.js?v=1793545971"></script>
-<script src="js/wilds.js?v=1793545971"></script>
-<script src="js/hearth.js?v=1793545971"></script>
-<script src="js/climb.js?v=1793545971"></script>
-<script src="js/physics.js?v=1793545971"></script>
-<script src="js/loot.js?v=1793545971"></script>
-<script src="js/lockon.js?v=1793545971"></script>
-<script src="js/build.js?v=1793545971"></script>
-<script src="js/ride.js?v=1793545971"></script>
-<script src="js/npcai.js?v=1793545971"></script>
-<script src="js/greet.js?v=1793545971"></script>
-<script src="js/bond.js?v=1793545971"></script>
-<script src="js/qcam.js?v=1793545971"></script>
-<script src="js/climate.js?v=1793545971"></script>
-<script src="js/chem.js?v=1793545971"></script>
-<script src="js/deeds.js?v=1793545971"></script>
-<script src="js/travel.js?v=1793545971"></script>
-<script src="js/sling.js?v=1793545971"></script>
-<script src="js/acts.js?v=1793545971"></script>
-<script src="js/opening.js?v=1793545971"></script>
-<script src="js/ep_joseph.js?v=1793545971"></script>
-<script src="js/ep_joseph_life.js?v=1793545971"></script>
-<script src="js/pantry.js?v=1793545971"></script>
-<script src="js/fireside.js?v=1793545971"></script>
-<script src="js/sites.js?v=1793545971"></script>
-<script src="js/focus.js?v=1793545971"></script>
-<script src="js/cuisine.js?v=1793545971"></script>
-<script src="js/delights.js?v=1793545971"></script>
-<script src="js/perf.js?v=1793545971"></script>
-<script src="js/main.js?v=1793545971"></script>
+<script src="js/core.js?v=1793546916"></script>
+<script src="js/audio.js?v=1793546916"></script>
+<script src="js/models.js?v=1793546916"></script>
+<script src="js/motion.js?v=1793546916"></script>
+<script src="js/world.js?v=1793546916"></script>
+<script src="js/game.js?v=1793546916"></script>
+<script src="js/ui.js?v=1793546916"></script>
+<script src="js/combat.js?v=1793546916"></script>
+<script src="js/life.js?v=1793546916"></script>
+<script src="js/shots.js?v=1793546916"></script>
+<script src="js/mood.js?v=1793546916"></script>
+<script src="js/companion.js?v=1793546916"></script>
+<script src="js/weather.js?v=1793546916"></script>
+<script src="js/vitals.js?v=1793546916"></script>
+<script src="js/survival.js?v=1793546916"></script>
+<script src="js/wilds.js?v=1793546916"></script>
+<script src="js/hearth.js?v=1793546916"></script>
+<script src="js/climb.js?v=1793546916"></script>
+<script src="js/physics.js?v=1793546916"></script>
+<script src="js/loot.js?v=1793546916"></script>
+<script src="js/lockon.js?v=1793546916"></script>
+<script src="js/build.js?v=1793546916"></script>
+<script src="js/ride.js?v=1793546916"></script>
+<script src="js/npcai.js?v=1793546916"></script>
+<script src="js/greet.js?v=1793546916"></script>
+<script src="js/bond.js?v=1793546916"></script>
+<script src="js/qcam.js?v=1793546916"></script>
+<script src="js/climate.js?v=1793546916"></script>
+<script src="js/chem.js?v=1793546916"></script>
+<script src="js/deeds.js?v=1793546916"></script>
+<script src="js/sling.js?v=1793546916"></script>
+<script src="js/acts.js?v=1793546916"></script>
+<script src="js/opening.js?v=1793546916"></script>
+<script src="js/ep_joseph.js?v=1793546916"></script>
+<script src="js/ep_joseph_life.js?v=1793546916"></script>
+<script src="js/pantry.js?v=1793546916"></script>
+<script src="js/fireside.js?v=1793546916"></script>
+<script src="js/sites.js?v=1793546916"></script>
+<script src="js/focus.js?v=1793546916"></script>
+<script src="js/cuisine.js?v=1793546916"></script>
+<script src="js/delights.js?v=1793546916"></script>
+<script src="js/perf.js?v=1793546916"></script>
+<script src="js/main.js?v=1793546916"></script>
 
 </body></html>
