@@ -6,7 +6,7 @@ const { R, FX, Game, UI } = G;
 const Main = G.Main = {};
 const canvas = $('view');
 let ok = false;
-try { ok = R.init(canvas); } catch (e) { console.error(e); ok = false; }
+try { ok = R.init(canvas, { aa: /[?&]aa=1\b/.test(location.search) || !(Game.COARSE && Game.SET.quality !== 'high') && !/[?&]aa=0\b/.test(location.search) }); } catch (e) { console.error(e); ok = false; }
 if (!ok) { $('loadErr').hidden = false; $('title').hidden = true; return; }
 FX.init(); Game.dpr = Math.min(window.devicePixelRatio || 1, 2); UI.resize();
 const EPS = Object.keys(G.EP).filter(k => G.EP[k] && G.EP[k].title); // every registered episode gets a title card
@@ -43,7 +43,7 @@ if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
 addEventListener('pagehide', () => { if (playing) Game.save(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing) Game.save(true); });
 let lastRun = 0; // v18.4 P15: with a frame lock (30 / 60) display frames are skipped so that the ones that run are evenly spaced
-Main.shouldRun = now => { const tg = Game.fpsTarget ? Game.fpsTarget() : 0; if (tg && now - lastRun < 1000 / tg - 2.5) return false; lastRun = now; return true; };
+Main.shouldRun = now => { let tg = Game.fpsTarget ? Game.fpsTarget() : 0; if (Game.COARSE && Game.mode === 'play' && UI.overlayOn && UI.overlayOn() && !/[?&]ov=0\b/.test(location.search)) tg = 15; if (tg && now - lastRun < 1000 / tg - 2.5) return false; lastRun = now; return true; };
 let okFrames = 0;
 function loop(now) { if (window.__bc && ++okFrames === 1) __bc('frame1'); if (window.__bcDone && okFrames === 120) __bcDone(); if (!Main.shouldRun(now)) { requestAnimationFrame(loop); return; } try { Game.frame(now); } catch (e) { console.error(e); if (!Main.errShown) { Main.errShown = 1; UI.toast('문제가 생겼어요: ' + (e && e.message || e)); } } requestAnimationFrame(loop); }
 requestAnimationFrame(loop);

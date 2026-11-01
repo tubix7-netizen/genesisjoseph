@@ -72,8 +72,8 @@ let S = null, W = null, EP = null; Game.mode = 'title';
 const P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, face: 0, spd: 0, phase: 0, grounded: true, coyote: 0, jumpBuf: 0, sprint: false, stam: 100, exhausted: false, act: null, actT: 0, actDur: 0, actFire: null, fired: false, rig: new Rig(HB), mesh: null, look: null, carry: null, follow: [], limp: false, swim: false, stepT: 0 };
 const CAM = { yaw: 0, pitch: 0.28, dist: 6.2, tx: 0, ty: 0, tz: 0, x: 0, y: 0, z: 0, last: 0, fov: 1.0 };
 const INPUT = { mx: 0, my: 0, cx: 0, cy: 0, act: false, actEdge: false, keys: {} };
-const COARSE = typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches;
-const SET = { sens: 1, invert: false, autoCam: true, quality: COARSE ? 'mid' : 'high', dist: 1, view: 'shoulder', side: 'right', music: 0.6, sfx: 0.8 };
+const COARSE = (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches) || /[?&]coarse=1\b/.test(location.search); // ?coarse=1 makes a desktop behave like a phone (for testing)
+const SET = { sens: 1, invert: false, autoCam: true, quality: COARSE ? 'mid' : 'high', dist: 1, view: 'shoulder', side: 'right', music: 0.6, sfx: 0.8, fps: 'auto' };
 try { Object.assign(SET, JSON.parse(localStorage.getItem('genesisSettings') || '{}')); } catch (e) { }
 { const qm = /[?&]q=(low|mid|high)\b/.exec(location.search); if (qm) SET.quality = qm[1]; } // ?q=low|mid|high: force the quality for this visit (a crashed phone tab cannot reach the settings menu)
 Game.P = P; Game.CAM = CAM; Game.INPUT = INPUT; Game.SET = SET;
@@ -264,9 +264,9 @@ Game.dispose = function () {
 Game.applyQuality = function () {
   const q = SET.quality; R.setShadow(q === 'high' ? 2048 : q === 'mid' ? 1024 : 0);
   R.setFarK(PERF.farMax = (/[?&]far=(\d(?:\.\d+)?)\b/.exec(location.search) || [])[1] ? +RegExp.$1 : (COARSE ? (q === 'high' ? 0.85 : q === 'mid' ? 0.7 : 0.6) : 1)); // v18.6 phone draw distance (?far=1 for the old one)
-  R.cloudSh = R.skyOn && q !== 'low' ? 1 : 0; // v18.3 P10: cloud shadows (a little noise per pixel) are off on the lowest quality, as are shadows; ?sky=0 turns the whole new sky/fog look off
+  R.cloudLo = COARSE; R.cloudSh = R.skyOn && q !== 'low' ? 1 : 0; // v18.3 P10: cloud shadows (a little noise per pixel) are off on the lowest quality, as are shadows; ?sky=0 turns the whole new sky/fog look off
   if (R.grass) R.grass.n = q === 'high' ? 9000 : q === 'mid' ? 5000 : 0;
-  Game.dpr = Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : q === 'mid' ? 1.5 : 1);
+  Game.dpr = Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : q === 'mid' ? (COARSE ? 1.4 : 1.5) : 1);
   G.UI.resize && G.UI.resize();
 };
 Game.snapCam = () => snapCam();
@@ -356,7 +356,7 @@ function refreshNodes() {
   }
   for (const k in ENT.nodeSets) ENT.nodeSets[k].n = 0;
   for (const k in groups) {
-    if (!ENT.nodeSets[k]) { const [type, d] = k.split(':'); const mesh = R.mesh(nodeModel(type, !!d)); ENT.nodeSets[k] = R.inst(mesh, Math.max(64, groups[k].length + 16)); ENT.nodeSets[k].own = mesh; }
+    if (!ENT.nodeSets[k]) { const [type, d] = k.split(':'); const gbm = nodeModel(type, !!d), mesh = R.mesh(gbm); ENT.nodeSets[k] = R.inst(mesh, Math.max(64, groups[k].length + 16)); ENT.nodeSets[k].own = mesh; if (R.lodDist && gbm.d && gbm.d.length > 1500 * 33) ENT.nodeSets[k].lodMesh = R.mesh(G.clusterLOD(new Float32Array(gbm.d), R.lodGs)); } // v18.10 far copy of big trees
     ENT.nodeSets[k].set(groups[k]);
   }
 }
@@ -1020,7 +1020,7 @@ function dialogCam(dt) {
 
 // =================================================================== MAIN UPDATE
 let tAll = 0, lastNow = performance.now(), dayTickT = 0;
-const PERF = Game.perf = { avg: 16.7, scale: 1, t: 0 };
+const PERF = Game.perf = { avg: 16.7, scale: 1, t: 0 }; Game.COARSE = COARSE;
 if (COARSE) R.shadowRate = 2;
 { const m = /[?&]shadowrate=([12])\b/.exec(location.search); if (m) R.shadowRate = R.shadowLock = +m[1]; } // ?shadowrate=1 / 2 pins the shadow update rate (for comparing); without it the rate follows the frame time
 /* v18.4 P15 — keeping the frame rate steady instead of chasing the highest one.
@@ -1032,13 +1032,23 @@ if (COARSE) R.shadowRate = 2;
    · Shadow map every 2nd frame (R.shadowRate) when p90 stays over 1.25× the target for 3 s (back after 3 s of good frames). ?shadowrate=1|2 pins it.
    Game.fpsTarget() → 0 (display rate) / 30 / 60 · Game.perfTick(rawMs, dt) · PERF.hist (ring of the last 120 frame times). */
 PERF.hist = new Float32Array(120); PERF.hn = 0; PERF.slow = PERF.fast = 0; PERF.autoLock = false; PERF.lockAt = 0; PERF.trial = 0; PERF.sticky = false; PERF.dropAt = -99; PERF.raiseAt = -99; PERF.lockN = 0; PERF.ceil = 1; PERF.ceilAt = -999;
-Game.fpsTarget = () => { const m = SET.fps; return m === '30' ? 30 : m === '60' ? 60 : PERF.autoLock ? 30 : 0; };
+/* v18.10 smart frame rate (phones, SET.fps 'auto'): it starts locked at 30 (cool), and when the device has time to spare it tries 60 for 3 s: if the picture holds ≥ ~51 fps at nearly full size it
+   runs at 60 (never above: a 120 Hz screen is held to 60), then gives the heat a rest at 30 after 8 minutes, and drops back to 30 at once if 60 stumbles (and waits longer before the next try). */
+const smart = () => COARSE && (SET.fps === 'auto' || !SET.fps);
+PERF.sm = { ph: 'lock', at: 0, cool: 15, bad: 0, runStart: 0, scale0: 1 };
+Game.fpsTarget = () => { const m = SET.fps; if (m === '30') return 30; if (m === '60') return 60; if (smart()) return PERF.sm.ph === 'lock' ? 30 : 60; return PERF.autoLock ? 30 : 0; };
 function p90() { const n = Math.min(PERF.hn, 120); if (n < 30) return PERF.avg; const a = Array.prototype.slice.call(PERF.hist, 0, n).sort((x, y) => x - y); return a[Math.floor(n * 0.9)]; }
 PERF.p90 = p90;
 function perfTick(rawMs, dt) {
   if (!(rawMs > 0 && rawMs < 250) || document.hidden) return;
+  if (G.UI.overlayOn && G.UI.overlayOn()) { PERF.ovl = true; return; } if (PERF.ovl) { PERF.ovl = false; PERF.hn = 0; } // a menu is open (drawn at 15 fps on phones): those frame times are not a measurement
   PERF.avg += (rawMs - PERF.avg) * 0.05; PERF.hist[PERF.hn++ % 120] = rawMs; PERF.t += dt; if (PERF.t < 0.75) return; PERF.t = 0;
   const tg = Game.fpsTarget(), tgt = tg ? 1000 / tg : 16.7, p = p90(), old = PERF.scale;
+  if (smart() && Game.mode === 'play') { const sm = PERF.sm;
+    if (sm.ph === 'lock') { if (tAll - sm.at > sm.cool && PERF.scale >= 0.85) { sm.ph = 'probe'; sm.at = tAll; sm.scale0 = PERF.scale; PERF.hn = 0; } }
+    else if (sm.ph === 'probe') { if (tAll - sm.at > 3) { if (p <= 19.5 && PERF.scale >= 0.85) { sm.ph = 'run'; sm.at = sm.runStart = tAll; sm.bad = 0; sm.cool = 15; } else { sm.ph = 'lock'; sm.at = tAll; sm.cool = Math.min(600, sm.cool * 2); PERF.scale = sm.scale0; G.UI.resize(); } PERF.hn = 0; } }
+    else { sm.bad = (p > 22 || PERF.scale < 0.8) ? sm.bad + 1 : 0; if (sm.bad >= 3 || tAll - sm.runStart > 480) { const stumble = sm.bad >= 3; sm.ph = 'lock'; sm.at = tAll; sm.cool = stumble ? Math.min(600, sm.cool * 2) : 240; sm.bad = 0; if (stumble) { PERF.scale = Math.max(PERF.scale, sm.scale0); G.UI.resize(); } PERF.hn = 0; } }
+  }
   // shadow update rate
   PERF.slow = p > tgt * 1.25 ? PERF.slow + 1 : 0; PERF.fast = p <= tgt * 1.1 ? PERF.fast + 1 : 0;
   if (R.shadowLock) R.shadowRate = R.shadowLock; else if (PERF.slow >= 4) R.shadowRate = 2; else if (PERF.fast >= 4) R.shadowRate = COARSE ? 2 : 1; // v18.8: phones keep the shadow map at every 2nd frame (a fresh map is still forced when the hero moves > 2.5 m)
@@ -1050,7 +1060,7 @@ function perfTick(rawMs, dt) {
   else if (p <= tgt * 1.1 && PERF.scale < PERF.ceil && tAll - PERF.dropAt > 30 && tAll - PERF.raiseAt > 12) { PERF.scale = Math.min(PERF.ceil, PERF.scale + 0.05); PERF.raiseAt = tAll; }
   if (old !== PERF.scale) G.UI.resize();
   // auto frame lock
-  if (SET.fps !== '30' && SET.fps !== '60') {
+  if (SET.fps !== '30' && SET.fps !== '60' && !smart()) {
     if (!PERF.autoLock) { PERF.lockN = p > 22 && PERF.scale <= 0.8 ? PERF.lockN + 1 : 0;
       if (PERF.lockN >= 4 && Game.mode === 'play') { PERF.autoLock = true; PERF.lockAt = tAll; PERF.lockN = 0; PERF.hn = 0; if (PERF.trial) PERF.sticky = true; if (!PERF.told) { PERF.told = 1; G.UI.toast('화면을 부드럽게 · 30프레임으로 맞췄어요 (설정에서 바꿀 수 있어요)'); } } }
     else if (!PERF.sticky && tAll - PERF.lockAt > 120) { PERF.autoLock = false; PERF.trial = 1; PERF.hn = 0; PERF.lockN = 0; } // try unlocked again

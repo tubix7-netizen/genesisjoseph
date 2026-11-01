@@ -17,7 +17,9 @@ C.warm = s => { C.warmT = Math.max(C.warmT, s); C.cold = false; };
 C.cool = s => { C.coolT = Math.max(C.coolT || 0, s); C.hot *= 0.4; };
 const say = (k, t, every) => { const now = performance.now(); if ((C.msgT[k] || 0) > now) return; C.msgT[k] = now + (every || 20000); G.UI.toast(t); };
 const LIGHT = /Shaved|wLinen|Slave|Servant|Fled/; // light clothes: less heat
+let coverT = 0;
 C.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(); if (!S || !W || Game.mode !== 'play') return;
+  if ((coverT -= dt) <= 0) { coverT = 0.2; if (G.Surv && G.Surv.coverTick) G.Surv.coverTick(); } // v18.9 shelter overhead
   const calm = Game.cineOn || (G.Cine && G.Cine.on) || G.UI.modal() || (Game.EP().calmSurv && Game.EP().calmSurv(S)); const H = S.hero; if (!H) return;
   // carts and mounts stay out of the water
   const wl = W.water ? W.water.level : -99, gh = W.heightAt(P.x, P.z);

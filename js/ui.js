@@ -11,6 +11,7 @@ UI.busy = () => { for (const k in busyFlags) if (busyFlags[k]) return true; retu
 UI.setBusy = (k, v) => { busyFlags[k] = !!v; };
 UI.lastTalk = 0;
 UI.modal = UI.busy;
+UI.overlayOn = () => busyFlags.panel || busyFlags.narr; // v18.11 a menu / narration card covers the world (phones draw it at 15 fps meanwhile)
 UI.cw = 1; UI.ch = 1; UI.W = 1; UI.H = 1;
 
 // ------------------------------------------------------------------ icons
@@ -351,7 +352,7 @@ function renderMenu(tab, body) {
       <div class="set"><span>주민이 먼저 말 걸기</span><div class="seg">${[['often', '자주'], ['some', '가끔'], ['off', '끄기']].map(q => `<button data-ch="${q[0]}" class="${(SET.chatty || 'some') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>움직임 느낌</span><div class="seg">${[['wild', '자유롭게'], ['heavy', '묵직하게'], ['bal', '균형'], ['snappy', '경쾌하게']].map(q => `<button data-fl="${q[0]}" class="${(SET.feel || 'wild') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>글자·버튼 크기</span><div class="seg">${[['s', '작게'], ['m', '보통'], ['l', '크게'], ['xl', '최대']].map(q => `<button data-ui="${q[0]}" class="${(SET.ui || 'm') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
-      <div class="set"><span>프레임 (끊김이 있으면 30 고정)</span><div class="seg">${[['auto', '자동'], ['30', '30 고정'], ['60', '60']].map(q => `<button data-fps="${q[0]}" class="${(SET.fps || 'auto') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
+      <div class="set"><span>프레임 (자동: 기기가 괜찮으면 60까지 올려요)</span><div class="seg">${[['auto', '자동'], ['30', '30 고정'], ['60', '60']].map(q => `<button data-fps="${q[0]}" class="${(SET.fps || 'auto') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>그래픽 품질</span><div class="seg">${[['low', '낮음'], ['mid', '보통'], ['high', '높음']].map(q => `<button data-q="${q[0]}" class="${SET.quality === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>진행 상황</span><div class="seg"><button id="sSave">저장하기</button><button id="sTitle">타이틀로</button></div></div>`;
     $('sSens').oninput = e => { SET.sens = +e.target.value; Game.saveSettings(); };

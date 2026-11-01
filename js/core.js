@@ -327,7 +327,7 @@ vec3 fog(vec3 c,vec3 w){
 `;
 const FS_LIT = `
 in vec3 vN;in vec3 vC;in vec3 vW;in vec4 vS;in float vSoft;
-uniform vec3 uTint,uEmis,uRock;uniform float uTime,uCloudSh; // uCloudSh: v18.3 P10 how dark a passing cloud's shadow is (0 = none)
+uniform vec3 uTint,uEmis,uRock;uniform float uTime,uCloudSh,uCloudLo; // uCloudSh: v18.3 P10 how dark a passing cloud's shadow is (0 = none)
 out vec4 o;
 ` + NOISE + FS_COMMON + `
 void main(){
@@ -370,7 +370,7 @@ void main(){
   float hairK=1.0-abs(vSoft-0.45)*6.0; if(hairK>0.0){vec3 H2=normalize(uSunDir+V);c+=uSunCol*col*pow(max(dot(N,H2),0.0),28.0)*0.5*hairK*lit;}
 #else
   float lit=smoothstep(-0.07,0.32,ndl)*sh;
-  if(uCloudSh>0.01){float cn=noise(vW.xz*0.016+vec2(uTime*0.021,uTime*0.009))*0.65+noise(vW.xz*0.045-vec2(uTime*0.012,0.0))*0.35;lit*=1.0-smoothstep(0.5,0.78,cn)*uCloudSh*0.55;} // drifting cloud shadows on the ground
+  if(uCloudSh>0.01){float cn=noise(vW.xz*0.016+vec2(uTime*0.021,uTime*0.009))*0.65+(uCloudLo>0.5?0.175:noise(vW.xz*0.045-vec2(uTime*0.012,0.0))*0.35);lit*=1.0-smoothstep(0.5,0.78,cn)*uCloudSh*0.55;} // drifting cloud shadows on the ground
   float rim=pow(1.0-max(dot(N,V),0.0),4.0);
   vec3 c=col*(amb+uSunCol*lit);
   c+=col*uSunCol*rim*0.28*(0.35+0.65*lit);
@@ -528,8 +528,8 @@ function compile(vs, fs, defs) {
   for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); const nm = info.name.replace('[0]', ''); U[nm] = gl.getUniformLocation(p, info.name); }
   return { p, U };
 }
-R.init = function (canvas) {
-  gl = canvas.getContext('webgl2', { antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
+R.init = function (canvas, opt) { // v18.11 opt.aa === false: no multisampling (phones below 「높음」: it costs a lot of fill rate and heat; the 1.4× upscale smooths the edges anyway)
+  gl = canvas.getContext('webgl2', { antialias: !(opt && opt.aa === false), alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
   if (!gl) return false;
   R.gl = gl;
   const P = R.P = {};
@@ -601,6 +601,17 @@ function drawStatic(m, cam, far, lodD) { // draws the cells of m that are inside
 }
 // indexed mesh: identical vertices (all 11 floats) are merged so smooth surfaces are shaded once per vertex
 /* v17.2 P12: the welding step is pure (no GL), so a Web Worker can run it (js/meshworker.js); R.meshWelded then only uploads */
+/* v18.10 the same grid merge as meshworker.js lodBuild, for ONE mesh (a triangle soup of 11-float vertices): used for the far copy of instanced trees */
+G.clusterLOD = function (d, gs) {
+  const nV = Math.floor(d.length / 33) * 3, ids = new Int32Array(nV), map = new Map(), sum = []; let nc = 0;
+  for (let v = 0; v < nV; v++) { const b = v * 11, key = ((Math.floor(d[b] / gs) + 1024) * 2048 + Math.floor(d[b + 1] / gs) + 1024) * 2048 + Math.floor(d[b + 2] / gs) + 1024;
+    let id = map.get(key); if (id === undefined) { id = nc++; map.set(key, id); for (let k = 0; k < 12; k++) sum.push(0); } const s = id * 12; for (let k = 0; k < 11; k++) sum[s + k] += d[b + k]; sum[s + 11]++; ids[v] = id; }
+  const seen = new Set(), keep = [], K = nc + 1;
+  for (let t = 0; t < nV; t += 3) { const a = ids[t], b = ids[t + 1], c = ids[t + 2]; if (a === b || b === c || a === c) continue; const lo = Math.min(a, b, c), hi = Math.max(a, b, c), mid = a + b + c - lo - hi, k3 = (lo * K + mid) * K + hi; if (seen.has(k3)) continue; seen.add(k3); keep.push(a, b, c); }
+  const out = new Float32Array(keep.length * 11);
+  for (let i = 0; i < keep.length; i++) { const s = keep[i] * 12, n = sum[s + 11], o = i * 11; for (let k = 0; k < 11; k++) out[o + k] = sum[s + k] / n; const l = Math.hypot(out[o + 3], out[o + 4], out[o + 5]) || 1; out[o + 3] /= l; out[o + 4] /= l; out[o + 5] /= l; }
+  return out;
+};
 G.weld = function (src) {
   const data = src instanceof Float32Array ? src : new Float32Array(src.d), n = data.length / 11, U = new Uint32Array(data.buffer, data.byteOffset, data.length);
   const map = new Map(), next = new Int32Array(n).fill(-1), out = new Float32Array(data.length), idx = new Uint32Array(n); let uc = 0;
@@ -628,7 +639,7 @@ R.updateMesh = function (m, src) {
   const data = src instanceof Float32Array ? src : new Float32Array(src.d);
   gl.bindBuffer(gl.ARRAY_BUFFER, m.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW); m.count = data.length / 11; if (src instanceof GB) m.bs = src.bounds();
 };
-R.free = function (m) { if (!m) return; m.freed = true; gl.deleteBuffer(m.buf); gl.deleteVertexArray(m.vao); if (m.ibuf) gl.deleteBuffer(m.ibuf); if (m.ibufS) gl.deleteBuffer(m.ibufS); if (m.vaoS) gl.deleteVertexArray(m.vaoS); if (m.lbuf) gl.deleteBuffer(m.lbuf); if (m.lvao) gl.deleteVertexArray(m.lvao); };
+R.free = function (m) { if (!m) return; m.freed = true; gl.deleteBuffer(m.buf); gl.deleteVertexArray(m.vao); if (m.ibuf) gl.deleteBuffer(m.ibuf); if (m.ibufS) gl.deleteBuffer(m.ibufS); if (m.vaoS) gl.deleteVertexArray(m.vaoS); if (m.ibufL) gl.deleteBuffer(m.ibufL); if (m.vaoL) gl.deleteVertexArray(m.vaoL); if (m.lodMesh) R.free(m.lodMesh); if (m.lbuf) gl.deleteBuffer(m.lbuf); if (m.lvao) gl.deleteVertexArray(m.lvao); };
 // instanced: mesh + instance buffer (8 floats: x,y,z,rotY, scale, r,g,b)
 function instVao(mesh, ib) {
   const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
@@ -646,12 +657,14 @@ function instDraw(s, shadow, cam, farArg) {
   let n = s.n, vao = s.vao;
   if (n > 8 && s.data && R.noInstCull !== true && R.noInstCull !== (shadow ? 'shadow' : 'main')) { // R.noInstCull = true / 'shadow' / 'main' switches it off (for comparing)
     const d = s.data, o = s.cdata || (s.cdata = new Float32Array(d.length)), bs = s.mesh.bs, br = (bs ? bs[3] + Math.hypot(bs[0], bs[2]) : 4), by = bs ? bs[1] : 0;
-    n = 0; const far = farArg || (!shadow && cam && R.farK < 1 ? R_FAR : 0); // v18.6: with a shortened draw distance (phones) instances wholly beyond it (all fog) are skipped
+    n = 0; let n2 = 0; const lodD = !shadow && cam && s.lodMesh && R.lodDist && !R.noLod ? R.lodDist : 0, lodD2 = lodD * lodD, o2 = lodD ? (s.cdata2 || (s.cdata2 = new Float32Array(d.length))) : null; const far = farArg || (!shadow && cam && R.farK < 1 ? R_FAR : 0); // v18.6: with a shortened draw distance (phones) instances wholly beyond it (all fog) are skipped
     for (let i = 0, N = s.n; i < N; i++) {
       const b = i * 8, sc = d[b + 4] || 1, x = d[b], y = d[b + 1] + by * sc, z = d[b + 2], r = br * sc + 1.5; let ok = !(far && Math.hypot(x - cam[0], z - cam[2]) - r > far);
       if (ok) for (let p = 0; p < 24; p += 4) if (FR[p] * x + FR[p + 1] * y + FR[p + 2] * z + FR[p + 3] < -r) { ok = false; break; }
-      if (ok) { const q = n * 8; for (let k = 0; k < 8; k++) o[q + k] = d[b + k]; n++; }
+      if (ok) { if (lodD && (x - cam[0]) * (x - cam[0]) + (z - cam[2]) * (z - cam[2]) > lodD2) { const q = n2 * 8; for (let k = 0; k < 8; k++) o2[q + k] = d[b + k]; n2++; } else { const q = n * 8; for (let k = 0; k < 8; k++) o[q + k] = d[b + k]; n++; } }
     }
+    if (n2) { if (!s.ibufL) { s.ibufL = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, s.ibufL); gl.bufferData(gl.ARRAY_BUFFER, s.max * 32, gl.DYNAMIC_DRAW); s.vaoL = instVao(s.lodMesh, s.ibufL); }
+      gl.bindBuffer(gl.ARRAY_BUFFER, s.ibufL); gl.bufferSubData(gl.ARRAY_BUFFER, 0, o2, 0, n2 * 8); gl.bindVertexArray(s.vaoL); gl.drawArraysInstanced(gl.TRIANGLES, 0, s.lodMesh.count, n2); s.dirty = true; } // the far ones, from the simplified mesh
     if (!n) return;
     if (shadow) { if (!s.vaoS) { s.ibufS = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, s.ibufS); gl.bufferData(gl.ARRAY_BUFFER, s.max * 32, gl.DYNAMIC_DRAW); s.vaoS = instVao(s.mesh, s.ibufS); } vao = s.vaoS; gl.bindBuffer(gl.ARRAY_BUFFER, s.ibufS); }
     else { gl.bindBuffer(gl.ARRAY_BUFFER, s.ibuf); s.dirty = true; } // the main buffer now holds this frame's subset, not the whole list
@@ -735,6 +748,7 @@ function setCommon(P, S) {
   if (u.uFogCol) gl.uniform3fv(u.uFogCol, S.env.fogCol);
   if (u.uFogDen) gl.uniform1f(u.uFogDen, S.env.fogDen);
   if (u.uFogX) gl.uniform3f(u.uFogX, R.fogX[0], R.fogX[1], R.farK); // v18.3 P10 (R.fogX = [0, 0] switches the new fog off)
+  if (u.uCloudLo) gl.uniform1f(u.uCloudLo, R.cloudLo ? 1 : 0); // v18.11 phones: one noise layer instead of two
   if (u.uCloudSh) gl.uniform1f(u.uCloudSh, R.cloudSh * Math.min(1, (S.env.cloud || 0) * 1.2));
   if (u.uTime) gl.uniform1f(u.uTime, S.time);
   if (u.uWind) gl.uniform1f(u.uWind, S.env.wind);

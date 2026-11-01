@@ -26,6 +26,15 @@ Sv.quickEat = function () {
 // insulation from what the hero wears
 Sv.insul = function (S) { let k = 0; if (S.tools && S.tools.cloak) k += 0.45; const H = S.hero; if (H && H.armor && G.Combat && G.Combat.GEAR[H.armor]) k += G.Combat.GEAR[H.armor].warm || 0.15; return Math.min(0.7, k); };
 // heat sources around a point: fires (stations incl. built campfires), shelters (beds, tents, houses), episode extras
+Sv.cover = 0; Sv.coverSrc = '';
+Sv.coverTick = function () { // how well something overhead shelters the hero (0 none … 1 full)
+  const W = Game.W(), P = Game.P; if (!W) { Sv.cover = 0; return; }
+  let c = 0, src = '';
+  if (W.roofAt(P.x, P.z, P.y)) { c = 1; src = '지붕 아래'; }
+  else { for (const k of W.canopies || []) { const d = Math.hypot(P.x - k.x, P.z - k.z); if (d < k.r * 0.8 && P.y + 1.6 < k.y1 && P.y + 1.6 > k.y0 - 6) { c = Math.max(c, 0.7); src = '나무 아래'; } }
+    if (W.ray(P.x, P.y + 1.7, P.z, P.x, P.y + 9, P.z) < 0.98) { c = 1; src = '지붕 아래'; } }
+  Sv.cover = c; Sv.coverSrc = src;
+};
 Sv.heatAt = function (x, z) {
   const EP = Game.EP(), S = Game.S(); let heat = 0, roof = 0, src = '';
   for (const s of EP.stations || []) { if (s.on && !s.on(S, Game)) continue; const d = Math.hypot(s.x - x, s.z - z);
@@ -33,6 +42,8 @@ Sv.heatAt = function (x, z) {
     if (s.type === 'bed' && d < (s.shelter || 4)) { roof = Math.max(roof, 1 - d / ((s.shelter || 4) * 1.3)); if (!src) src = '지붕 아래'; } }
   if (G.Build) { const b = G.Build.shelterAt(x, z); if (b > roof) { roof = b; if (!src) src = '지붕 아래'; } }
   if (EP.shelterAt) { const e = EP.shelterAt(x, z, S); if (e > roof) { roof = e; if (!src) src = '지붕 아래'; } }
+  // v18.9 anything overhead keeps the rain off the hero: a roofed building, a tent, a tree crown, an overhang (Sv.cover, refreshed 5×/s from climate.js)
+  const Pp = Game.P; if (Sv.cover > roof && Math.hypot(x - Pp.x, z - Pp.z) < 1.5) { roof = Sv.cover; if (!src) src = Sv.coverSrc; }
   return { heat, roof, src };
 };
 let tip = 0;
