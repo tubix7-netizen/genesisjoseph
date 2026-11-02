@@ -105,8 +105,30 @@ function mixHex(a, b, t) { const A = hexRGB(a), B = hexRGB(b); return ((Math.rou
 // ------------------------------------------------------------------ geometry builder
 const TMP = m4();
 class GB {
-  constructor(seed) { this.d = []; this.r = rng(seed || 7); }
-  get count() { return this.d.length / 11; }
+  /* v18.12: vertices used to be pushed into one plain JS array (8 bytes per number, doubled again while it grew). Building the whole
+     world that way peaked at ~650-880 MB of JS memory, which killed the tab on iPhone. Now they are written straight into Float32
+     blocks (4 bytes per number, no regrowth copies); `d` still gives one contiguous Float32Array on demand, so older code keeps working. */
+  constructor(seed) { this._f = null; this._k = 0; this._cap = 0; this._bl = []; this._tot = 0; this.r = rng(seed || 7); }
+  get count() { return (this._tot + this._k) / 11; }
+  _v(a, b, c, d, e, f, g, h, i, j, k) { // append one 11-float vertex
+    if (this._k === this._cap) {
+      if (this._f) { this._bl.push(this._f); this._tot += this._k; }
+      this._cap = Math.min(11 * 6144, Math.max(11 * 128, this._tot)); this._f = new Float32Array(this._cap); this._k = 0; // blocks double up to 67584 floats (270 KB)
+    }
+    const F = this._f; let o = this._k; F[o] = a; F[o + 1] = b; F[o + 2] = c; F[o + 3] = d; F[o + 4] = e; F[o + 5] = f; F[o + 6] = g; F[o + 7] = h; F[o + 8] = i; F[o + 9] = j; F[o + 10] = k; this._k = o + 11;
+  }
+  _flat() { // one contiguous Float32Array holding everything so far (the blocks are merged and released)
+    const n = this._tot + this._k;
+    if (!this._bl.length && this._f && this._f.length === n) return this._f;
+    const out = new Float32Array(n); let o = 0; for (const b of this._bl) { out.set(b, o); o += b.length; }
+    if (this._f) out.set(this._k === this._f.length ? this._f : this._f.subarray(0, this._k), o);
+    this._bl = []; this._tot = 0; this._f = out; this._k = this._cap = n;
+    const gb = this; out.push = function () { for (let i = 0; i + 10 < arguments.length; i += 11) gb._v(arguments[i], arguments[i + 1], arguments[i + 2], arguments[i + 3], arguments[i + 4], arguments[i + 5], arguments[i + 6], arguments[i + 7], arguments[i + 8], arguments[i + 9], arguments[i + 10]); return gb.count * 11; }; // old `g.d.push(...)` callers
+    return out;
+  }
+  get d() { return this._flat(); }
+  set d(v) { this._f = null; this._bl = []; this._tot = this._k = this._cap = 0; if (v && v.length) { const f = v instanceof Float32Array ? v : Float32Array.from(v); this._f = f; this._k = this._cap = f.length; } }
+  take() { const f = this._flat(); delete f.push; this._f = null; this._bl = []; this._tot = this._k = this._cap = 0; return f; } // hand over the data and let go of it
   _emit(P, N, o, colFn) {
     const m = m4trs(TMP, o.at ? o.at[0] : 0, o.at ? o.at[1] : 0, o.at ? o.at[2] : 0, o.ry || 0, o.rx || 0, o.rz || 0,
       o.s ? o.s[0] : 1, o.s ? o.s[1] : 1, o.s ? o.s[2] : 1);
@@ -128,7 +150,7 @@ class GB {
         let c = base; if (P.cols) c = hexRGB(P.cols[t / 3 + k]); else if (tc) c = tc; else if (fn) c = hexRGB(fn(x, y, z, wx, wy, wz));
         const swv = olv !== null ? olv : typeof sw === 'function' ? sw(x, y, z) : sw;
         const kk = (1 + jj) * (1 - (P.dk ? P.dk[t / 9 | 0] : dk));
-        this.d.push(wx, wy, wz, ox, oy, oz, clamp(c[0] * kk, 0, 1), clamp(c[1] * kk, 0, 1), clamp(c[2] * kk, 0, 1), swv, bf ? bf(wx, wy, wz) : b);
+        this._v(wx, wy, wz, ox, oy, oz, clamp(c[0] * kk, 0, 1), clamp(c[1] * kk, 0, 1), clamp(c[2] * kk, 0, 1), swv, bf ? bf(wx, wy, wz) : b);
       }
     }
     return this;
@@ -242,7 +264,7 @@ class GB {
     }, nu, nt, o);
   }
   plane(w, d, o) { o = o || {}; const x = w / 2, z = d / 2; return this._emit([-x, 0, z, x, 0, z, x, 0, -z, -x, 0, z, x, 0, -z, -x, 0, -z], [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], o); }
-  add(other) { for (let i = 0; i < other.d.length; i++) this.d.push(other.d[i]); return this; }
+  add(other) { const d = other.d; for (let i = 0; i + 10 < d.length; i += 11) this._v(d[i], d[i + 1], d[i + 2], d[i + 3], d[i + 4], d[i + 5], d[i + 6], d[i + 7], d[i + 8], d[i + 9], d[i + 10]); return this; }
   bounds() {
     let x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9; const d = this.d;
     for (let i = 0; i < d.length; i += 11) { const x = d[i], y = d[i + 1], z = d[i + 2]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z; }
@@ -574,7 +596,7 @@ function bindLayout(stride11) {
   gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 44, 40);
 }
 R.mesh = function (src) {
-  const data = src instanceof Float32Array ? src : new Float32Array(src.d);
+  const data = src instanceof Float32Array ? src : src instanceof GB ? src.d : new Float32Array(src.d);
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
   const vao = gl.createVertexArray(); gl.bindVertexArray(vao); bindLayout(); gl.bindVertexArray(null);
   let bs = [0, 0, 0, 1e6]; if (src instanceof GB) bs = src.bounds();
@@ -613,7 +635,7 @@ G.clusterLOD = function (d, gs) {
   return out;
 };
 G.weld = function (src) {
-  const data = src instanceof Float32Array ? src : new Float32Array(src.d), n = data.length / 11, U = new Uint32Array(data.buffer, data.byteOffset, data.length);
+  const data = src instanceof Float32Array ? src : src instanceof GB ? src.d : new Float32Array(src.d), n = data.length / 11, U = new Uint32Array(data.buffer, data.byteOffset, data.length);
   const map = new Map(), next = new Int32Array(n).fill(-1), out = new Float32Array(data.length), idx = new Uint32Array(n); let uc = 0;
   for (let i = 0; i < n; i++) {
     let h = 2166136261 >>> 0; const o = i * 11; for (let k = 0; k < 11; k++) h = Math.imul(h ^ U[o + k], 16777619) >>> 0;
@@ -636,7 +658,7 @@ R.meshWelded = function (w, bs) {
 R.meshIdx = function (src) { let bs = [0, 0, 0, 1e6]; if (src instanceof GB) bs = src.bounds(); return R.meshWelded(G.weld(src), bs); };
 R.draw = function (m) { if (m.ib) gl.drawElements(gl.TRIANGLES, m.count, m.it, 0); else gl.drawArrays(gl.TRIANGLES, 0, m.count); };
 R.updateMesh = function (m, src) {
-  const data = src instanceof Float32Array ? src : new Float32Array(src.d);
+  const data = src instanceof Float32Array ? src : src instanceof GB ? src.d : new Float32Array(src.d);
   gl.bindBuffer(gl.ARRAY_BUFFER, m.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW); m.count = data.length / 11; if (src instanceof GB) m.bs = src.bounds();
 };
 R.free = function (m) { if (!m) return; m.freed = true; gl.deleteBuffer(m.buf); gl.deleteVertexArray(m.vao); if (m.ibuf) gl.deleteBuffer(m.ibuf); if (m.ibufS) gl.deleteBuffer(m.ibufS); if (m.vaoS) gl.deleteVertexArray(m.vaoS); if (m.ibufL) gl.deleteBuffer(m.ibufL); if (m.vaoL) gl.deleteVertexArray(m.vaoL); if (m.lodMesh) R.free(m.lodMesh); if (m.lbuf) gl.deleteBuffer(m.lbuf); if (m.lvao) gl.deleteVertexArray(m.lvao); };

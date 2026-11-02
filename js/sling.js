@@ -13,11 +13,11 @@ const target = () => { const t = G.Lock && G.Lock.target; return t && !t.K && t.
 const RANGE = () => { const g = G.Combat.GEAR.sling, h = Game.S().hero; return g.range + (h.sk ? h.sk.aim * 2 : 0); };
 SL.start = function () { if (SL.on || G.UI.busy() || Game.cineOn) return;
   const t = target(); if (!t) { G.UI.toast('물매는 먼저 「조준」으로 짐승을 겨눠야 쏠 수 있어요'); return; }
-  if (!Game.have('stone')) { G.UI.toast('물매에 쓸 돌이 없어요 (돌무더기에서 주워요)'); return; }
-  const focus = G.Focus ? G.Focus.aimOn() : false; /* v16.7 집중 조준 slows the world while the sling spins */ SL.on = { t: 0, x: 0.5, focus, ph: Math.random() * 6 };
+  if (!(G.Stones ? G.Stones.has() : Game.have('stone'))) { G.UI.toast('물매에 쓸 돌이 없어요 (돌무더기에서 주워요)'); return; }
+  const focus = G.Focus ? G.Focus.aimOn() : false; if (G.Focus && G.Focus.aim && !focus) G.UI.toast('정신력이 모자라서 집중이 꺼져 있어요'); /* v16.7 집중 조준 slows the world while the sling spins */ SL.on = { t: 0, x: 0.5, focus, ph: Math.random() * 6 };
   const P = Game.P; P.emote = { k: 'sling', t: 0, dur: 0 }; P.face = Math.atan2(t.x - P.x, t.z - P.z);
   const bar = $('slingBar'); bar.hidden = false; bar.classList.toggle('focus', !!focus); sfx('whoosh', { vol: 0.4, pitch: 0.8 }); };
-SL.release = function () { const s = SL.on; if (!s) return; SL.on = null; $('slingBar').hidden = true; const P = Game.P; P.emote = null; const t = target(); if (!t) return;
+SL.release = function () { const s = SL.on; if (!s) return; SL.on = null; if (G.Focus && G.Focus.off) G.Focus.off(); /* 집중 turns off after the shot */ $('slingBar').hidden = true; const P = Game.P; P.emote = null; const t = target(); if (!t) return;
   const off = Math.abs(s.x - 0.5), k = s.focus ? 1.8 : 1, dist = Math.hypot(t.x - P.x, t.z - P.z), far = dist > RANGE();
   let mul = 1, crit = false, miss = false, head = false, msg = '';
   if (far) { miss = true; msg = '너무 멀어요 · 돌이 닿지 않아요'; } else if (off < 0.075 * k) { mul = 2.6; crit = true; head = true; msg = '머리 명중! · 짐승이 잠시 기절했어요'; } else if (off < 0.19 * k) { mul = 1; msg = ''; } else if (off < 0.32 * k) { mul = 0.5; msg = '살짝 스쳤어요'; } else { miss = true; msg = '빗나갔어요'; } // v16.9 a wider bar: the centre is a head shot (big damage + a short stun)

@@ -109,8 +109,8 @@ class World {
   finishStatics() {
     // v18.5: a chunk's vertices are plain JS numbers (8 bytes each); on a phone holding all of them while the GPU copies are made crashed the tab (iOS memory limit).
     // So each chunk is converted to one Float32Array, uploaded, handed to the cell-sort worker, and its JS array is released before the next chunk starts.
-    for (const [k, g] of this.chunks) { if (!g.count) continue; const bs = g.bounds(), f = new Float32Array(g.d); g.d = []; const m = R.mesh(f); m.bs = bs; this.statics.push(m); if (G.Game && G.Game.cellAsk) G.Game.cellAsk(m, f); } // v17.3 P13: the worker sorts big chunks into 12 m cells
-    for (const [k, g] of this.dchunks) { if (!g.count) continue; const bs = g.bounds(), f = new Float32Array(g.d); g.d = []; const m = R.mesh(f); m.bs = bs; m.cullDist = 75; m.shadow = true; this.statics.push(m); }
+    for (const [k, g] of this.chunks) { if (!g.count) continue; const bs = g.bounds(), f = g.take(); const m = R.mesh(f); m.bs = bs; this.statics.push(m); if (G.Game && G.Game.cellAsk) G.Game.cellAsk(m, f); } // v17.3 P13: the worker sorts big chunks into 12 m cells
+    for (const [k, g] of this.dchunks) { if (!g.count) continue; const bs = g.bounds(), f = g.take(); const m = R.mesh(f); m.bs = bs; m.cullDist = 75; m.shadow = true; this.statics.push(m); }
     this.chunks.clear(); this.dchunks.clear();
   }
   // ------------------------------------------------ collision (circles & oriented boxes)

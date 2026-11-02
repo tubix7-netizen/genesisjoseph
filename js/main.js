@@ -39,11 +39,16 @@ function boot(data) {
   else Game.start(bootEp, false, true);
 }
 if (hot && hot.snapshot) hot.snapshot(() => { if (playing) Game.save(true); return { playing }; });
-if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
+/* v18.12: building the world takes seconds and blocks the page, so the title card is painted first (buttons wait, with a note), then the world is built. */
+const tn = $('tNote'), tnText = tn ? tn.textContent : '';
+$('eps').classList.add('wait'); if (tn) tn.textContent = '불러오는 중…';
+const go = d => { try { if (!playing) boot(d); } finally { $('eps').classList.remove('wait'); if (tn) tn.textContent = tnText; } };
+const later = f => requestAnimationFrame(() => setTimeout(f, 30));
+if (hot && hot.ready) hot.ready(d => later(() => go(d))); else later(() => go((hot && hot.data) || {}));
 addEventListener('pagehide', () => { if (playing) Game.save(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing) Game.save(true); });
 let lastRun = 0; // v18.4 P15: with a frame lock (30 / 60) display frames are skipped so that the ones that run are evenly spaced
-Main.shouldRun = now => { let tg = Game.fpsTarget ? Game.fpsTarget() : 0; if (Game.COARSE && Game.mode === 'play' && UI.overlayOn && UI.overlayOn() && !/[?&]ov=0\b/.test(location.search)) tg = 15; if (tg && now - lastRun < 1000 / tg - 2.5) return false; lastRun = now; return true; };
+Main.shouldRun = now => { let tg = Game.fpsTarget ? Game.fpsTarget() : 0; if (Game.COARSE && Game.mode === 'play' && UI.overlayOn && UI.overlayOn() && !/[?&]ov=0\b/.test(location.search)) tg = 15; if (Game.COARSE && Game.mode === 'title' && !/[?&]ov=0\b/.test(location.search)) tg = 20; /* v18.12: the title backdrop only needs 20 fps */ if (tg && now - lastRun < 1000 / tg - 2.5) return false; lastRun = now; return true; };
 let okFrames = 0;
 function loop(now) { if (window.__bc && ++okFrames === 1) __bc('frame1'); if (window.__bcDone && okFrames === 120) __bcDone(); if (!Main.shouldRun(now)) { requestAnimationFrame(loop); return; } try { Game.frame(now); } catch (e) { console.error(e); if (!Main.errShown) { Main.errShown = 1; UI.toast('문제가 생겼어요: ' + (e && e.message || e)); } } requestAnimationFrame(loop); }
 requestAnimationFrame(loop);

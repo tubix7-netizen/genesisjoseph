@@ -13,7 +13,7 @@
 'use strict';
 (function (G) {
 const Game = G.Game, $ = id => document.getElementById(id), sfx = (n, o) => G.Audio && G.Audio.sfx(n, o), PI = Math.PI;
-const F = G.Focus = { aim: false, trail: null, sense: null, slow: 1 };
+const F = G.Focus = { aim: false, pref: false, trail: null, sense: null, slow: 1 };
 const V = () => G.Vitals;
 const mind = () => (V() && V().mind ? V().mind() : 0);
 const locked = () => { const t = G.Lock && G.Lock.target; return t && (t.K ? !t.gone : t.st !== 'dead' && t.st !== 'gone') ? t : null; };
@@ -60,7 +60,8 @@ const slowFx = document.createElement('div'); slowFx.id = 'slowFx'; document.bod
 const marks = document.createElement('div'); marks.id = 'senseMarks'; document.body.appendChild(marks);
 
 F.press = function () { if (Game.mode !== 'play' || calm()) return; const S = Game.S();
-  if (locked() && slingOut()) { F.aim = !F.aim; btn.classList.toggle('armed', F.aim); sfx('click');
+  if (locked() && slingOut()) { F.aim = !F.aim; F.pref = F.aim; btn.classList.toggle('armed', F.aim); sfx('click');
+    const sl = G.Sling && G.Sling.on; if (sl) { sl.focus = F.aim && mind() >= 6; const bar = $('slingBar'); if (bar) bar.classList.toggle('focus', !!sl.focus); } // v18.12 pressed while already holding 「쏘기」: it works right away
     G.UI.toast(F.aim ? (mind() >= 6 ? '집중 조준 · 「쏘기」를 누르고 있으면 시간이 느려져요 (정신력 5/초)' : '정신력이 모자라요 · 음식이나 기도로 채워요') : '집중 조준을 껐어요'); return; }
   if (!(V() && V().mindUse && V().mindUse(15))) { G.UI.toast('정신력이 모자라요 (15) · 음식·기도·모닥불·잠으로 채워요'); sfx('click', { pitch: 0.7 }); return; }
   fx.classList.remove('on'); void fx.offsetWidth; fx.classList.add('on'); sfx('quest', { pitch: 1.3, vol: 0.5 });
@@ -75,15 +76,17 @@ F.press = function () { if (Game.mode !== 'play' || calm()) return; const S = Ga
   const nc = list.filter(o => o.k === 'chest').length, nj = list.filter(o => o.k === 'jar').length;
   G.UI.toast(`정신을 모았어요 (정신력 15) · ${said}${nc ? ` · 가까이에 보물상자 ${nc}개!` : ''}${nj ? ` · 항아리·상자 ${nj}개` : ''}`); };
 F.aimOn = () => F.aim && mind() >= 6;
+F.off = function () { F.aim = false; F.pref = false; btn.classList.remove('armed'); }; // v18.12 one shot per 집중 (called by sling.js after the stone is loosed)
 
 // ------------------------------------------------------------------ per frame
 F.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(), CAM = Game.CAM; if (!S || !W) return;
   btn.hidden = Game.mode !== 'play'; const lk = locked(); if (!lk && F.aim) { F.aim = false; btn.classList.remove('armed'); }
+  else if (lk && slingOut() && F.pref && !F.aim && mind() >= 6) { F.aim = true; btn.classList.add('armed'); } // v18.12 stays armed for the next target (it used to switch off every time the target changed or fell)
   btn.classList.toggle('low', mind() < 15 && !(lk && slingOut())); btn.querySelector('span').textContent = lk && slingOut() ? (F.aim ? '집중 켬' : '집중') : '집중';
   // slow motion while a focused sling spins
   const sl = G.Sling && G.Sling.on, slowNow = !!(sl && sl.focus) && !calm();
   if (slowNow) { const H = S.hero; H.mind = Math.max(0, mind() - 5 * dt); H.mindT = 0; if (H.mind <= 0) { sl.focus = false; G.UI.toast('정신력이 다했어요 · 시간이 돌아와요'); $('slingBar') && $('slingBar').classList.remove('focus'); } }
-  F.slow += ((slowNow ? 0.3 : 1) - F.slow) * Math.min(1, dt * (slowNow ? 7 : 5)); Game.worldScale = F.slow; document.body.classList.toggle('slowmo', F.slow < 0.8); slowFx.style.opacity = Math.max(0, Math.min(1, (1 - F.slow) / 0.7)).toFixed(2);
+  F.slow += ((slowNow ? 0.3 : 1) - F.slow) * Math.min(1, dt * (slowNow ? 14 : 5)); Game.worldScale = F.slow; document.body.classList.toggle('slowmo', F.slow < 0.8); slowFx.style.opacity = Math.max(0, Math.min(1, (1 - F.slow) / 0.7)).toFixed(2);
   // aim zoom
   const aiming = (lk || (G.Lock && G.Lock.aim)) && !Game.cineOn && !Game.cineCam && !G.UI.busy(), want = aiming ? (F.slow < 0.8 ? 1.35 : 1) : 0; // v16.8 any aim → over the shoulder
   CAM.aimK = (CAM.aimK || 0) + (want - (CAM.aimK || 0)) * Math.min(1, dt * (want > (CAM.aimK || 0) ? 5 : 4)); CAM.aimAt = aiming && G.Lock ? G.Lock.point() : null; document.body.classList.toggle('aiming', CAM.aimK > 0.5);

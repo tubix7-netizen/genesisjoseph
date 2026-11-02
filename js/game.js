@@ -321,6 +321,8 @@ const NODE = {
   deadwood: { n: '마른 가지', r: 0.0, give: { branch: 2 }, re: 2 }, rock: { n: '돌무더기', r: 0.0, give: { stone: 2 }, re: 3 },
   boulder: { n: '바위', r: 1.1, give: { stone: 5 }, re: 5, need: 'hammer' }, reeds: { n: '갈대', r: 0, give: { reed: 2 }, re: 2 },
   clay: { n: '진흙 구덩이', r: 0, give: { clay: 2 }, re: 2 }, straw: { n: '짚더미', r: 0, give: { straw: 2 }, re: 3 },
+  // v18.12 stronger sling stones (see js/stones.js)
+  creek: { n: '시냇돌 더미', r: 0, give: { smooth: 2 }, re: 2 }, flintrock: { n: '부싯돌 바위', r: 0.8, give: { flint: 2 }, re: 4, need: 'hammer' }, blackrock: { n: '검은 바위', r: 1.0, give: { basalt: 1 }, re: 6, need: 'hammer' },
 };
 function nodeModel(type, alt) {
   const g = new GB(type.length * 7 + (alt ? 3 : 0)); const M = m4(); const r = rng(type.length * 31 + (alt ? 5 : 0));
@@ -332,6 +334,9 @@ function nodeModel(type, alt) {
   } else if (type === 'deadwood') { for (let i = 0; i < 4; i++) g.cyl(0.04, 0.05, 1.0, 5, { m: M, at: [(r() - 0.5) * 0.6, 0.06, (r() - 0.5) * 0.6], ry: r() * 6, rz: PI / 2, c: 0x7a5a3a }); }
   else if (type === 'rock') { for (let i = 0; i < 4; i++) g.sph(0.2 + r() * 0.1, 5, 4, { m: M, at: [(r() - 0.5) * 0.7, 0.1, (r() - 0.5) * 0.7], s: [1.2, 0.8, 1], c: 0xb0a690, flat: true, j: 0.08 }); }
   else if (type === 'boulder') G.env.rock(g, M, r, 0xa89c88);
+  else if (type === 'creek') { for (let i = 0; i < 5; i++) g.sph(0.14 + r() * 0.08, 5, 4, { m: M, at: [(r() - 0.5) * 0.8, 0.07, (r() - 0.5) * 0.8], s: [1.2, 0.7, 1], c: [0x9db4be, 0xb8c4c8, 0x8aa0aa][i % 3], flat: true, j: 0.06 }); }
+  else if (type === 'flintrock') { G.env.rock(g, M, r, 0x6a6a78); for (let i = 0; i < 3; i++) g.sph(0.1, 4, 3, { m: M, at: [(r() - 0.5) * 1.3, 0.08, (r() - 0.5) * 1.3], s: [1.2, 0.6, 1], c: 0x8a8a98, flat: true }); }
+  else if (type === 'blackrock') G.env.rock(g, M, r, 0x34343e);
   else if (type === 'reeds') G.env.reeds(g, M, r);
   else if (type === 'clay') { g.cyl(0.8, 0.9, 0.08, 10, { m: M, at: [0, 0.02, 0], c: 0x7a5038 }); g.sph(0.25, 6, 4, { m: M, at: [0.2, 0.08, 0.1], s: [1, 0.5, 1], c: 0x8a5a40 }); }
   else if (type === 'straw') { g.lathe([[0.7, 0], [0.6, 0.4], [0.3, 0.8], [0.05, 1.0]], 10, { m: M, c: 0xd8c070, j: 0.06 }); }
@@ -373,8 +378,8 @@ function nodeAction(n) {
   }
   if (dep) return null;
   if (t.need && !tool(t.need)) return { label: `${TOOLS[t.need]}가 필요해요`, disabled: true };
-  const lab = t.label || { deadwood: '가지 줍기', rock: '돌 줍기', boulder: '바위 깨기', reeds: '갈대 베기', clay: '진흙 뜨기', straw: '짚 모으기' }[n.type] || `${t.n} 줍기`;
-  return { label: lab, anim: n.type === 'boulder' ? 'mine' : 'gather', dur: n.type === 'boulder' ? 0.6 : 0.65, hits: n.type === 'boulder' ? 3 : 1, prop: n.type === 'boulder' ? 'hammer' : null, fn: () => { for (const k in t.give) give(k, t.give[k]); S.nodes[n.id] = S.day + t.re; refreshNodes(); FX.burst(n.x, n.y + 0.3, n.z, 10, { c: [0.75, 0.68, 0.55], sp: 1.2, up: 1.5 }); } };
+  const lab = t.label || { deadwood: '가지 줍기', rock: '돌 줍기', creek: '시냇돌 줍기', flintrock: '부싯돌 깨기', blackrock: '검은 돌 깨기', boulder: '바위 깨기', reeds: '갈대 베기', clay: '진흙 뜨기', straw: '짚 모으기' }[n.type] || `${t.n} 줍기`;
+  return { label: lab, anim: t.need === 'hammer' ? 'mine' : 'gather', dur: t.need === 'hammer' ? 0.6 : 0.65, hits: t.need === 'hammer' ? 3 : 1, prop: t.need === 'hammer' ? 'hammer' : null, fn: () => { for (const k in t.give) give(k, t.give[k]); if (G.Stones) G.Stones.bonus(n.type); S.nodes[n.id] = S.day + t.re; refreshNodes(); FX.burst(n.x, n.y + 0.3, n.z, 10, { c: [0.75, 0.68, 0.55], sp: 1.2, up: 1.5 }); } };
 }
 
 // =================================================================== FARMING
@@ -609,7 +614,7 @@ function newDay(msg) {
   S.day++; S.time = 6;
   if (G.Weather) G.Weather.onDay(S); else S.weather = EP.rain && Math.random() < EP.rain ? 'rain' : 'clear';
   growCrops(); herdDay(); refreshNodes();
-  if (G.Combat) G.Combat.onDay(); if (G.Loot) G.Loot.onDay(); if (S.hero) { S.hero.hp = S.hero.hpMax; }
+  if (G.Combat) G.Combat.onDay(); if (G.Loot) G.Loot.onDay(); if (G.Stones) G.Stones.onDay(S); if (S.hero) { S.hero.hp = S.hero.hpMax; }
   if (EP.onDay) EP.onDay(S, Game);
   if (G.Surv) G.Surv.onDay(S); if (G.Ride) G.Ride.onDay(S); if (G.NpcAI) G.NpcAI.onDay(S);
   P.stam = (S.hero && S.hero.stamMax) || 100; Game.save(true);
@@ -1069,16 +1074,17 @@ function perfTick(rawMs, dt) {
 Game.perfTick = perfTick;
 Game.frame = function (now) {
   const rawMs = now - lastNow; let dt = Math.max(0, Math.min(0.05, rawMs / 1000)); lastNow = now; tAll += dt; // never backwards (clock jumps)
+  if (Game.mode !== 'play' && Game.worldScale !== 1) { Game.worldScale = 1; if (G.Focus) G.Focus.slow = 1; } // never leave slow motion switched on outside play
   perfTick(rawMs, dt); // adaptive resolution / frame lock / shadow rate (below)
   if (Game.mode === 'play' && W) {
     const modal = G.UI.modal();
     if (!modal) { S.time += dt / SEC_PER_HOUR * (EP.timeScale || 1); if (S.time >= 26) { G.UI.toast('너무 늦었어요… 그 자리에서 잠이 들었다'); newDay(); } }
     if (G.Combat && G.Combat.hitStop > 0) { G.Combat.hitStop -= dt; dt *= 0.2; }
-    PM.b('player'); if (!Game.cineOn) updatePlayer(dt); else { P.vx = P.vz = 0; P.spd = 0; }
+    PM.b('player'); if (!Game.cineOn) updatePlayer(dt * (Game.worldScale || 1)); else { P.vx = P.vz = 0; P.spd = 0; }
     if (G.Vitals) G.Vitals.update(dt, S); PM.e('player');
-    const wdt = dt * (Game.worldScale || 1); // v16.7 집중: the world slows down, the hero and the camera do not
     PM.b('sys'); if (G.Focus) G.Focus.update(dt);
-    if (G.Phys) G.Phys.update(wdt); if (G.Loot) G.Loot.update(dt); if (G.Lock) G.Lock.update(dt); if (G.Bond) G.Bond.update(dt); if (G.Companion) G.Companion.update(dt); if (G.Chem) G.Chem.update(dt); if (G.Deeds) G.Deeds.update(dt); if (G.QCam) G.QCam.update(dt); if (G.Climate) G.Climate.update(dt); if (G.Sling) G.Sling.update(wdt); if (G.Fireside) G.Fireside.update(dt); if (G.Sites) G.Sites.update(dt);
+    const wdt = dt * (Game.worldScale || 1); // v16.7 집중: the world slows down; v18.12: Joseph slows too (not the camera or the 정신력 clock), and wdt is read after Focus.update so it follows the same frame
+    if (G.Phys) G.Phys.update(wdt); if (G.Loot) G.Loot.update(dt); if (G.Lock) G.Lock.update(dt); if (G.Bond) G.Bond.update(dt); if (G.Companion) G.Companion.update(wdt); if (G.Chem) G.Chem.update(wdt); if (G.Deeds) G.Deeds.update(dt); if (G.QCam) G.QCam.update(dt); if (G.Climate) G.Climate.update(wdt); if (G.Sling) G.Sling.update(wdt); if (G.Fireside) G.Fireside.update(dt); if (G.Sites) G.Sites.update(dt);
     updateCamera(dt); dialogCam(dt); PM.e('sys');
     const hour = S.time % 24, night = hour < 5.5 || hour > 20.2;
     PM.b('npc'); updateNPCs(wdt, tAll); separateNPCs(wdt); updateAnimals(wdt, tAll, night && !EP.noSleepAnim); PM.e('npc');
@@ -1192,7 +1198,7 @@ function render(dt) {
   if (ctx && ctx.tile) { const t = ctx.tile; m4trs(tileM, t.x, W.heightAt(t.x, t.z) + 0.12, t.z, t.f.ry || 0, 0, 0, t.ts / 1.6, 1, t.ts / 1.6); scene.flats.push({ mesh: tileMesh, m: tileM, color: ctx.disabled ? [1, 0.5, 0.4, 0.6] : [1, 1, 1, 0.75] }); }
   if (G.Combat && Game.mode === 'play') G.Combat.render(scene);
   // particles
-  scene.pts.n = FX.update(dt);
+  scene.pts.n = FX.update(dt * (Game.mode === 'play' ? Game.worldScale || 1 : 1)); // v18.12 sparks and dust slow down with the world
   const Wd = G.UI.cw, Hd = G.UI.ch;
   R.render(scene, Wd, Hd);
   Game.env = env;

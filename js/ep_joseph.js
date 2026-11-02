@@ -330,6 +330,8 @@ function build(W, Game) {
   // gathering: a few sticks and stones in Canaan, figs and olives
   const around = (cx, cz, rr, n, types) => { for (let i = 0; i < n; i++) { const a = r() * 6.28, d = rr * (0.4 + r() * 0.6), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (roadD(x, z) < 2.5 || PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r * 0.75)) continue; node(types[i % types.length], x, z); } };
   around(176, 152, 38, 14, ['fig', 'olive', 'deadwood', 'rock']); around(188, -12, 30, 8, ['olive', 'fig', 'deadwood']);
+  { const r2 = GG.rng(9001); let nsid = 0; const near = (cx, cz, rr, n, types) => { for (let i = 0; i < n; i++) { const a = r2() * 6.28, d = rr * (0.4 + r2() * 0.6), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (roadD(x, z) < 2.5 || PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r * 0.75)) continue; if (waterDist(x, z) >= 4) W.nodes.push({ id: 'ns' + (nsid++), type: types[i % types.length], x, y: W.heightAt(x, z), z, ry: r2() * 6, s: 0.85 + r2() * 0.3 }); } }; // v18.12 stones: creek pebbles near the well, flint and black rock out on the hills
+    near(160, 150, 26, 5, ['creek']); near(176, 152, 40, 4, ['flintrock', 'rock']); near(188, -12, 32, 6, ['creek', 'flintrock', 'blackrock']); near(150, 40, 40, 5, ['rock', 'creek', 'blackrock']); }
   furnish(P, W);
 }
 

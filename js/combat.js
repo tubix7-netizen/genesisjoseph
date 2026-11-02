@@ -214,7 +214,7 @@ C.attack = function () {
   const P = Game.P, S = Game.S(), h = S.hero; if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act) return;
   const ranged = h.mode === 'ranged' && h.ranged; const k = ranged ? h.ranged : (h.weapon || (Game.tool('staff') ? 'staff' : null)); if (!k) { G.UI.toast('무기가 없어요. 지팡이를 만들거나 메뉴 → 장비에서 만들어요'); return; }
   const g = GEAR[k];
-  if (g.kind === 'ranged') { if (!Game.have(g.ammo)) { G.UI.toast(g.ammo === 'stone' ? '물매에 쓸 돌이 없어요 (돌무더기에서 주워요)' : '화살이 없어요 (제작에서 만들어요)'); return; } }
+  if (g.kind === 'ranged') { if (!(g.ammo === 'stone' && G.Stones ? G.Stones.has() : Game.have(g.ammo))) { G.UI.toast(g.ammo === 'stone' ? '물매에 쓸 돌이 없어요 (돌무더기에서 주워요)' : '화살이 없어요 (제작에서 만들어요)'); return; } }
   if (P.stam < 3) return; P.stam -= g.kind === 'ranged' ? 3 : 5; P.stamT = 0;
   const tg = tgt; if (tg) { P.face = Math.atan2(tg.x - P.x, tg.z - P.z); const d = Math.hypot(tg.x - P.x, tg.z - P.z) - (tg.d.big ? 0.6 : 0.2);
     if (g.kind === 'melee' && d > g.reach * 0.6 && d < g.reach + 2.2) { P.lungeT = 0.2; P.lungeV = Math.min(9, (d - g.reach * 0.55) / 0.2); P.lungeDir = [Math.sin(P.face), Math.cos(P.face)]; } }
@@ -231,10 +231,10 @@ C.attack = function () {
 function critRoll(g) { const h = C.hero(); return Math.random() < 0.06 + (g.crit || 0) + h.sk.eye * 0.04; }
 function fireAttack(atk) {
   const P = Game.P, h = C.hero(), g = atk.g;
-  if (g.kind === 'ranged') { Game.take(g.ammo, 1); const tg = atk.tg && atk.tg.st !== 'dead' && !atk.miss ? atk.tg : null; const sy = P.y + 1.5; // v16.6 sling timing: atk.mul / atk.miss / atk.crit / atk.short
+  if (g.kind === 'ranged') { const sk = g.ammo === 'stone' && G.Stones ? G.Stones.use() : (Game.take(g.ammo, 1), null), ST = sk && G.Stones.T[sk]; const tg = atk.tg && atk.tg.st !== 'dead' && !atk.miss ? atk.tg : null; const sy = P.y + 1.5; // v16.6 sling timing: atk.mul / atk.miss / atk.crit / atk.short
     let vx = Math.sin(P.face + (atk.miss ? (Math.random() < 0.5 ? -1 : 1) * (0.12 + Math.random() * 0.12) : 0)), vz = Math.cos(P.face + (atk.miss ? 0.1 : 0)), vy = atk.short ? -0.05 : 0.08; const spd = g.ammo === 'arrow' ? 34 : 26;
     if (tg) { const tx = tg.x + Math.sin(tg.face) * (tg.speed || 0) * 0.25, tz = tg.z + Math.cos(tg.face) * (tg.speed || 0) * 0.25, ty = tg.y + tg.fy + (tg.d.big ? 0.9 : 0.5); const dx = tx - P.x, dz = tz - P.z, dd = Math.hypot(dx, dz); vx = dx / dd; vz = dz / dd; const tt = dd / spd; vy = (ty - sy) / dd + 0.5 * 9.8 * tt / spd; }
-    proj.push({ x: P.x + vx * 0.6, y: sy, z: P.z + vz * 0.6, vx: vx * spd, vy: vy * spd, vz: vz * spd, t: 0, dmg: C.wdmg(atk.k) * (1 + h.sk.aim * 0.12) * (atk.mul === undefined ? 1 : atk.mul), crit: atk.crit === undefined ? critRoll(g) : atk.crit, head: !!atk.head, kind: g.ammo, range: (g.range + h.sk.aim * 2) * (atk.short ? 0.6 : 1) }); return; }
+    proj.push({ x: P.x + vx * 0.6, y: sy, z: P.z + vz * 0.6, vx: vx * spd, vy: vy * spd, vz: vz * spd, t: 0, dmg: C.wdmg(atk.k) * (1 + h.sk.aim * 0.12) * (atk.mul === undefined ? 1 : atk.mul) * (ST ? ST.mul : 1), crit: (atk.crit === undefined ? critRoll(g) : atk.crit) || !!(ST && ST.crit && Math.random() < ST.crit), stun: ST && ST.stun || 0, head: !!atk.head, kind: g.ammo, range: (g.range + h.sk.aim * 2) * (atk.short ? 0.6 : 1) }); return; }
   const reach = g.reach + 0.3, fx = Math.sin(P.face), fz = Math.cos(P.face); let hit = false;
   for (const a of C.wild()) { if (a.st === 'dead' || a.st === 'gone') continue; const dx = a.x - P.x, dz = a.z - P.z, d = Math.hypot(dx, dz) - (a.d.big ? 0.6 : 0.2); if (d > reach) continue;
     const ang = Math.acos(clamp((dx * fx + dz * fz) / (Math.hypot(dx, dz) || 1), -1, 1)); if (ang > g.arc * 0.5 + (atk.fin ? 0.4 : 0) + (d < 1 ? 0.6 : 0)) continue;
@@ -290,7 +290,7 @@ function updateProjectiles(dt) {
   for (let i = proj.length - 1; i >= 0; i--) { const p = proj[i]; p.t += dt; p.vy -= 9.8 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
     let done = p.t > 2.5 || p.y < W.heightAt(p.x, p.z);
     for (const a of C.wild()) { if (a.st === 'dead' || a.st === 'gone') continue; const r = a.d.big ? 1.1 : a.sp === 'hare' || a.sp === 'partridge' ? 0.55 : 0.75; const cy = a.y + a.fy + (a.d.big ? 0.9 : 0.5);
-      if (Math.hypot(a.x - p.x, a.z - p.z, (cy - p.y) * 0.7) < r) { const v = Math.hypot(p.vx, p.vz) || 1; damage(a, p.dmg * (p.crit ? 1.8 : 1), p.crit, p.vx / v, p.vz / v); if (p.head && a.st !== 'dead') stun(a, a.d.big ? 1.6 : 2.6); sfx('arrowHit', { x: p.x, z: p.z }); done = true; break; } }
+      if (Math.hypot(a.x - p.x, a.z - p.z, (cy - p.y) * 0.7) < r) { const v = Math.hypot(p.vx, p.vz) || 1; damage(a, p.dmg * (p.crit ? 1.8 : 1), p.crit, p.vx / v, p.vz / v); if ((p.head || (p.stun && Math.random() < p.stun)) && a.st !== 'dead') stun(a, a.d.big ? 1.6 : 2.6); sfx('arrowHit', { x: p.x, z: p.z }); done = true; break; } }
     if (!done && G.Phys && G.Phys.hitAt(p.x, p.y, p.z, p.vx, p.vy, p.vz)) done = true; // knocks over jars, stones…
     if (done) { proj.splice(i, 1); if (p.y < W.heightAt(p.x, p.z) + 0.3) G.FX.burst(p.x, W.heightAt(p.x, p.z) + 0.05, p.z, 5, { c: [0.75, 0.68, 0.55], sp: 0.8, up: 1 }); } }
 }

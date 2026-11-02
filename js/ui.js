@@ -389,9 +389,9 @@ UI.shop = function (shopId) {
       body.innerHTML = `<div class="sec">가진 은 ${S.silver}</div>` + (ks.length ? ks.map(k => { const it = Game.ITEMS[k]; const pr = Game.price(k, shop.mul); return `<div class="row">${itemIcon(k)}<div class="t"><b>${esc(it.n)} ×${S.inv[k]}</b><span>하나에 은 ${pr}</span></div><button class="sbtn" data-s="${k}" data-n="1">1개</button><button class="sbtn pri" data-s="${k}" data-n="999">모두</button></div>`; }).join('') : '<div class="row"><div class="t"><span>팔 물건이 없어요</span></div></div>');
       body.onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; Game.sell(b.dataset.s, +b.dataset.n, shop.mul); render('sell', body); };
     } else {
-      const list = shop.buy.filter(x => !x.when || x.when(S, Game));
-      body.innerHTML = `<div class="sec">가진 은 ${S.silver}</div>` + list.map((x, i) => `<div class="row">${x.item ? itemIcon(x.item) : icon(x.tool ? 'tool' : 'wool', '#e8dcc0')}<div class="t"><b>${esc(x.n)}</b><span>${esc(x.d || '')}</span></div><button class="sbtn pri" data-b="${i}" ${S.silver >= x.price ? '' : 'disabled'}>은 ${x.price}</button></div>`).join('');
-      body.onclick = e => { const b = e.target.closest('[data-b]'); if (!b || b.disabled) return; Game.buy(list[+b.dataset.b]); render('buy', body); };
+      const list = shop.buy.filter(x => !x.when || x.when(S, Game)).concat(G.Stones ? G.Stones.shopList(shopId) : []); const St = G.Stones;
+      body.innerHTML = `<div class="sec">가진 은 ${S.silver}</div>` + list.map((x, i) => `<div class="row">${x.item ? itemIcon(x.item) : icon(x.tool ? 'tool' : 'wool', '#e8dcc0')}<div class="t"><b>${esc(x.n)}</b><span>${esc(x.d || '')}</span></div><button class="sbtn pri" data-b="${i}" ${S.silver >= x.price && (!x.daily || St.left(shopId, x) > 0) ? '' : 'disabled'}>${x.daily ? (St.left(shopId, x) > 0 ? `은 ${x.price} · 오늘 ${St.left(shopId, x)}번` : '오늘은 다 팔렸어요') : `은 ${x.price}`}</button></div>`).join('');
+      body.onclick = e => { const b = e.target.closest('[data-b]'); if (!b || b.disabled) return; const ent = list[+b.dataset.b]; if (Game.buy(ent) && ent.daily) St.spent(shopId, ent); render('buy', body); };
     }
   });
 };
@@ -564,7 +564,7 @@ UI.hud = function () {
   $('seedBtn').hidden = !Object.keys(S.inv).some(k => Game.ITEMS[k] && Game.ITEMS[k].cat === 'seed') && !Game.tool('hoe');
   const H = S.hero; if (H) { $('hpFill').style.width = (H.hp / H.hpMax * 100).toFixed(1) + '%'; $('hpTxt').textContent = `${Math.ceil(H.hp)} / ${H.hpMax}`; $('lvlTxt').textContent = `체력 Lv${H.lvl}`; $('menuDot').hidden = !(H.ip > 0);
     const C = G.Combat, mel = H.weapon || (Game.tool('staff') ? 'staff' : null); $('btnAtk').hidden = !mel && !H.ranged;
-    const rng = H.mode === 'ranged' && H.ranged; $('wpnBtn').hidden = !H.ranged; if (H.ranged) $('wpnBtn').innerHTML = icon(rng ? (C.GEAR[H.ranged].ammo === 'stone' ? 'sling' : 'bow') : 'sword', '#f0d8b0') + (rng ? `${C.GEAR[H.ranged].ammo === 'stone' ? '돌' : '화살'} ${Game.inv(C.GEAR[H.ranged].ammo)}` : '근접');
+    const rng = H.mode === 'ranged' && H.ranged; $('wpnBtn').hidden = !H.ranged; if (H.ranged) $('wpnBtn').innerHTML = icon(rng ? (C.GEAR[H.ranged].ammo === 'stone' ? 'sling' : 'bow') : 'sword', '#f0d8b0') + (rng ? (C.GEAR[H.ranged].ammo === 'stone' && G.Stones ? G.Stones.label() : `${C.GEAR[H.ranged].ammo === 'stone' ? '돌' : '화살'} ${Game.inv(C.GEAR[H.ranged].ammo)}`) : '근접'); if (G.Stones) G.Stones.hud();
     $('btnAtkL').textContent = rng ? '쏘기' : '공격'; }
   extraBtns(); UI.quest();
 };

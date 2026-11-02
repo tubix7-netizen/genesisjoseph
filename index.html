@@ -13,7 +13,7 @@ if(prev&&prev!=='OK'){addEventListener('DOMContentLoaded',function(){var d=docum
 <script>(function(){try{if(!document.querySelector('meta[name=viewport]')){var m=document.createElement('meta');m.name='viewport';m.content='width=device-width,initial-scale=1,viewport-fit=cover';(document.head||document.documentElement).appendChild(m);}}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap"></noscript>
 <style>
 /* Layout: full-bleed WebGL world. HUD pinned to corners; twin thumb-sticks at the bottom corners with the
    action cluster above the right stick; hotbar bottom-center; story panels rise from the bottom; menus are sheets. */
@@ -260,22 +260,27 @@ body.cine #hud,body.cine #controls,body.cine #tags,body.cine #prompt,body.cine #
 .seg button.on{background:var(--gold);color:var(--ink)}
 
 /* title */
-#title{background:linear-gradient(180deg,rgba(5,8,20,.05),rgba(5,8,20,.45) 55%,rgba(5,8,20,.92));align-items:end;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px)}
-.t-wrap{width:100%;max-width:900px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center}
-.t-kick{font-size:12px;letter-spacing:.24em;color:var(--gold);font-weight:700}
-.t-wrap h1{margin:0;font-family:var(--serif);font-weight:700;font-size:clamp(42px,8vw,76px);line-height:1;color:var(--gold-hi);text-shadow:0 3px 22px rgba(0,0,0,.6)}
-.eps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%}.eps.one{grid-template-columns:minmax(0,520px);justify-content:center}
-.ep{display:flex;flex-direction:column;gap:6px;text-align:left;padding:14px 16px;border-radius:14px;background:rgba(9,16,34,.8);border:1px solid var(--line);min-width:0}
-.ep small{font-size:11px;letter-spacing:.12em;color:var(--gold);font-weight:700}
-.ep h2{margin:0;font-family:var(--serif);font-size:22px;color:var(--gold-hi)}
-.ep p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
-.ep .b{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+#title{background:radial-gradient(120% 70% at 50% 100%,rgba(229,160,70,.20),rgba(229,160,70,0) 60%),linear-gradient(180deg,rgba(5,8,20,.55),rgba(5,8,20,.12) 30%,rgba(5,8,20,.5) 62%,rgba(5,8,20,.94));align-items:end;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 34px)}
+.t-wrap{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;animation:tIn .9s ease-out both}
+@keyframes tIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.t-kick{font-size:11px;letter-spacing:.36em;color:var(--gold);font-weight:700;opacity:.9;padding-left:.36em}
+.t-wrap h1{margin:0;font-family:var(--serif);font-weight:700;font-size:clamp(46px,14vw,72px);line-height:1.05;letter-spacing:.06em;color:var(--gold-hi);text-shadow:0 2px 0 rgba(120,80,20,.55),0 6px 28px rgba(0,0,0,.7)}
+.t-orn{width:132px;height:10px;background:linear-gradient(90deg,transparent,var(--gold) 30%,var(--gold) 70%,transparent) center/100% 1px no-repeat;position:relative;opacity:.8}
+.t-orn::after{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;background:var(--gold);transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 0 3px rgba(9,16,34,.9)}
+.eps{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;margin-top:6px}
+.ep{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;padding:0;background:none;border:0;min-width:0;width:100%}
+.ep small{font-size:12px;letter-spacing:.14em;color:var(--sand);font-weight:600;opacity:.8}
+.ep h2{margin:0 0 12px;font-family:var(--serif);font-size:17px;font-weight:400;color:var(--sand);opacity:.9}
+.ep p{display:none}
+.ep .b{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;margin-top:0}
+.ep .b .btn:first-child{width:min(280px,82%);padding:15px 20px;font-size:17px;border-radius:16px;letter-spacing:.08em;box-shadow:0 3px 0 #8f6b22,0 10px 26px rgba(229,181,82,.22)}
+.ep .b .btn.ghost{background:none;border:0;box-shadow:none;padding:8px 14px;font-size:13px;color:var(--muted);text-decoration:underline;text-underline-offset:4px}
 .btn{border:0;border-radius:11px;padding:10px 16px;font-size:14px;font-weight:700;background:var(--gold);color:var(--ink);box-shadow:0 3px 0 #8f6b22}
 .btn:active{transform:translateY(2px);box-shadow:0 1px 0 #8f6b22}
 .btn.ghost{background:transparent;color:var(--sand);border:1px solid var(--line);box-shadow:none}
-.t-note{font-size:12px;color:var(--muted)}
-@media (max-width:560px){.eps{grid-template-columns:1fr}.ep p{display:none}}
-@media (max-height:440px){.t-wrap{gap:8px}.t-wrap h1{font-size:44px}.ep p{display:none}.ep{padding:10px 14px}}
+.eps.wait .b{opacity:.4;pointer-events:none}
+.t-note{font-size:11.5px;color:var(--muted);opacity:.7;line-height:1.6;max-width:300px;margin-top:6px}
+@media (max-height:440px){#title{background:radial-gradient(55% 90% at 50% 62%,rgba(5,8,20,.78),rgba(5,8,20,.25) 80%),linear-gradient(180deg,rgba(5,8,20,.3),rgba(5,8,20,.6))}.t-wrap{gap:6px;max-width:520px}.t-wrap h1{font-size:40px}.ep h2{margin-bottom:6px}.ep .b{flex-direction:row;justify-content:center}.ep .b .btn:first-child{width:auto;padding:10px 26px;font-size:15px}.t-note{display:none}}
 
 /* minigame */
 #mg{background:rgba(5,8,20,.35);align-items:end;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);pointer-events:none}
@@ -465,8 +470,9 @@ body.busy #hint,body.cine #hint,body.photo #hint{visibility:hidden}
   <div class="t-wrap">
     <div class="t-kick">창세기 오픈월드 모험</div>
     <h1>약속의 길</h1>
+    <div class="t-orn"></div>
     <div class="eps" id="eps"></div>
-    <div class="t-note" id="tNote">휴대폰은 세로로 들고 플레이하세요 · 왼쪽 스틱 이동 · 오른쪽 스틱이나 화면 드래그로 카메라 · A 버튼 행동</div>
+    <div class="t-note" id="tNote">휴대폰은 세로로 들고 플레이하세요</div>
   </div>
 </div>
 <div class="overlay" id="rotate" hidden><div class="rot">
@@ -483,48 +489,49 @@ body.busy #hint,body.cine #hint,body.photo #hint{visibility:hidden}
 <div id="fader"></div>
 <div id="loadErr" hidden>이 기기에서는 3D 그래픽(WebGL2)을 사용할 수 없어요. 최신 브라우저에서 다시 열어 주세요.</div>
 
-<script src="js/core.js?v=1793574753"></script>
-<script src="js/audio.js?v=1793574753"></script>
-<script src="js/models.js?v=1793574753"></script>
-<script src="js/motion.js?v=1793574753"></script>
-<script src="js/world.js?v=1793574753"></script>
-<script src="js/game.js?v=1793574753"></script>
-<script src="js/ui.js?v=1793574753"></script>
-<script src="js/combat.js?v=1793574753"></script>
-<script src="js/life.js?v=1793574753"></script>
-<script src="js/shots.js?v=1793574753"></script>
-<script src="js/mood.js?v=1793574753"></script>
-<script src="js/companion.js?v=1793574753"></script>
-<script src="js/weather.js?v=1793574753"></script>
-<script src="js/vitals.js?v=1793574753"></script>
-<script src="js/survival.js?v=1793574753"></script>
-<script src="js/wilds.js?v=1793574753"></script>
-<script src="js/hearth.js?v=1793574753"></script>
-<script src="js/climb.js?v=1793574753"></script>
-<script src="js/physics.js?v=1793574753"></script>
-<script src="js/loot.js?v=1793574753"></script>
-<script src="js/lockon.js?v=1793574753"></script>
-<script src="js/build.js?v=1793574753"></script>
-<script src="js/ride.js?v=1793574753"></script>
-<script src="js/npcai.js?v=1793574753"></script>
-<script src="js/greet.js?v=1793574753"></script>
-<script src="js/bond.js?v=1793574753"></script>
-<script src="js/qcam.js?v=1793574753"></script>
-<script src="js/climate.js?v=1793574753"></script>
-<script src="js/chem.js?v=1793574753"></script>
-<script src="js/deeds.js?v=1793574753"></script>
-<script src="js/sling.js?v=1793574753"></script>
-<script src="js/acts.js?v=1793574753"></script>
-<script src="js/opening.js?v=1793574753"></script>
-<script src="js/ep_joseph.js?v=1793574753"></script>
-<script src="js/ep_joseph_life.js?v=1793574753"></script>
-<script src="js/pantry.js?v=1793574753"></script>
-<script src="js/fireside.js?v=1793574753"></script>
-<script src="js/sites.js?v=1793574753"></script>
-<script src="js/focus.js?v=1793574753"></script>
-<script src="js/cuisine.js?v=1793574753"></script>
-<script src="js/delights.js?v=1793574753"></script>
-<script src="js/perf.js?v=1793574753"></script>
-<script src="js/main.js?v=1793574753"></script>
+<script src="js/core.js?v=1793580905"></script>
+<script src="js/audio.js?v=1793580905"></script>
+<script src="js/models.js?v=1793580905"></script>
+<script src="js/motion.js?v=1793580905"></script>
+<script src="js/world.js?v=1793580905"></script>
+<script src="js/game.js?v=1793580905"></script>
+<script src="js/ui.js?v=1793580905"></script>
+<script src="js/combat.js?v=1793580905"></script>
+<script src="js/life.js?v=1793580905"></script>
+<script src="js/shots.js?v=1793580905"></script>
+<script src="js/mood.js?v=1793580905"></script>
+<script src="js/companion.js?v=1793580905"></script>
+<script src="js/weather.js?v=1793580905"></script>
+<script src="js/vitals.js?v=1793580905"></script>
+<script src="js/survival.js?v=1793580905"></script>
+<script src="js/wilds.js?v=1793580905"></script>
+<script src="js/hearth.js?v=1793580905"></script>
+<script src="js/climb.js?v=1793580905"></script>
+<script src="js/physics.js?v=1793580905"></script>
+<script src="js/loot.js?v=1793580905"></script>
+<script src="js/lockon.js?v=1793580905"></script>
+<script src="js/build.js?v=1793580905"></script>
+<script src="js/ride.js?v=1793580905"></script>
+<script src="js/npcai.js?v=1793580905"></script>
+<script src="js/greet.js?v=1793580905"></script>
+<script src="js/bond.js?v=1793580905"></script>
+<script src="js/qcam.js?v=1793580905"></script>
+<script src="js/climate.js?v=1793580905"></script>
+<script src="js/chem.js?v=1793580905"></script>
+<script src="js/deeds.js?v=1793580905"></script>
+<script src="js/sling.js?v=1793580905"></script>
+<script src="js/stones.js?v=1793580905"></script>
+<script src="js/acts.js?v=1793580905"></script>
+<script src="js/opening.js?v=1793580905"></script>
+<script src="js/ep_joseph.js?v=1793580905"></script>
+<script src="js/ep_joseph_life.js?v=1793580905"></script>
+<script src="js/pantry.js?v=1793580905"></script>
+<script src="js/fireside.js?v=1793580905"></script>
+<script src="js/sites.js?v=1793580905"></script>
+<script src="js/focus.js?v=1793580905"></script>
+<script src="js/cuisine.js?v=1793580905"></script>
+<script src="js/delights.js?v=1793580905"></script>
+<script src="js/perf.js?v=1793580905"></script>
+<script src="js/main.js?v=1793580905"></script>
 
 </body></html>
