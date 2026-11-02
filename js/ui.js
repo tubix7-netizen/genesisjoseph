@@ -592,7 +592,7 @@ function extraBtns() {
   const EP = Game.EP(), S = Game.S(), host = $('hot'); if (!EP || !S) return;
   for (const e of EP.extra || []) { let b = document.getElementById('xb_' + e.id);
     if (!b) { b = document.createElement('button'); b.id = 'xb_' + e.id; b.className = 'xb'; b.onclick = () => { if (UI.busy() || (G.Cine && G.Cine.on)) return; e.click(Game.S(), Game); UI.hud(); }; host.insertBefore(b, host.firstChild); }
-    const on = !e.on || e.on(S, Game); b.hidden = !on; if (on) { const lab = typeof e.label === 'function' ? e.label(S, Game) : e.label; if (b.dataset.l !== lab) { b.dataset.l = lab; b.innerHTML = icon(e.ic || 'star', '#e8d8b8') + esc(lab); } } }
+    const on = !e.on || e.on(S, Game); b.hidden = !on; if (on) { const lab = typeof e.label === 'function' ? e.label(S, Game) : e.label; if (b.dataset.l !== lab) { b.dataset.l = lab; b.innerHTML = icon(e.ic || 'star', '#e8d8b8') + '<span class="xl">' + esc(lab) + '</span>'; } } }
 }
 UI.enterGame = function () { document.querySelectorAll('.xb').forEach(b => b.remove()); $('title').hidden = true; $('hud').hidden = false; $('controls').hidden = false; UI.resize(); UI.hud(); UI.checkRotate(); };
 UI.toTitle = function () { UI.hint(null); document.querySelectorAll('.xb').forEach(b => b.remove()); busyFlags.rot = false; $('rotate').hidden = true; $('title').hidden = false; $('hud').hidden = true; $('controls').hidden = true; $('prompt').hidden = true; $('stam').hidden = true; $('tags').innerHTML = ''; tagEls = {}; };

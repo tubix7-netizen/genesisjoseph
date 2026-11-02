@@ -112,7 +112,7 @@ function greet(S, n) {
   return rnd([].concat(close, close, w && Math.random() < 0.6 ? w : [], t));
 }
 const friend = id => { const S = Sf(); return (S.fr && S.fr[id]) || 0; };
-function addFriend(n, k, quiet) { const S = Sf(); S.fr = S.fr || {}; const o = S.fr[n.id] || 0; S.fr[n.id] = clamp(o + k, 0, 10); if (!quiet && Math.floor(S.fr[n.id]) > Math.floor(o)) G.UI.toast(`${n.name}와(과) 더 가까워졌어요 ${'♥'.repeat(Math.min(5, Math.ceil(S.fr[n.id] / 2)))}`); }
+function addFriend(n, k, quiet) { const S = Sf(); S.fr = S.fr || {}; const o = S.fr[n.id] || 0; S.fr[n.id] = clamp(o + k, 0, 10); void 0; }
 // what villagers say about the hero's life
 function remarks(S, n) {
   const P = Game.P, out = [], f = Game.feat('surv') && S.surv ? S.surv : null;

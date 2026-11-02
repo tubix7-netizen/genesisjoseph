@@ -16,7 +16,7 @@ SL.start = function () { if (SL.on || G.UI.busy() || Game.cineOn) return;
   if (!(G.Stones ? G.Stones.has() : Game.have('stone'))) { G.UI.toast('물매에 쓸 돌이 없어요 (돌무더기에서 주워요)'); return; }
   const focus = G.Focus ? G.Focus.aimOn() : false; if (G.Focus && G.Focus.aim && !focus) G.UI.toast('정신력이 모자라서 집중이 꺼져 있어요'); /* v16.7 집중 조준 slows the world while the sling spins */ SL.on = { t: 0, x: 0.5, focus, ph: Math.random() * 6 };
   const P = Game.P; P.emote = { k: 'sling', t: 0, dur: 0 }; P.face = Math.atan2(t.x - P.x, t.z - P.z);
-  const bar = $('slingBar'); bar.hidden = false; bar.classList.toggle('focus', !!focus); sfx('whoosh', { vol: 0.4, pitch: 0.8 }); };
+  const bar = $('slingBar'); bar.hidden = false; bar.classList.remove('cancel'); bar.querySelector('span').textContent = '놓을 때 돌이 날아가요'; bar.classList.toggle('focus', !!focus); sfx('whoosh', { vol: 0.4, pitch: 0.8 }); };
 SL.release = function () { const s = SL.on; if (!s) return; SL.on = null; if (G.Focus && G.Focus.off) G.Focus.off(); /* 집중 turns off after the shot */ $('slingBar').hidden = true; const P = Game.P; P.emote = null; const t = target(); if (!t) return;
   const off = Math.abs(s.x - 0.5), k = s.focus ? 1.8 : 1, dist = Math.hypot(t.x - P.x, t.z - P.z), far = dist > RANGE();
   let mul = 1, crit = false, miss = false, head = false, msg = '';
@@ -31,8 +31,13 @@ SL.update = function (dt) { const s = SL.on, bar = $('slingBar'); if (!s) return
   $('slingMk').style.left = (s.x * 100).toFixed(1) + '%'; const far = Math.hypot(t.x - P.x, t.z - P.z) > RANGE(); bar.classList.toggle('far', far); };
 // take over the attack button and F while the sling is the weapon
 const btn = $('btnAtk');
-btn.addEventListener('pointerdown', e => { if (!isSling()) return; e.preventDefault(); e.stopImmediatePropagation(); SL.start(); }, true);
-const up = e => { if (SL.on) { e.preventDefault(); SL.release(); } };
+btn.addEventListener('pointerdown', e => { if (!isSling()) return; e.preventDefault(); e.stopImmediatePropagation(); y0 = e.clientY; cancelling = false; SL.start(); }, true);
+/* v18.12j slide the finger down off 「쏘기」 while holding and let go there = cancel (no stone is spent, nothing is shot) */
+let y0 = 0, cancelling = false;
+SL.cancel = function () { if (!SL.on) return; SL.on = null; cancelling = false; if (G.Focus && G.Focus.off) G.Focus.off(); $('slingBar').hidden = true; $('slingBar').classList.remove('cancel'); Game.P.emote = null; G.UI.toast('취소했어요'); };
+const mark = e => { if (!SL.on) return; const c = e.clientY - y0 > 48; if (c !== cancelling) { cancelling = c; $('slingBar').classList.toggle('cancel', c); const sp = $('slingBar').querySelector('span'); sp.textContent = c ? '여기서 놓으면 취소돼요' : '놓을 때 돌이 날아가요'; } };
+btn.addEventListener('pointermove', mark, true);
+const up = e => { if (SL.on) { e.preventDefault(); if (e.clientY !== undefined && e.type !== 'pointercancel') mark(e); if (cancelling || e.type === 'pointercancel') SL.cancel(); else SL.release(); } };
 btn.addEventListener('pointerup', up, true); btn.addEventListener('pointercancel', up, true); btn.addEventListener('pointerleave', up, true);
 addEventListener('keydown', e => { if (e.code === 'KeyF' && isSling() && Game.mode === 'play') { e.stopImmediatePropagation(); if (!e.repeat) SL.start(); } }, true);
 addEventListener('keyup', e => { if (e.code === 'KeyF' && SL.on) SL.release(); }, true);

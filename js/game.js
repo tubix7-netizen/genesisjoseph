@@ -744,6 +744,7 @@ Game.talkTo = talkTo;
 const MAG_STOP = a => a.npc ? 1.25 : a.well ? a.well : a.node ? (NODE[a.node.type].r || 0.4) + 0.75 : a.reach || 1.0;
 function magnetFor(a) {
   if (!a || a.disabled || a.tile || a.x === undefined || a.noMagnet || P.ride || P.swim || P.act || P.magnet || (G.Cine && G.Cine.on)) return false;
+  if (P.y > W.heightAt(P.x, P.z) + 0.9) return false; /* v18.12j standing up high (a roof): never glide toward the target, that walked Joseph off the edge */
   const d = Math.hypot(a.x - P.x, a.z - P.z), stop = MAG_STOP(a), want = Math.atan2(a.x - P.x, a.z - P.z);
   if (d <= stop + 0.15 && Math.abs(angDiff(P.face, want)) < 0.5) return false; // already there and facing it
   P.magnet = { a, x: a.x, z: a.z, stop, t: 0 }; return true;
@@ -1025,6 +1026,10 @@ function dialogCam(dt) {
     let cx = A.x - dx * back + sx * sideO, cz = A.z - dz * back + sz * sideO, cy = lerp(ay + 0.05, by + 0.12, 0.55 * low + 0.15);
     const f = W.ray(A.x, ay, A.z, cx, cy, cz); if (f < 1) { cx = A.x + (cx - A.x) * Math.max(0.3, f - 0.1); cz = A.z + (cz - A.z) * Math.max(0.3, f - 0.1); }
     const tx = Bn.x - dx * 0.05, tz = Bn.z - dz * 0.05, ty = by - 0.07;
+    /* v18.12j a tree or wall between the lens and the listener's face: try the other shoulder, a wider swing, a closer lens, until the face is clear */
+    { const clear = (x, z, y) => { const dd = Math.hypot(tx - x, tz - z) || 1, g = W.ray(x, y, z, tx, ty, tz); return g >= 1 - 1.0 / dd; };
+      if (!clear(cx, cz, cy)) { const tries = [[-sideO, back], [sideO * 1.8, back], [-sideO * 1.8, back], [sideO, back * 0.55], [-sideO, back * 0.55], [0, back * 1.6], [sideO * 2.6, back * 0.8], [-sideO * 2.6, back * 0.8]];
+        for (const [so, bk] of tries) { const x = A.x - dx * bk + sx * so, z = A.z - dz * bk + sz * so; if (W.ray(A.x, ay, A.z, x, cy, z) >= 1 && clear(x, z, cy)) { cx = x; cz = z; break; } } } }
     const side = (heroTalks ? 'h' : 'n') + (n.id || ''); // shot / reverse-shot: cut when the speaker changes sides instead of swinging the camera through the pair
     if (!DC.ok || (DC.side && DC.side !== side && Game.dlgW > 0.9)) { DC.ax = cx; DC.ay = cy; DC.az = cz; DC.lx = tx; DC.ly = ty; DC.lz = tz; DC.ok = true; }
     DC.side = side;

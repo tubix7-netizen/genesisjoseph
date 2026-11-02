@@ -230,7 +230,7 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
     if (f.away && f.greetDay !== S.day) { f.away = 0; f.greetDay = S.day; for (const id of ['manasseh', 'ephraim']) { const n = G.Game.ENT.npcs[id]; if (!n || !n.vis) continue; G.Game.npcWalk(id, P.x + (id === 'ephraim' ? 1 : -1), P.z + 1, () => { n.emote = { k: 'cheer', t: 0, dur: 2 }; }, 3.2); G.Life && G.Life.bubble(id, rnd(['아빠!', '아빠 왔다!', '아빠아!']), 2.6); } }
     const h = S.time % 24; if (h > 18 && h < 21 && f.supperDay !== S.day && d < 14) { f.supperDay = S.day; G.Life && G.Life.bubble('asenath', '저녁 드세요! 오늘은 생선이에요.', 3.5); G.UI.toast('아스낫에게 말을 걸어 함께 식사할 수 있어요'); } };
   // a button for the people you know
-  (EP.extra = EP.extra || []).push({ id: 'people', label: '사람들', ic: 'star', on: S => !!(S.bond && Object.keys(S.bond).length), click: () => G.Bond && G.Bond.panel() });
+  /* v18.12j the 「사람들」 page (친밀도 hearts) was removed from the menu; Bond.panel() still exists for tests */
 })(window.G);
 
 // ------------------------------------------------------------------ v16.3 two lands: the prologue stays in Canaan, the story after the pit stays in Egypt

@@ -38,6 +38,7 @@ function spill(x, y, z, got, silver) { let i = 0; const W = Game.W(); for (const
 const dropMesh = k => mk('drop_' + k, g => { if (k === '$silver') { for (let i = 0; i < 3; i++) g.cyl(0.05, 0.05, 0.012, 9, { at: [i * 0.03 - 0.03, 0.01 + i * 0.013, i * 0.01], c: 0xd8d8e0 }); return; }
   const it = Game.ITEMS[k], c = it && it.c ? parseInt(it.c.slice(1), 16) : 0xc8a060; // a small cloth bundle in the item's colour, tied at the top
   g.sph(0.11, 8, 6, { at: [0, 0.09, 0], s: [1, 0.8, 1], c: 0xd8c8a0 }); g.sph(0.075, 7, 5, { at: [0, 0.16, 0], c }); g.cyl(0.02, 0.03, 0.05, 6, { at: [0, 0.2, 0], c: 0x8a6a40 }); });
+Lo.spill = spill;
 Lo.pickDrop = function (d) { const i = Lo.drops.indexOf(d); if (i < 0) return; Lo.drops.splice(i, 1); Game.P.emote = { k: 'gather', t: 0, dur: 0.6 };
   if (d.k === '$silver') { Game.silver(d.n); G.UI.toast(`은 ${d.n}`); } else { Game.give(d.k, d.n, true); G.UI.gain && G.UI.gain(d.k, d.n); } sfx('pickup'); };
 function drop(b, got, silver, insight) { const ks = Object.keys(got); let i = 0;

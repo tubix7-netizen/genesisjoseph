@@ -52,7 +52,7 @@ if (Ph) {
   const update = Ph.update; Ph.update = function (dt) {
     update.apply(this, arguments);
     for (const b of Ph.list) { if (!b.thrown || b.gone || b === Ph.held) continue; b.thrown += dt;
-      const sp = Math.hypot(b.vx, b.vy, b.vz); if ((b.thrown > 0.3 && sp < 1.2 && b.sleep > 0.1) || b.thrown > 4) crack(b); }
+      const sp = Math.hypot(b.vx, b.vy, b.vz), hit = b.thrown > 0.08 && (b.pv || 0) > 3.2 && sp < (b.pv || 0) * 0.6; b.pv = sp; if (hit || (b.thrown > 0.3 && sp < 1.2 && b.sleep > 0.1) || b.thrown > 4) crack(b); }
   };
   const reset = Ph.reset; Ph.reset = function () {
     reset.apply(this, arguments);
@@ -63,8 +63,8 @@ if (Ph) {
 function crack(b) {
   b.gone = true; b.thrown = 0; const s = S(), r = Math.random(); let n = 2, extra = null;
   if (r < 0.2) extra = 'smooth'; else if (r > 0.96) extra = 'flint';
-  Game.give('stone', n); if (extra) Game.give(extra, 1);
-  G.UI.toast(`둥근 돌이 깨져서 돌 ${n}개가 되었어요${extra ? ` · ${T[extra].n} 1개도 나왔어요` : ''}`);
+  const got = { stone: n }; if (extra) got[extra] = 1; if (G.Loot && G.Loot.spill) G.Loot.spill(b.x, Game.W().heightAt(b.x, b.z), b.z, got); else { Game.give('stone', n); if (extra) Game.give(extra, 1); } /* v18.12j the pieces lie on the ground; Joseph picks them up himself */
+  G.UI.toast(`둥근 돌이 깨졌어요 · 떨어진 돌을 주워요${extra ? ` (${T[extra].n} 포함)` : ''}`);
   if (G.FX) G.FX.burst(b.x, b.y, b.z, 14, { c: [0.7, 0.66, 0.58], sp: 2.4, up: 2, size: 0.08, g: 9 }); G.Audio && G.Audio.sfx('thud', { pitch: 1.5, vol: 0.8, x: b.x, z: b.z });
   if (b.home) (s.flags.stoneResp = s.flags.stoneResp || []).push({ x: b.home[0], z: b.home[1], day: s.day + 2 });
 }

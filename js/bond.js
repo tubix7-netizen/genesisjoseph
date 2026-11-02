@@ -19,8 +19,8 @@ B.get = id => { const s = st(); return s[id] || (s[id] = { p: fam(id) ? fam(id).
 B.level = id => { const L = fam(id) ? LVF : LV, p = B.get(id).p; let i = 0; for (let k = 0; k < L.length; k++) if (p >= L[k][0]) i = k; return { i, name: L[i][1], next: L[i + 1] ? L[i + 1][0] : null, max: L.length - 1 }; };
 B.hearts = id => { const l = B.level(id); return '♥'.repeat(l.i + 1) + '♡'.repeat(l.max - l.i); };
 B.add = function (id, n, why) { const b = B.get(id), n0 = B.level(id).i; b.p = Math.max(0, b.p + n); const lv = B.level(id), N = Game.ENT.npcs[id], nm = N ? N.name : id;
-  if (n > 0) G.UI.toast(`${nm} ${fam(id) ? '가족의 정' : '친밀도'} +${n}${why ? ' · ' + why : ''} (${lv.name})`);
-  if (lv.i > n0) { b.lv = lv.i; sfx('quest', { pitch: 1.15 }); G.UI.featCard && G.UI.featCard('bond', { kick: fam(id) ? '가정' : '친밀도', n: `${nm} · ${lv.name}`, ic: 'star', d: fam(id) ? '함께한 시간만큼 집이 더 따뜻해졌어요.' : '이제 더 깊은 이야기를 들려줄 거예요.' });
+  /* v18.12j the number is only recorded now (no toast, no card, no menu page); the gifts at each level still arrive */
+  if (lv.i > n0) { b.lv = lv.i; sfx('quest', { pitch: 1.15 }); void 0;
     setTimeout(() => reward(id, lv.i), 1600); } };
 // what people like, by who they are (name / role words) — and what everybody likes a little
 const LIKE = [[/아이|목동|소년|소녀|므낫세|에브라임/, ['dates', 'honey', 'sweetCake', 'figCake', 'fig', 'milkHoney']], [/농부|일꾼|밭/, ['bread', 'onion', 'lentilStew', 'flatbread', 'barley']],

@@ -110,7 +110,7 @@ function cinNight(S, G) {
   // looks point away from its crown. The scene ends on Joseph asleep, then cuts (no flying camera) to the stars above him.
   const ox = 190 - bx, oz = 29 - bz, ol = Math.hypot(ox, oz), ux = -ox / ol, uz = -oz / ol; // unit vector pointing away from the oak
   const sky = (k, up) => [bx + ux * k, h + up, bz + uz * k];
-  fade(() => { G.teleport(bx, bz, 2.6); G.P.sleeping = true; if (G.hour() < 22) S.time = Math.floor(S.time / 24) * 24 + 22.2; GG.UI.hint(null); }, () => cine([
+  fade(() => { G.teleport(bx, bz, 1.9708); G.P.sleeping = true; /* v18.12j lie along the straw mat (its long side runs at ry 0.4) */ if (G.hour() < 22) S.time = Math.floor(S.time / 24) * 24 + 22.2; GG.UI.hint(null); }, () => cine([
     { cam: [bx + ux * 3.2 + uz * 1.4, h + 1.35, bz + uz * 3.2 - ux * 1.4], cam2: [bx + ux * 2.6 + uz * 1.1, h + 1.1, bz + uz * 2.6 - ux * 1.1], look: [bx, h + 0.3, bz], dur: 5, fov: 0.85, t: '모닥불이 사위어 갈 무렵, 요셉은 짚자리에 누워 하늘을 올려다보았습니다.', music: 'j_night' },
     { cam: [bx + ux * 0.3, h + 0.55, bz + uz * 0.3], look: sky(16, 26), look2: sky(18, 26), dur: 7, fov: 1.05, n: '요셉', t: '해와 달과 열한 별이 내게 절을 했지… 형들은 그 꿈 이야기에 더 화를 냈고.', ref: '창세기 37:9–11', e: 'tender' },
     { cam: [bx + ux * 1.7 - uz * 0.9, h + 1.05, bz + uz * 1.7 + ux * 0.9], look: [bx, h + 0.4, bz], dur: 6, fov: 0.7, n: '요셉', t: '아버지는 그 말을 마음에 두셨는데… 형들은 왜 나를 미워할까. 이번엔 형들이 반가워해 주면 좋겠다.', ref: '창세기 37:4, 11', e: 'sad' },

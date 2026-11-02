@@ -194,7 +194,7 @@ C.update = function (dt, t) {
   // player regen out of combat
   if (!threat && !(G.Climate && G.Climate.cold) && h.hp < h.hpMax && (C.lastHurt || 0) + 6 < t) { h.hp = Math.min(h.hpMax, h.hp + dt * 1.2); C.hpDirty = 1; }
   // attack timing
-  if (P.atk) { P.atk.t += dt; if (!P.atk.fired && P.atk.t >= P.atk.hit) { P.atk.fired = true; fireAttack(P.atk); } if (P.atk.t >= P.atk.dur) { P.lastAtk = { k: P.atk.k, combo: P.atk.combo || 0, end: C.tAll || 0 }; P.atk = null; } }
+  if (P.atk) { P.atk.t += dt; if (!P.atk.fired && P.atk.t >= P.atk.hit) { P.atk.fired = true; fireAttack(P.atk); } if (P.atk.t >= P.atk.dur) { P.lastAtk = { k: P.atk.k, combo: P.atk.combo || 0, end: C.tAll || 0 }; P.atk = null; if (P.atkQ) { P.atkQ = false; C.attack(); } } } else P.atkQ = false;
   C.tAll = t;
   updateProjectiles(dt);
   if (C.fish) fishUpdate(dt, t);
@@ -211,7 +211,7 @@ C.pickTarget = function () {
 
 // =================================================================== PLAYER COMBAT
 C.attack = function () {
-  const P = Game.P, S = Game.S(), h = S.hero; if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act) return;
+  const P = Game.P, S = Game.S(), h = S.hero; if (P.atk && P.atk.g.kind === 'melee' && P.atk.t > P.atk.dur * 0.4 && (P.atk.combo || 0) < 2) { P.atkQ = true; return; } /* v18.12i a press near the end of a swing is remembered and starts the next hit at once */ if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act) return;
   const ranged = h.mode === 'ranged' && h.ranged; const k = ranged ? h.ranged : (h.weapon || (Game.tool('staff') ? 'staff' : null)); if (!k) { G.UI.toast('무기가 없어요. 지팡이를 만들거나 메뉴 → 장비에서 만들어요'); return; }
   const g = GEAR[k];
   if (g.kind === 'ranged') { if (!(g.ammo === 'stone' && G.Stones ? G.Stones.has() : Game.have(g.ammo))) { G.UI.toast(g.ammo === 'stone' ? '물매에 쓸 돌이 없어요 (돌무더기에서 주워요)' : '화살이 없어요 (제작에서 만들어요)'); return; } }
@@ -219,15 +219,18 @@ C.attack = function () {
   const tg = tgt; if (tg) { P.face = Math.atan2(tg.x - P.x, tg.z - P.z); const d = Math.hypot(tg.x - P.x, tg.z - P.z) - (tg.d.big ? 0.6 : 0.2);
     if (g.kind === 'melee' && d > g.reach * 0.6 && d < g.reach + 2.2) { P.lungeT = 0.2; P.lungeV = Math.min(9, (d - g.reach * 0.55) / 0.2); P.lungeDir = [Math.sin(P.face), Math.cos(P.face)]; } }
   // melee combo: attacks chained within a short window cycle through three moves; the third is a heavier finisher
-  const now = C.tAll || 0, chain = g.kind === 'melee' && P.lastAtk && P.lastAtk.k === k && now - P.lastAtk.end < 0.5;
+  const now = C.tAll || 0, chain = g.kind === 'melee' && P.lastAtk && P.lastAtk.k === k && now - P.lastAtk.end < 0.8;
   const combo = chain ? (P.lastAtk.combo + 1) % 3 : 0, fin = g.kind === 'melee' && combo === 2;
   const rate = g.rate * (P.limp ? 1.15 : 1) * (fin ? 1.22 : combo === 1 ? 0.92 : 1);
   const anim = g.kind === 'melee' ? g.anim + (combo ? String(combo + 1) : '') : g.anim;
   if (fin && !(P.lungeT > 0) && !tg) { P.lungeT = 0.16; P.lungeV = 3.2; P.lungeDir = [Math.sin(P.face), Math.cos(P.face)]; }
   if (G.Acts) G.Acts.stop();
   P.atk = { k, g, t: 0, dur: rate, hit: g.kind === 'ranged' ? rate * 0.55 : rate * (fin ? 0.46 : 0.42), fired: false, tg, anim, combo, fin };
-  sfx(g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'swing', { pitch: 0.9 + Math.random() * 0.2 });
+  sfx(g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'swing', { pitch: (0.9 + Math.random() * 0.2) * (fin ? 0.8 : 1 + combo * 0.08) });
+  if (g.kind === 'melee' && combo > 0) C.comboPip(combo);
 };
+let pip = null, pipT = 0;
+C.comboPip = function (n) { if (!pip) { pip = document.createElement('div'); pip.style.cssText = 'position:fixed;left:50%;top:38%;transform:translateX(-50%);z-index:30;pointer-events:none;font:800 22px/1 system-ui,sans-serif;color:#ffe9a8;text-shadow:0 2px 6px #000a;opacity:0;transition:opacity .15s'; document.body.appendChild(pip); } pip.textContent = n === 2 ? '3타! 마무리' : n + 1 + '타'; pip.style.opacity = '1'; clearTimeout(pipT); pipT = setTimeout(() => { pip.style.opacity = '0'; }, 550); };
 function critRoll(g) { const h = C.hero(); return Math.random() < 0.06 + (g.crit || 0) + h.sk.eye * 0.04; }
 function fireAttack(atk) {
   const P = Game.P, h = C.hero(), g = atk.g;
@@ -292,11 +295,12 @@ function updateProjectiles(dt) {
     for (const a of C.wild()) { if (a.st === 'dead' || a.st === 'gone') continue; const r = a.d.big ? 1.1 : a.sp === 'hare' || a.sp === 'partridge' ? 0.55 : 0.75; const cy = a.y + a.fy + (a.d.big ? 0.9 : 0.5);
       if (Math.hypot(a.x - p.x, a.z - p.z, (cy - p.y) * 0.7) < r) { const v = Math.hypot(p.vx, p.vz) || 1; const ar = a.d.big && p.kind === 'stone' ? (ARMOR[p.sk] || 1) : 1; /* v18.12 thick hides: plain stones barely hurt bears and lions */
       if (ar < 1 && (C.tAll || 0) - (C.armT || -99) > 120) { C.armT = C.tAll || 0; G.UI.toast('두꺼운 가죽이라 보통 돌은 잘 안 먹혀요 · 부싯돌이나 검은 돌을 써 보세요'); }
-      C.sndK = p.sk === 'basalt' ? 0.72 : p.sk === 'flint' ? 1.3 : p.sk === 'smooth' ? 1.08 : 1; /* v18.12g each stone sounds different */
+      p.hitA = 1; C.sndK = p.sk === 'basalt' ? 0.72 : p.sk === 'flint' ? 1.3 : p.sk === 'smooth' ? 1.08 : 1; /* v18.12g each stone sounds different */
       damage(a, p.dmg * ar * (p.crit ? 1.8 : 1), p.crit, p.vx / v, p.vz / v); C.sndK = 1;
       if (p.sk === 'flint') G.FX.burst(p.x, p.y, p.z, 9, { c: [1, 0.86, 0.4], sp: 2.6, up: 1.3, size: 0.06, g: 6, life: 0.5 }); else if (p.sk === 'basalt') G.FX.burst(p.x, p.y, p.z, 9, { c: [0.3, 0.28, 0.3], sp: 1.6, up: 1, size: 0.16 });
       if (p.crit || p.head) { C.hitStop = Math.max(C.hitStop || 0, 0.09); Game.critSlow = 0.32; Game.CAM.punch = 0.1; } /* v18.12 a great hit lands with a short slow beat and a small camera push */ if ((p.head || (p.stun && Math.random() < p.stun)) && a.st !== 'dead') stun(a, a.d.big ? 1.6 : 2.6); sfx('arrowHit', { x: p.x, z: p.z }); done = true; break; } }
     if (!done && G.Phys && G.Phys.hitAt(p.x, p.y, p.z, p.vx, p.vy, p.vz)) done = true; // knocks over jars, stones…
+    if (done && !p.hitA && p.kind === 'stone' && G.Loot && G.Loot.spill) { /* v18.12j a sling stone that lands on the ground or knocks into something cracks: most leave a stone to pick up again */ const gy = W.heightAt(p.x, p.z); if (!(W.water && gy < W.water.level)) { if (Math.random() < 0.7) { G.Loot.spill(p.x, gy, p.z, { [p.sk || 'stone']: 1 }); } else G.FX.burst(p.x, gy + 0.1, p.z, 8, { c: [0.7, 0.66, 0.58], sp: 1.4, up: 1.2, size: 0.07, g: 9 }); } }
     if (done) { proj.splice(i, 1); if (p.y < W.heightAt(p.x, p.z) + 0.3) G.FX.burst(p.x, W.heightAt(p.x, p.z) + 0.05, p.z, 5, { c: [0.75, 0.68, 0.55], sp: 0.8, up: 1 }); } }
 }
 
