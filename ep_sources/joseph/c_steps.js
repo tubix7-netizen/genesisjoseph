@@ -203,7 +203,9 @@ const steps = {
     enter(S, G, re) { famineEnter(S, G, re); }, target: S => { const o = S.q.opened || {}; return !o.A ? 'spot:granaryA' : !o.B ? 'spot:granaryB' : !o.C ? 'spot:granaryC' : null; }, check: S => Object.keys(S.q.opened || {}).length >= 3,
     done(S, G, next) { narr([{ kick: '창세기 41:56', title: '곳간을 열다', t: '온 지면에 기근이 있으매, 요셉이 모든 창고를 열고 애굽 백성에게 팔았습니다.', ref: '창세기 41:56' }], next); }, next: 'c6_sell' },
   c6_sell: { ch: 7, obj: S => `성읍 곳간 앞의 사람들에게 곡식 팔기 (${Object.keys(S.q.sold || {}).length}/6)`, target: S => { const v = BUYERS.find(b => !(S.q.sold || {})[b.id] && (!b.last || Object.keys(S.q.sold || {}).length >= 5)); return v ? 'npc:' + v.id : null; },
-    check: S => Object.keys(S.q.sold || {}).length >= 6, done(S, G, next) { cinBrothers(S, G, next); }, next: 'j_end' },
+    check: S => Object.keys(S.q.sold || {}).length >= 6, done(S, G, next) { say([{ n: '요셉', t: '(곳간 앞 줄이 길어집니다. 먼 가나안에서도 사람들이 오겠지요. 요셉의 마음속에는 오래전 도단의 구덩이가 스칩니다. 형들이 오면 어떤 마음으로 맞을까요? 어느 쪽도 정답은 아니에요. 요셉의 마음을 골라 보세요)', choices: [
+        { t: '"누가 오든 먼저 살펴 보자. 그 사람이 지금 어떤 사람인지 알고 나서 대하자."', then: () => { GG.Deeds && GG.Deeds.char('test', 'brothers'); } },
+        { t: '"누가 오든 굶는 사람이면 먹이자. 나머지는 하나님께 맡기자."', then: () => { GG.Deeds && GG.Deeds.char('mercy', 'brothers'); } }] }], () => cinBrothers(S, G, next)); }, next: 'j_end' },
   j_end: { ch: 10, obj: '자유 여행 · 애굽과 고센 땅을 마음껏 다니기',
     // v16.1: when the Bible story of this episode is done, the free journey begins — and it is said plainly that what follows is an
     // imagined 「IF」 story, not Scripture.
@@ -213,6 +215,8 @@ const steps = {
         ...(((S.flags.chars || {}).coat === 'care') ? [{ kick: '요셉의 마음', title: '조심하는 마음', t: '세겜 들판에서 낯선 이의 말을 귀담아듣고 몸을 조심하려 했던 요셉. 그 조심스러움이 먼 길 위에서 요셉을 지켜 주었는지도 몰라요.' }] : ((S.flags.chars || {}).coat === 'pride') ? [{ kick: '요셉의 마음', title: '사랑받은 마음', t: '아버지의 사랑을 자랑스럽게 입고 걸었던 요셉. 그 사랑이 훗날 가장 어두운 곳에서도 요셉을 붙들어 주었는지도 몰라요.' }] : []),
         ...(((S.flags.chars || {}).credit === 'god') ? [{ kick: '요셉의 마음', title: '돌린 영광', t: '바로 앞에서도 모든 것을 하나님께 돌렸던 요셉. 높아진 자리에서 낮은 마음을 지켰습니다.' }] : ((S.flags.chars || {}).credit === 'duty') ? [{ kick: '요셉의 마음', title: '맡은 책임', t: '맡겨진 일을 힘을 다해 해내겠다고 답했던 요셉. 그 성실함이 일곱 해의 풍년과 흉년을 지켜 냈습니다.' }] : []),
         ...(((S.flags.chars || {}).arrive === 'honest') ? [{ kick: '요셉의 마음', title: '솔직한 마음', t: '낯선 애굽 땅에서 아프다고 숨김없이 말했던 요셉. 아픔을 감추지 않았기에, 곁에 사람이 모일 수 있었는지도 몰라요.' }] : ((S.flags.chars || {}).arrive === 'hope') ? [{ kick: '요셉의 마음', title: '붙든 소망', t: '가장 낯선 곳에서도 하나님이 함께하신다고 말했던 요셉. 그 소망이 긴 종살이를 버티게 했는지도 몰라요.' }] : []),
+        ...(((S.flags.chars || {}).brothers === 'mercy') ? [{ kick: '요셉의 마음', title: '먼저 먹인 마음', t: '형들이 올지도 모른다고 생각했을 때도, 굶는 사람은 먼저 먹이자고 했던 요셉. 그 넓은 마음이 훗날 화해의 문을 열었습니다.', ref: '' }] : []),
+        ...(((S.flags.chars || {}).brothers === 'test') ? [{ kick: '요셉의 마음', title: '살펴본 마음', t: '형들을 바로 믿지 않고 먼저 지켜보았던 요셉. 그 신중함 덕분에 형들이 달라졌음을 눈으로 확인하고 눈물로 화해할 수 있었습니다.', ref: '' }] : []),
         ...(((S.flags.chars || {}).harvest === 'prepare') ? [{ kick: '요셉의 마음', title: '내다본 마음', t: '풍년에도 다가올 흉년을 잊지 않았던 요셉. 그 앞을 내다본 마음이 온 땅을 살렸습니다.' }] : ((S.flags.chars || {}).harvest === 'share') ? [{ kick: '요셉의 마음', title: '나누는 마음', t: '곡식이 남는 해에도 가난한 이웃부터 살폈던 요셉. 그 따뜻함이 사람들의 마음을 얻었습니다.' }] : []),
         ...(S.flags.char === 'trust' ? [{ kick: '요셉의 마음', title: '맡긴 마음', t: '옥에서 억울함을 말하는 대신 하나님께 맡긴다고 했던 요셉. 그 마음이 이 긴 이야기를 끝까지 지켜 주었는지도 모릅니다.' }] : S.flags.char === 'protest' ? [{ kick: '요셉의 마음', title: '억울했던 마음', t: '옥에서 억울하다고 토해 냈던 요셉. 그렇게 솔직했기에, 그 마음도 결국 하나님 앞에서 위로를 받았는지도 모릅니다.' }] : []),
         { kick: '자유 여행', title: '이제부터는 마음껏', t: '이제 애굽과 가나안 어디든 자유롭게 다녀도 좋아요. 총리의 집에서 아스낫과 므낫세·에브라임과 시간을 보내고, 고센 마을에서 아버지와 형제들을 만나 부탁을 들어주고, 사람들과 친해지고, 집을 짓고, 밭을 갈고, 가축을 기르고, 외딴 곳의 보물상자와 새로운 곳을 찾아보세요. 옷장에서 옷도 갈아입을 수 있어요.', ref: '' },

@@ -248,7 +248,7 @@ C.stun = stun;
 C.damage = (...a) => damage(...a); // (exported for tests and for other modules)
 function damage(a, dmg, crit, kx, kz) {
   a.alert = 1.6; C.panic(a);
-  dmg = Math.round(dmg); a.hp -= dmg; a.flash = 1; a.angry = true; sfx(crit ? 'crit' : 'hit', { x: a.x, z: a.z, pitch: a.d.big ? 0.75 : 1.1 });
+  dmg = Math.round(dmg); a.hp -= dmg; a.flash = 1; a.angry = true; sfx(crit ? 'crit' : 'hit', { x: a.x, z: a.z, pitch: (a.d.big ? 0.75 : 1.1) * (C.sndK || 1) });
   G.UI.dmg && G.UI.dmg(a.x, a.y + a.fy + (a.d.big ? 1.6 : 0.9), a.z, dmg, crit ? 'crit' : 'hit');
   Game.CAM.shake = Math.max(Game.CAM.shake || 0, crit ? 0.6 : 0.35); C.hitStop = crit ? 0.07 : 0.045;
   if (a.hp <= 0) { kill(a); return; }
@@ -292,7 +292,8 @@ function updateProjectiles(dt) {
     for (const a of C.wild()) { if (a.st === 'dead' || a.st === 'gone') continue; const r = a.d.big ? 1.1 : a.sp === 'hare' || a.sp === 'partridge' ? 0.55 : 0.75; const cy = a.y + a.fy + (a.d.big ? 0.9 : 0.5);
       if (Math.hypot(a.x - p.x, a.z - p.z, (cy - p.y) * 0.7) < r) { const v = Math.hypot(p.vx, p.vz) || 1; const ar = a.d.big && p.kind === 'stone' ? (ARMOR[p.sk] || 1) : 1; /* v18.12 thick hides: plain stones barely hurt bears and lions */
       if (ar < 1 && (C.tAll || 0) - (C.armT || -99) > 120) { C.armT = C.tAll || 0; G.UI.toast('두꺼운 가죽이라 보통 돌은 잘 안 먹혀요 · 부싯돌이나 검은 돌을 써 보세요'); }
-      damage(a, p.dmg * ar * (p.crit ? 1.8 : 1), p.crit, p.vx / v, p.vz / v);
+      C.sndK = p.sk === 'basalt' ? 0.72 : p.sk === 'flint' ? 1.3 : p.sk === 'smooth' ? 1.08 : 1; /* v18.12g each stone sounds different */
+      damage(a, p.dmg * ar * (p.crit ? 1.8 : 1), p.crit, p.vx / v, p.vz / v); C.sndK = 1;
       if (p.sk === 'flint') G.FX.burst(p.x, p.y, p.z, 9, { c: [1, 0.86, 0.4], sp: 2.6, up: 1.3, size: 0.06, g: 6, life: 0.5 }); else if (p.sk === 'basalt') G.FX.burst(p.x, p.y, p.z, 9, { c: [0.3, 0.28, 0.3], sp: 1.6, up: 1, size: 0.16 });
       if (p.crit || p.head) { C.hitStop = Math.max(C.hitStop || 0, 0.09); Game.critSlow = 0.32; Game.CAM.punch = 0.1; } /* v18.12 a great hit lands with a short slow beat and a small camera push */ if ((p.head || (p.stun && Math.random() < p.stun)) && a.st !== 'dead') stun(a, a.d.big ? 1.6 : 2.6); sfx('arrowHit', { x: p.x, z: p.z }); done = true; break; } }
     if (!done && G.Phys && G.Phys.hitAt(p.x, p.y, p.z, p.vx, p.vy, p.vz)) done = true; // knocks over jars, stones…
