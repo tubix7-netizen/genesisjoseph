@@ -73,8 +73,8 @@ const P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, face: 0, spd: 0, phase: 0, gr
 const CAM = { yaw: 0, pitch: 0.28, dist: 6.2, tx: 0, ty: 0, tz: 0, x: 0, y: 0, z: 0, last: 0, fov: 1.0 };
 const INPUT = { mx: 0, my: 0, cx: 0, cy: 0, act: false, actEdge: false, keys: {} };
 const COARSE = (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches) || /[?&]coarse=1\b/.test(location.search); // ?coarse=1 makes a desktop behave like a phone (for testing)
-const SET = { sens: 1, invert: false, autoCam: true, quality: COARSE ? 'mid' : 'high', dist: 1, view: 'shoulder', side: 'right', music: 0.6, sfx: 0.8, fps: 'auto' };
-try { Object.assign(SET, JSON.parse(localStorage.getItem('genesisSettings') || '{}')); } catch (e) { }
+const SET = { sens: 1, invert: false, autoCam: true, quality: COARSE ? 'mid' : 'high', dist: 1, view: 'shoulder', side: 'right', music: 0.6, sfx: 0.8, fps: '60' };
+try { const sv = JSON.parse(localStorage.getItem('genesisSettings') || '{}'); Object.assign(SET, sv); if (!sv.fpsMig) { SET.fps = '60'; SET.fpsMig = 1; } } catch (e) { } // v18.12: the frame target is 60 by default (settings → 프레임 can still pick 자동 / 30)
 { const qm = /[?&]q=(low|mid|high)\b/.exec(location.search); if (qm) SET.quality = qm[1]; } // ?q=low|mid|high: force the quality for this visit (a crashed phone tab cannot reach the settings menu)
 Game.P = P; Game.CAM = CAM; Game.INPUT = INPUT; Game.SET = SET;
 Object.defineProperty(Game, 'UI', { get: () => G.UI }); Game.FX = FX; Game.angDiff = angDiff;
@@ -189,6 +189,9 @@ const CW = Game.cw = { w: null, id: 0, pend: new Map(), done: 0 };
 Game.cellAsk = function (m, g) {
   if (!CW.w || g.length < 6000 * 33) return; const data = g, id = ++CW.id; CW.pend.set(id, m); CW.w.postMessage({ cell: id, data, C: 12, gs: R.lodDist ? R.lodGs : 0 }, [data.buffer]);
 };
+Game.cellAskBlocks = function (m, q) { // v18.12 same as cellAsk, but the chunk is sent as the blocks it was built in
+  if (!CW.w || q.n < 6000 * 33) return false; const id = ++CW.id; CW.pend.set(id, m); CW.w.postMessage({ cell: id, blocks: q.blocks, C: 12, gs: R.lodDist ? R.lodGs : 0 }, q.blocks.map(b => b.buffer)); return true;
+};
 (function cwStart() {
   if (typeof Worker === 'undefined' || location.protocol === 'file:' || /[?&]mw=0\b/.test(location.search)) return;
   try { const s = document.querySelector('script[src*="js/core.js"]'); if (!s) return; const w = CW.w = new Worker(new URL('meshworker.js', s.src).href + (s.src.match(/\?.*$/) || [''])[0]);
@@ -220,16 +223,25 @@ function propMesh(k) { if (!meshCache['p:' + k]) meshCache['p:' + k] = R.mesh(pr
 Game.lookMesh = lookMesh; Game.animalMesh = animalMesh; Game.propMesh = propMesh;
 
 Game.start = function (epId, fresh, preview) {
+  /* v18.12: pressing 시작하기 / 이어하기 used to build the whole world a second time (the title already has it), which doubled the memory peak
+     and the wait. When the title's world is for the same story and was built from the same state (a saved game is read again; a new game
+     only when the title had none either), it is kept and only the people, pens and state are set up again. ?reuse=0 turns this off. */
+  const sameEp = W && Game.worldEp === epId && Game.worldPreview && !preview && !/[?&]reuse=0\b/.test(location.search);
   EP = G.EP[epId]; Game.mode = 'loading'; Game.preview = !!preview;
-  if (W) Game.dispose();
   let saved = null; if (!fresh) { try { saved = JSON.parse(localStorage.getItem(KEY(epId)) || 'null'); } catch (e) { } }
+  const reuse = sameEp && (saved && saved.v === 2 ? Game.worldSaved : !Game.worldSaved);
+  if (W && !reuse) Game.dispose();
+  else if (W) { for (const n of ENT.nodes) if (n.col) n.col.on = false; for (const k in ENT.npcs) { const n = ENT.npcs[k]; if (n && n.col) n.col.on = false; } for (const s of ENT.sites || []) if (s._col) s._col.on = false; for (const k in ENT.cropSets) R.free(ENT.cropSets[k]); ENT.cropSets = {}; if (ENT.soilMesh) R.free(ENT.soilMesh); ENT.soilMesh = null; ENT.dyn.forEach(d => d.own && R.free(d.mesh)); ENT.dyn = []; ENT.animals = []; ENT.nodes = []; }
   S = saved && saved.v === 2 ? saved : newState(EP);
   // world
   { const lm = /[?&]lod=(\d+)\b/.exec(location.search); R.lodDist = lm ? +lm[1] : (COARSE ? 75 : 0); R.lodGs = 0.8; } // v18.9 far LOD (phones): cells beyond 75 m are drawn simplified; ?lod=0 off, ?lod=70 on desktop
   { const tm = /[?&]trees=(hi|lo)\b/.exec(location.search); G.treeLod = tm ? (tm[1] === 'lo' ? 1 : 0) : (COARSE && SET.quality !== 'high' ? 1 : 0); } // v18.6 tree detail (phones: lighter)
-  if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
-  if (window.__bc) __bc('build'); EP.build(W, Game);
-  if (window.__bc) __bc('statics'); W.finishStatics();
+  if (!reuse) {
+    if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
+    if (window.__bc) __bc('build'); EP.build(W, Game);
+    if (window.__bc) __bc('statics'); W.finishStatics();
+    Game.worldEp = epId; Game.worldPreview = !!preview; Game.worldSaved = !!(saved && saved.v === 2);
+  } else { Game.worldPreview = false; if (window.__bc) __bc('reuse'); }
   // nodes
   buildNodeSets();
   // npcs
@@ -984,7 +996,7 @@ function updateCamera(dt, snap) {
   const plx = CAM.x - dx * 10, ply = CAM.y - dy * 10, plz = CAM.z - dz * 10;
   CAM.lx = lerp(CAM.tx, plx, shW); CAM.ly = lerp(CAM.ty, ply, shW); CAM.lz = lerp(CAM.tz, plz, shW);
   const baseFov = (sh ? C.fov : isPortrait() ? 1.15 : C.fov) + run * 0.08, wantFov = lerp(baseFov, AC.fov * (1 - 0.12 * Math.max(0, (CAM.aimK || 0) - 1)), aw2); // v16.8 longer lens over the shoulder
-  CAM.fov = lerp(CAM.fov, wantFov, snap ? 1 : 1 - Math.exp(-dt * 6));
+  CAM.punch = (CAM.punch || 0) * Math.exp(-dt * 4.5); CAM.fov = lerp(CAM.fov, wantFov * (1 - (CAM.punch || 0)), snap ? 1 : 1 - Math.exp(-dt * 6));
   // v16.8 cutscene → gameplay: blend position, look and lens from the last cutscene frame instead of cutting (≈0.8 s)
   const bl = Game.camBlend; if (bl) { bl.t += dt; const u = clamp(bl.t / bl.dur, 0, 1), e = u * u * (3 - 2 * u), a = 1 - e;
     CAM.x = lerp(CAM.x, bl.x, a); CAM.y = lerp(CAM.y, bl.y, a); CAM.z = lerp(CAM.z, bl.z, a); CAM.lx = lerp(CAM.lx, bl.lx, a); CAM.ly = lerp(CAM.ly, bl.ly, a); CAM.lz = lerp(CAM.lz, bl.lz, a); CAM.fov = lerp(CAM.fov, bl.fov, a);
@@ -1083,6 +1095,7 @@ Game.frame = function (now) {
     PM.b('player'); if (!Game.cineOn) updatePlayer(dt * (Game.worldScale || 1)); else { P.vx = P.vz = 0; P.spd = 0; }
     if (G.Vitals) G.Vitals.update(dt, S); PM.e('player');
     PM.b('sys'); if (G.Focus) G.Focus.update(dt);
+    if (Game.critSlow > 0) { Game.critSlow -= dt; Game.worldScale = Math.min(Game.worldScale || 1, 0.35); } // v18.12 a short slow beat after a great hit (the 집중 clock stays real-time)
     const wdt = dt * (Game.worldScale || 1); // v16.7 집중: the world slows down; v18.12: Joseph slows too (not the camera or the 정신력 clock), and wdt is read after Focus.update so it follows the same frame
     if (G.Phys) G.Phys.update(wdt); if (G.Loot) G.Loot.update(dt); if (G.Lock) G.Lock.update(dt); if (G.Bond) G.Bond.update(dt); if (G.Companion) G.Companion.update(wdt); if (G.Chem) G.Chem.update(wdt); if (G.Deeds) G.Deeds.update(dt); if (G.QCam) G.QCam.update(dt); if (G.Climate) G.Climate.update(wdt); if (G.Sling) G.Sling.update(wdt); if (G.Fireside) G.Fireside.update(dt); if (G.Sites) G.Sites.update(dt);
     updateCamera(dt); dialogCam(dt); PM.e('sys');

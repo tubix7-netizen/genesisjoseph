@@ -46,7 +46,7 @@ function lodBuild(out, cells, gs) {
 self.onmessage = e => {
   const m = e.data;
   try {
-    if (m.cell) { const r = cellSort(m.data, m.C); if (r) { const lod = m.gs ? lodBuild(r.out, r.cells, m.gs) : null; self.postMessage({ cell: m.cell, out: r.out, cells: r.cells, lod }, lod ? [r.out.buffer, lod.buffer] : [r.out.buffer]); } else self.postMessage({ cell: m.cell }); return; }
+    if (m.cell) { let data = m.data; if (m.blocks) { let n = 0; for (const b of m.blocks) n += b.length; data = new Float32Array(n); let o = 0; for (const b of m.blocks) { data.set(b, o); o += b.length; } m.blocks = null; } /* v18.12: the chunk arrives as the transferred blocks it was built in */ const r = cellSort(data, m.C); if (r) { const lod = m.gs ? lodBuild(r.out, r.cells, m.gs) : null; self.postMessage({ cell: m.cell, out: r.out, cells: r.cells, lod }, lod ? [r.out.buffer, lod.buffer] : [r.out.buffer]); } else self.postMessage({ cell: m.cell }); return; }
     if (m.init) { importScripts(m.core, m.models); self.postMessage({ ready: 1 }); return; }
     const G = self.G, gb = G.humanoid(m.look, m.lod), w = G.weld(new Float32Array(gb.d));
     self.postMessage({ key: m.key, verts: w.verts, ind: w.ind, big: w.big, uniq: w.uniq, count: w.count, bs: gb.bounds() }, [w.verts.buffer, w.ind.buffer]);

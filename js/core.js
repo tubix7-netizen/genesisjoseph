@@ -265,9 +265,14 @@ class GB {
   }
   plane(w, d, o) { o = o || {}; const x = w / 2, z = d / 2; return this._emit([-x, 0, z, x, 0, z, x, 0, -z, -x, 0, z, x, 0, -z, -x, 0, -z], [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], o); }
   add(other) { const d = other.d; for (let i = 0; i + 10 < d.length; i += 11) this._v(d[i], d[i + 1], d[i + 2], d[i + 3], d[i + 4], d[i + 5], d[i + 6], d[i + 7], d[i + 8], d[i + 9], d[i + 10]); return this; }
+  takeBlocks() { // hand over the Float32 blocks as they are (no merged copy) and let go of them; { blocks, n floats }
+    const bl = this._bl.slice(); if (this._f && this._k > 0) bl.push(this._k === this._f.length ? this._f : this._f.slice(0, this._k)); const n = this._tot + this._k;
+    this._f = null; this._bl = []; this._tot = this._k = this._cap = 0; return { blocks: bl, n };
+  }
   bounds() {
-    let x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9; const d = this.d;
-    for (let i = 0; i < d.length; i += 11) { const x = d[i], y = d[i + 1], z = d[i + 2]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z; }
+    let x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9; // v18.12: walks the blocks, so measuring a chunk no longer makes a merged copy
+    const parts = this._bl.slice(); if (this._f) parts.push(this._f.subarray(0, this._k));
+    for (const d of parts) for (let i = 0; i + 2 < d.length; i += 11) { const x = d[i], y = d[i + 1], z = d[i + 2]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z; }
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2; return [cx, cy, cz, Math.hypot(x1 - cx, y1 - cy, z1 - cz)];
   }
 }
@@ -595,6 +600,12 @@ function bindLayout(stride11) {
   gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 44, 24);
   gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 44, 40);
 }
+R.meshBlocks = function (blocks, n) { // upload a chunk straight from its blocks (no merged JS copy)
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, n * 4, gl.STATIC_DRAW); let o = 0;
+  for (const b of blocks) { gl.bufferSubData(gl.ARRAY_BUFFER, o * 4, b); o += b.length; }
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao); bindLayout(); gl.bindVertexArray(null);
+  return { vao, buf, count: n / 11, bs: [0, 0, 0, 1e6] };
+};
 R.mesh = function (src) {
   const data = src instanceof Float32Array ? src : src instanceof GB ? src.d : new Float32Array(src.d);
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
