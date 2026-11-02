@@ -132,7 +132,7 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
 // ------------------------------------------------------------------ v12 loose things for the physics engine (jars, baskets, melons, stones)
 (function (G) {
   const EP = G.EP && G.EP.joseph; if (!EP) return;
-  EP.physProps = function (W) { const out = [], r = G.rng(5150); const ring = (cx, cz, n, rad, kinds) => { for (let i = 0; i < n; i++) { const a = r() * Math.PI * 2, d = rad * (0.4 + r() * 0.6), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+  EP.physProps = function (W) { const out = [], r = G.rng(5150); const ring = (cx, cz, n, rad, kinds) => { if (kinds.indexOf('stone') < 0) { /* v18.12h tidy: loose pots stand in short even rows, not single random spots */ let i = 0; for (let tries = 0; tries < n * 6 && i < n; tries++) { const a = r() * Math.PI * 2, d = rad * (0.4 + r() * 0.6), x0 = cx + Math.cos(a) * d, z0 = cz + Math.sin(a) * d, th = Math.floor(r() * 4) * Math.PI / 2, m = Math.min(n - i, 2 + Math.floor(r() * 3)); for (let q = 0; q < m; q++) { const x = x0 + Math.cos(th) * q * 0.75, z = z0 + Math.sin(th) * q * 0.75; if (W.near(x, z).some(c => c.on && (c.t === 'c' ? Math.hypot(c.x - x, c.z - z) < c.r + 0.5 : false))) break; out.push([kinds[i % kinds.length], x, z]); i++; } } return; } for (let i = 0; i < n; i++) { const a = r() * Math.PI * 2, d = rad * (0.4 + r() * 0.6), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
       if (W.near(x, z).some(c => c.on && (c.t === 'c' ? Math.hypot(c.x - x, c.z - z) < c.r + 0.5 : false))) continue; out.push([kinds[i % kinds.length], x, z]); } };
     ring(172, 150, 8, 6, ['jar', 'basket', 'pot', 'jar']);           // Jacob's camp at Hebron
     ring(156, -146, 6, 5, ['sack', 'jar', 'basket']);               // the brothers' camp at Dothan
@@ -171,12 +171,16 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
   const TOWNS = [[176, 152, 6, 9], [158, -150, 3, 7], [-8, 118, 6, 10], [-10, 45, 3, 4.5], [-12, 64, 3, 3], [-45, 53, 2, 3.5], [-32, 3, 3, 6],
     [-22, -72, 6, 12], [16, -64, 4, 7], [10, -140, 3, 7], [-140, -40, 5, 13], [-145, 128, 5, 13]]; // v16.1: only where people live
   EP.loot = function (W) { const out = [], r = G.rng(4242), spots = Object.values(EP.spots);
-    const free = (x, z, rr) => { if (spots.some(([a, b]) => Math.hypot(a - x, b - z) < 2.6)) return false; if (W.water && W.heightAt(x, z) < W.water.level + 0.2) return false; if (W.slopeAt(x, z) > 0.35) return false;
-      if (out.some(o => Math.hypot(o.x - x, o.z - z) < 1.3)) return false; const q = { x, z }; W.collide(q, rr, W.heightAt(x, z)); return Math.hypot(q.x - x, q.z - z) < 0.01; };
+    const free = (x, z, rr, md) => { if (spots.some(([a, b]) => Math.hypot(a - x, b - z) < 2.6)) return false; if (W.water && W.heightAt(x, z) < W.water.level + 0.2) return false; if (W.slopeAt(x, z) > 0.35) return false;
+      if (out.some(o => Math.hypot(o.x - x, o.z - z) < (md || 1.3))) return false; const q = { x, z }; W.collide(q, rr, W.heightAt(x, z)); return Math.hypot(q.x - x, q.z - z) < 0.01; };
     SITES.forEach(s => { let x = s.x + s.hide[0], z = s.z + s.hide[1]; for (let i = 0; i < 30 && !free(x, z, 0.6); i++) { x = s.x + s.hide[0] + (r() - 0.5) * 2.4; z = s.z + s.hide[1] + (r() - 0.5) * 2.4; }
       out.push({ id: 'ch_' + s.id, k: 'chest', x, z, ry: r() * 6, table: 'treasure', rich: s.rich, insight: s.insight || 0, n: s.n }); });
-    TOWNS.forEach(([cx, cz, n, R], ti) => { for (let i = 0, k = 0; i < n * 10 && k < n; i++) { const a = r() * PI * 2, d = R * (0.35 + r() * 0.65), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (!free(x, z, 0.5)) continue;
-      const kind = r() < 0.55 ? 'urn' : 'crate'; out.push({ id: `bk_${ti}_${k}`, k: kind, x, z, ry: r() * 6, v: Math.floor(r() * 3), re: 2 }); if (kind === 'urn' && r() < 0.5) { const x2 = x + 0.55, z2 = z + 0.2; if (free(x2, z2, 0.3)) out.push({ id: `bk_${ti}_${k}b`, k: 'urn', x: x2, z: z2, v: Math.floor(r() * 3), re: 2 }); } k++; } });
+    /* v18.12h tidy: jars and boxes stand in small neat rows (same direction, even gaps) instead of single random spots; the rows themselves are still scattered at random */
+    TOWNS.forEach(([cx, cz, n, R], ti) => { let k = 0;
+      for (let tries = 0; tries < n * 14 && k < n; tries++) { const a = r() * PI * 2, d = R * (0.35 + r() * 0.65), x0 = cx + Math.cos(a) * d, z0 = cz + Math.sin(a) * d, th = Math.floor(r() * 4) * PI / 2 + (r() - 0.5) * 0.1, m = Math.min(n - k, 2 + Math.floor(r() * 3)), ux = Math.cos(th), uz = Math.sin(th), crateRow = r() < 0.45; let placed = 0;
+        for (let q = 0; q < m; q++) { const x = x0 + ux * q * 0.9, z = z0 + uz * q * 0.9; if (!free(x, z, 0.5, q ? 0.8 : 1.3)) break;
+          const kind = crateRow ? 'crate' : (q === 0 && r() < 0.25 ? 'crate' : 'urn'); out.push({ id: `bk_${ti}_${k}`, k: kind, x, z, ry: kind === 'crate' ? th + (r() - 0.5) * 0.06 : r() * 6, v: Math.floor(r() * 3), re: 2 }); k++; placed++; }
+        if (!placed) continue; } });
     return out; };
   // the places themselves: a little set dressing so they look like somewhere
   const prevB = EP.build;

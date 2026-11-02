@@ -1051,9 +1051,9 @@ if (COARSE) R.shadowRate = 2;
 PERF.hist = new Float32Array(120); PERF.hn = 0; PERF.slow = PERF.fast = 0; PERF.autoLock = false; PERF.lockAt = 0; PERF.trial = 0; PERF.sticky = false; PERF.dropAt = -99; PERF.raiseAt = -99; PERF.lockN = 0; PERF.ceil = 1; PERF.ceilAt = -999;
 /* v18.10 smart frame rate (phones, SET.fps 'auto'): it starts locked at 30 (cool), and when the device has time to spare it tries 60 for 3 s: if the picture holds ≥ ~51 fps at nearly full size it
    runs at 60 (never above: a 120 Hz screen is held to 60), then gives the heat a rest at 30 after 8 minutes, and drops back to 30 at once if 60 stumbles (and waits longer before the next try). */
-const smart = () => COARSE && (SET.fps === 'auto' || !SET.fps);
-PERF.sm = { ph: 'lock', at: 0, cool: 15, bad: 0, runStart: 0, scale0: 1 };
-Game.fpsTarget = () => { const m = SET.fps; if (m === '30') return 30; if (m === '60') return 60; if (smart()) return PERF.sm.ph === 'lock' ? 30 : 60; return PERF.autoLock ? 30 : 0; };
+const smart = () => COARSE && SET.fps !== '30' && SET.fps !== 'f60'; /* v18.12h '60' (default) and 'auto' = aim for 60, fall back to an even 30 when it wobbles; 'f60' = locked 60 */
+PERF.sm = { ph: 'lock', at: 0, cool: 5, bad: 0, runStart: 0, scale0: 1 };
+Game.fpsTarget = () => { const m = SET.fps; if (m === '30') return 30; if (m === 'f60') return 60; if (smart()) return PERF.sm.ph === 'lock' ? 30 : 60; if (m === '60') return 60; return PERF.autoLock ? 30 : 0; };
 function p90() { const n = Math.min(PERF.hn, 120); if (n < 30) return PERF.avg; const a = Array.prototype.slice.call(PERF.hist, 0, n).sort((x, y) => x - y); return a[Math.floor(n * 0.9)]; }
 PERF.p90 = p90;
 function perfTick(rawMs, dt) {
@@ -1064,7 +1064,7 @@ function perfTick(rawMs, dt) {
   if (smart() && Game.mode === 'play') { const sm = PERF.sm;
     if (sm.ph === 'lock') { if (tAll - sm.at > sm.cool && PERF.scale >= 0.85) { sm.ph = 'probe'; sm.at = tAll; sm.scale0 = PERF.scale; PERF.hn = 0; } }
     else if (sm.ph === 'probe') { if (tAll - sm.at > 3) { if (p <= 19.5 && PERF.scale >= 0.85) { sm.ph = 'run'; sm.at = sm.runStart = tAll; sm.bad = 0; sm.cool = 15; } else { sm.ph = 'lock'; sm.at = tAll; sm.cool = Math.min(600, sm.cool * 2); PERF.scale = sm.scale0; G.UI.resize(); } PERF.hn = 0; } }
-    else { sm.bad = (p > 22 || PERF.scale < 0.8) ? sm.bad + 1 : 0; if (sm.bad >= 3 || tAll - sm.runStart > 480) { const stumble = sm.bad >= 3; sm.ph = 'lock'; sm.at = tAll; sm.cool = stumble ? Math.min(600, sm.cool * 2) : 240; sm.bad = 0; if (stumble) { PERF.scale = Math.max(PERF.scale, sm.scale0); G.UI.resize(); } PERF.hn = 0; } }
+    else { sm.bad = (p > 22 || PERF.scale < 0.8) ? sm.bad + 1 : 0; if (sm.bad >= 3 || tAll - sm.runStart > 480) { const stumble = sm.bad >= 3; sm.ph = 'lock'; sm.at = tAll; sm.cool = stumble ? Math.min(120, sm.cool * 2) : 120; sm.bad = 0; if (stumble) { PERF.scale = Math.max(PERF.scale, sm.scale0); G.UI.resize(); } PERF.hn = 0; } }
   }
   // shadow update rate
   PERF.slow = p > tgt * 1.25 ? PERF.slow + 1 : 0; PERF.fast = p <= tgt * 1.1 ? PERF.fast + 1 : 0;
@@ -1077,7 +1077,7 @@ function perfTick(rawMs, dt) {
   else if (p <= tgt * 1.1 && PERF.scale < PERF.ceil && tAll - PERF.dropAt > 30 && tAll - PERF.raiseAt > 12) { PERF.scale = Math.min(PERF.ceil, PERF.scale + 0.05); PERF.raiseAt = tAll; }
   if (old !== PERF.scale) G.UI.resize();
   // auto frame lock
-  if (SET.fps !== '30' && SET.fps !== '60' && !smart()) {
+  if (SET.fps !== '30' && SET.fps !== '60' && SET.fps !== 'f60' && !smart()) {
     if (!PERF.autoLock) { PERF.lockN = p > 22 && PERF.scale <= 0.8 ? PERF.lockN + 1 : 0;
       if (PERF.lockN >= 4 && Game.mode === 'play') { PERF.autoLock = true; PERF.lockAt = tAll; PERF.lockN = 0; PERF.hn = 0; if (PERF.trial) PERF.sticky = true; if (!PERF.told) { PERF.told = 1; G.UI.toast('화면을 부드럽게 · 30프레임으로 맞췄어요 (설정에서 바꿀 수 있어요)'); } } }
     else if (!PERF.sticky && tAll - PERF.lockAt > 120) { PERF.autoLock = false; PERF.trial = 1; PERF.hn = 0; PERF.lockN = 0; } // try unlocked again
