@@ -830,6 +830,12 @@ AB.ibex = [['body', -1, 0, 0.78, 0], ['head', 0, 0, 1.02, 0.4], ['lFL', 0, 0.13,
 AB.boar = [['body', -1, 0, 0.62, 0], ['head', 0, 0, 0.62, 0.48], ['lFL', 0, 0.14, 0.42, 0.3], ['lFR', 0, -0.14, 0.42, 0.3], ['lBL', 0, 0.14, 0.42, -0.3], ['lBR', 0, -0.14, 0.42, -0.3], ['tail', 0, 0, 0.7, -0.5]];
 AB.bear = [['body', -1, 0, 0.95, 0], ['head', 0, 0, 1.08, 0.72], ['lFL', 0, 0.24, 0.7, 0.42], ['lFR', 0, -0.24, 0.7, 0.42], ['lBL', 0, 0.24, 0.7, -0.45], ['lBR', 0, -0.24, 0.7, -0.45], ['tail', 0, 0, 0.98, -0.72]];
 AB.lion = [['body', -1, 0, 0.92, 0], ['head', 0, 0, 1.12, 0.66], ['lFL', 0, 0.18, 0.7, 0.45], ['lFR', 0, -0.18, 0.7, 0.45], ['lBL', 0, 0.18, 0.7, -0.45], ['lBR', 0, -0.18, 0.7, -0.45], ['tail', 0, 0, 1.0, -0.72]];
+/* v18.13d more game: 비둘기 · 나일 거위 · 타조 (birds: def.bird) · 오릭스 · 들염소 (the goat's body in wild colours) */
+const scaleAB = (d, k) => d.map(b => [b[0], b[1], b[2] * k, b[3] * k, b[4] * k]);
+AB.dove = scaleAB(AB.partridge, 0.85); AB.dove.bird = true;
+AB.goose = [['body', -1, 0, 0.42, 0], ['head', 0, 0, 0.5, 0.2], ['lFL', 0, 0.14, 0.46, 0], ['lFR', 0, -0.14, 0.46, 0], ['lBL', 0, 0.06, 0.24, 0.01], ['lBR', 0, -0.06, 0.24, 0.01], ['tail', 0, 0, 0.46, -0.24]]; AB.goose.bird = true;
+AB.ostrich = [['body', -1, 0, 1.3, 0], ['head', 0, 0, 1.5, 0.36], ['lFL', 0, 0.32, 1.36, 0], ['lFR', 0, -0.32, 1.36, 0], ['lBL', 0, 0.13, 1.08, 0.02], ['lBR', 0, -0.13, 1.08, 0.02], ['tail', 0, 0, 1.4, -0.5]]; AB.ostrich.bird = true;
+AB.oryx = scaleAB(AB.gazelle, 1.15); AB.wgoat = AB.goat;
 /* v16.9 legs grow up INTO the body with a shoulder/haunch muscle at the top (skinned to the leg), so a swinging leg never shows
    a gap between its top and the belly — the "floating limbs" look. */
 function legTop(g, b, i, r, col) { const front = i < 4; g.sph(r * 1.9, 8, 6, { at: [b[2] * 0.85, b[3] + r * 1.7, b[4] + (front ? 0.015 : -0.03)], s: [0.8, 1.7, front ? 1.05 : 1.25], c: col, b: i, j: 0.02 }); }
@@ -942,6 +948,42 @@ function animal(sp, o) {
     g.sph(1, 8, 6, { at: [0, 0.32, 0.18], s: [0.06, 0.06, 0.08], c: fur, b: 1 }); for (const s of [1, -1]) { g.sph(1, 6, 5, { at: [0.025 * s, 0.43, 0.15], s: [0.018, 0.08, 0.03], rx: -0.4, rz: 0.15 * s, c: fur, b: 1 }); g.sph(0.012, 5, 4, { at: [0.04 * s, 0.34, 0.22], c: 0x1a1210, b: 1, j: 0 }); }
     for (let i = 2; i <= 5; i++) { const b = def[i], back = i >= 4; g.sph(1, 6, 5, { at: [b[2], b[3] - (back ? 0.07 : 0.08), b[4] + (back ? -0.02 : 0.01)], s: back ? [0.035, 0.07, 0.08] : [0.018, 0.08, 0.02], c: fur, b: i }); }
     g.sph(0.04, 6, 5, { at: [0, 0.27, -0.18], c: 0xf6f2ea, b: 6 });
+  } else if (sp === 'wgoat') { return animal('goat', Object.assign({}, o, { hide: 0x8a6a46, dark: 0x5a4632, pattern: 'plain' }));
+  } else if (sp === 'dove') {
+    const body = 0x9aa0a8, neck = 0x5a7a72;
+    g.sph(1, 10, 8, { at: [0, 0.17, 0], s: [0.065, 0.07, 0.11], c: body, b: 0, j: 0.01 }); g.sph(1, 8, 6, { at: [0, 0.22, 0.06], s: [0.045, 0.05, 0.05], c: neck, b: 0 });
+    g.sph(1, 8, 6, { at: [0, 0.27, 0.085], s: [0.035, 0.038, 0.04], c: 0xa8aeb4, b: 1 }); g.sph(1, 6, 4, { at: [0, 0.265, 0.125], s: [0.008, 0.008, 0.02], c: 0x3a3030, b: 1 });
+    for (const s of [1, -1]) { g.sph(0.009, 5, 4, { at: [0.028 * s, 0.275, 0.1], c: 0xc84a2a, b: 1, j: 0 }); }
+    for (const [i, s] of [[2, 1], [3, -1]]) g.sph(1, 8, 4, { at: [0.06 * s, 0.19, -0.01], s: [0.016, 0.05, 0.09], c: (x, y, z) => z < -0.04 ? 0x4a4a52 : 0x8a9098, b: i });
+    for (const i of [4, 5]) g.cyl(0.005, 0.007, 0.09, 4, { at: [def[i][2], 0.05, 0.01], c: 0xd86a6a, b: i });
+    g.sph(1, 6, 4, { at: [0, 0.17, -0.11], s: [0.035, 0.012, 0.06], rx: 0.3, c: 0x5a5a62, b: 6 });
+  } else if (sp === 'goose') {
+    const body = 0xa88a68, belly = 0xe8dcc8, dark = 0x5a4232;
+    g.sph(1, 12, 9, { at: [0, 0.42, 0], s: [0.15, 0.14, 0.25], c: (x, y) => y < 0.38 ? belly : body, b: 0, j: 0.01 });
+    seg(g, [0, 0.48, 0.14], [0, 0.72, 0.22], 0.045, 0.03, { c: 0xd8c8b0, b: 1, nu: 7, nv: 3 });
+    g.sph(1, 8, 6, { at: [0, 0.76, 0.25], s: [0.04, 0.045, 0.06], c: 0xe8dccc, b: 1 }); g.sph(1, 6, 4, { at: [0, 0.75, 0.32], s: [0.015, 0.012, 0.04], c: 0xd8803a, b: 1 });
+    for (const s of [1, -1]) { g.sph(1, 6, 4, { at: [0.03 * s, 0.77, 0.26], s: [0.012, 0.022, 0.025], c: 0x7a4a2a, b: 1, j: 0 }); g.sph(0.007, 4, 3, { at: [0.038 * s, 0.775, 0.275], c: 0xe8b040, b: 1, j: 0 }); }
+    for (const [i, s] of [[2, 1], [3, -1]]) g.sph(1, 8, 4, { at: [0.12 * s, 0.45, -0.02], s: [0.03, 0.09, 0.2], c: (x, y, z) => z < -0.12 ? dark : body, b: i });
+    for (const i of [4, 5]) { g.cyl(0.01, 0.014, 0.24, 5, { at: [def[i][2], 0.12, 0.01], c: 0xd8803a, b: i }); g.sph(1, 5, 3, { at: [def[i][2], 0.01, 0.04], s: [0.03, 0.008, 0.04], c: 0xd8803a, b: i }); }
+    g.sph(1, 6, 4, { at: [0, 0.45, -0.25], s: [0.06, 0.03, 0.06], c: dark, b: 6 });
+  } else if (sp === 'ostrich') {
+    const black = 0x2a2622, white = 0xf2ece0, skin = 0xc8a090;
+    g.sph(1, 12, 9, { at: [0, 1.32, 0], s: [0.36, 0.3, 0.5], c: black, b: 0, j: 0.05 });
+    seg(g, [0, 1.5, 0.36], [0, 2.15, 0.44], 0.06, 0.035, { c: skin, b: 1, nu: 7, nv: 4, curve: 0.08 });
+    g.sph(1, 8, 6, { at: [0, 2.2, 0.48], s: [0.06, 0.06, 0.08], c: skin, b: 1 }); g.sph(1, 6, 4, { at: [0, 2.18, 0.58], s: [0.03, 0.015, 0.05], c: 0xb89070, b: 1 });
+    for (const s of [1, -1]) g.sph(0.016, 5, 4, { at: [0.04 * s, 2.22, 0.52], c: 0x1a1210, b: 1, j: 0 });
+    for (const [i, s] of [[2, 1], [3, -1]]) { g.sph(1, 8, 5, { at: [0.3 * s, 1.36, -0.05], s: [0.06, 0.2, 0.32], c: black, b: i, j: 0.04 }); g.sph(1, 7, 4, { at: [0.32 * s, 1.28, -0.3], s: [0.035, 0.08, 0.1], c: white, b: i, j: 0.04 }); }
+    for (const i of [4, 5]) { const x = def[i][2]; g.sph(1, 8, 6, { at: [x, 1.0, 0.02], s: [0.1, 0.18, 0.12], c: skin, b: i });
+      g.cyl(0.035, 0.05, 0.85, 6, { at: [x, 0.48, 0.02], c: skin, b: i, j: 0 }); g.sph(1, 6, 4, { at: [x, 0.04, 0.1], s: [0.06, 0.035, 0.12], c: 0x8a6a5a, b: i }); }
+    g.sph(1, 8, 5, { at: [0, 1.42, -0.5], s: [0.2, 0.14, 0.12], c: white, b: 6, j: 0.06 });
+  } else if (sp === 'oryx') {
+    const hide = 0xeee6d8, dark = 0x2a2420, band = 0x8a6a48;
+    g.sph(1, 12, 9, { at: [0, 0.97, 0], s: [0.21, 0.24, 0.45], c: (x, y) => Math.abs(y - 0.88) < 0.04 ? band : hide, b: 0, j: 0.02 });
+    g.tube(y => [0.06 - y * 0.02, 0.075 - y * 0.03, 0, 0], 0, 0.45, 8, 4, { at: [0, 1.08, 0.36], rx: 0.45, c: hide, b: 1 });
+    g.sph(1, 9, 7, { at: [0, 1.36, 0.52], s: [0.07, 0.08, 0.15], c: (x, y, z) => z > 0.56 || Math.abs(x) > 0.04 ? dark : hide, b: 1 });
+    for (const s of [1, -1]) { seg(g, [0.04 * s, 1.44, 0.46], [0.08 * s, 1.84, -0.06], 0.018, 0.006, { c: dark, b: 1, nu: 5, nv: 3, curve: 0.04 }); g.sph(0.014, 5, 4, { at: [0.06 * s, 1.39, 0.58], c: 0x1a1210, b: 1, j: 0 }); g.sph(1, 6, 4, { at: [0.08 * s, 1.45, 0.47], s: [0.05, 0.022, 0.03], rz: -0.5 * s, c: hide, b: 1 }); }
+    legs2(g, def, 0.76, 0.034, 0.018, (x, y) => y < 0.45 && y > 0.3 ? dark : hide);
+    g.tube(y => [0.015, 0.015, 0, 0], 0, 0.4, 4, 3, { at: [0, 0.98, -0.44], rx: 0.2, c: dark, b: 6 });
   } else if (sp === 'partridge') {
     const body = 0xb8ac98, bar = 0x5a4232;
     g.sph(1, 10, 8, { at: [0, 0.2, 0], s: [0.085, 0.085, 0.12], c: (x, y, z) => y < 0.2 && Math.abs(x) > 0.05 && Math.floor((z + 1) * 40) % 3 === 0 ? bar : body, b: 0, j: 0.02 });

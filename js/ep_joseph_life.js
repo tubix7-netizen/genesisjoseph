@@ -2,8 +2,8 @@
    When it switches on
    · 배고픔 (hunger) from the road north (p_road) — Jacob's bread and figs won't last three days; forage and hunt.
      It pauses while the story feeds or holds Joseph: in the pit, bound behind the camels, in prison, in the dream.
-   · 사냥 (hunting) from the road too: Joseph is a shepherd boy with a sling (David's weapon). Hares, partridges and
-     gazelles in the hills of Canaan, wolves at night. Taken from him at the pit; Pharaoh's vizier hunts again (c5).
+   · 사냥 (hunting) from the road too: Joseph is a shepherd boy with his staff. Hares, partridges and gazelles in the hills
+     of Canaan, wolves at night. v18.13: the sling comes later — Pharaoh's huntsman hands one to the vizier in Egypt (e_hunt).
    · 낚시 (fishing) on the Nile once Joseph is free to travel as vizier (c5_patrol).
    Where
    · Wild zones and foraging spots follow the land: hill herbs, caper bushes, rock-cleft honey and partridge nests in
@@ -23,14 +23,14 @@ EP.canBuild = (x, z, S) => between(S, 'c1_pit', 'c4_answer') ? '지금은 지을
 EP.featText = Object.assign({}, EP.featText, {
   surv: { n: '배고픔과 기력', ic: 'bread', d: '걷고 일하면 배가 고파져요. 배가 고프면 기력(머리 위 동그라미)이 끝까지 차오르지 않아요. 왼쪽 위 빵 표시를 누르거나 가방에서 먹으세요. 들에서 약초·열매·새알을 찾고, 모닥불에서 요리할 수 있어요.' },
   build: { n: '들판의 쉼터', ic: 'fire', d: '메뉴 → 짓기에서 모닥불과 움막을 길가 들판에 지을 수 있어요. 크기와 색을 고를 수 있고, 지은 모닥불에서 요리하고 몸을 녹여요.' },
-  hunt: { n: '물매와 사냥', ic: 'star', d: '목자의 물매를 챙겼어요. 짐승은 발소리를 듣고 눈으로 봐요 · 「앉기」를 누르고 살금살금 다가가면 들키지 않아요. 돌무더기에서 돌을 주워 물매로 쏘고, 잡은 짐승은 손질해 모닥불에서 구워요. 밤에는 늑대를 조심하세요.' },
+  hunt: { n: '지팡이와 사냥', ic: 'star', d: '목자의 지팡이를 챙겼어요. 가까이 다가가 휘둘러요. 짐승은 발소리를 듣고 눈으로 봐요 · 「앉기」를 누르고 살금살금 다가가면 들키지 않아요. 잡은 짐승은 손질해 모닥불에서 구워요. 밤에는 늑대를 조심하세요.' },
   fish: { n: '나일 강 낚시', ic: 'fish', d: '낚싯대를 얻었어요. 물가에서 A로 던지고, 톡톡 건드릴 땐 기다렸다가 찌가 쑥 들어가면 A! 물고기가 도는 반대쪽으로 스틱을 밀면서 A를 누르고 감아요.' },
 });
 const prevFeat = EP.onFeat;
 EP.onFeat = function (k, S, G2, quiet) {
   if (prevFeat) prevFeat(k, S, G2, quiet);
-  if (k === 'hunt' && G.Combat) { G.Combat.giveGear('sling', true); S.hero.mode = 'ranged'; if (!S.inv.stone) Game.give('stone', 6, true); }
-  if (k === 'fish') { S.tools.fishrod = true; if (G.Combat) { G.Combat.giveGear('sling', true); S.hero.mode = 'ranged'; } G.UI.hud(); }
+  if (k === 'hunt' && G.Combat) { S.tools.staff = true; G.Combat.giveGear('staff', true); S.hero.mode = 'melee'; G.UI.hud(); } // v18.13 a staff first; the sling waits for Egypt (e_hunt)
+  if (k === 'fish') { S.tools.fishrod = true; G.UI.hud(); }
 };
 // the brothers strip him at the pit: the sling goes with the coat, until he is free again as vizier
 const prevUpdate = EP.update;
@@ -134,7 +134,7 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
   const EP = G.EP && G.EP.joseph; if (!EP) return;
   EP.physProps = function (W) { const out = [], r = G.rng(5150); const ring = (cx, cz, n, rad, kinds) => { if (kinds.indexOf('stone') < 0) { /* v18.12h tidy: loose pots stand in short even rows, not single random spots */ let i = 0; for (let tries = 0; tries < n * 6 && i < n; tries++) { const a = r() * Math.PI * 2, d = rad * (0.4 + r() * 0.6), x0 = cx + Math.cos(a) * d, z0 = cz + Math.sin(a) * d, th = Math.floor(r() * 4) * Math.PI / 2, m = Math.min(n - i, 2 + Math.floor(r() * 3)); for (let q = 0; q < m; q++) { const x = x0 + Math.cos(th) * q * 0.75, z = z0 + Math.sin(th) * q * 0.75; if (W.near(x, z).some(c => c.on && (c.t === 'c' ? Math.hypot(c.x - x, c.z - z) < c.r + 0.5 : false))) break; out.push([kinds[i % kinds.length], x, z]); i++; } } return; } for (let i = 0; i < n; i++) { const a = r() * Math.PI * 2, d = rad * (0.4 + r() * 0.6), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
       if (W.near(x, z).some(c => c.on && (c.t === 'c' ? Math.hypot(c.x - x, c.z - z) < c.r + 0.5 : false))) continue; out.push([kinds[i % kinds.length], x, z]); } };
-    ring(172, 150, 8, 6, ['jar', 'basket', 'pot', 'jar']);           // Jacob's camp at Hebron
+    { const ca = Math.cos(-0.5), sa = Math.sin(-0.5); for (const [lx, lz, k] of [[3.7, 0.5, 'jar'], [3.75, 1.25, 'basket']]) out.push([k, 184 + ca * lx + sa * lz, 158 - sa * lx + ca * lz]); } // v18.13 Jacob's camp: two things beside Joseph's tent (was 8 in a ring)
     ring(156, -146, 6, 5, ['sack', 'jar', 'basket']);               // the brothers' camp at Dothan
     ring(-6, 118, 10, 7, ['melon', 'basket', 'jar', 'melon', 'sack']); // the market where Joseph is sold
     ring(-12, 46, 6, 3, ['jar', 'pot', 'basket']);                  // Potiphar's kitchen
@@ -168,7 +168,7 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
     { id: 'dune', hide: [4.2, -3.8], n: '남쪽 모래 언덕', x: -6, z: 198, d: '바람이 모래에 물결무늬를 새긴 언덕 꼭대기예요.', props: 'dune' } ];
   EP.places2 = SITES.map(s => ({ id: s.id, n: s.n, x: s.x, z: s.z, r: 13, d: s.d, insight: s.insight ? 0 : 0 }));
   // where people live: jars and boxes to smash, [x, z, how many, radius]
-  const TOWNS = [[176, 152, 6, 9], [158, -150, 3, 7], [-8, 118, 6, 10], [-10, 45, 3, 4.5], [-12, 64, 3, 3], [-45, 53, 2, 3.5], [-32, 3, 3, 6],
+  const TOWNS = [[176, 152, 0, 9], [158, -150, 3, 7], [-8, 118, 6, 10], [-10, 45, 3, 4.5], [-12, 64, 3, 3], [-45, 53, 2, 3.5], [-32, 3, 3, 6],
     [-22, -72, 6, 12], [16, -64, 4, 7], [10, -140, 3, 7], [-140, -40, 5, 13], [-145, 128, 5, 13]]; // v16.1: only where people live
   EP.loot = function (W) { const out = [], r = G.rng(4242), spots = Object.values(EP.spots);
     const free = (x, z, rr, md) => { if (spots.some(([a, b]) => Math.hypot(a - x, b - z) < 2.6)) return false; if (W.water && W.heightAt(x, z) < W.water.level + 0.2) return false; if (W.slopeAt(x, z) > 0.35) return false;
@@ -176,6 +176,7 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
     SITES.forEach(s => { let x = s.x + s.hide[0], z = s.z + s.hide[1]; for (let i = 0; i < 30 && !free(x, z, 0.6); i++) { x = s.x + s.hide[0] + (r() - 0.5) * 2.4; z = s.z + s.hide[1] + (r() - 0.5) * 2.4; }
       out.push({ id: 'ch_' + s.id, k: 'chest', x, z, ry: r() * 6, table: 'treasure', rich: s.rich, insight: s.insight || 0, n: s.n }); });
     /* v18.12h tidy: jars and boxes stand in small neat rows (same direction, even gaps) instead of single random spots; the rows themselves are still scattered at random */
+    { const ca = Math.cos(-0.5), sa = Math.sin(-0.5); [[4.55, 0.2, 'urn'], [4.6, 1.05, 'urn'], [4.5, -0.75, 'crate']].forEach(([lx, lz, k], i) => out.push({ id: `bkH_${i}`, k, x: 184 + ca * lx + sa * lz, z: 158 - sa * lx + ca * lz, ry: k === 'crate' ? -0.5 : i * 1.7, v: i % 3, re: 2 })); } // v18.13 Hebron: one tidy row beside Joseph's tent
     TOWNS.forEach(([cx, cz, n, R], ti) => { let k = 0;
       for (let tries = 0; tries < n * 14 && k < n; tries++) { const a = r() * PI * 2, d = R * (0.35 + r() * 0.65), x0 = cx + Math.cos(a) * d, z0 = cz + Math.sin(a) * d, th = Math.floor(r() * 4) * PI / 2 + (r() - 0.5) * 0.1, m = Math.min(n - k, 2 + Math.floor(r() * 3)), ux = Math.cos(th), uz = Math.sin(th), crateRow = r() < 0.45; let placed = 0;
         for (let q = 0; q < m; q++) { const x = x0 + ux * q * 0.9, z = z0 + uz * q * 0.9; if (!free(x, z, 0.5, q ? 0.8 : 1.3)) break;

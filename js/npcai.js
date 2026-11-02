@@ -132,18 +132,18 @@ function rumor(S, n) { const EP = EPf(); const own = EP.rumors ? EP.rumors(S, n)
 const REQ = {
   farmer: [['straw', 4], ['stone', 5], ['branch', 6], ['clay', 3]], water: [['clay', 3], ['reed', 4], ['flower', 3], ['fig', 3]], potter: [['clay', 6], ['wood', 2], ['branch', 5]], weaver: [['wool', 4], ['flax', 3], ['thread', 1]],
   merchant: [['wool', 6], ['cheese', 2], ['cloth', 1], ['oil', 1]], elder: [['herb', 2], ['bread', 1], ['honey', 1], ['fig', 4]], child: [['flower', 3], ['fig', 2], ['feather', 2]], shepherd: [['hay', 4], ['herb', 2], ['bread', 2], ['K', 'wolf', 2]],
-  hunter: [['meat', 2], ['hide', 2], ['sinew', 1], ['K', 'hare', 2], ['K', 'boar', 1], ['K', 'gazelle', 1]], oldwoman: [['herb', 2], ['fig', 3], ['milk', 2]],
+  hunter: [['meat', 2], ['hide', 2], ['sinew', 1], ['K', 'hare', 2], ['K', 'boar', 1], ['K', 'gazelle', 1], ['feather', 4]], oldwoman: [['herb', 2], ['fig', 3], ['milk', 2]],
 };
 const WHY = { straw: '지붕을 새로 이으려고', stone: '담장이 무너져서', branch: '불 땔 나무가 다 떨어져서', clay: '항아리를 빚으려고', reed: '바구니를 엮으려고', flower: '딸아이 혼례 화관을 만들려고', fig: '손님 대접을 하려고', wood: '가마에 불을 넣으려고',
   wool: '겨울 겉옷을 지으려고', flax: '세마포를 짜려고', thread: '천을 마저 짜려고', cheese: '대상에게 팔려고', cloth: '새 장막을 만들려고', oil: '등잔에 넣으려고', herb: '무릎이 쑤셔서', bread: '앓아누운 이웃에게 주려고', honey: '목이 칼칼해서',
   feather: '깃털 모자를 만들려고', hay: '새끼 양들 먹이려고', meat: '잔치를 하려고', hide: '신발을 지으려고', sinew: '활시위가 끊어져서', milk: '아기에게 먹이려고' };
-const ANIM_N = { wolf: '늑대', hare: '들토끼', boar: '멧돼지', gazelle: '가젤', partridge: '자고새', deer: '사슴' };
+const ANIM_N = { wolf: '늑대', hare: '들토끼', boar: '멧돼지', gazelle: '가젤', partridge: '자고새', deer: '사슴', dove: '비둘기', goose: '나일 거위', wgoat: '들염소', oryx: '오릭스', ostrich: '타조' };
 const dq = S => S.dq || (S.dq = {});
 function regQuest(id, d) {
   const EP = EPf(), L = G.Life; EP.quests = EP.quests || {}; const it = d.item && Game.ITEMS[d.item];
   const obj = d.kill ? [{ t: (S2, G2, st) => `${ANIM_N[d.kill] || d.kill} 사냥 (${Math.min(d.n, L.killsSince(st, d.kill))}/${d.n})`, ok: (S2, G2, st) => L.killsSince(st, d.kill) >= d.n }]
     : [{ t: (S2, G2) => `${it ? it.n : d.item} ${Math.min(d.n, G2.inv(d.item))}/${d.n}`, ok: (S2, G2) => G2.have(d.item, d.n) }];
-  EP.quests[id] = { title: d.title, giver: d.giver, desc: d.desc, obj, dyn: true, when: () => false, take: d.kill ? null : { [d.item]: d.n }, reward: { silver: d.silver, xp: d.xp },
+  EP.quests[id] = { title: d.title, giver: d.giver, desc: d.desc, obj, dyn: true, kill: d.kill || null, when: () => false, take: d.kill ? null : { [d.item]: d.n }, reward: { silver: d.silver, xp: d.xp },
     prog: `${d.short}: "${d.kill ? '사냥은 잘 되어 가오?' : (it ? it.n : '') + ' 구하는 건 어떻게 됐소?'}"`.replace(/^[^:]+: /, ''),
     done: [{ n: d.name, t: d.kill ? '정말 잡아 왔구려! 이제 마음 놓고 지내겠소. 고맙소!' : `${it ? it.n : ''}을(를) 가져왔구려! 정말 고맙소. 약소하지만 받아 주시오.` }],
     finish: (S2) => { delete dq(S2)[id]; delete EP.quests[id]; const n = Game.ENT.npcs[d.giver]; if (n) addFriend(n, 3); } };
@@ -260,7 +260,7 @@ function folkTalk(n) {
 function folkMenu(n) {
   const S = Sf(), f = n.d.folk, fin = endTalk(n);
   const opts = [
-    { t: '요즘 어떻게 지내요?', then: () => setTimeout(() => say([{ n: n.name, t: rnd(SMALL[f.role] || SMALL.farmer) }], () => folkMenu(n)), 30) },
+    { t: '요즘 어떻게 지내요?', then: () => setTimeout(() => say([{ n: n.name, t: (G.Persona && G.Persona.line(n)) || rnd(SMALL[f.role] || SMALL.farmer) }], () => folkMenu(n)), 30) },
     { t: '무슨 소식 있어요?', then: () => setTimeout(() => say([{ n: n.name, t: rumor(S, n) }], () => folkMenu(n)), 30) },
   ];
   if (freeOK()) opts.unshift({ t: '자유롭게 이야기하기 ✦', then: () => setTimeout(() => AI.freeTalk(n), 30) });
@@ -329,7 +329,7 @@ function strangerTalk(n) {
 const DIRN = (dx, dz) => { const a = Math.atan2(dx, -dz); const i = Math.round(a / (PI / 4)); return ['북', '북동', '동', '남동', '남', '남서', '서', '북서'][(i + 8) % 8]; };
 function nearestWell() { const P = Game.P; let b = null, bd = 1e9; for (const s of EPf().stations || []) { if (s.type !== 'well') continue; const d = Math.hypot(s.x - P.x, s.z - P.z); if (d < bd) { bd = d; b = s; } } return b ? { x: b.x, z: b.z, d: Math.round(bd), dir: DIRN(b.x - P.x, b.z - P.z) } : null; }
 function nearestWild() { const P = Game.P, S = Sf(); let b = null, bd = 1e9; for (const z of EPf().wildZones || []) { if (z.on && !z.on(S)) continue; const d = Math.hypot(z.x - P.x, z.z - P.z); if (d < bd) { bd = d; b = z; } }
-  if (!b) return null; const AN = { gazelle: '가젤', hare: '들토끼', partridge: '자고새', wolf: '늑대', boar: '멧돼지', deer: '사슴', ibex: '산양', bear: '곰', lion: '사자' };
+  if (!b) return null; const AN = { gazelle: '가젤', hare: '들토끼', partridge: '자고새', wolf: '늑대', boar: '멧돼지', deer: '사슴', ibex: '산양', bear: '곰', lion: '사자', dove: '비둘기', goose: '나일 거위', wgoat: '들염소', oryx: '오릭스', ostrich: '타조' };
   return { d: Math.round(bd), dir: DIRN(b.x - P.x, b.z - P.z), names: b.sp.filter(x => !x[2]).slice(0, 2).map(x => AN[x[0]] || x[0]).join('와(과) ') }; }
 function askWay(n, q, after) {
   const P = Game.P, right = DIRN(q.x - P.x, q.z - P.z).slice(0, 1), opts = ['동', '서', '남', '북'];
@@ -373,7 +373,7 @@ AI.quietNow = function (S) {
   if (G.UI.busy() || Game.cineOn || (G.Combat && G.Combat.inCombat) || P.spd > 4.6 || P.act || (G.Build && G.Build.placing) || (G.Life.approaching && G.Life.approaching())) return true;
   if ((st && st.quiet) || (EP.quiet && EP.quiet(S))) return true;
   if (performance.now() - (G.UI.lastTalk || 0) < 35000) return true;
-  const tg = Game.curTarget; if (tg && !tg.wp && st && st.target && Math.hypot(tg.x - P.x, tg.z - P.z) < 40) return true; // heading for the story objective
+  const tg = Game.curTarget; if (tg && !tg.wp && !tg.side && st && st.target && Math.hypot(tg.x - P.x, tg.z - P.z) < 40) return true; // heading for the story objective
   return false;
 };
 function approach(dt, S) {
@@ -407,7 +407,7 @@ function visit(n, kind, S) {
     say(lines, () => { if (!G.UI.busy()) fin(); }); return; }
   if (kind === 'news') { say([{ n: n.name, t: `${nm}, 그 소식 들었소?` }, { n: n.name, t: rumor(S, n) }], fin); return; }
   // hello: greeting, then let the player decide
-  say([{ n: n.name, t: greet(S, n) }, { n: n.name, t: rnd(SMALL[f.role] || SMALL.farmer) }], () => folkMenu(n));
+  say([{ n: n.name, t: greet(S, n) }, { n: n.name, t: (G.Persona && G.Persona.line(n)) || rnd(SMALL[f.role] || SMALL.farmer) }], () => folkMenu(n));
 }
 
 // =================================================================== FREE TALK (Claude)
@@ -460,7 +460,7 @@ function fallback(n, text, S) {
   if (/이야기|재미/.test(t)) return rnd(TALES).t.slice(0, 120) + '…';
   if (/소중|가족|사랑/.test(t)) return rnd(['내 가족이지요. 저녁에 함께 둘러앉아 먹는 빵 한 조각이 제일 행복하오.', '건강한 몸과 정직한 마음이오.']);
   if (/나|저에 대해|소문|들은/.test(t)) return rumor(S, n);
-  return rnd(SMALL[role] || SMALL.elder);
+  return (G.Persona && G.Persona.line(n)) || rnd(SMALL[role] || SMALL.elder);
 }
 function closeChat() { const st = chatState; if (!st) return; if (st.ctl) try { st.ctl.abort(); } catch (e) { } chatUI(false); st.n.talking = false; G.UI.lastTalk = performance.now(); const a = st.after; chatState = null; if (a) a(); }
 if ($('chForm')) { $('chForm').addEventListener('submit', e => { e.preventDefault(); send($('chIn').value); }); $('chX').onclick = closeChat;

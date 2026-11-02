@@ -66,7 +66,7 @@ F.press = function () { if (Game.mode !== 'play' || calm()) return; const S = Ga
   if (!(V() && V().mindUse && V().mindUse(15))) { G.UI.toast('정신력이 모자라요 (15) · 음식·기도·모닥불·잠으로 채워요'); sfx('click', { pitch: 0.7 }); return; }
   fx.classList.remove('on'); void fx.offsetWidth; fx.classList.add('on'); sfx('quest', { pitch: 1.3, vol: 0.5 });
   const t = Game.target(); let said = '';
-  if (t) { const pts = F.path(t.x, t.z); if (pts && pts.length > 1) { F.trail = { pts: resample(pts, 0.55, 140), head: 0, t: 0 }; const far = Math.hypot(t.x - Game.P.x, t.z - Game.P.z); said = far > 140 ? '빛이 가야 할 길의 앞부분을 비춰요' : '빛이 가야 할 곳까지 길을 비춰요'; } }
+  if (t) { const pts = F.path(t.x, t.z); if (pts && pts.length > 1) { F.trail = { pts: resample(pts, 0.55, 140), head: 0, t: 0, side: !!t.side }; const far = Math.hypot(t.x - Game.P.x, t.z - Game.P.z); said = (t.side ? '푸른 빛이 부탁한 곳으로 ' : '빛이 ') + (far > 140 ? '가야 할 길의 앞부분을 비춰요' : '가야 할 곳까지 길을 비춰요'); } }
   else said = '지금 꼭 가야 할 곳은 없어요';
   // treasure nearby
   const P = Game.P, R = 32, list = [], seen = S.flags.chSeen = S.flags.chSeen || {};
@@ -92,9 +92,9 @@ F.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(), CAM = G
   CAM.aimK = (CAM.aimK || 0) + (want - (CAM.aimK || 0)) * Math.min(1, dt * (want > (CAM.aimK || 0) ? 5 : 4)); CAM.aimAt = aiming && G.Lock ? G.Lock.point() : null; document.body.classList.toggle('aiming', CAM.aimK > 0.5);
   // light along the way
   const tr = F.trail; if (tr) { tr.t += dt; const prev = Math.floor(tr.head); tr.head = Math.min(tr.pts.length - 1, tr.head + dt * 55);
-    for (let i = prev; i < Math.floor(tr.head); i++) { const [x, z] = tr.pts[i], y = W.heightAt(x, z) + 0.22; G.FX.burst(x, y, z, 2, { c: [1, 0.88, 0.4], sp: 0.03, up: 0.1, g: -0.03, life: 3.2, size: 0.34, a: 1, drag: 3, spread: 0.06 });
-      if (i % 3 === 0) G.FX.burst(x, y + 0.05, z, 1, { c: [1, 0.96, 0.75], sp: 0.08, up: 0.35, g: -0.1, life: 1.4, size: 0.1, a: 0.8, spread: 0.3 }); }
-    if (tr.head < tr.pts.length - 1) { const [x, z] = tr.pts[Math.floor(tr.head)]; G.FX.burst(x, W.heightAt(x, z) + 0.3, z, 2, { c: [1, 0.95, 0.7], sp: 0.5, up: 0.8, g: 0.5, life: 0.6, size: 0.14 }); }
+    for (let i = prev; i < Math.floor(tr.head); i++) { const [x, z] = tr.pts[i], y = W.heightAt(x, z) + 0.22; G.FX.burst(x, y, z, 2, { c: tr.side ? [0.45, 0.78, 1] : [1, 0.88, 0.4], sp: 0.03, up: 0.1, g: -0.03, life: 3.2, size: 0.34, a: 1, drag: 3, spread: 0.06 });
+      if (i % 3 === 0) G.FX.burst(x, y + 0.05, z, 1, { c: tr.side ? [0.8, 0.94, 1] : [1, 0.96, 0.75], sp: 0.08, up: 0.35, g: -0.1, life: 1.4, size: 0.1, a: 0.8, spread: 0.3 }); }
+    if (tr.head < tr.pts.length - 1) { const [x, z] = tr.pts[Math.floor(tr.head)]; G.FX.burst(x, W.heightAt(x, z) + 0.3, z, 2, { c: tr.side ? [0.7, 0.9, 1] : [1, 0.95, 0.7], sp: 0.5, up: 0.8, g: 0.5, life: 0.6, size: 0.14 }); }
     else if (tr.t > 4) F.trail = null; }
   // treasure glints
   const se = F.sense; if (se) { se.t += dt; const els = marks.children, a = se.t < 0.4 ? se.t / 0.4 : se.t > se.dur - 1 ? Math.max(0, se.dur - se.t) : 1;

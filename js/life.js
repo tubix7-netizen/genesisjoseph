@@ -104,11 +104,12 @@ L.qOk = (S, id) => { const q = QS()[id]; const st = side(S).act[id]; return q.ob
 L.avail = (S, id) => { const q = QS()[id], sd = side(S); if (sd.act[id]) return false; const dn = sd.done[id]; if (dn !== undefined && !(q.repeat && S.day - dn >= q.repeat)) return false; return !q.when || q.when(S, Game); };
 L.mark = function (id) { const S = Game.S(); if (!S || !Game.EP().quests) return null; for (const qid of L.active(S)) if (QS()[qid].giver === id && L.qOk(S, qid)) return '?'; for (const qid in QS()) if (QS()[qid].giver === id && L.avail(S, qid)) return '!'; return null; };
 L.accept = function (id) { const S = Game.S(), q = QS()[id], st = { day: S.day, kills: Object.assign({}, S.hero.kills), fish: Object.assign({}, S.hero.fish), got: Object.assign({}, S.stats.got), stats: { fish: S.stats.fish || 0, butchered: S.stats.butchered || 0 } };
-  side(S).act[id] = st; side(S).track = id; if (q.start) q.start(S, Game, st); sfx('quest'); G.UI.toast(`부탁을 맡았다 · ${q.title}`); G.UI.quest(); };
+  side(S).act[id] = st; side(S).track = id; side(S).goal = 'side'; if (q.start) q.start(S, Game, st); sfx('quest'); G.UI.toast(`부탁을 맡았다 · ${q.title}`); G.UI.quest();
+  setTimeout(() => G.UI.tipOnce && G.UI.tipOnce('goalSide', '맡은 부탁이 목표가 됐어요 · 집중하면 푸른 빛이 안내해요 · 왼쪽 위 부탁 줄을 누르면 이야기로 돌아가요', true), 2800); }; // v18.13b a new request becomes the goal (blue)
 L.complete = function (id) {
   const S = Game.S(), q = QS()[id], rw = q.reward || {}, sd = side(S);
   if (q.take) for (const k in q.take) Game.take(k, q.take[k]);
-  delete sd.act[id]; sd.done[id] = S.day; if (sd.track === id) sd.track = L.active(S)[0] || null;
+  delete sd.act[id]; sd.done[id] = S.day; if (sd.track === id) { sd.track = L.active(S)[0] || null; if (sd.goal === 'side') sd.goal = 'main'; }
   if (rw.silver) Game.silver(rw.silver); if (rw.items) for (const k in rw.items) Game.give(k, rw.items[k]); if (rw.gear) G.Combat.giveGear(rw.gear);
   if (rw.xp) Game.addXP(rw.xp); if (rw.trust) Game.trust && Game.trust(rw.trust); if (rw.heart) Game.heart && Game.heart(rw.heart);
   if (rw.insight) setTimeout(() => Game.insight(rw.insight, q.title), 400);
@@ -134,6 +135,7 @@ L.talk = function (npcId) {
 function fix(l, nm) { return typeof l === 'string' ? { n: nm, t: l } : l; }
 L.tracked = function (S) { const sd = side(S); const id = sd.track && sd.act[sd.track] ? sd.track : L.active(S)[0]; return id ? { id, q: QS()[id], st: sd.act[id] } : null; };
 L.track = id => { side(Game.S()).track = id; G.UI.quest(); };
+L.goal = (id) => { const sd = side(Game.S()); if (id) { sd.track = id; sd.goal = 'side'; } else sd.goal = 'main'; G.UI.quest(); }; // v18.13 null → the story (gold), id → that side quest (blue)
 L.onKill = function () { G.UI.quest(); };
 // counters relative to when the quest was accepted
 L.killsSince = (st, sp) => { const S = Game.S(); const sps = Array.isArray(sp) ? sp : [sp]; let n = 0; for (const k of sps) n += (S.hero.kills[k] || 0) - ((st && st.kills[k]) || 0); return n; };

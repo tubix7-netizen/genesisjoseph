@@ -99,6 +99,10 @@ function cinSendOff(S, G, next) { const cx = 34, cz = -30, ch = hAt(cx, cz), hh 
   cine([
     { hour: 7, fn: () => { G.teleport(cx - 2, cz - 3, 0.5); BRO11.forEach((id, i) => showAt(id, cx + (i % 6) * 1.6 - 3, cz + 2 + Math.floor(i / 6) * 1.8, 0.4)); },
       cam: [cx + 6, ch + 2.6, cz - 5], look: [cx, ch + 1.2, cz + 2], dur: 8, music: 'j_finale', t: '그들에게 다 각기 옷 한 벌씩을 주되 베냐민에게는 은 삼백과 옷 다섯 벌을 주고, 그 아버지에게는 수나귀 열 필에 애굽의 좋은 물품을 실리고 암나귀 열 필에는 곡식과 떡과 양식을 실렸더라.', ref: '창세기 45:22–23' },
+    (() => { const sh = garmentBeat(3, [cx, ch + 1.25, cz + 2], [cx, ch + 0.75, cz + 5], '네 번째 옷 · 옷을 빼앗겼던 요셉이, 이제 형들에게 옷을 입혀 줍니다.'), f0 = sh.fn;
+      sh.fn = () => { f0(); const n = G.npc('benjamin2') || G.npc(BRO11[0]); if (!n) return; const h = hAt(n.x, n.z), f = n.face, sx = Math.cos(f) * 0.7, sz = -Math.sin(f) * 0.7; // in front of Benjamin, a little to the side, looking up at his new clothes
+        sh.look = [n.x, h + 1.3, n.z]; sh.cam = [n.x + Math.sin(f) * 3.4 + sx, h + 0.8, n.z + Math.cos(f) * 3.4 + sz]; sh.cam2 = [n.x + Math.sin(f) * 2.8 + sx, h + 0.9, n.z + Math.cos(f) * 2.8 + sz]; };
+      return sh; })(),
     { cam: [cx - 0.4, ch + 1.7, cz - 1.6], look: [cx - 2, ch + 1.6, cz - 3], dur: 6, n: '요셉', t: '당신들은 길에서 다투지 말라.', ref: '창세기 45:24', e: 'happy' },
     { fn: () => { S.q.heb2 = 1; place('jacob', G7HEB[0], G7HEB[1] + 2.6, 0); npcSet('jacob', { look: LOOK.jacob }); }, cam: [G7HEB[0] + 3, hh + 1.5, G7HEB[1] + 5.6], look: [G7HEB[0], hh + 1.4, G7HEB[1] + 2.6], dur: 8, fadeIn: 0.8,
       t: '그들이 가나안 땅으로 들어가서 아버지 야곱에게 이르러 알리되 「요셉이 지금까지 살아 있어 애굽 땅 총리가 되었더이다」 야곱이 그들의 말을 믿지 못하여 어리둥절하더니, 요셉이 보낸 수레를 보고서야 기운이 소생한지라.', ref: '창세기 45:26–27' },
@@ -170,9 +174,9 @@ const STEPS7 = {
       T('요셉은 시므온에게 빵과 물을 넣어 주게 하고 옥을 나섰습니다. 문을 나서자마자 눈시울이 붉어졌습니다.'), T('(이 만남은 성경에 기록되지 않은 「IF」 장면이에요.)')], () => tick(S, 'visitS')); } },
     check: S => qd(S, 'visitS'), done(S, G, next) { hide(['simeon']); cinJudahPledge(S, G, next); }, next: 'g3_feast' },
   g3_feast: { ch: 8, obj: '형들을 집으로 맞아 나이 순서대로 자리 정하기', target: { x: SPOTS.josephHouse[0], z: SPOTS.josephHouse[1] + 10 },
-    enter(S, G, re) { atHouse(S); if (!re) cinFeast(S, G, () => { atHouse(S); GG.UI.toast('형들 앞에 서서 「자리 정하기」'); }); },
-    list: S => [{ t: '나이 순서대로 자리 정하기', ok: qd(S, 'seated') }, { t: '베냐민에게 줄 몫 정하기', ok: qd(S, 'portion') }],
-    check: S => qd(S, 'seated') && qd(S, 'portion'), done(S, G, next) { cinMarvel(S, G, next); }, next: 'g4_cup' },
+    enter(S, G, re) { atHouse(S); if (!re) cinFeast(S, G, () => { atHouse(S); GG.UI.toast('식탁 옆에서 「잔치 음식 차리기」 · 형들 앞에서 「자리 정하기」', true); }); },
+    list: S => [{ t: '잔치 음식 차리기 (직접 만든 요리나 청지기에게)', ok: qd(S, 'feastDish') }, { t: '나이 순서대로 자리 정하기', ok: qd(S, 'seated') }, { t: '베냐민에게 줄 몫 정하기', ok: qd(S, 'portion') }],
+    check: S => qd(S, 'feastDish') && qd(S, 'seated') && qd(S, 'portion'), done(S, G, next) { cinMarvel(S, G, next); }, next: 'g4_cup' },
   g4_cup: { ch: 8, obj: '청지기에게 은잔을 베냐민의 자루에 넣게 하기', target: 'npc:steward2', enter(S) { atHouse(S); },
     talk: { steward2(S, G) { if (S.q.cup) return false; say([N('steward2', '날이 밝으면 형제분들이 떠납니다. 무엇을 분부하시겠습니까?'),
       { n: '요셉', t: '(창세기 44:2)', choices: [{ t: '"나의 은잔을 막내의 자루 아귀에 넣으라."', then: () => setTimeout(() => say([N('steward2', '…은잔을요? 알겠습니다. 분부대로 하겠습니다.', '', 'fear'), T('요셉은 형들이 베냐민을 버리고 갈지, 끝까지 지킬지 보려 했어요.')], () => tick(S, 'cup')), 30) },
@@ -206,6 +210,21 @@ const STEPS7 = {
 };
 { const end = steps.j_end; delete steps.j_end; Object.assign(steps, STEPS7); steps.j_end = end; ORDER = Object.keys(steps); }
 steps.c6_sell.next = 'g1_spy';
+// v18.13d the feast table (창 43:16 「짐승을 잡고 준비하라」): Joseph sets out a dish he cooked himself, or leaves it to the steward
+function feastDish(S, G) { const H = GG.Hearth, CU = GG.Cuisine; if (!H) { tick(S, 'feastDish'); return; }
+  const tierOf = k => (CU && CU.CLS && CU.CLS[k] ? CU.CLS[k][1] : 1), clsOf = k => (CU && CU.CLS && CU.CLS[k] ? CU.CLS[k][0] : 'mixed');
+  const mine = H.ALL.filter(k => G.inv(k) > 0).sort((a, b) => tierOf(b) - tierOf(a)).slice(0, 3);
+  const hunted = k => (GG.Hunt && GG.Hunt.NEW && GG.Hunt.NEW[k]) || clsOf(k) === 'meat';
+  const serve = k => { G.take(k, 1); S.q.feastDish = k; const t = tierOf(k), n = G.ITEMS[k].n;
+    const lines = t >= 4 ? [N('judah', `「${n}」… 이런 잔칫상은 처음 봅니다. 애굽의 총리께서 손수 차리신 것 같군요.`, '', 'awe'), N('benjamin', '형들, 이것 좀 봐요! 아버지 장막의 잔치 같아요!', '', 'happy')]
+      : hunted(k) ? [N('judah', `「${n}」… 들에서 잡은 짐승 맛이 납니다. 고향 들판이 생각나는군요.`, '', 'tender'), N('reuben', '우리 아우가 있었다면 이런 사냥 솜씨였을 텐데…', '', 'sad')]
+      : clsOf(k) === 'sweet' ? [N('benjamin', `「${n}」! 달아요. 어머니가 살아 계실 때 이런 걸 해 주셨대요.`, '', 'happy')]
+      : [N('judah', `「${n}」… 정성이 담긴 음식이군요. 감사히 먹겠습니다.`, '', 'calm')];
+    say(lines.concat([T(t >= 3 ? '요셉은 돌아서서 눈가를 훔쳤습니다. 형들은 이 음식을 누가 만들었는지 모릅니다.' : '형들이 음식을 나누며 조금씩 긴장을 풀었어요.')]), () => tick(S, 'feastDish')); };
+  const ch = mine.map(k => ({ t: `${G.ITEMS[k].n} 올리기${tierOf(k) >= 3 ? ' ★' : ''}`, then: () => setTimeout(() => serve(k), 30) }));
+  ch.push({ t: '청지기에게 맡기기', then: () => setTimeout(() => say([N('steward2', '알겠습니다. 짐승을 잡아 정오 잔치를 준비하겠습니다.', '창세기 43:16')], () => { S.q.feastDish = 'steward'; tick(S, 'feastDish'); }), 30) });
+  say([{ n: '요셉', t: mine.length ? '형들 앞에 무엇을 차릴까? (직접 사냥하고 요리한 음식이면 더 좋아요)' : '가방에 요리가 없어요. 모닥불에서 만들어 오거나 청지기에게 맡길 수 있어요.', choices: ch }], null); }
+specials.push({ id: 'g_dish', x: SPOTS.josephHouse[0] - 2.4, z: SPOTS.josephHouse[1] + 10, r: 3.2, label: '잔치 음식 차리기', on: S => S.step === 'g3_feast' && !S.q.feastDish, use: (S, G) => feastDish(S, G) });
 // the seating and the portion: actions in the courtyard while the feast is on
 specials.push({ id: 'g_seat', x: SPOTS.josephHouse[0], z: SPOTS.josephHouse[1] + 10, r: 3.4, label: '자리 정하기', on: S => S.step === 'g3_feast' && !S.q.seated,
   use: (S, G) => { say([T('나이 많은 형부터 막내 베냐민까지, 형들이 태어난 순서대로 자리를 정해 주세요. (창세기 43:33)')], () => seatPuzzle(S, G, miss => say([T(miss ? `틀린 곳이 ${miss}번 있었지만, 마침내 모두 제자리에 앉았어요.` : '단번에 맞혔어요! 형들이 서로 놀란 얼굴로 바라봅니다.')], () => tick(S, 'seated')))); } },
@@ -218,6 +237,13 @@ specials.push({ id: 'g_seat', x: SPOTS.josephHouse[0], z: SPOTS.josephHouse[1] +
 // ------------------------------------------------------------------ 고센 마을 (free journey, IF)
 const goshenOn = S => !!S.q.goshen && idx(S) >= ORDER.indexOf('j_end');
 const QUESTS = {
+  /* v18.13 Joseph starts with a staff; Pharaoh's huntsman gives the vizier a sling and a first hunt */
+  e_hunt: { giver: 'hunterE', title: '왕의 사냥꾼과 첫 사냥', when: S => idx(S) >= ORDER.indexOf('c5_patrol'),
+    offer: ['총리 나으리, 동쪽 들의 들짐승이 곡식 밭을 자꾸 헤집어 놓습니다. 저와 함께 사냥해 주시겠습니까?', '이건 제가 쓰던 물매입니다. 목자 출신이시라니 금방 손에 익으실 겁니다. 돌도 몇 개 챙겨 드리지요.'],
+    obj: [{ t: (S, G2, st) => `동쪽 들에서 토끼나 가젤 사냥 (${Math.min(2, GG.Life.killsSince(st, ['hare', 'gazelle']))}/2)`, ok: (S, G2, st) => GG.Life.killsSince(st, ['hare', 'gazelle']) >= 2 }], loc: () => ({ x: 48, z: -40 }),
+    start(S) { S.flags.slingOK = 1; const C = GG.Combat; if (C) { C.giveGear('sling'); S.hero.mode = 'ranged'; } if ((S.inv.stone || 0) < 8) Gm().give('stone', 8 - (S.inv.stone || 0), true); GG.UI.featCard && GG.UI.featCard('sling', { kick: '새 무기', n: '물매', ic: 'star', d: '왼쪽 무기 단추로 근접 ↔ 물매를 바꿔요 · 「쏘기」를 누르고 있다가 놓아요' }); GG.UI.hud(); },
+    prog: '동쪽 들입니다. 몸을 낮추고 바람을 등지고 다가가십시오.', done: ['훌륭하십니다! 다윗 같은 목자가 따로 없군요.', '이제 물매와 활 만드는 법도 알려 드리지요. 메뉴 → 장비에서 만들 수 있습니다.'],
+    reward: { silver: 12, items: { meat: 2, sinew: 2, smooth: 3 }, xp: 24 } },
   g_lamb: { giver: 'reuben', title: '르우벤의 길 잃은 어린양', when: goshenOn, repeat: 5,
     offer: ['아우야, 어린양 한 마리가 무리에서 떨어져 나갔다. 저 광야 쪽으로… 가 줄 수 있겠느냐?', '…예전 같으면 내가 너를 찾으러 갔어야 했는데. 이젠 네게 부탁하는구나.'],
     obj: [{ t: '광야의 샘 근처에서 어린양 데려오기', ok: S => !!S.q.gLamb }], loc: () => ({ x: 90, z: 25 }),

@@ -138,6 +138,11 @@ function cinPlot(S, G, next) {
     { cam: [PIT.x + 6, PIT.rim + 2.4, PIT.z + 6], cam2: [PIT.x + 4, PIT.rim + 3, PIT.z + 4], look: [PIT.x, PIT.floor + 1, PIT.z], dur: 6, t: '이는 르우벤이 요셉을 그들의 손에서 구출하여 그의 아버지에게로 돌려보내려 함이었더라.', ref: '창세기 37:22' },
   ], next);
 }
+/* v18.13 the garment motif: three clothes carry the story — the coat torn off (37:23), the cloak left behind (39:12), the linen
+   Pharaoh puts on him (41:42). Each gets the same shot: low, close, a slow push toward the cloth, the same chime (lower on the
+   way down, higher on the way up) and one quiet line, so the three moments rhyme. */
+function garmentBeat(i, look, from, t) { const k = 0.28, cam2 = [from[0] + (look[0] - from[0]) * k, from[1] + (look[1] - from[1]) * k, from[2] + (look[2] - from[2]) * k];
+  return { fn: () => { GG.Audio && GG.Audio.sfx('insight', { pitch: [0.72, 0.84, 1.12, 1.25][i], vol: 0.7 }); }, cam: from, cam2, look, dur: 3.6, fov: 0.48, ease: 'out', t, e: undefined }; }
 // p_approach → the pit (창 37:23–24)
 function cinPit(S, G, next) {
   const P = G.P, px = P.x, pz = P.z, ph = hAt(px, pz), fx = DOTHAN.x, fz = DOTHAN.z, fh = hAt(fx, fz);
@@ -150,6 +155,7 @@ function cinPit(S, G, next) {
     { shot: { type: 'CU', a: 'hero', b: 'simeon', lens: 'tele', move: 'pushIn' }, dur: 4.5, n: '요셉', t: '형들… 왜 그런 눈으로 보세요…?', e: 'fear', fn: () => cpose('think', 4) },
     { fn: () => { emote('simeon', 'grab', 2); emote('levi', 'grab', 2); G.sfx('rip'); G.setOutfit('josephPlain'); cpose('fallen', 0, true); }, cam: [px + 2.4, ph + 1.2, pz + 1.8], look: [px, ph + 0.8, pz], dur: 5, shake: 0.6, shakeDecay: 1.4,
       t: '요셉이 형들에게 이르매, 그들이 요셉의 옷 곧 그가 입은 채색옷을 벗기고', ref: '창세기 37:23' },
+    Object.assign(garmentBeat(0, [px + 0.9, ph + 0.05, pz + 0.5], [px + 1.9, ph + 0.55, pz + 1.6], '첫 번째 옷 · 아버지가 지어 주신 채색옷이 흙바닥에 떨어졌습니다.'), { fn: () => { RT.coatG = { x: px + 0.9, z: pz + 0.5, y: ph }; GG.Audio && GG.Audio.sfx('insight', { pitch: 0.72, vol: 0.7 }); } }),
     { shot: { type: 'LOW', a: 'levi', b: 'hero' }, dur: 4.5, n: '레위', t: '이 옷이 그리도 자랑스러웠느냐! 아버지가 너만 사랑하신다고!', e: 'angry', fn: () => emote('levi', 'swing', 1.2) },
     // dragged to the edge: the two brothers walk Joseph to the rim between them, then it goes dark as he falls
     { fn: () => { const ax = px - PIT.x, az = pz - PIT.z, al = Math.hypot(ax, az) || 1, ux = ax / al, uz = az / al, sx = -uz, sz = ux;
@@ -454,6 +460,7 @@ function cinGrab(S, G) {
     { fn: () => { emote('wife', 'grabCloth', 3); }, cam: [tx - 0.4, th + 1.3, tz + 2.6], look: [tx - 0.6, th + 1.2, tz + 0.4], dur: 3.5, n: '요셉', t: '안 됩니다!', e: 'shout', shake: 0.3, shakeDecay: 0.8 },
     { fn: () => { G.sfx('rip'); G.setOutfit('josephFled'); S.q.robe = 1; G.P.face = 0.2; cpose(null); }, cam: [tx - 3.2, th + 1.6, tz + 3.4], look: [tx - 0.8, th + 1.1, tz + 0.6], dur: 6, shake: 0.4, shakeDecay: 1.2,
       t: '그 여인이 그의 옷을 잡고 동침하자 하니, 요셉이 자기의 옷을 그 여인의 손에 버리고 밖으로 나가매', ref: '창세기 39:12' },
+    garmentBeat(1, [tx - 1.0, th + 1.0, tz + 0.5], [tx - 0.2, th + 0.7, tz + 1.7], '두 번째 옷 · 이번에는 요셉이 스스로 내려놓았습니다. 죄 대신 옷을 잃기로 했습니다.'),
   ], () => G.go('c2_flee'));
 }
 // c2_flee done → accused and imprisoned (창 39:13–20)

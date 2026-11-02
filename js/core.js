@@ -594,21 +594,45 @@ R.setShadow = function (size) {
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, t, 0); gl.drawBuffers([gl.NONE]); gl.readBuffer(gl.NONE);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
-function bindLayout(stride11) {
+/* v18.13 packed vertices on the GPU: 44 → 28 bytes each (position float ×3, normal snorm8 ×4, colour half ×4, bone float).
+   The JS side keeps the 11-float layout (GB, the worker, weld, LOD); only the upload packs. Same picture, ~36% less vertex memory
+   and bandwidth (less heat on phones). ?pack=0 uploads the old 44-byte layout. */
+const PACK = !/[?&]pack=0/.test(location.search), VB = PACK ? 28 : 44; R.vb = VB;
+const HF = new Float32Array(1), HU = new Uint32Array(HF.buffer);
+function half(v) { HF[0] = v; const x = HU[0], s = (x >>> 16) & 0x8000, e = ((x >>> 23) & 0xff) - 112; if (e <= 0) return s; if (e > 30) return s | 0x7bff; return s | ((e << 10) + (((x & 0x7fffff) + 0x1000) >>> 13)); }
+function packInto(out, v, d, o) { // vertex v of the packed buffer from 11 floats of d at o
+  const F = out.f, B = out.b, U = out.u, fi = v * 7, bi = v * 28 + 12, ui = v * 14 + 8;
+  F[fi] = d[o]; F[fi + 1] = d[o + 1]; F[fi + 2] = d[o + 2];
+  for (let k = 0; k < 3; k++) { const n = d[o + 3 + k]; B[bi + k] = Math.round((n > 1 ? 1 : n < -1 ? -1 : n) * 127); } B[bi + 3] = 0;
+  U[ui] = half(d[o + 6]); U[ui + 1] = half(d[o + 7]); U[ui + 2] = half(d[o + 8]); U[ui + 3] = half(d[o + 9]); F[fi + 6] = d[o + 10]; }
+function packBuf(nV) { const ab = new ArrayBuffer(nV * 28); return { ab, f: new Float32Array(ab), b: new Int8Array(ab), u: new Uint16Array(ab) }; }
+function pack(data) { if (!PACK) return data; const nV = Math.floor(data.length / 11), out = packBuf(nV); for (let v = 0; v < nV; v++) packInto(out, v, data, v * 11); return out.f; }
+function packBlocks(blocks, n) { const nV = Math.floor(n / 11), out = packBuf(nV), tmp = new Float32Array(11); let v = 0, k = 0;
+  for (const b of blocks) { let i = 0, L = b.length;
+    if (k) { while (k < 11 && i < L) tmp[k++] = b[i++]; if (k === 11) { packInto(out, v++, tmp, 0); k = 0; } }
+    for (; i + 11 <= L && v < nV; i += 11) packInto(out, v++, b, i);
+    while (i < L) tmp[k++] = b[i++]; }
+  return out.f; }
+function bindLayout() {
+  if (PACK) { gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.BYTE, true, 28, 12);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.HALF_FLOAT, false, 28, 16);
+    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 28, 24); return; }
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 44, 0);
   gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 44, 12);
   gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 44, 24);
   gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 44, 40);
 }
 R.meshBlocks = function (blocks, n) { // upload a chunk straight from its blocks (no merged JS copy)
-  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, n * 4, gl.STATIC_DRAW); let o = 0;
-  for (const b of blocks) { gl.bufferSubData(gl.ARRAY_BUFFER, o * 4, b); o += b.length; }
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  if (PACK) gl.bufferData(gl.ARRAY_BUFFER, packBlocks(blocks, n), gl.STATIC_DRAW);
+  else { gl.bufferData(gl.ARRAY_BUFFER, n * 4, gl.STATIC_DRAW); let o = 0; for (const b of blocks) { gl.bufferSubData(gl.ARRAY_BUFFER, o * 4, b); o += b.length; } }
   const vao = gl.createVertexArray(); gl.bindVertexArray(vao); bindLayout(); gl.bindVertexArray(null);
   return { vao, buf, count: n / 11, bs: [0, 0, 0, 1e6] };
 };
 R.mesh = function (src) {
   const data = src instanceof Float32Array ? src : src instanceof GB ? src.d : new Float32Array(src.d);
-  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, pack(data), gl.STATIC_DRAW);
   const vao = gl.createVertexArray(); gl.bindVertexArray(vao); bindLayout(); gl.bindVertexArray(null);
   let bs = [0, 0, 0, 1e6]; if (src instanceof GB) bs = src.bounds();
   return { vao, buf, count: data.length / 11, bs };
@@ -660,7 +684,7 @@ G.weld = function (src) {
 };
 R.meshWelded = function (w, bs) {
   const { verts, ind, big, uniq: uc, count: n } = w;
-  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, pack(verts), gl.STATIC_DRAW);
   const vao = gl.createVertexArray(); gl.bindVertexArray(vao); bindLayout();
   const ibuf = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ind, gl.STATIC_DRAW);
   gl.bindVertexArray(null);
@@ -670,7 +694,7 @@ R.meshIdx = function (src) { let bs = [0, 0, 0, 1e6]; if (src instanceof GB) bs 
 R.draw = function (m) { if (m.ib) gl.drawElements(gl.TRIANGLES, m.count, m.it, 0); else gl.drawArrays(gl.TRIANGLES, 0, m.count); };
 R.updateMesh = function (m, src) {
   const data = src instanceof Float32Array ? src : src instanceof GB ? src.d : new Float32Array(src.d);
-  gl.bindBuffer(gl.ARRAY_BUFFER, m.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW); m.count = data.length / 11; if (src instanceof GB) m.bs = src.bounds();
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.buf); gl.bufferData(gl.ARRAY_BUFFER, pack(data), gl.DYNAMIC_DRAW); m.count = data.length / 11; if (src instanceof GB) m.bs = src.bounds();
 };
 R.free = function (m) { if (!m) return; m.freed = true; gl.deleteBuffer(m.buf); gl.deleteVertexArray(m.vao); if (m.ibuf) gl.deleteBuffer(m.ibuf); if (m.ibufS) gl.deleteBuffer(m.ibufS); if (m.vaoS) gl.deleteVertexArray(m.vaoS); if (m.ibufL) gl.deleteBuffer(m.ibufL); if (m.vaoL) gl.deleteVertexArray(m.vaoL); if (m.lodMesh) R.free(m.lodMesh); if (m.lbuf) gl.deleteBuffer(m.lbuf); if (m.lvao) gl.deleteVertexArray(m.lvao); };
 // instanced: mesh + instance buffer (8 floats: x,y,z,rotY, scale, r,g,b)

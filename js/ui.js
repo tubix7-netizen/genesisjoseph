@@ -156,6 +156,7 @@ $('bagBtn').onclick = () => UI.menu('bag');
 $('handBtn').onclick = () => { if (UI.busy() || (G.Cine && G.Cine.on)) return; const S = Game.S(); const ks = [null, ...Object.keys(S.tools).filter(k => S.tools[k] && Game.TOOL_PROP[k])]; Game.hold(ks[(ks.indexOf(Game.hand()) + 1) % ks.length]); };
 $('menuBtn').onclick = () => UI.menu('journal');
 $('questBox').onclick = () => UI.menu('journal');
+$('qSide').onclick = e => { e.stopPropagation(); const S = Game.S(), tr = G.Life && G.Life.tracked(S); if (!tr) return; const toSide = !Game.goalSide(); G.Life.goal(toSide ? tr.id : null); G.Audio && G.Audio.sfx('click'); UI.toast(toSide ? `「${tr.q.title}」을 목표로 · 푸른 빛이 길을 비춰요` : '이야기를 목표로 · 금빛이 길을 비춰요'); }; // v18.13 tap the side quest line to switch goals
 addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   Game.INPUT.keys[e.code] = true;
@@ -210,7 +211,8 @@ const brief = () => (Game.SET.help || 'brief') === 'brief';
 UI.short = function (s, max) { s = String(s || ''); if (!brief()) return s; s = s.replace(/\s*\([^()]*\)/g, ''); const parts = s.split(' · ').filter(Boolean); let out = parts[0] || '';
   for (let i = 1; i < parts.length && (out + ' · ' + parts[i]).length <= max; i++) out += ' · ' + parts[i];
   out = out.replace(/\s*\([^)]*\)\s*$/, ''); return out.length > max + 8 ? out.slice(0, max + 6).replace(/\s+\S*$/, '') + '…' : out; };
-UI.toast = function (m, full) { const t = $('toast'); t.textContent = full ? UI.txt(m) : UI.short(UI.txt(m), 36); t.classList.add('show'); toastT = 2.6; };
+UI.toast = function (m, full) { const t = $('toast'), s = full ? UI.txt(m) : UI.short(UI.txt(m), 64); t.textContent = s; t.classList.toggle('two', s.length > 30); t.classList.add('show'); toastT = 2.6 + Math.min(2.2, Math.max(0, s.length - 30) * 0.05); }; // v18.13c up to two lines (was cut at 36 characters), longer ones stay a little longer
+UI.tipOnce = function (key, m, full) { const S = Game.S(); if (!S) return false; const f = S.flags.tips = S.flags.tips || {}; if (f[key]) return false; f[key] = 1; UI.toast(m, full); return true; }; // v18.13 help text shows once per save
 UI.gain = function (k, n) {
   G.Audio && G.Audio.sfx('pickup', { pitch: 0.95 + Math.random() * 0.15, gap: 0.08 });
   const it = Game.ITEMS[k]; if (!it) return; const box = $('gains');
@@ -301,7 +303,7 @@ function renderMenu(tab, body) {
         return `<div class="row">${icon(g.kind === 'armor' ? 'shield' : g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'sword', g.rareW ? '#ffd24a' : '#e8dcc0')}<div class="t"><b>${esc(g.n)}${lv ? ` +${lv}` : ''}${eq ? ' · 사용 중' : ''}</b><span>${stat} · ${esc(g.d || '')}</span>${lv < 5 ? costHTML(c.items, c.silver) : '<span>최고 단계</span>'}</div>${eq ? '' : `<button class="sbtn" data-eq="${k}">쓰기</button>`}<button class="sbtn ${can && near ? 'pri' : ''}" data-up="${k}" ${can && near ? '' : 'disabled'}>강화</button></div>`; }
       const can = Object.keys(g.recipe || {}).every(x => Game.have(x, g.recipe[x])); const hint = g.rareW && !Object.keys(g.recipe).some(x => Game.have(x)) ;
       return `<div class="row">${icon(g.kind === 'armor' ? 'shield' : g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'sword', '#8a8070')}<div class="t"><b>${hint ? '??? (희귀한 재료가 필요해요)' : esc(g.n)}</b><span>${hint ? '사냥하다 보면 희귀한 뼈나 뿔을 얻을 수 있어요' : stat + ' · ' + esc(g.d || '')}</span>${hint ? '' : costHTML(g.recipe)}</div><button class="sbtn ${can ? 'pri' : ''}" data-mk="${k}" ${can ? '' : 'disabled'}>만들기</button></div>`; };
-    const keys = Object.keys(GE).filter(k => k !== 'staff' && (GE[k].recipe || H.gear[k]));
+    const keys = Object.keys(GE).filter(k => k !== 'staff' && (GE[k].recipe || H.gear[k]) && (GE[k].kind !== 'ranged' || S.flags.slingOK || H.gear[k])); // v18.13 slings and bows open after Egypt's huntsman (e_hunt)
     body.innerHTML = `<div class="row"><div class="t"><b>근접 · ${esc(H.weapon ? GE[H.weapon].n : Game.tool('staff') ? '목자의 지팡이' : '없음')} / 원거리 · ${esc(H.ranged ? GE[H.ranged].n : '없음')} / 방어구 · ${esc(H.armor ? GE[H.armor].n : '없음')}</b><span>강화는 모닥불이나 대장장이 곁에서 할 수 있어요${near ? ' · 지금 가능' : ''}. 공격 버튼(PC: F), 구르기(C), 무기 바꾸기(T)</span></div></div>
       <div class="sec">가진 장비</div>${Object.keys(H.gear).map(row).join('') || '<div class="row"><div class="t"><span>아직 없어요</span></div></div>'}
       <div class="sec">만들 수 있는 장비</div>${keys.filter(k => !H.gear[k]).map(row).join('')}`;
@@ -317,9 +319,11 @@ function renderMenu(tab, body) {
     body.onclick = e => { const b = e.target.closest('[data-sk]'); if (!b || b.disabled) return; C.learn(b.dataset.sk); renderMenu('skill', body); };
   } else if (tab === 'quest') {
     const L = G.Life, act = L.active(S), QS = EP.quests || {}, done = Object.keys((S.side || {}).done || {}).length, tr = L.tracked(S);
-    body.innerHTML = `<div class="row"><div class="t"><b>맡은 부탁 ${act.length} · 마친 부탁 ${done}</b><span>이름 위에 <b style="color:var(--gold)">!</b> 표시가 있는 사람은 부탁할 일이 있어요. <b style="color:#9be0ff">?</b> 표시는 다 했으니 말을 걸어 보라는 뜻이에요.</span></div></div>` +
-      (act.length ? act.map(id => { const q = QS[id], st = S.side.act[id], giver = Game.ENT.npcs[q.giver]; return `<div class="row"><div class="t"><b>${esc(q.title)}${tr && tr.id === id ? ' · 따라가는 중' : ''}</b><span>${esc(giver ? giver.name : '')} · ${esc(q.desc || '')}</span>${q.obj.map(o => `<span>${o.ok(S, Game, st) ? '✓' : '·'} ${esc(typeof o.t === 'function' ? o.t(S, Game, st) : o.t)}</span>`).join('')}</div>${tr && tr.id === id ? '' : `<button class="sbtn" data-tr="${id}">따라가기</button>`}</div>`; }).join('') : '<div class="row"><div class="t"><span>지금 맡은 부탁이 없어요. 사람들에게 말을 걸어 보세요.</span></div></div>');
-    body.onclick = e => { const b = e.target.closest('[data-tr]'); if (!b) return; L.track(b.dataset.tr); renderMenu('quest', body); };
+    const gs = Game.goalSide(), st0 = Game.step();
+    body.innerHTML = `<div class="row qgoal main ${gs ? '' : 'on'}"><div class="t"><b>이야기 · ${esc(st0 ? (typeof st0.obj === 'function' ? st0.obj(S, Game) : st0.obj || '') : '')}</b><span>${gs ? '목표로 정하면 금빛으로 길을 비춰요' : '지금 목표 · 집중하면 금빛으로 길을 비춰요'}</span></div>${gs ? '<button class="sbtn pri" data-goal="main">목표로</button>' : ''}</div>` +
+      `<div class="row"><div class="t"><b>맡은 부탁 ${act.length} · 마친 부탁 ${done}</b><span>이름 위에 <b style="color:var(--gold)">!</b> 표시가 있는 사람은 부탁할 일이 있어요. <b style="color:#9be0ff">?</b> 표시는 다 했으니 말을 걸어 보라는 뜻이에요.</span></div></div>` +
+      (act.length ? act.map(id => { const q = QS[id], st = S.side.act[id], giver = Game.ENT.npcs[q.giver]; const on = gs && tr && tr.id === id; return `<div class="row qgoal side ${on ? 'on' : ''}"><div class="t"><b>${esc(q.title)}${on ? ' · 지금 목표' : ''}</b><span>${esc(giver ? giver.name : '')} · ${esc(q.desc || '')}</span>${q.obj.map(o => `<span>${o.ok(S, Game, st) ? '✓' : '·'} ${esc(typeof o.t === 'function' ? o.t(S, Game, st) : o.t)}</span>`).join('')}</div>${on ? '' : `<button class="sbtn sideb" data-tr="${id}">목표로</button>`}</div>`; }).join('') : '<div class="row"><div class="t"><span>지금 맡은 부탁이 없어요. 사람들에게 말을 걸어 보세요.</span></div></div>');
+    body.onclick = e => { const b = e.target.closest('[data-tr],[data-goal]'); if (!b) return; L.goal(b.dataset.tr || null); G.Audio && G.Audio.sfx('click'); UI.toast(b.dataset.tr ? '부탁을 목표로 정했어요 · 집중하면 푸른 빛이 길을 비춰요' : '이야기를 목표로 정했어요 · 집중하면 금빛이 길을 비춰요'); renderMenu('quest', body); };
   } else if (tab === 'craft') {
     const rs = Game.recipes();
     body.innerHTML = rs.map((r, i) => { const can = Object.keys(r.in).every(k => Game.have(k, r.in[k])) && (!r.water || S.water >= r.water) && !(r.tool && S.tools[r.tool]);
@@ -543,7 +547,7 @@ UI.quest = function () {
   $('qCh').textContent = EP.chapters[(st.ch || 1) - 1] ? EP.chapters[(st.ch || 1) - 1].t : '';
   const S = Game.S(); $('qObj').textContent = typeof st.obj === 'function' ? st.obj(S, Game) : (st.obj || '');
   const list = st.list ? st.list(S, Game) : []; $('qList').innerHTML = list.map(l => `<div class="${l.ok ? 'ok' : ''}"><i>${l.ok ? '✓' : '·'}</i><span>${esc(l.t)}</span></div>`).join('');
-  const tr = G.Life && G.Life.tracked(S); const qs = $('qSide'); if (tr && tr.q) { qs.hidden = false; qs.innerHTML = `<b>부탁 · ${esc(tr.q.title)}</b>` + tr.q.obj.map(o => { const ok = o.ok(S, Game, tr.st); return `<span>${ok ? '✓' : '·'} ${esc(typeof o.t === 'function' ? o.t(S, Game, tr.st) : o.t)}</span>`; }).join(''); } else qs.hidden = true;
+  const tr = G.Life && G.Life.tracked(S); const qs = $('qSide'); if (tr && tr.q) { qs.hidden = false; const gs = Game.goalSide(); $('questBox').classList.toggle('sideGoal', gs); qs.classList.toggle('goal', gs); qs.innerHTML = `<b>${gs ? '목표 · ' : '부탁 · '}${esc(tr.q.title)}</b>` + tr.q.obj.map(o => { const ok = o.ok(S, Game, tr.st); return `<span>${ok ? '✓' : '·'} ${esc(typeof o.t === 'function' ? o.t(S, Game, tr.st) : o.t)}</span>`; }).join(''); } else { qs.hidden = true; $('questBox').classList.remove('sideGoal'); }
 };
 UI.hud = function () {
   const S = Game.S(); if (!S) return;
@@ -618,9 +622,9 @@ function drawMap(tg) {
   for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.vis || n.d.animal) continue; const dx = (n.x - P.x) * k, dz = (n.z - P.z) * k; if (Math.hypot(dx, dz) > R - 6) continue; mm.fillStyle = '#f4e8cc'; mm.beginPath(); mm.arc(R + dx, R + dz, 3, 0, 7); mm.fill(); }
   // v12: the way to the goal is drawn on the map (dashed route + pulsing ring), instead of a light pillar in the world
   if (tg) { const t = performance.now() / 1000; let dx0 = (tg.x - P.x) * k, dz0 = (tg.z - P.z) * k; const d0 = Math.hypot(dx0, dz0);
-    mm.save(); mm.setLineDash([7, 6]); mm.lineDashOffset = -t * 18; mm.strokeStyle = 'rgba(255,214,90,.9)'; mm.lineWidth = 3.5; mm.beginPath(); mm.moveTo(R, R); const cl = Math.min(1, (R - 12) / (d0 || 1)); mm.lineTo(R + dx0 * cl, R + dz0 * cl); mm.stroke(); mm.restore();
-    if (d0 <= R - 12) { const pr = 10 + 5 * (0.5 + 0.5 * Math.sin(t * 4)); mm.strokeStyle = 'rgba(255,214,90,.75)'; mm.lineWidth = 3; mm.beginPath(); mm.arc(R + dx0, R + dz0, pr, 0, 7); mm.stroke(); } }
-  if (tg) { let dx = (tg.x - P.x) * k, dz = (tg.z - P.z) * k; const d = Math.hypot(dx, dz); if (d > R - 12) { dx *= (R - 12) / d; dz *= (R - 12) / d; } mm.fillStyle = '#ffd24a'; mm.strokeStyle = '#3a2a10'; mm.lineWidth = 2; mm.beginPath(); mm.moveTo(R + dx, R + dz - 9); mm.lineTo(R + dx + 7, R + dz); mm.lineTo(R + dx, R + dz + 9); mm.lineTo(R + dx - 7, R + dz); mm.closePath(); mm.fill(); mm.stroke(); }
+    mm.save(); mm.setLineDash([7, 6]); mm.lineDashOffset = -t * 18; mm.strokeStyle = tg.side ? 'rgba(120,200,255,.9)' : 'rgba(255,214,90,.9)'; mm.lineWidth = 3.5; mm.beginPath(); mm.moveTo(R, R); const cl = Math.min(1, (R - 12) / (d0 || 1)); mm.lineTo(R + dx0 * cl, R + dz0 * cl); mm.stroke(); mm.restore();
+    if (d0 <= R - 12) { const pr = 10 + 5 * (0.5 + 0.5 * Math.sin(t * 4)); mm.strokeStyle = tg.side ? 'rgba(120,200,255,.75)' : 'rgba(255,214,90,.75)'; mm.lineWidth = 3; mm.beginPath(); mm.arc(R + dx0, R + dz0, pr, 0, 7); mm.stroke(); } }
+  if (tg) { let dx = (tg.x - P.x) * k, dz = (tg.z - P.z) * k; const d = Math.hypot(dx, dz); if (d > R - 12) { dx *= (R - 12) / d; dz *= (R - 12) / d; } mm.fillStyle = tg.side ? '#7cc8ff' : '#ffd24a'; mm.strokeStyle = tg.side ? '#10283a' : '#3a2a10'; mm.lineWidth = 2; mm.beginPath(); mm.moveTo(R + dx, R + dz - 9); mm.lineTo(R + dx + 7, R + dz); mm.lineTo(R + dx, R + dz + 9); mm.lineTo(R + dx - 7, R + dz); mm.closePath(); mm.fill(); mm.stroke(); }
   const fa = Math.atan2(-Math.cos(Game.CAM.yaw), -Math.sin(Game.CAM.yaw)); mm.fillStyle = 'rgba(255,255,255,.18)'; mm.beginPath(); mm.moveTo(R, R); mm.arc(R, R, 44, fa - 0.55, fa + 0.55); mm.closePath(); mm.fill();
   mm.translate(R, R); mm.rotate(Math.PI - P.face); mm.fillStyle = '#fff'; mm.strokeStyle = '#14213d'; mm.lineWidth = 2.5; mm.beginPath(); mm.moveTo(0, -11); mm.lineTo(8, 8); mm.lineTo(0, 4); mm.lineTo(-8, 8); mm.closePath(); mm.stroke(); mm.fill();
   mm.restore(); mm.fillStyle = '#f4e8cc'; mm.font = 'bold 18px sans-serif'; mm.textAlign = 'center'; mm.fillText('N', R, 22);
@@ -677,7 +681,7 @@ function drawBig() {
   for (const b of S.bld || []) { c.fillStyle = '#a0623a'; c.strokeStyle = '#f4e8cc'; c.lineWidth = 1.5; c.fillRect(sx(b.x) - 4, sz(b.z) - 4, 8, 8); c.strokeRect(sx(b.x) - 4, sz(b.z) - 4, 8, 8); }
   if (G.Ride) for (const m of G.Ride.list) if (m !== P.ride) { c.fillStyle = '#e8d8b8'; c.beginPath(); c.arc(sx(m.x), sz(m.z), 4, 0, 7); c.fill(); c.strokeStyle = '#5a3a24'; c.stroke(); }
   for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.vis || n.d.animal || n.d.noTag || !G.Life || !G.Life.mark(id)) continue; c.fillStyle = G.Life.mark(id) === '?' ? '#9be0ff' : '#ffd24a'; c.font = '800 13px sans-serif'; c.fillText(G.Life.mark(id), sx(n.x), sz(n.z)); }
-  const tg = Game.curTarget; if (tg) { const x = sx(tg.x), y = sz(tg.z); c.fillStyle = tg.wp ? '#ff7a6a' : '#ffd24a'; c.strokeStyle = '#3a2a10'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y - 9); c.lineTo(x + 7, y); c.lineTo(x, y + 9); c.lineTo(x - 7, y); c.closePath(); c.fill(); c.stroke(); }
+  const tg = Game.curTarget; if (tg) { const x = sx(tg.x), y = sz(tg.z); c.fillStyle = tg.wp ? '#ff7a6a' : tg.side ? '#7cc8ff' : '#ffd24a'; c.strokeStyle = '#3a2a10'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y - 9); c.lineTo(x + 7, y); c.lineTo(x, y + 9); c.lineTo(x - 7, y); c.closePath(); c.fill(); c.stroke(); }
   if (S.wp && !(tg && tg.wp)) { c.fillStyle = '#ff7a6a'; c.beginPath(); c.arc(sx(S.wp.x), sz(S.wp.z), 5, 0, 7); c.fill(); }
   // hero
   c.save(); c.translate(sx(P.x), sz(P.z)); c.rotate(Math.PI - P.face); c.fillStyle = '#fff'; c.strokeStyle = '#14213d'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(0, -11); c.lineTo(8, 8); c.lineTo(0, 4); c.lineTo(-8, 8); c.closePath(); c.stroke(); c.fill(); c.restore();
@@ -714,7 +718,7 @@ UI.frame = function (dt) {
   else sv.hidden = true;
   // compass
   const tg = Game.curTarget; const cp = $('compass');
-  if (tg && !UI.busy()) { const dx = tg.x - P.x, dz = tg.z - P.z; const rel = Math.atan2(dx, dz) - Math.atan2(-Math.sin(Game.CAM.yaw), -Math.cos(Game.CAM.yaw)); cp.hidden = false; $('cArrow').style.transform = `rotate(${-rel}rad)`; $('cDist').textContent = Math.round(Math.hypot(dx, dz)) + 'm'; }
+  if (tg && !UI.busy()) { const dx = tg.x - P.x, dz = tg.z - P.z; const rel = Math.atan2(dx, dz) - Math.atan2(-Math.sin(Game.CAM.yaw), -Math.cos(Game.CAM.yaw)); cp.hidden = false; cp.classList.toggle('side', !!tg.side); $('cArrow').style.transform = `rotate(${-rel}rad)`; $('cDist').textContent = Math.round(Math.hypot(dx, dz)) + 'm'; }
   else cp.hidden = true;
   document.body.classList.toggle('dlgcam', Game.dlgW > 0.3); // dialogue close-up: clear the frame
   // name tags
@@ -723,7 +727,7 @@ UI.frame = function (dt) {
     const mk0 = !n.d.noTag && n.vis && n.near && d < 34 && G.Life && G.Life.mark(id); const show = n.vis && n.near && (d < 16 || mk0) && !n.d.noTag && !busyFlags.narr && !(Game.dlgW > 0.3); if (!show) { if (el) el.hidden = true; continue; }
     if (!el) { el = document.createElement('div'); el.className = 'tag'; $('tags').appendChild(el); tagEls[id] = el; } const mk = G.Life && G.Life.mark(id); const key = (mk || '') + n.name; if (el.dataset.k !== key) { el.dataset.k = key; el.innerHTML = (mk ? `<i class="mk ${mk === '?' ? 'q' : ''}">${mk}</i>` : '') + esc(n.name); }
     const s = R.project(n.x, n.y + (n.d.animal ? 1.6 : 2.5) * (n.scale || 1), n.z, UI.W, UI.H); if (!s) { el.hidden = true; continue; }
-    el.hidden = false; el.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; el.classList.toggle('goal', id === goal); }
+    el.hidden = false; el.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; el.classList.toggle('goal', id === goal); el.classList.toggle('sideGoal', id === goal && !!tg.side); }
   mapT -= dt; if (mapT <= 0) { mapT = 0.12; drawMap(tg); }
   featTick(dt); if (BM.on) drawBig();
 };

@@ -94,7 +94,11 @@ H.draw = function () {
   const kn = H.known(), n = H.ALL.filter(k => kn[k]).length; $('cookBookH').textContent = `요리 비법 · 알아낸 요리 ${n} / ${H.ALL.length}`;
   $('cookBook').innerHTML = H.ALL.map(k => kn[k] ? `<div class="cb on">${icon(k)}<div><b>${esc(I[k].n)}</b><span>${esc(H.howTo(k))}</span></div></div>` : `<div class="cb"><i class="cbq">?</i><div><b>???</b><span>${esc(hintOf(k))}</span></div></div>`).join('');
 };
-function hintOf(k) { const h = H.howTo(k) || ''; return '힌트 · ' + h.split(' + ')[0].replace(/\(.*\)/, '').trim() + '에 무언가를 더해 보세요'; }
+/* v18.13c the more dishes you know, the more of each recipe the hint shows (one ingredient, then one more per 12 known dishes; the last one is always left to find) */
+function hintOf(k) { let h = H.howTo(k) || ''; const tonic = /^보양 · /.test(h); h = h.replace(/^보양 · /, '');
+  const parts = h.split(' + ').map(x => x.replace(/\(.*\)/, '').trim()).filter(Boolean), kn = H.ALL.filter(x => H.known()[x]).length;
+  const n = Math.max(1, Math.min(parts.length - 1, 1 + Math.floor(kn / 12)));
+  return `${tonic ? '보양 요리 · ' : ''}힌트 · ${parts.slice(0, n).join(' + ')}${parts.length > n ? ' + ?' : ''}${n < parts.length - 1 ? ' …' : ''}`; }
 function dishLine(r) { const it = Game.ITEMS[r.out]; const f = G.Surv ? G.Surv.food(r.out) : 0;
   return [it.hp ? `체력 +${it.hp}` : '', it.stam ? `기력 +${it.stam}` : '', f && Game.feat('surv') ? `배부름 +${f}` : '', r.water ? '물 한 번 사용' : ''].filter(Boolean).join(' · '); }
 H.open = function (st) { ensureUI(); H.pick = {}; H.st = st; $('cookUI').hidden = false; G.UI.setBusy('cook', true); H.draw(); };

@@ -192,6 +192,7 @@ body.cine #hud,body.cine #controls,body.cine #tags,body.cine #prompt,body.cine #
 #toast{position:fixed;z-index:25;top:calc(var(--gt) + 44px);left:50%;transform:translate(-50%,-8px);opacity:0;transition:opacity .25s,transform .25s;
   background:rgba(9,16,34,.9);border:1px solid var(--line);border-radius:999px;padding:7px 16px;font-size:13.5px;font-weight:600;pointer-events:none;max-width:calc(100vw - 40px);text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.two{border-radius:14px;width:max-content;max-width:min(calc(100vw - 32px),400px);line-height:1.45;text-wrap:balance;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 
 /* dialog */
 #dialog{position:fixed;z-index:20;left:var(--gl);right:var(--gr);bottom:var(--gb);margin-inline:auto;max-width:720px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
@@ -236,6 +237,13 @@ body.cine #hud,body.cine #controls,body.cine #tags,body.cine #prompt,body.cine #
 .sbtn{border:1px solid var(--line);background:rgba(229,181,82,.14);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;white-space:nowrap}
 .sbtn:disabled{opacity:.38;cursor:default}
 .sbtn.pri{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+/* v18.13 goal: story = gold, a chosen side quest = blue */
+.sbtn.sideb{background:rgba(124,200,255,.16);border-color:rgba(124,200,255,.55);color:#cfeaff}
+.qgoal.on{box-shadow:inset 3px 0 0 var(--gold)}.qgoal.side.on{box-shadow:inset 3px 0 0 #7cc8ff}
+.quest.sideGoal{border-left-color:#7cc8ff}.quest.sideGoal .q-obj{opacity:.7}
+.q-side{cursor:pointer}.q-side.goal{border-top-color:rgba(124,200,255,.5)}.q-side.goal b{color:#7cc8ff}
+.tag.sideGoal{background:#7cc8ff;color:#0e2233}
+.compass.side svg{fill:#7cc8ff}
 .row{display:flex;gap:10px;align-items:center;padding:9px 11px;border-radius:10px;background:var(--panel2);border:1px solid rgba(229,181,82,.14)}
 .row .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .row .t b{font-size:14px}
@@ -489,49 +497,53 @@ body.busy #hint,body.cine #hint,body.photo #hint{visibility:hidden}
 <div id="fader"></div>
 <div id="loadErr" hidden>이 기기에서는 3D 그래픽(WebGL2)을 사용할 수 없어요. 최신 브라우저에서 다시 열어 주세요.</div>
 
-<script src="js/core.js?v=1793618054"></script>
-<script src="js/audio.js?v=1793618054"></script>
-<script src="js/models.js?v=1793618054"></script>
-<script src="js/motion.js?v=1793618054"></script>
-<script src="js/world.js?v=1793618054"></script>
-<script src="js/game.js?v=1793618054"></script>
-<script src="js/ui.js?v=1793618054"></script>
-<script src="js/combat.js?v=1793618054"></script>
-<script src="js/life.js?v=1793618054"></script>
-<script src="js/shots.js?v=1793618054"></script>
-<script src="js/mood.js?v=1793618054"></script>
-<script src="js/companion.js?v=1793618054"></script>
-<script src="js/weather.js?v=1793618054"></script>
-<script src="js/vitals.js?v=1793618054"></script>
-<script src="js/survival.js?v=1793618054"></script>
-<script src="js/wilds.js?v=1793618054"></script>
-<script src="js/hearth.js?v=1793618054"></script>
-<script src="js/climb.js?v=1793618054"></script>
-<script src="js/physics.js?v=1793618054"></script>
-<script src="js/loot.js?v=1793618054"></script>
-<script src="js/lockon.js?v=1793618054"></script>
-<script src="js/build.js?v=1793618054"></script>
-<script src="js/ride.js?v=1793618054"></script>
-<script src="js/npcai.js?v=1793618054"></script>
-<script src="js/greet.js?v=1793618054"></script>
-<script src="js/bond.js?v=1793618054"></script>
-<script src="js/qcam.js?v=1793618054"></script>
-<script src="js/climate.js?v=1793618054"></script>
-<script src="js/chem.js?v=1793618054"></script>
-<script src="js/deeds.js?v=1793618054"></script>
-<script src="js/sling.js?v=1793618054"></script>
-<script src="js/stones.js?v=1793618054"></script>
-<script src="js/acts.js?v=1793618054"></script>
-<script src="js/opening.js?v=1793618054"></script>
-<script src="js/ep_joseph.js?v=1793618054"></script>
-<script src="js/ep_joseph_life.js?v=1793618054"></script>
-<script src="js/pantry.js?v=1793618054"></script>
-<script src="js/fireside.js?v=1793618054"></script>
-<script src="js/sites.js?v=1793618054"></script>
-<script src="js/focus.js?v=1793618054"></script>
-<script src="js/cuisine.js?v=1793618054"></script>
-<script src="js/delights.js?v=1793618054"></script>
-<script src="js/perf.js?v=1793618054"></script>
-<script src="js/main.js?v=1793618054"></script>
+<script src="js/core.js?v=1793624246"></script>
+<script src="js/audio.js?v=1793624246"></script>
+<script src="js/models.js?v=1793624246"></script>
+<script src="js/motion.js?v=1793624246"></script>
+<script src="js/world.js?v=1793624246"></script>
+<script src="js/game.js?v=1793624246"></script>
+<script src="js/ui.js?v=1793624246"></script>
+<script src="js/combat.js?v=1793624246"></script>
+<script src="js/life.js?v=1793624246"></script>
+<script src="js/shots.js?v=1793624246"></script>
+<script src="js/mood.js?v=1793624246"></script>
+<script src="js/companion.js?v=1793624246"></script>
+<script src="js/weather.js?v=1793624246"></script>
+<script src="js/vitals.js?v=1793624246"></script>
+<script src="js/survival.js?v=1793624246"></script>
+<script src="js/wilds.js?v=1793624246"></script>
+<script src="js/hearth.js?v=1793624246"></script>
+<script src="js/climb.js?v=1793624246"></script>
+<script src="js/physics.js?v=1793624246"></script>
+<script src="js/loot.js?v=1793624246"></script>
+<script src="js/lockon.js?v=1793624246"></script>
+<script src="js/build.js?v=1793624246"></script>
+<script src="js/ride.js?v=1793624246"></script>
+<script src="js/npcai.js?v=1793624246"></script>
+<script src="js/greet.js?v=1793624246"></script>
+<script src="js/bond.js?v=1793624246"></script>
+<script src="js/qcam.js?v=1793624246"></script>
+<script src="js/climate.js?v=1793624246"></script>
+<script src="js/chem.js?v=1793624246"></script>
+<script src="js/deeds.js?v=1793624246"></script>
+<script src="js/sling.js?v=1793624246"></script>
+<script src="js/stones.js?v=1793624246"></script>
+<script src="js/acts.js?v=1793624246"></script>
+<script src="js/opening.js?v=1793624246"></script>
+<script src="js/ep_joseph.js?v=1793624246"></script>
+<script src="js/ep_joseph_life.js?v=1793624246"></script>
+<script src="js/pantry.js?v=1793624246"></script>
+<script src="js/fireside.js?v=1793624246"></script>
+<script src="js/sites.js?v=1793624246"></script>
+<script src="js/focus.js?v=1793624246"></script>
+<script src="js/cuisine.js?v=1793624246"></script>
+<script src="js/delights.js?v=1793624246"></script>
+<script src="js/tonic.js?v=1793624246"></script>
+<script src="js/hunt.js?v=1793624246"></script>
+<script src="js/extras.js?v=1793624246"></script>
+<script src="js/persona.js?v=1793624246"></script>
+<script src="js/perf.js?v=1793624246"></script>
+<script src="js/main.js?v=1793624246"></script>
 
 </body></html>

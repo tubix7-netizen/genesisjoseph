@@ -69,6 +69,8 @@ const npcs = [
   { id: 'overseerW', name: NM.overseerW, look: LOOK.elder, x: -136, z: -35, face: 2.8, show: show('c5_patrol'), chat: ['손녀가 총리님 이야기를 하면 눈이 반짝인답니다.'] },
   { id: 'overseerS', name: NM.overseerS, look: Object.assign({}, LOOK.farmer, { collar: TURQ, top: LINEN, bare: false, sleeveless: true }), x: -141, z: 123, face: 0.3, show: show('c5_patrol'), chat: ['언덕 위 곳간은 물 한 방울 들지 않습니다!'] },
   { id: 'brick', name: NM.brick, look: Object.assign({}, LOOK.farmer, { bottom: 0xb07848, skin: 0x9a6038 }), x: -44, z: -116, face: 0.8, act: 'gather', show: show('c5_patrol'), chat: ['진흙 둘에 짚 하나. 그게 좋은 벽돌의 비결이지요.'] },
+  { id: 'hunterE', name: '왕의 사냥꾼 세넵', look: Object.assign({}, LOOK.farmer, { skin: 0x9a6038, bottom: 0xd8c8a0, collar: TURQ }), x: 30, z: -54, face: 2.2, prop: 'bow', wander: 2, show: show('c5_patrol'), chat: ['바람을 등지고 다가가야 짐승이 눈치를 못 챕니다.', '물매는 손목이 아니라 허리로 돌리는 겁니다, 나으리.'] }, /* v18.13 gives the vizier his sling (e_hunt) */
+  { id: 'painter', name: '그림 그리는 아이 티티', look: KID({ skin: 0xa8683a, top: LINEN, long: true, fem: true, hairStyle: 'long' }), scale: 0.62, x: -14, z: -60, face: 2.4, wander: 1.5, show: show('c5_patrol'), chat: ['총리님, 오늘은 무엇을 보셨어요?', '나일 강은 정말 끝이 없어요?'] }, /* v18.13e photo requests (js/extras.js) */
   { id: 'scribeR', name: '왕궁 서기관', look: LOOK.scribe, x: 12, z: -58.6, face: 2.6, sit: true, show: show('c5_year1'), chat: ['곳간 기록은 오늘도 늘었습니다.'] },
   // ---- the famine: buyers at the city granary (창 41:56–57)
   { id: 'byFarmer', name: NM.farmer, look: LOOK.farmerThin, x: 10.5, z: -56, face: 2.4, show: show('c6_sell') },
@@ -119,7 +121,7 @@ const SP = (id, x, z, label, on, use, o) => Object.assign({ id, x, z, r: 2.3, la
 const cellIds = ['prisA', 'prisB', 'oldP', 'cell4'];
 const specials = [
   SP('skin', 182.2, 155.2, '물가죽 부대 챙기기', S => S.step === 'p_provision' && !S.q.skin, (S, G) => { G.give('skin', 1); pick(); G.UI.hint('잘했어요! 이번엔 모닥불 곁의 빵을 챙겨요', 'items2', 'bag'); tick(S, 'skin'); }),
-  SP('bread', 172.5, 157, '빵과 무화과 챙기기', S => S.step === 'p_provision' && !S.q.bread, (S, G) => { G.give('bread', 2); G.give('fig', 2); pick(); G.UI.hint(null); tick(S, 'bread'); }),
+  SP('bread', 177.15, 153.5, '빵과 무화과 챙기기', S => S.step === 'p_provision' && !S.q.bread, (S, G) => { G.give('bread', 2); G.give('fig', 2); pick(); G.UI.hint(null); tick(S, 'bread'); }),
   SP('restBed', SPOTS.restBed[0], SPOTS.restBed[1], '누워서 별 보기', S => S.step === 'p_night', (S, G) => cinNight(S, G), { r: 2.8 }),
   ...['clue1', 'clue2', 'clue3'].map((k, i) => SP(k, SPOTS[k][0], SPOTS[k][1], ['식은 모닥불 자리 살피기', '양 떼 발자국 살피기', '돌무더기 표시 살피기'][i], S => S.step === 'p_shechem' && !(S.q.cl || {})[k], (S, G) => clue(S, G, k, i), { r: 2.6 })),
   SP('pitShout', PIT.x, PIT.z, '형들을 부르기', S => S.step === 'c1_pit' && !S.q.shout, (S, G) => pitShout(S, G), { r: 2.6, y: 1.2 }),

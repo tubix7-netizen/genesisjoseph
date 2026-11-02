@@ -227,7 +227,7 @@ C.attack = function () {
   if (G.Acts) G.Acts.stop();
   P.atk = { k, g, t: 0, dur: rate, hit: g.kind === 'ranged' ? rate * 0.55 : rate * (fin ? 0.46 : 0.42), fired: false, tg, anim, combo, fin };
   sfx(g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'swing', { pitch: (0.9 + Math.random() * 0.2) * (fin ? 0.8 : 1 + combo * 0.08) });
-  if (g.kind === 'melee' && combo > 0) C.comboPip(combo);
+  /* v18.13b the 「2타/3타」 words are gone (sound and motion still mark each hit) */
 };
 let pip = null, pipT = 0;
 C.comboPip = function (n) { if (!pip) { pip = document.createElement('div'); pip.style.cssText = 'position:fixed;left:50%;top:38%;transform:translateX(-50%);z-index:30;pointer-events:none;font:800 22px/1 system-ui,sans-serif;color:#ffe9a8;text-shadow:0 2px 6px #000a;opacity:0;transition:opacity .15s'; document.body.appendChild(pip); } pip.textContent = n === 2 ? '3타! 마무리' : n + 1 + '타'; pip.style.opacity = '1'; clearTimeout(pipT); pipT = setTimeout(() => { pip.style.opacity = '0'; }, 550); };
@@ -294,7 +294,7 @@ function updateProjectiles(dt) {
     let done = p.t > 2.5 || p.y < W.heightAt(p.x, p.z);
     for (const a of C.wild()) { if (a.st === 'dead' || a.st === 'gone') continue; const r = a.d.big ? 1.1 : a.sp === 'hare' || a.sp === 'partridge' ? 0.55 : 0.75; const cy = a.y + a.fy + (a.d.big ? 0.9 : 0.5);
       if (Math.hypot(a.x - p.x, a.z - p.z, (cy - p.y) * 0.7) < r) { const v = Math.hypot(p.vx, p.vz) || 1; const ar = a.d.big && p.kind === 'stone' ? (ARMOR[p.sk] || 1) : 1; /* v18.12 thick hides: plain stones barely hurt bears and lions */
-      if (ar < 1 && (C.tAll || 0) - (C.armT || -99) > 120) { C.armT = C.tAll || 0; G.UI.toast('두꺼운 가죽이라 보통 돌은 잘 안 먹혀요 · 부싯돌이나 검은 돌을 써 보세요'); }
+      if (ar < 1) G.UI.tipOnce('armor', '두꺼운 가죽이라 보통 돌은 잘 안 먹혀요 · 부싯돌이나 검은 돌을 써 보세요');
       p.hitA = 1; C.sndK = p.sk === 'basalt' ? 0.72 : p.sk === 'flint' ? 1.3 : p.sk === 'smooth' ? 1.08 : 1; /* v18.12g each stone sounds different */
       damage(a, p.dmg * ar * (p.crit ? 1.8 : 1), p.crit, p.vx / v, p.vz / v); C.sndK = 1;
       if (p.sk === 'flint') G.FX.burst(p.x, p.y, p.z, 9, { c: [1, 0.86, 0.4], sp: 2.6, up: 1.3, size: 0.06, g: 6, life: 0.5 }); else if (p.sk === 'basalt') G.FX.burst(p.x, p.y, p.z, 9, { c: [0.3, 0.28, 0.3], sp: 1.6, up: 1, size: 0.16 });

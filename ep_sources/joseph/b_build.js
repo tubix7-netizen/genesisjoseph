@@ -105,7 +105,7 @@ function build(W, Game) {
       g.box(1.7, 0.06, 0.6, { m: M, at: [0.05, 0.07, -0.05], c: 0x6a5a4a, j: 0.04 }); g.sph(0.2, 8, 6, { m: M, at: [0.78, 0.12, 0], s: [1, 0.45, 1.2], c: 0xd8c8a8 }); }, mx, mz, { ry: -0.5, col: null }); }
   P('tent', 163, 162, { ry: 0.9, args: [0x5a4636], col: { w: 5.8, d: 3.8, h: 2.2, cam: true, a: 0.9 } });
   P('tent', 189, 141, { ry: -1.1, args: [0x3e342e], col: { w: 5.8, d: 3.8, h: 2.2, cam: true, a: -1.1 } });
-  P('campfire', 176, 153, { col: { r: 0.8, h: 0.5 } }); P('pots', 172, 156); P('sacks', 179, 147); P('pots', 186, 152);
+  P('campfire', 176, 153, { col: { r: 0.8, h: 0.5 } }); P('sacks', 179, 147); P('pots', 188.3, 157.3, { ry: -0.5 }); // v18.13 the camp's pots stand together beside Joseph's tent, not in the middle
   P('well', 160, 150, { col: { r: 1.7, h: 1 } }); P('fence', 192, 166.5, { args: [12] }); P('fence', 192, 175.5, { args: [12] }); P('fence', 186, 171, { ry: PI / 2, args: [9] }); P('fence', 198, 171, { ry: PI / 2, args: [9] });
   for (const [x, z] of [[156, 140], [196, 150], [165, 172], [190, 130]]) P('olive', x, z, { s: 1.1, col: tree });
   P('oak', 148, 156, { s: 1.5, col: tree }); // 마므레의 상수리나무 (창 35:27)

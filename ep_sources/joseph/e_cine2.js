@@ -266,12 +266,14 @@ function answerScene(S, G) {
 // v16.8 if the interpretation was interrupted, speaking to 바로 again takes it up from the start of the scene
 steps.c4_answer.talk = { pharaoh(S, G) { answerScene(S, G); } };
 function cinInvest(S, G) {
+  const jx = G.P.x, jz = G.P.z, jh = hAt(jx, jz), jf = G.P.face; // v18.13c the linen shot looks at Joseph where he really stands (he is not moved to the court spot)
   const px = -30, pz = -177.2, ph = hAt(px, -176) + 1.1, cx = SPOTS.court[0], cz = SPOTS.court[1], chh = hAt(cx, cz);
   const road = [[-29, -138], [-28, -124], [-24, -100], [-22, -80], [-22, -66]];
   const along = k => { const n = road.length - 1, f = clamp(k, 0, 0.999) * n, i = Math.floor(f), u = f - i; return [lerp(road[i][0], road[i + 1][0], u), lerp(road[i][1], road[i + 1][1], u), Math.atan2(road[i + 1][0] - road[i][0], road[i + 1][1] - road[i][1])]; };
   cine([
     { fn: () => { G.setOutfit('josephVizier'); G.sfx('fanfare'); G.FX.burst(cx, chh + 1.2, cz, 30, { c: [1, 0.85, 0.4], sp: 2, up: 2 }); }, cam: [cx + 1.6, chh + 1.6, cz - 1.8], look: [cx, chh + 1.4, cz], dur: 9, music: 'j_triumph',
       t: '바로가 자기의 인장 반지를 빼어 요셉의 손에 끼우고, 그에게 세마포 옷을 입히고 금 사슬을 목에 걸고', ref: '창세기 41:42' },
+    garmentBeat(2, [jx, jh + 1.25, jz], [jx + Math.sin(jf) * 1.15 + Math.cos(jf) * 0.45, jh + 0.65, jz + Math.cos(jf) * 1.15 - Math.sin(jf) * 0.45], '세 번째 옷 · 빼앗기고 내려놓았던 자리에, 하나님이 새 옷을 입혀 주셨습니다.'),
     { cam: [px + 2, ph + 0.8, pz + 4.2], look: [px, ph + 1.3, pz], dur: 6, n: '바로', t: '내가 너를 애굽 온 땅의 총리가 되게 하노라.', ref: '창세기 41:41', e: 'solemn' },
     { cam: [cx - 3, chh + 2.2, cz + 3], look: [cx, chh + 1.3, cz - 2], dur: 9, n: '바로', t: '네 이름을 사브낫바네아라 하리라. 그리고 온의 제사장 보디베라의 딸 아스낫을 네 아내로 주노라.', ref: '창세기 41:45' },
     { fn: () => { S.q.parade = 1; S.q.riding = 1; S.q.chariotOk = 1; const [x, z, f] = along(0); G.teleport(x, z, f); crowdLine(G, road, true); },
@@ -372,6 +374,8 @@ function cinBrothers(S, G, next) {
     { fn: () => BRO.forEach((id, i) => { const n = G.npc(id); if (n) { n.act = null; n.emote = { k: 'prostrate', t: -i * 0.15, dur: 12, amb: true }; } }), cam: [jx + 0.8, gh + 2.8, jz - 2.8], look: [gx, gh + 0.3, gz + 5], dur: 9, t: '그 앞에서 땅에 엎드려 절하매', ref: '창세기 42:6' },
     { fn: () => { RT.dreamFx = 'sheaves'; RT.dreamK = 0; }, cam: [DREAM.x + 3.6, hAt(DREAM.x, DREAM.z) + 1.2, DREAM.z + 3.6], cam2: [DREAM.x + 2.8, hAt(DREAM.x, DREAM.z) + 1.6, DREAM.z + 2.8], look: [DREAM.x, hAt(DREAM.x, DREAM.z) + 0.8, DREAM.z], dur: 9, fadeIn: 1,
       each: t => { RT.dreamK = Math.min(1, t / 6); }, t: '요셉이 그들에게 대하여 꾼 꿈을 생각하고', ref: '창세기 42:9' },
+    { fn: () => { RT.dreamFx = null; GG.Audio && GG.Audio.sfx('insight', { pitch: 1.0, vol: 0.7 }); cpose(null); BRO.forEach((id, i) => { const n = G.npc(id); if (n) { n.act = null; n.emote = { k: 'prostrate', t: 1.6 + i * 0.05, dur: 9, amb: true }; } }); }, cam: [gx + 1.4, gh + 0.55, gz + 8.5], cam2: [gx + 1.1, gh + 0.6, gz + 7.6], look: [jx, gh + 1.5, jz], dur: 5, fov: 0.6, fadeIn: 0.6,
+      t: '곡식 단들이 둘러서서 절하던 그 꿈, 그대로였습니다. 이십 년이 지나 있었습니다.', ref: '창세기 37:7' }, /* v18.13d match cut: the real brothers bow just as the sheaves did */
     { fn: () => { RT.dreamFx = null; }, cam: [jx - 1.2, gh + 1.7, jz + 1.4], look: [jx, gh + 1.6, jz], dur: 7, fov: 0.55, fadeIn: 0.8, t: '요셉이 보고 형들인 줄을 아나, 모르는 체하고 엄한 소리로 그들에게 말하였습니다.', ref: '창세기 42:7' },
     { cam: [jx + 1.6, gh + 1.7, jz + 1.2], look: [jx, gh + 1.6, jz], dur: 5, n: '요셉', t: '너희가 어디서 왔느냐?', ref: '창세기 42:7', e: 'cold' },
     { fn: () => { const n = G.npc('judah'); if (n) n.act = 'kneelRest'; }, cam: [gx - 2, gh + 1.2, gz + 1.6], look: [gx - 0.1, gh + 0.9, gz + 4], dur: 6, n: '유다', t: '곡물을 사려고 가나안 땅에서 왔나이다.', ref: '창세기 42:7', e: 'fear' },

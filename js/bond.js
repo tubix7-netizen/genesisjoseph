@@ -54,7 +54,7 @@ const STORY = [
 B.talk = function (n, lines, done) { const id = n.id || Object.keys(Game.ENT.npcs).find(k => Game.ENT.npcs[k] === n); n.id = id; const S = Game.S(), b = B.get(id), F = fam(id), first = b.day !== S.day;
   if (first) { b.day = S.day; setTimeout(() => B.add(id, F ? 3 : 2, '오늘 이야기'), 50); }
   const ls = (lines && lines.length ? lines : G.Greet ? G.Greet.lines(n) : [{ n: n.name, t: '평안하시오.' }]).map(l => typeof l === 'string' ? { n: n.name, t: l } : l);
-  const ch = [{ t: '안부 묻기', then: () => setTimeout(() => G.UI.say([{ n: n.name, t: F ? rnd(F.talk(S, B.level(id).i)) : rnd(STORY[B.level(id).i]) }], () => B.talk(n, [{ n: n.name, t: '또 무슨 이야기를 할까요?' }], done)), 30) },
+  const ch = [{ t: '안부 묻기', then: () => setTimeout(() => G.UI.say([{ n: n.name, t: F ? rnd(F.talk(S, B.level(id).i)) : (G.Persona && G.Persona.story(n, B.level(id).i)) || rnd(STORY[B.level(id).i]) }], () => B.talk(n, [{ n: n.name, t: '또 무슨 이야기를 할까요?' }], done)), 30) },
     { t: '선물 주기', then: () => setTimeout(() => B.giftPick(n, done), 30) }];
   if (F && F.meal && b.meal !== S.day) ch.push({ t: '함께 식사하기', then: () => setTimeout(() => B.meal(n, done), 30) });
   if (F && F.walk) ch.push({ t: n.follow ? '여기서 기다려 줘요' : '같이 걸어요', then: () => { n.follow = !n.follow; G.UI.toast(n.follow ? `${n.name}이(가) 함께 걸어요` : `${n.name}이(가) 여기서 기다려요`); done && done(); } });

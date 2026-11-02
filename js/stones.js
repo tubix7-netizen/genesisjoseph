@@ -64,7 +64,7 @@ function crack(b) {
   b.gone = true; b.thrown = 0; const s = S(), r = Math.random(); let n = 2, extra = null;
   if (r < 0.2) extra = 'smooth'; else if (r > 0.96) extra = 'flint';
   const got = { stone: n }; if (extra) got[extra] = 1; if (G.Loot && G.Loot.spill) G.Loot.spill(b.x, Game.W().heightAt(b.x, b.z), b.z, got); else { Game.give('stone', n); if (extra) Game.give(extra, 1); } /* v18.12j the pieces lie on the ground; Joseph picks them up himself */
-  G.UI.toast(`둥근 돌이 깨졌어요 · 떨어진 돌을 주워요${extra ? ` (${T[extra].n} 포함)` : ''}`);
+  if (!G.UI.tipOnce('stoneCrack', '둥근 돌이 깨졌어요 · 떨어진 돌을 주워요') && extra) G.UI.toast(`깨진 돌 사이에 ${T[extra].n}도 있어요`); /* v18.13 the help shows once; later only a lucky find is mentioned */
   if (G.FX) G.FX.burst(b.x, b.y, b.z, 14, { c: [0.7, 0.66, 0.58], sp: 2.4, up: 2, size: 0.08, g: 9 }); G.Audio && G.Audio.sfx('thud', { pitch: 1.5, vol: 0.8, x: b.x, z: b.z });
   if (b.home) (s.flags.stoneResp = s.flags.stoneResp || []).push({ x: b.home[0], z: b.home[1], day: s.day + 2 });
 }

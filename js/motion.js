@@ -597,7 +597,7 @@ function animAnimal(rig, st, t) {
   if (st.dead || st.fly) { baseAnimal(rig, st, t); return; }
   const tm = rig.mt === undefined ? t - 1 / 60 : rig.mt; let dt = t - tm; rig.mt = t; if (!(dt > 0) || dt > 0.1) dt = 1 / 60;
   rig.zero(); const def = rig.def, legH = def[2] ? def[2][3] : 0.6, sp = st.speed || 0, sd = st.seed || 0;
-  const bird = def === AB.partridge, hare = def === AB.hare, big = legH > 0.85;
+  const bird = def === AB.partridge || !!def.bird, hare = def === AB.hare, big = legH > 0.85;
   const A = clamp(sp / Math.max(0.5, legH * 1.3), 0, 1), ph = st.phase || 0;
   if (bird) { // wings folded, quick little steps, head bobs, pecks while feeding
     const s = Math.sin(ph * 2); rig.set(2, 0, 0, 0.05); rig.set(3, 0, 0, -0.05); rig.set(4, s * 0.7 * A); rig.set(5, -s * 0.7 * A);

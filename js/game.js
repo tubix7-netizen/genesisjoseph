@@ -656,11 +656,28 @@ function checkStep() {
 }
 Game.checkStep = checkStep;
 Game.step = () => EP.steps[S.step];
+/* v18.13b where a side quest points: done → its giver; its own place (loc) if it has one; otherwise what it asks for — the nearest
+   animal of the kind to hunt (or the field where they roam), the nearest gathering spot for a missing item — and failing that the giver */
+const near = (list, f) => { let b = null, bd = 1e9; for (const o of list) { if (!f(o)) continue; const d = Math.hypot(o.x - P.x, o.z - P.z); if (d < bd) { bd = d; b = o; } } return b; };
+function seekFor(q) {
+  const kill = q.kill || (q.hunt && q.hunt[0]);
+  if (kill) { const a = G.Combat && near(G.Combat.wild(), o => o.sp === kill && o.st !== 'dead' && !o.dead); if (a) return { x: a.x, z: a.z };
+    const z = near(EP.wildZones || [], o => (!o.on || o.on(S, Game)) && o.sp.some(e => e[0] === kill)); if (z) return { x: z.x, z: z.z }; }
+  for (const k in q.take || {}) { if (Game.have(k, q.take[k])) continue;
+    const n = near(ENT.nodes || [], o => { const t = NODE[o.type]; return !!t && !(S.nodes[o.id] > S.day) && ((t.give && t.give[k]) || t.fruit === k); }); if (n) return { x: n.x, z: n.z }; }
+  return null; }
+const sideT = () => { const tr = G.Life && G.Life.tracked(S); if (!tr || !tr.q) return null; const q = tr.q;
+  if (G.Life.qOk(S, tr.id)) return 'npc:' + q.giver; return (typeof q.loc === 'function' ? q.loc(S) : q.loc) || seekFor(q) || 'npc:' + q.giver; };
+Game.goalSide = () => !!(S.side && S.side.goal === 'side' && G.Life && G.Life.tracked(S)); // v18.13 the player chose a side quest as the goal (blue)
 Game.target = function () {
   const st = EP.steps[S.step];
   let t = st && st.target ? (typeof st.target === 'function' ? st.target(S, Game) : st.target) : null;
   if (S.wp) { if (Math.hypot(S.wp.x - P.x, S.wp.z - P.z) < 6) { G.UI.toast(`${S.wp.n || '표시한 곳'}에 도착했어요`); S.wp = null; } else return { x: S.wp.x, z: S.wp.z, wp: true }; }
-  if (!t && G.Life) { const tr = G.Life.tracked(S); if (tr && tr.q) t = G.Life.qOk(S, tr.id) ? 'npc:' + tr.q.giver : (typeof tr.q.loc === 'function' ? tr.q.loc(S) : tr.q.loc) || null; }
+  if (Game.goalSide()) { const r = resolveT(sideT()); if (r) return Object.assign({}, r, { side: true }); } // the chosen side quest first (blue); the story if it has nowhere to point
+  const r = resolveT(t); if (r) return r;
+  const r2 = resolveT(sideT()); return r2 ? Object.assign({}, r2, { side: true }) : null;
+};
+function resolveT(t) {
   if (!t) return null;
   if (typeof t === 'string') {
     const [k, id] = t.split(':');
@@ -672,7 +689,7 @@ Game.target = function () {
     if (k === 'node') { let b = null, bd = 1e9; for (const n of ENT.nodes) { if (!id.split(',').includes(n.type)) continue; if (S.nodes[n.id] > S.day) continue; const d = Math.hypot(n.x - P.x, n.z - P.z); if (d < bd) { bd = d; b = n; } } return b; }
   }
   return t;
-};
+}
 
 // =================================================================== INTERACTION RESOLUTION
 let ctx = null; Game.ctx = () => ctx;
@@ -1210,7 +1227,7 @@ function render(dt) {
   scene.flats.length = 0;
   const tg = Game.target(); Game.curTarget = tg;
   if (tg && Game.mode === 'play' && !Game.cineOn) { const d = Math.hypot(tg.x - P.x, tg.z - P.z); /* v12: no light pillar — the goal is shown on the minimap and the compass; a soft ring marks it on arrival */
-    m4trs(ringM, tg.x, W.heightAt(tg.x, tg.z) + 0.08, tg.z, tAll * 0.8); scene.flats.push({ mesh: ringMesh, m: ringM, color: [1, 1, 1, 0.6] }); }
+    m4trs(ringM, tg.x, W.heightAt(tg.x, tg.z) + 0.08, tg.z, tAll * 0.8); scene.flats.push({ mesh: ringMesh, m: ringM, color: tg.side ? [0.55, 0.85, 1, 0.65] : [1, 1, 1, 0.6] }); }
   if (G.Build) G.Build.flats(scene.flats);
   if (EP.flats) EP.flats(scene.flats, S, Game, tAll);
   if (ctx && ctx.tile) { const t = ctx.tile; m4trs(tileM, t.x, W.heightAt(t.x, t.z) + 0.12, t.z, t.f.ry || 0, 0, 0, t.ts / 1.6, 1, t.ts / 1.6); scene.flats.push({ mesh: tileMesh, m: tileM, color: ctx.disabled ? [1, 0.5, 0.4, 0.6] : [1, 1, 1, 0.75] }); }
