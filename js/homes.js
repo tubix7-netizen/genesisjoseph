@@ -36,7 +36,7 @@ function room(g) { const hw = RW / 2, hd = RD / 2;
   wall(0, hd + 0.15, RW + 0.6, 0.3); wall(-hw - 0.15, 0, 0.3, RD + 0.6); wall(hw + 0.15, 0, 0.3, RD + 0.6);
   wall(-(hw + 0.7) / 2 - 0.35, -hd - 0.15, hw - 0.7 + 0.3, 0.3); wall((hw + 0.7) / 2 + 0.35, -hd - 0.15, hw - 0.7 + 0.3, 0.3);
   g.box(1.6, 0.4, 0.34, { at: [0, WH - 0.2, -hd - 0.15], c: WALL }); // lintel over the doorway
-  for (const x of [-2.4, 0, 2.4]) g.box(0.16, 0.16, RD + 0.5, { at: [x, WH - 0.05, 0], c: WOOD }); // roof beams (the roof itself is left off so the camera sees in)
+  /* (no roof and no beams: the camera looks down into the room) */
   for (const x of [-1.6, 1.6]) g.box(0.7, 0.35, 0.34, { at: [x, 2.05, hd + 0.15], c: 0x3a3028 }); // window slits
   g.box(2.6, 0.03, 1.8, { at: [0.3, 0.02, 0.4], c: (x, y, z) => Math.floor((x + 3) * 4) % 3 ? 0x9a3a2e : 0x2c5aa0 }); // a woven rug
   g.box(0.95, 0.08, 2.0, { at: [-2.5, 0.05, 1.9], c: 0xc8a868 }); g.box(0.6, 0.1, 0.3, { at: [-2.5, 0.12, 2.75], c: 0xe8dcc0 }); // sleeping mat and pillow
@@ -63,94 +63,63 @@ const typeOf = (v, i) => TYPES[Math.floor(hash(houseKey(v, i)) * TYPES.length)];
 const cur = () => S().flags.inHouse || null;
 function ownerOf(v, i) { return (v.folk || []).find(f => (f.home || 0) === i); }
 const GREET = { kid: ['우와, {you}이다! 들어와요!', '엄마! 손님 왔어요!'], old: ['허허, 누추한 집에 귀한 손님이 오셨구먼.', '어서 오게, 앉게나.'], woman: ['어머, 어서 오세요! 물이라도 드릴게요.', '들어오세요, 집이 좁아도 시원해요.'], man: ['어서 오시오! 편히 쉬다 가시오.', '이런 영광이! 들어오시오.'] };
-// ------------------------------------------------------------------ doors (v18.14): a real door leaf on every house; 「문 열기」 → it swings in → 「들어가기」
-/* The door is found from the house collider nearest the home spot: the painted doorway is the middle of the collider's +z face. */
-const DOORS = {}, DM = {};
+// ------------------------------------------------------------------ the doorway (v18.21: no door leaf to open or shut — that walked Joseph into walls)
+/* The doorway is found from the house collider nearest the home spot: the painted door is the middle of the collider's +z face.
+   You stand in front of it and press A: 「들어가기」 when someone is home, 「문 두드리기」 when nobody is (then you may not go in —
+   God sees what no one else does). */
+const DOORS = {};
 function doorOf(v, i) { const k = houseKey(v, i); if (DOORS[k] !== undefined) return DOORS[k]; const W = Game.W(), hm = v.homes[i]; let best = null, bd = 1e9;
   const seen = new Set(); for (const ox of [-5, 0, 5]) for (const oz of [-5, 0, 5]) for (const c of W.near(hm[0] + ox, hm[1] + oz)) seen.add(c); // the house may stand a few steps from the home spot
   for (const c of seen) { if (!c.on || c.t !== 'b' || c.hw < 1.8 || c.hd < 1.5) continue; const d = Math.hypot(c.x - hm[0], c.z - hm[1]); if (d < bd && d < 7.5) { bd = d; best = c; } }
   if (!best) return (DOORS[k] = null); const a = Math.atan2(best.sa, best.ca), ox = Math.sin(a), oz = Math.cos(a), x = best.x + ox * (best.hd + 0.06), z = best.z + oz * (best.hd + 0.06);
-  return (DOORS[k] = { k, x, z, a, y: W.heightAt(x, z), fx: x + ox * 0.95, fz: z + oz * 0.95, open: 0, want: 0, t: 0 }); }
-const doorMesh = () => mk('hDoor', g => { for (let i = 0; i < 4; i++) g.box(0.27, 1.88, 0.07, { at: [0.15 + i * 0.275, 0.95, 0], c: [0x7a5232, 0x6e4a2c, 0x80583a, 0x744e30][i] }); for (const y of [0.45, 1.45]) g.box(1.08, 0.1, 0.1, { at: [0.55, y, 0.03], c: 0x5a3a22 }); g.sph(0.045, 6, 4, { at: [0.95, 1.0, 0.07], c: 0xc8a040 }); });
-const darkMesh = () => mk('hDoorDark', g => { g.box(1.12, 1.92, 0.02, { at: [0, 0.96, 0.025], c: 0x120c08 }); });
-function swing(d, open) { if (!d || d.want === (open ? 1 : 0)) return; d.want = open ? 1 : 0; d.t = 0; sfx('door', { vol: 0.55, pitch: open ? 1.05 : 0.85 }); }
-const IN_DOOR = { open: 0, want: 0, t: 0 }; // the door of the room, seen from inside
-Ho.enter = function (v, i) { const s = S(), p = P(), t = typeOf(v, i), ow = ownerOf(v, i), d = doorOf(v, i);
-  if (d && !ownerNear(v, i, d)) { swing(d, false); G.UI.toast('주인이 집을 비웠어요 · 주인이 없을 때는 들어가지 않아요'); return; }
-  if (d) { p.face = d.a + Math.PI; } // step in through the doorway, then the scene changes
-  G.UI.fade(() => { s.flags.inHouse = { v: v.id, i, t, x: d ? d.fx : p.x, z: d ? d.fz : p.z, f: d ? d.a : p.face + Math.PI, ow: ow ? ow.name : null, age: ow ? ow.age : null };
-    if (d) { d.want = 0; d.open = 0; } Game.teleport(IX, IZ - RD / 2 + 1.9, 0); p.y = IY; IN_DOOR.open = 1; IN_DOOR.want = 1; setTimeout(() => swing(IN_DOOR, false), 450); }, () => {
-    const pr = ow && G.Persona && G.Persona.of(ow.id), g = !ow ? null : ow.age === 'kid' ? 'kid' : ow.age === 'old' ? 'old' : pr && pr.fem ? 'woman' : 'man';
-    G.UI.say([{ n: '', t: `${v.n} · ${ow ? ow.name + '의 집' : '빈집'} (${TYPE[t].n})` }].concat(ow ? [{ n: ow.name, t: GREET[g][Math.floor(Math.random() * 2)].replace('{you}', '총리님') }] : []), () => { }); }); };
-Ho.leave = function () { const h = cur(); if (!h) return; const v = (EP.villages || []).find(q => q.id === h.v), d = v ? doorOf(v, h.i) : null;
-  G.UI.fade(() => { S().flags.inHouse = null; IN_DOOR.open = IN_DOOR.want = 0; Game.teleport(h.x, h.z, h.f); if (d) { d.open = 1; d.want = 1; setTimeout(() => swing(d, false), 600); }
-    if (h.lockReq && v) { S().flags.hLockReq = { v: v.id, i: h.i, ow: h.ow }; setTimeout(() => G.UI.toast(`${h.ow ? h.ow.split(' ').pop() : '주인'}의 부탁 · 문을 잠가 주세요 (문 앞에서 「문 잠그기」)`), 1100); } }, () => { }); };
-Ho.inside = () => !!cur();
-/* 문단속 — a little scene: the inner door opens, Joseph steps out, pulls the door shut, slides the outer bar across (click, click),
-   tests it once, and the family's thanks follow. The camera watches from the side of the doorway. */
-Ho.lockUp = function () { const h = cur(); if (!h || UI_busy()) return; const v = (EP.villages || []).find(q => q.id === h.v), d = v ? doorOf(v, h.i) : null, p = P(); if (!v || !d) { Ho.leave(); return; }
-  const push = dur => Object.assign(p, { act: 'push', actT: 0, actDur: dur, actHits: 1, actFn: null, actProp: null, fired: false, actRepeat: false }); // hands forward on the door
-  G.UI.setBusy('lockup', true); p.face = Math.PI; push(0.6); swing(IN_DOOR, true);
-  const ox = Math.sin(d.a), oz = Math.cos(d.a), sx = Math.cos(d.a), sz = -Math.sin(d.a), at = (t, f) => setTimeout(f, t);
-  at(700, () => G.UI.fade(() => { S().flags.inHouse = null; IN_DOOR.open = IN_DOOR.want = 0; Game.teleport(d.x + ox * 0.75, d.z + oz * 0.75, d.a + Math.PI); d.open = 1; d.want = 1; d.t = 0;
-    Game.cineCam = { x: d.x + ox * 2.6 + sx * 2.1, y: d.y + 1.9, z: d.z + oz * 2.6 + sz * 2.1, lx: d.x + ox * 0.3, ly: d.y + 1.0, lz: d.z + oz * 0.3, fov: 0.75 }; }, () => {
-    at(350, () => { p.face = d.a + Math.PI; push(0.7); swing(d, false); });
-    at(1250, () => { push(0.9); setLock(v, h.i, true); setTimeout(() => sfx('click', { pitch: 0.55, vol: 0.8 }), 160); G.UI.toast('문을 꼭 닫고 바깥 빗장을 걸었어요'); });
-    at(2350, () => { push(0.4); sfx('thud', { vol: 0.35, pitch: 1.3 }); G.UI.toast('덜컥 · 잘 잠겼어요'); });
-    at(3300, () => { Game.cineCam = null; G.UI.setBusy('lockup', false); const s = S(), H = s.hero; if (H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 5);
-      G.UI.toast(`문단속 끝 · ${h.ow ? h.ow.split(' ').pop() + '네가' : '주인이'} 고마워할 거예요 (정신력 +5)`); }); })); };
-const UI_busy = () => G.UI.busy() || Game.cineOn;
-Ho.door = (v, i) => doorOf(v, i); Ho.leafM = k => DM[k]; // (for checking)
-// ------------------------------------------------------------------ locks and keys (v18.17)
-/* Every house can be locked; about a third are kept locked while the family is out. Nobody may go in while the family is away
-   (v18.18): at the door you knock, and only if someone is home (or the owner is close by) the door opens. From inside, the bolt
-   needs no key (the attack button: 「문 잠그기」 / 「잠금 풀기」). The family's own key — given the first time you help them at
-   home — opens their bolted door while they are in, and lets you lock it behind you as you leave. The owners carry their keys,
-   so their own comings and goings are never stopped by a lock. */
-const keyId = (v, i) => 'hk_' + v.id + '_' + i;
+  return (DOORS[k] = { k, x, z, a, y: W.heightAt(x, z), fx: x + ox * 0.95, fz: z + oz * 0.95 }); }
+const pop = (t, sub, ic) => G.UI.pop ? G.UI.pop(t, sub, ic) : G.UI.toast(sub ? t + ' · ' + sub : t);
 const whoOf = (v, i) => { const ow = ownerOf(v, i); return ow ? ow.name.split(' ').pop() + '네' : '빈집'; };
-for (const v of EP.villages || []) v.homes.forEach((hm, i) => { Game.ITEMS[keyId(v, i)] = { n: `${whoOf(v, i)} 열쇠`, cat: 'key', p: 0, ic: 'key', c: '#c8a040', d: `${v.n}의 ${whoOf(v, i)} 집 문을 여는 열쇠` }; });
-const locks = () => S().flags.hLock || (S().flags.hLock = {});
-const locked = (v, i) => { const k = houseKey(v, i), L = locks(); return L[k] !== undefined ? L[k] : hash(k + 'lk') < 0.35; };
-const setLock = (v, i, on) => { locks()[houseKey(v, i)] = !!on; sfx('click', { pitch: on ? 0.6 : 0.85, vol: 0.7 }); };
-const hasKey = (v, i) => Game.inv(keyId(v, i)) > 0; // (a key left in the chest does not open doors; and a key never lets you in while the family is away)
 function ownerNear(v, i, d) { const ow = ownerOf(v, i), n = ow && Game.ENT.npcs[ow.id]; if (!n || !n.vis && !n.schedHidden) return null; const hm = v.homes[i];
   if (n.schedHidden && Math.hypot(n.x - hm[0], n.z - hm[1]) < 3) return { n, home: true }; if (n.vis && !n.schedHidden && Math.hypot(n.x - d.x, n.z - d.z) < 9) return { n, home: false }; return null; }
-function knock(v, i, d) { sfx('thud', { vol: 0.6, pitch: 1.4 }); setTimeout(() => sfx('thud', { vol: 0.6, pitch: 1.5 }), 180); const o = ownerNear(v, i, d), ow = ownerOf(v, i);
-  setTimeout(() => { if (!o) { G.UI.toast(ow ? `똑똑… 아무도 없어요 · 주인이 없을 때는 들어가지 않아요 (하나님이 보고 계셔요)` : '아무도 살지 않는 빈집이에요 · 함부로 들어가지 않아요'); return; }
-    if (!locked(v, i)) { G.UI.say([{ n: ow.name, t: o.home ? '누구세요? …어머나, 총리님! 들어오세요, 문 열어 드릴게요.' : '아이고, 제 집에 오셨군요! 같이 들어가요.' }], () => swing(d, true)); return; }
-    G.UI.say([{ n: ow.name, t: o.home ? '누구세요? …어머나, 총리님! 잠깐만요, 빗장 풀어 드릴게요.' : '아이고, 제 집 앞에 계셨군요! 제가 열어 드릴게요.' }], () => { setLock(v, i, false); swing(d, true); }); }, 520); }
+function knock() { sfx('thud', { vol: 0.6, pitch: 1.4 }); setTimeout(() => sfx('thud', { vol: 0.6, pitch: 1.5 }), 180); setTimeout(() => pop('아무도 없어요', '주인이 없을 땐 들어가지 않아요', 'house'), 450); }
 function nearDoor() { const s = S(), p = P(); let best = null, bd = 1e9; for (const v of EP.villages || []) { if (v.when && !v.when(s)) continue; if (Math.hypot(v.x - p.x, v.z - p.z) > v.r + 12) continue;
     v.homes.forEach((hm, i) => { const d = doorOf(v, i); if (!d) return; const dd = Math.hypot(d.fx - p.x, d.fz - p.z); if (dd < bd) { bd = dd; best = [v, i, d]; } }); }
   return best && bd <= 2.3 ? best.concat([bd]) : null; }
-// the attack-button slot near a door: lock or unlock (inside: the bolt; outside: with the key)
+Ho.door = (v, i) => doorOf(v, i); // (for checking)
+Ho.enter = function (v, i) { const s = S(), p = P(), t = typeOf(v, i), ow = ownerOf(v, i), d = doorOf(v, i);
+  if (d && !ownerNear(v, i, d)) { knock(); return; }
+  G.UI.fade(() => { s.flags.inHouse = { v: v.id, i, t, x: d ? d.fx : p.x, z: d ? d.fz : p.z, f: d ? d.a : p.face + Math.PI, ow: ow ? ow.name : null, age: ow ? ow.age : null };
+    Game.teleport(IX, IZ - RD / 2 + 1.9, 0); p.y = IY; sfx('door', { vol: 0.5 }); }, () => {
+    const pr = ow && G.Persona && G.Persona.of(ow.id), g = !ow ? null : ow.age === 'kid' ? 'kid' : ow.age === 'old' ? 'old' : pr && pr.fem ? 'woman' : 'man';
+    if (!(G.UI.help && G.UI.help('house', '집 안', '쉬기 · 물 · 일 거들기 · 주인이 없으면 못 들어와요'))) pop(`${ow ? ow.name.split(' ').pop() + '네 집' : '빈집'}`, TYPE[t].n, 'house'); if (ow) setTimeout(() => G.UI.say([{ n: ow.name, t: GREET[g][Math.floor(Math.random() * 2)].replace('{you}', '총리님') }], () => { }), 900); }); };
+Ho.leave = function () { const h = cur(); if (!h) return; if (h.lockReq) { Ho.lockUp(); return; } // asked to lock up: the little scene plays on the way out
+  G.UI.fade(() => { S().flags.inHouse = null; Game.teleport(h.x, h.z, h.f); sfx('door', { vol: 0.5, pitch: 0.9 }); }, () => { }); };
+Ho.inside = () => !!cur();
+/* 문단속 — a little scene: Joseph steps out, pulls the door shut, slides the outer bar across (click), tests it once, and the
+   family's thanks follow. The camera watches from the side of the doorway. */
+Ho.lockUp = function () { const h = cur(); if (!h || UI_busy()) return; const v = (EP.villages || []).find(q => q.id === h.v), d = v ? doorOf(v, h.i) : null, p = P(); if (!v || !d) { h.lockReq = 0; Ho.leave(); return; }
+  const push = dur => Object.assign(p, { act: 'push', actT: 0, actDur: dur, actHits: 1, actFn: null, actProp: null, fired: false, actRepeat: false }); // hands forward on the door
+  G.UI.setBusy('lockup', true); const ox = Math.sin(d.a), oz = Math.cos(d.a), sx = Math.cos(d.a), sz = -Math.sin(d.a), at = (t, f) => setTimeout(f, t);
+  G.UI.fade(() => { S().flags.inHouse = null; Game.teleport(d.x + ox * 0.6, d.z + oz * 0.6, d.a + Math.PI);
+    Game.cineCam = { x: d.x + ox * 2.6 + sx * 2.1, y: d.y + 1.9, z: d.z + oz * 2.6 + sz * 2.1, lx: d.x + ox * 0.3, ly: d.y + 1.0, lz: d.z + oz * 0.3, fov: 0.75 }; }, () => {
+    at(250, () => { p.face = d.a + Math.PI; push(0.7); sfx('door', { vol: 0.5, pitch: 0.85 }); });
+    at(1150, () => { push(0.9); setTimeout(() => sfx('click', { pitch: 0.55, vol: 0.8 }), 160); });
+    at(2150, () => { push(0.4); sfx('thud', { vol: 0.35, pitch: 1.3 }); });
+    at(2900, () => { Game.cineCam = null; G.UI.setBusy('lockup', false); const s = S(), H = s.hero; if (H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 5);
+      pop('문단속 끝!', `${h.ow ? h.ow.split(' ').pop() + '네가' : '주인이'} 고마워해요 · 정신력 +5`, 'star'); }); }); };
+const UI_busy = () => G.UI.busy() || Game.cineOn;
+// B: 「문단속」 at the room's door when the family asked you to
 Ho.lockCtx = function () { const s = S(), p = P(); if (!s || p.ride || p.act || p.climb || Game.cineOn || (G.Phys && G.Phys.held) || G.UI.busy()) return null; const h = cur();
-  if (h) { const v = (EP.villages || []).find(q => q.id === h.v); if (!v || IN_DOOR.want > 0) return null; if (Math.hypot(IX - p.x, IZ - RD / 2 + 0.2 - p.z) > 1.9) return null;
-    if (h.lockReq) return { label: '문단속', fn: () => Ho.lockUp() }; // v18.19 the owner asked: lock up on the way out (no key needed — a short scene)
-    const on = locked(v, h.i); return { label: on ? '잠금 풀기' : '문 잠그기', fn: () => { setLock(v, h.i, !on); G.UI.toast(on ? '빗장을 풀었어요' : '빗장을 질렀어요 · 밖에서는 열쇠가 있어야 열려요'); } }; }
-  const nd = nearDoor(); if (!nd) return null; const [v, i, d] = nd; if (d.want > 0 || !hasKey(v, i)) return null; const on = locked(v, i);
-  return { label: on ? '잠금 풀기' : '문 잠그기', fn: () => { setLock(v, i, !on); G.UI.toast(on ? `${Game.ITEMS[keyId(v, i)].n}로 잠금을 풀었어요` : `${Game.ITEMS[keyId(v, i)].n}로 문을 잠갔어요 · 주인네는 자기 열쇠로 드나들어요`); } }; };
+  if (!h || !h.lockReq) return null; if (Math.hypot(IX - p.x, IZ - RD / 2 + 0.2 - p.z) > 1.9) return null; return { label: '문단속', fn: () => Ho.lockUp() }; };
 if (G.Combat) { const atk0 = G.Combat.attack; G.Combat.attack = function () { const c = Ho.lockCtx(); if (c) { c.fn(); G.UI.hud(); return; } return atk0.apply(this, arguments); }; }
-{ const hud0 = G.UI.hud; G.UI.hud = function () { const r = hud0.apply(this, arguments); try { const c = Game.mode === 'play' && Ho.lockCtx(), b = document.getElementById('btnAtk'); if (c && b) { b.hidden = false; document.getElementById('btnAtkL').textContent = c.label; b.classList.add('lockMode'); } else if (b) b.classList.remove('lockMode'); } catch (e) { } return r; }; }
-// doors swing over ~0.6 s; an outside door left open closes by itself after a while
-let dClock = 0;
-function doorTick(dt) { dClock += dt; for (const d of [IN_DOOR, ...Object.values(DOORS)]) { if (!d) continue; d.open += (d.want - d.open) * Math.min(1, dt * 7); d.t += dt; if (d !== IN_DOOR && d.want === 1 && d.t > 7 && Math.hypot(P().x - d.x, P().z - d.z) > 1.4) swing(d, false); } }
+{ const hud0 = G.UI.hud; G.UI.hud = function () { const r = hud0.apply(this, arguments); try { const c = Game.mode === 'play' && Ho.lockCtx(), b = document.getElementById('btnAtk'); if (c && b) { b.hidden = false; document.getElementById('btnAtkL').textContent = c.label; } } catch (e) { } return r; }; }
 
 // ------------------------------------------------------------------ actions
 Game.CTX.push(function (s) { const p = P(); if (p.ride || p.swim || p.act || p.climb || Game.cineOn || (G.Phys && G.Phys.held) || (s.q && s.q.riding)) return null;
   const h = cur();
   if (!h) { // outside: the nearest house door
     const nd = nearDoor(); if (!nd) return null; const [v, i, d, bd] = nd, who = whoOf(v, i);
-    /* v18.18 nobody goes into a house while its people are away — not even with a key (God sees what no one else does) */
-    if (!ownerNear(v, i, d)) return [{ d: bd - 0.6, label: `문 두드리기 · ${who}`, x: d.x, z: d.z, y: 1.3, reach: 0.95, anim: 'push', dur: 0.4, hits: 1, fn: () => knock(v, i, d), key: 'hDoor' }];
-    if (d.want < 1 && locked(v, i)) return [hasKey(v, i) ? { d: bd - 0.6, label: `열쇠로 열기 · ${who}`, x: d.x, z: d.z, y: 1.3, reach: 0.95, anim: 'push', dur: 0.55, hits: 1, fn: () => { setLock(v, i, false); swing(d, true); }, key: 'hDoor' }
-      : { d: bd - 0.6, label: `잠긴 문 · 두드리기 · ${who}`, x: d.x, z: d.z, y: 1.3, reach: 0.95, anim: 'push', dur: 0.4, hits: 1, fn: () => knock(v, i, d), key: 'hDoor' }];
-    if (d.want < 1) return [{ d: bd - 0.6, label: `문 열기 · ${who}`, x: d.x, z: d.z, y: 1.3, reach: 0.95, anim: 'push', dur: 0.5, hits: 1, fn: () => swing(d, true), key: 'hDoor' }];
-    return [{ d: bd - 0.6, label: `들어가기 · ${who}`, x: d.x, z: d.z, y: 1.3, use: () => Ho.enter(v, i), key: 'house', noMagnet: true }]; }
+    if (!ownerNear(v, i, d)) return [{ d: bd - 0.6, label: `문 두드리기 · ${who}`, x: d.fx, z: d.fz, y: 1.3, noMagnet: true, use: knock, key: 'hDoor' }];
+    return [{ d: bd - 0.6, label: `들어가기 · ${who}`, x: d.fx, z: d.fz, y: 1.3, use: () => Ho.enter(v, i), key: 'house', noMagnet: true }]; }
   // inside
   const L = (x, z) => [IX + x, IZ + z], out = [], add = (x, z, r, c) => { const [wx, wz] = L(x, z), d = Math.hypot(wx - p.x, wz - p.z); if (d < r) out.push(Object.assign({ d: d - 0.4, x: wx, z: wz, y: 1.2, noMagnet: true }, c)); };
-  { const v = (EP.villages || []).find(q => q.id === h.v), lk = v && locked(v, h.i);
-    add(0, -RD / 2 + 0.2, 1.6, IN_DOOR.want < 1 ? { label: lk ? '빗장 풀고 문 열기' : '문 열기', anim: 'push', dur: 0.5, hits: 1, fn: () => { if (v && locked(v, h.i)) setLock(v, h.i, false); swing(IN_DOOR, true); }, key: 'hLeave', noMagnet: false } : { label: '밖으로 나가기', use: Ho.leave, key: 'hLeave' }); }
+  add(0, -RD / 2 + 0.2, 1.6, { label: h.lockReq ? '문단속하고 나가기' : '밖으로 나가기', use: Ho.leave, key: 'hLeave' });
   const rest = s.flags.hRest || -99, abs = s.day * 24 + s.time % 24;
   add(-2.5, 1.9, 1.8, abs - rest < 4 ? { label: '방금 쉬었어요', disabled: true, key: 'hRest' } : { label: '짚자리에서 잠깐 쉬기', key: 'hRest', use: () => G.UI.fade(() => { s.flags.hRest = abs + 1.5; s.time += 1.5; const H = s.hero; p.stam = (G.Vitals && G.Vitals.cap) || H.stamMax || 140; p.exhausted = false; if (H) H.hp = Math.min(H.hpMax, H.hp + H.hpMax * 0.15); }, () => G.UI.toast('한숨 쉬었어요 · 기력이 다 차고 몸이 조금 나았어요')) });
   add(2.9, -2.0, 1.7, { label: (Game.tool('jar') || Game.tool('bigjar')) && s.water < s.jarMax ? '물항아리 · 마시고 내 항아리 채우기' : '물항아리에서 물 마시기', key: 'hJar', use: () => { const H = s.hero, cap = (G.Vitals && G.Vitals.cap) || (H && H.stamMax) || 140; p.stam = Math.min(cap, p.stam + 30); p.exhausted = false; let msg = '시원한 물 · 기력 +30';
@@ -158,23 +127,18 @@ Game.CTX.push(function (s) { const p = P(); if (p.ride || p.swim || p.act || p.c
   const T = TYPE[h.t], a = T.act, did = (s.flags.hDid || {})[h.v + h.i] === s.day, meal = a.meal && !(s.time % 24 > 16.5 && s.time % 24 < 21.5);
   add(0.3, 0.5, 2.1, did ? { label: `${a.label} · 오늘은 했어요`, disabled: true, key: 'hAct' } : meal ? { label: '저녁때(오후 5시~9시)에 밥상이 차려져요', disabled: true, key: 'hAct' } : { label: a.label, key: 'hAct', anim: a.meal ? 'eat' : 'gather', dur: 0.9, hits: 2, fn: () => { (s.flags.hDid = s.flags.hDid || {})[h.v + h.i] = s.day; const H = s.hero;
     if (a.give && Game.ITEMS[a.give]) Game.give(a.give, 1); if (a.silver) Game.silver(a.silver); if (a.meal) { if (H) H.hp = H.hpMax; p.stam = (G.Vitals && G.Vitals.cap) || (H && H.stamMax) || 140; if (G.Surv && G.Surv.fed) G.Surv.fed('bread', 60); } if (a.mind && H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + a.mind);
-    G.UI.toast(a.msg); sfx('pickup'); G.UI.hud();
-    const v = (EP.villages || []).find(q => q.id === h.v), kid = v && keyId(v, h.i); if (v && h.ow && !(s.flags.hKeyGot || {})[kid]) { (s.flags.hKeyGot = s.flags.hKeyGot || {})[kid] = 1; Game.give(kid, 1, true);
-      setTimeout(() => G.UI.say([{ n: h.ow, t: '도와주셔서 고마워요. 이 집 열쇠를 하나 드릴게요 · 우리가 집에 있을 때 문이 잠겨 있으면 이걸로 여시고, 나갈 때 잠가 주시면 고맙겠어요!' }], () => G.UI.toast(`「${Game.ITEMS[kid].n}」를 받았어요 · 가방의 귀중품`)), 900); } } });
+    pop(a.label + ' 끝!', a.msg.split(' · ').slice(-1)[0], 'star'); sfx('pickup'); G.UI.hud(); } });
   return out; });
 // draw the room only when someone is in it (or near)
 const MX = G.m4(), MX2 = G.m4();
 const dyn0 = EP.dyn; EP.dyn = function (list) { if (dyn0) dyn0.apply(this, arguments); if (Game.mode !== 'play') return; const h = cur(), p = P();
-  if (!h) { for (const v of EP.villages || []) { if (v.when && !v.when(S())) continue; if (Math.hypot(v.x - p.x, v.z - p.z) > v.r + 50) continue;
-      v.homes.forEach((hm, i) => { const d = doorOf(v, i); if (!d || Math.hypot(d.x - p.x, d.z - p.z) > 45) return; const ca = Math.cos(d.a), sa = Math.sin(d.a), hx = d.x - ca * 0.55, hz = d.z + sa * 0.55; // hinge at the left edge (seen from outside)
-        const m = DM[d.k] || (DM[d.k] = G.m4()); G.m4trs(m, hx, d.y, hz, d.a + d.open * 1.65, 0, 0, 1, 1, 1); /* swings in, into the dark doorway */ list.push({ mesh: doorMesh(), m, outline: true });
-        if (d.open > 0.02) { const m2 = DM[d.k + '#'] || (DM[d.k + '#'] = G.m4()); G.m4trs(m2, d.x, d.y, d.z, d.a, 0, 0, 1, 1, 1); list.push({ mesh: darkMesh(), m: m2 }); } }); } /* the dark inside of the house shows through the open door */
-    return; }
-  if (Math.hypot(p.x - IX, p.z - IZ) > 40) return;
-  G.m4trs(MX, IX, IY, IZ, 0, 0, 0, 1, 1, 1); list.push({ mesh: mk('hRoom', room), m: MX, outline: true }); list.push({ mesh: mk('hT_' + h.t, TYPE[h.t].model), m: MX, outline: true });
-  G.m4trs(MX2, IX - 0.7, IY, IZ - RD / 2 - 0.15, Math.PI / 2 * 0 + IN_DOOR.open * 1.65, 0, 0, 1.3, 1.15, 1); list.push({ mesh: doorMesh(), m: MX2, outline: true }); };
+  if (!h || Math.hypot(p.x - IX, p.z - IZ) > 40) return;
+  G.m4trs(MX, IX, IY, IZ, 0, 0, 0, 1, 1, 1); list.push({ mesh: mk('hRoom', room), m: MX, outline: true }); list.push({ mesh: mk('hT_' + h.t, TYPE[h.t].model), m: MX, outline: true }); };
+/* inside: the camera looks down over the open-topped walls instead of hiding behind them */
+const cam0 = EP.camera; EP.camera = function (s, g, dt) { const h = cur(), p = P(); if (h && Math.hypot(p.x - IX, p.z - IZ) < 12 && !Game.cineCam) { const C = Game.CAM, yw = C.yaw || 0;
+    return { x: p.x + Math.sin(yw) * 2.4, y: IY + 6.2, z: p.z + Math.cos(yw) * 2.4, lx: p.x, ly: IY + 0.9, lz: p.z, fov: 1 }; } return cam0 ? cam0.apply(this, arguments) : null; };
 // a safety net: inside the room but no house remembered (an old save) → the door still works; far from the room → you are outside
-const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s) return r; doorTick(typeof dt === 'number' && dt < 1 ? dt : 1 / 60);
+const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s) return r;
   if (s.flags.inHouse && Math.hypot(P().x - IX, P().z - IZ) > 30) s.flags.inHouse = null;
   if ((ownT += typeof dt === 'number' && dt < 1 ? dt : 1 / 60) > 0.5) { ownT = 0; try { ownerWatch(s); } catch (e) { console.error('homes', e); } } return r; };
 /* v18.18 the one exception: you are already inside when the family has to go out. The owner asks you to lock up when you leave
@@ -184,9 +148,7 @@ let ownT = 0;
 function ownerWatch(s) { const h = cur(), p = P();
   if (h && h.ow && !h.asked) { const v = (EP.villages || []).find(q => q.id === h.v), d = v && doorOf(v, h.i); if (!v || !d) return;
     if (ownerNear(v, h.i, d)) return; if (G.UI.busy() || Game.cineOn) return; h.asked = 1; h.lockReq = 1;
-    G.UI.say([{ n: h.ow, t: '총리님, 저는 잠깐 일 보러 나가 봐야 해요. 편히 계시다 가세요!' }, { n: h.ow, t: '나가실 때 문단속만 부탁드려요. 문 앞에서 문을 닫고 바깥 빗장만 걸어 주시면 돼요.' }],
-      () => G.UI.toast('주인이 나갔어요 · 나갈 땐 문 앞에서 「문단속」 (공격 단추 자리) · 나가면 다시 들어올 수 없어요')); return; }
-  const q = s.flags.hLockReq; if (!q) return; const v = (EP.villages || []).find(x => x.id === q.v), d = v && doorOf(v, q.i); if (!v || !d) { s.flags.hLockReq = null; return; }
-  if (locked(v, q.i)) { s.flags.hLockReq = null; const H = s.hero; if (H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 5); G.UI.toast(`문단속 끝 · ${q.ow ? q.ow.split(' ').pop() + '네가' : '주인이'} 고마워할 거예요 (정신력 +5)`); return; }
-  if (Math.hypot(p.x - d.x, p.z - d.z) > 14) { s.flags.hLockReq = null; G.UI.toast('앗, 문단속을 잊었어요… 다음엔 꼭 잠가 드려요'); } }
+    G.UI.say([{ n: h.ow, t: '총리님, 저는 잠깐 일 보러 나가 봐야 해요. 편히 계시다 가세요!' }, { n: h.ow, t: '나가실 때 문단속만 부탁드려요!' }],
+      () => pop('문단속 부탁', '나갈 때 문 앞에서 B키 「문단속」', 'house')); return; }
+  s.flags.hLockReq = null; }
 })(window.G);

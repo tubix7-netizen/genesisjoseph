@@ -316,7 +316,7 @@ C.context = function () {
   for (const a of C.wild()) { if (a.st !== 'dead') continue; const d = Math.hypot(a.x - P.x, a.z - P.z); if (d > 2.4) continue;
     out.push({ d: d - 0.8, label: `${a.name} 손질하기`, x: a.x, z: a.z, yAbs: a.y + 1, anim: 'gather', dur: 1.1, prop: 'knife', fn: () => butcher(a), key: 'carcass:' + a.id }); }
   // fishing
-  const W = Game.W(); if (W && W.water && Game.tool('fishrod') && !C.fish) { const fx = Math.sin(P.face), fz = Math.cos(P.face);
+  const W = Game.W(); if (W && W.water && Game.hand() === 'fishrod' && !C.fish) { /* v18.21 only with the rod in hand */ const fx = Math.sin(P.face), fz = Math.cos(P.face);
     for (const r of [2.2, 3.4]) { const wx = P.x + fx * r, wz = P.z + fz * r; if (W.heightAt(wx, wz) < W.water.level - 0.35 && W.heightAt(P.x, P.z) > W.water.level - 0.2) { out.push({ d: 1.4, label: '낚시하기', x: wx, z: wz, y: 0.8, use: () => C.startFish(wx, wz), key: 'fish' }); break; } } }
   return out;
 };

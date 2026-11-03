@@ -29,6 +29,7 @@ const toWorld = (c, lx, lz) => [c.x + lx * c.ca + lz * c.sa, c.z - lx * c.sa + l
 
 // ------------------------------------------------------------------ start
 Cl.tryGrab = function (P, dt, mag, dx, dz) { // called after movement: pushing into a climbable wall for a moment grabs it
+  if (!Cl.walls) { P.grabT = 0; return; } /* v18.21 only ladders are climbed now (walls are not); set G.Climb.walls = true to bring wall climbing back */
   const S = Game.S(), W = Game.W(), EP = Game.EP(); const c = P.hit;
   if (!climbable(c) || mag < 0.6 || P.ride || (S.q && S.q.riding) /* v18.14 never climb walls from the chariot */ || P.carry || P.swim || P.act || P.atk || P.downed || Game.cineOn || P.climbCool > 0 || (EP.noClimb && EP.noClimb(P.x, P.z, S))) { P.grabT = 0; return; }
   if (P.y > c.y1 - 0.5) { P.grabT = 0; return; } // already up there

@@ -11,7 +11,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // =================================================================== SPEECH BUBBLES
 const bubbles = [];
 L.bubble = function (who, text, dur) {
-  const el = document.createElement('div'); el.className = 'bub'; el.textContent = text; $('bubbles').appendChild(el);
+  const el = document.createElement('div'); el.className = 'bub'; el.textContent = text; el.hidden = true; /* v18.21 shown only once placed over the speaker (it flashed in the top-left corner) */ $('bubbles').appendChild(el);
   bubbles.push({ who, el, t: dur || Math.min(5.5, 2.2 + text.length * 0.07) });
 };
 function drawBubbles(dt) {
@@ -104,7 +104,7 @@ L.qOk = (S, id) => { const q = QS()[id]; const st = side(S).act[id]; return q.ob
 L.avail = (S, id) => { const q = QS()[id], sd = side(S); if (sd.act[id]) return false; const dn = sd.done[id]; if (dn !== undefined && !(q.repeat && S.day - dn >= q.repeat)) return false; return !q.when || q.when(S, Game); };
 L.mark = function (id) { const S = Game.S(); if (!S || !Game.EP().quests) return null; for (const qid of L.active(S)) if (QS()[qid].giver === id && L.qOk(S, qid)) return '?'; for (const qid in QS()) if (QS()[qid].giver === id && L.avail(S, qid)) return '!'; return null; };
 L.accept = function (id) { const S = Game.S(), q = QS()[id], st = { day: S.day, kills: Object.assign({}, S.hero.kills), fish: Object.assign({}, S.hero.fish), got: Object.assign({}, S.stats.got), stats: { fish: S.stats.fish || 0, butchered: S.stats.butchered || 0 } };
-  side(S).act[id] = st; side(S).track = id; side(S).goal = 'side'; if (q.start) q.start(S, Game, st); sfx('quest'); G.UI.toast(`부탁을 맡았다 · ${q.title}`); G.UI.quest();
+  side(S).act[id] = st; side(S).track = id; side(S).goal = 'side'; if (q.start) q.start(S, Game, st); sfx('quest'); if (G.UI.pop) G.UI.pop('부탁을 맡았어요', q.title, 'star'); else G.UI.toast(`부탁을 맡았다 · ${q.title}`); G.UI.quest();
   setTimeout(() => G.UI.tipOnce && G.UI.tipOnce('goalSide', '맡은 부탁이 목표가 됐어요 · 집중하면 푸른 빛이 안내해요 · 왼쪽 위 부탁 줄을 누르면 이야기로 돌아가요', true), 2800); }; // v18.13b a new request becomes the goal (blue)
 L.complete = function (id) {
   const S = Game.S(), q = QS()[id], rw = q.reward || {}, sd = side(S);
@@ -113,7 +113,7 @@ L.complete = function (id) {
   if (rw.silver) Game.silver(rw.silver); if (rw.items) for (const k in rw.items) Game.give(k, rw.items[k]); if (rw.gear) G.Combat.giveGear(rw.gear);
   if (rw.xp) Game.addXP(rw.xp); if (rw.trust) Game.trust && Game.trust(rw.trust); if (rw.heart) Game.heart && Game.heart(rw.heart);
   if (rw.insight) setTimeout(() => Game.insight(rw.insight, q.title), 400);
-  if (q.finish) q.finish(S, Game); Game.stat('quests'); sfx('quest'); G.UI.quest(); Game.save(true); Game.checkStep();
+  if (q.finish) q.finish(S, Game); Game.stat('quests'); sfx('quest'); if (G.UI.pop) G.UI.pop('부탁 완료!', q.title + (rw.silver ? ` · 은 ${rw.silver}` : ''), 'coin'); G.UI.quest(); Game.save(true); Game.checkStep();
 };
 L.talk = function (npcId) {
   const S = Game.S(), N = Game.ENT.npcs[npcId], nm = N ? N.name : '';

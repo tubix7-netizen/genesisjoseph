@@ -9,6 +9,7 @@
 const { fbm, vnoise, smooth, lerp, clamp, rng, m4, m4trs, m4mul, Rig, AB, HB, HBK, HBI, animAnimal, animHuman, R } = G;
 const say = (l, cb) => G.UI.say(l, cb), narr = (c, cb) => G.UI.narr(c, cb);
 const NM = {
+  scribeR: '왕궁 서기관', maid: '여종', /* v18.21 these two spoke under their code names */
   jacob: '야곱', benjamin: '베냐민', reuben: '르우벤', simeon: '시므온', levi: '레위', judah: '유다', dan: '단', naphtali: '납달리', gad: '갓', asher: '아셀',
   issachar: '잇사갈', zebulun: '스불론', man: '들의 사람', ishmael: '이스마엘 상인', ishBoy: '대상의 아이', midian: '미디안 상인', dinah: '디나', leah: '레아', hServ: '야곱의 종',
   auctioneer: '노예 상인', potiphar: '보디발', wife: '보디발의 아내', ameni: '늙은 종 아메니', neb: '청지기 네브', cook: '요리사 헤누', gardener: '정원지기 세티', boy: '소 치는 아이 파이',

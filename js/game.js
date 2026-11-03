@@ -43,11 +43,11 @@ const RECIPES = [
   { id: 'umbrella', n: '잎사귀 우산', tool: 'umbrella', in: { branch: 1, reed: 2 }, d: '비 오는 날 펴면 젖지 않고, 뙤약볕도 가려 줘요' },
   { id: 'umbrellaG', n: '풀잎 우산', tool: 'umbrella', in: { herb: 4 }, d: '들풀을 엮어 만든 우산 · 비와 뙤약볕을 가려 줘요' }, // v16.9 also from grass
   { id: 'umbrellaS', n: '짚 우산', tool: 'umbrella', in: { straw: 3 }, d: '짚을 엮어 만든 우산 · 비와 뙤약볕을 가려 줘요' },
-  { id: 'sickle', n: '낫', tool: 'sickle', in: { branch: 1, stone: 2 }, d: '보리와 밀을 벨 수 있어요' },
-  { id: 'axe', n: '손도끼', tool: 'axe', in: { branch: 2, stone: 3 }, d: '나무를 베어 통나무를 얻어요' },
-  { id: 'hammer', n: '돌망치', tool: 'hammer', in: { wood: 1, stone: 3 }, d: '큰 바위를 깨뜨려 돌을 얻어요' },
-  { id: 'shears', n: '양털 가위', tool: 'shears', in: { wood: 1, stone: 3 }, d: '양털을 깎을 수 있어요' },
-  { id: 'jar', n: '큰 물항아리', tool: 'bigjar', in: { clay: 6 }, st: 'fire', d: '물을 20번 담을 수 있어요' },
+  { id: 'sickle', n: '낫', tool: 'sickle', in: { branch: 1, stone: 2 }, st: 'fire', d: '보리와 밀을 벨 수 있어요' },
+  { id: 'axe', n: '손도끼', tool: 'axe', in: { branch: 2, stone: 3 }, st: 'fire', d: '나무를 베어 통나무를 얻어요' },
+  { id: 'hammer', n: '돌망치', tool: 'hammer', in: { wood: 1, stone: 3 }, st: 'fire', d: '큰 바위를 깨뜨려 돌을 얻어요' },
+  { id: 'shears', n: '양털 가위', tool: 'shears', in: { wood: 1, stone: 3 }, st: 'fire', d: '양털을 깎을 수 있어요' },
+  { id: 'jar', n: '큰 항아리', tool: 'bigjar', in: { clay: 6 }, st: 'fire', d: '물을 20번 담을 수 있어요' },
   { id: 'rod', n: '껍질 벗긴 가지', out: { rod: 2 }, in: { branch: 3 }, d: '흰 무늬가 드러나게 껍질을 벗긴 가지 (창 30:37)' },
   { id: 'stew', n: '붉은 팥죽', out: { stew: 1 }, in: { lentil: 3, branch: 1 }, water: 1, st: 'fire', d: '렌틸콩으로 끓인 죽 (창 25:29)' },
   { id: 'bread', n: '밀빵', out: { bread: 2 }, in: { wheat: 2, branch: 1 }, water: 1, st: 'fire' },
@@ -62,7 +62,7 @@ const RECIPES = [
   { id: 'grain', n: '곡식 자루', out: { grain: 1 }, in: { barley: 3 }, d: '곳간에 쌓을 곡식' },
   { id: 'grainW', n: '곡식 자루 (밀)', out: { grain: 1 }, in: { wheat: 2 } },
 ];
-const TOOLS = { umbrella: '잎사귀 우산', hoe: '괭이', jar: '물항아리', bigjar: '큰 물항아리', sickle: '낫', axe: '손도끼', hammer: '돌망치', shears: '양털 가위', staff: '지팡이' };
+const TOOLS = { umbrella: '잎사귀 우산', hoe: '괭이', jar: '항아리', bigjar: '큰 항아리', sickle: '낫', axe: '손도끼', hammer: '돌망치', shears: '양털 가위', staff: '지팡이' };
 const PATN = { plain: '흰', black: '검은', brown: '갈색', speckled: '점 있는', spotted: '아롱진', streaked: '얼룩무늬' };
 const SPN = { sheep: '양', goat: '염소', cow: '소', camel: '낙타', donkey: '나귀' };
 Object.assign(Game, { ITEMS, CROPS, RECIPES, TOOLS, PATN, SPN });
@@ -97,7 +97,7 @@ function silver(n) { S.silver = Math.max(0, S.silver + n); if (n > 0) { S.stats.
 function stat(k, n) { S.stats[k] = (S.stats[k] || 0) + (n || 1); }
 // one hand, one tool: S.hand is what the hero visibly carries (or null = empty-handed). Actions that need another tool
 // use it only for the moment of the action; the chosen tool comes back to the hand afterwards.
-const TOOL_PROP = { hoe: 'hoe', jar: 'jar', bigjar: 'jar', sickle: 'sickle', axe: 'axe', hammer: 'hammer', staff: 'staff' };
+const TOOL_PROP = { hoe: 'hoe', jar: 'jar', bigjar: 'jar', sickle: 'sickle', axe: 'axe', hammer: 'hammer', staff: 'staff', fishrod: 'fishrod' }; /* v18.21 the rod is held in the hand to fish */
 /* v18.14 'weapon' = the weapon from the gear menu (sword, spear, sling…) held in the hand; some story moments keep the hands empty */
 function handLock() { return !!(S && EP && EP.handLock && EP.handLock(S)); }
 function hand() { if (!S || !S.hand || handLock()) return null; if (S.hand === 'weapon') return G.Combat && G.Combat.hasWeapon() ? 'weapon' : null; return tool(S.hand) ? S.hand : null; }
@@ -593,9 +593,9 @@ Game.siteWork = function (site) {
   const pr = S.siteWork && S.siteWork[site.id]; if (!pr) return; if (G.Vitals) G.Vitals.spend(6);
   pr.n++; FX.burst(site.x, W.heightAt(site.x, site.z) + 1.2, site.z, 16, { c: [0.85, 0.75, 0.55], sp: 1.6, up: 1.6, spread: 2 });
   if (pr.n >= site.work) { S.siteOpt = S.siteOpt || {}; S.siteOpt[site.id] = pr.opt; delete S.siteWork[site.id];
-    S.built[site.id] = S.day; applySite(site); G.UI.toast(`완성 · ${site.n}`); sfx('craft'); haptic('quest'); FX.burst(site.x, W.heightAt(site.x, site.z) + 1, site.z, 40, { c: [1, 0.9, 0.6], sp: 3, up: 3 });
+    S.built[site.id] = S.day; applySite(site); if (!site.puzzle) G.UI.toast(`완성 · ${site.n}`); sfx('craft'); haptic('quest'); FX.burst(site.x, W.heightAt(site.x, site.z) + 1, site.z, 40, { c: [1, 0.9, 0.6], sp: 3, up: 3 });
     if (site.onBuilt) site.onBuilt(S, Game); checkStep(); Game.save(true); }
-  else { buildSiteMeshes(); G.UI.toast(`${site.n} · ${(site.stages || [])[pr.n - 1] || '일'} 끝 (${pr.n}/${site.work})`); }
+  else { buildSiteMeshes(); if (!site.puzzle) G.UI.toast(`${site.n} · ${(site.stages || [])[pr.n - 1] || '일'} 끝 (${pr.n}/${site.work})`); } /* (granaries announce their stages with a popup) */
 };
 function applySite(site) { applySiteFx(site); ENT.plotsDirty = true; buildSiteMeshes(); }
 function applySiteFx(site) {
@@ -710,14 +710,14 @@ function resolveContext() {
     cands.push({ d: d - 0.6, label: G.Persona && G.Persona.asleep(n) ? '깨우기' : n.d.label || '말하기', x: n.x, z: n.z, yAbs: n.y + (n.d.animal ? 1.4 : 2.1) * (n.scale || 1), use: () => talkTo(id), key: 'npc:' + id, npc: id }); }
   // stations
   for (const st of EP.stations || []) { if (st.on && !st.on(S, Game)) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d > (st.r || 2.4)) continue;
-    const a = stationAction(st); if (a) cands.push(Object.assign({ d, x: st.x, z: st.z, y: 1.4, key: 'st:' + st.id }, a)); }
+    const a = stationAction(st); if (a) cands.push(Object.assign({ d: st.type === 'well' && !a.disabled ? d - 1.2 : d, x: st.x, z: st.z, y: 1.4, key: 'st:' + st.id }, a)); } /* v18.21 drawing water comes before chatting with whoever stands at the well */
   // pens
   for (const p of EP.pens || []) { if (p.hidden && p.hidden(S)) continue; const gx = p.gx === undefined ? p.x : p.gx, gz = p.gz === undefined ? p.z : p.gz; const d = Math.hypot(gx - P.x, gz - P.z); if (d > 3) continue;
     cands.push({ d: d + 0.2, label: `${p.n} 돌보기`, x: gx, z: gz, y: 1.4, use: () => G.UI.pen(p.id), key: 'pen:' + p.id }); }
   // sites
   for (const s of ENT.sites) { if (siteBuilt(s.id) || (s.avail && !s.avail(S))) continue; const d = Math.hypot(s.x - P.x, s.z - P.z); if (d > (s.r || 4)) continue;
     const pr = S.siteWork && S.siteWork[s.id];
-    if (pr && s.puzzle && G.Puzzle) { cands.push({ d: d + 0.3, label: `${s.n} 짓기 · ${(s.stages || [])[pr.n] || '일하기'} 퍼즐 (${pr.n + 1}/${s.work})`, x: s.x, z: s.z, y: 1.6, use: () => G.Puzzle.work(s), key: 'site:' + s.id }); continue; } // v18.14 granaries: each stage is a brick puzzle
+    if (pr && s.puzzle && G.Puzzle) { cands.push({ d: d + 0.3, label: `${s.n} · ${(s.stages || [])[pr.n] || '짓기'}`, x: s.x, z: s.z, y: 1.6, use: () => G.Puzzle.work(s), key: 'site:' + s.id }); continue; } // v18.14 granaries: each stage is a brick puzzle
     if (pr) { cands.push({ d: d + 0.3, label: `${s.n} 짓기 · ${(s.stages || [])[pr.n] || '일하기'} (${pr.n + 1}/${s.work})`, x: s.x, z: s.z, y: 1.6, anim: 'hoe', dur: 0.55, hits: 3, prop: 'hammer', fn: () => Game.siteWork(s), key: 'site:' + s.id, repeat: true }); continue; }
     cands.push({ d: d + 0.3, label: `${s.n} 짓기`, x: s.x, z: s.z, y: 1.6, use: () => G.UI.site(s), key: 'site:' + s.id }); }
   // plot ahead
@@ -728,6 +728,7 @@ function resolveContext() {
   if (G.Combat) for (const c of G.Combat.context()) cands.push(c);
   for (const pv of Game.CTX) { const cs = pv(S, Game); if (cs) for (const c of cs) if (c) cands.push(c); }
   if (EP.context) for (const c of EP.context(S, Game) || []) cands.push(c);
+  if (S.q && S.q.riding) for (let i = cands.length - 1; i >= 0; i--) if (!cands[i].npc && !cands[i].rideOk) cands.splice(i, 1); /* v18.21 from the chariot you can talk, but not pick things up */
   // between two things at about the same distance, take the one in front of the hero (up to 0.5 m of preference)
   for (const c of cands) if (c.x !== undefined && !c.tile) { const dd = Math.hypot(c.x - P.x, c.z - P.z); if (dd > 0.3) c.d += (1 - ((c.x - P.x) * fx + (c.z - P.z) * fz) / dd) * 0.25; }
   cands.sort((a, b) => a.d - b.d);
@@ -907,7 +908,7 @@ function updateNPCs(dt, t) {
       const w = n.wander; if (w.tx === null || w.stuck > 1.2) { const a = Math.random() * PI * 2, r = Math.random() * w.r; w.tx = w.cx + Math.cos(a) * r; w.tz = w.cz + Math.sin(a) * r; w.wait = 1 + Math.random() * 4; w.stuck = 0; }
       if (w.wait > 0) w.wait -= dt; else { const dx = w.tx - n.x, dz = w.tz - n.z, d = Math.hypot(dx, dz); if (d < 0.4) w.tx = null; else { speed = n.d.animal ? 0.9 : 1.3; const q = { x: n.x, z: n.z }; n.col.on = false; W.move(q, dx / d * speed * dt, dz / d * speed * dt, 0.35); n.col.on = true; if (W.avoids.length) W.avoid(q, n.x, n.z); if (Math.hypot(q.x - n.x, q.z - n.z) < speed * dt * 0.4) w.stuck += dt; n.x = q.x; n.z = q.z; n.face += angDiff(n.face, Math.atan2(dx, dz)) * Math.min(1, dt * 6); } }
     } else {
-      const want = (n.talking || dist < 4) && !n.d.fixedFace ? Math.atan2(P.x - n.x, P.z - n.z) : n.homeFace;
+      const want = (n.talking || dist < 4) && !n.d.fixedFace && !n.sleep ? Math.atan2(P.x - n.x, P.z - n.z) : n.homeFace; /* v18.21 a sleeper (and the mat) no longer turns to watch you */
       n.face += angDiff(n.face, want) * Math.min(1, dt * 4);
     }
     if (!n.pass) { let gy = W.heightAt(n.x, n.z); if (EP.floor && !n.d.animal) { const f2 = EP.floor(n.x, n.z, S); if (f2 !== null && f2 !== undefined && f2 > gy - 0.3) gy = Math.max(gy, f2); }

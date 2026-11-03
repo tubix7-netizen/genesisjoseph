@@ -213,6 +213,8 @@ UI.short = function (s, max) { s = String(s || ''); if (!brief()) return s; s = 
   for (let i = 1; i < parts.length && (out + ' · ' + parts[i]).length <= max; i++) out += ' · ' + parts[i];
   out = out.replace(/\s*\([^)]*\)\s*$/, ''); return out.length > max + 8 ? out.slice(0, max + 6).replace(/\s+\S*$/, '') + '…' : out; };
 UI.toast = function (m, full) { const t = $('toast'), s = full ? UI.txt(m) : UI.short(UI.txt(m), 64); t.textContent = s; t.classList.toggle('two', s.length > 30); t.classList.add('show'); toastT = 2.6 + Math.min(2.2, Math.max(0, s.length - 30) * 0.05); }; // v18.13c up to two lines (was cut at 36 characters), longer ones stay a little longer
+/* v18.21 days matter little in this story: up to 30 days 「N일째」, then months, then years (the exact count is kept in the journal) */
+UI.dayLabel = d => d <= 30 ? `${d}일째` : d <= 360 ? `${Math.ceil(d / 30)}달째` : `${Math.ceil(d / 360)}해째`;
 UI.tipOnce = function (key, m, full) { const S = Game.S(); if (!S) return false; const f = S.flags.tips = S.flags.tips || {}; if (f[key]) return false; f[key] = 1; UI.toast(m, full); return true; }; // v18.13 help text shows once per save
 UI.gain = function (k, n) {
   G.Audio && G.Audio.sfx('pickup', { pitch: 0.95 + Math.random() * 0.15, gap: 0.08 });
@@ -222,7 +224,7 @@ UI.gain = function (k, n) {
   setTimeout(() => { el.remove(); }, 2200);
 };
 UI.dayCard = function (day, weather, msg) {
-  $('dcT').textContent = `${day}일째 아침`; $('dcS').textContent = msg || (weather === 'rain' ? '비가 내려 밭이 촉촉해졌어요' : '새날이 밝았어요');
+  $('dcT').textContent = `${UI.dayLabel(day)} 아침`; $('dcS').textContent = msg || (weather === 'rain' ? '비가 내려 밭이 촉촉해졌어요' : '새날이 밝았어요');
   const c = $('daycard'); c.classList.add('show'); setTimeout(() => c.classList.remove('show'), 2300);
 };
 UI.fade = function (mid, after) { busyFlags.fade = true; $('fader').classList.add('on'); setTimeout(() => { mid && mid(); setTimeout(() => { $('fader').classList.remove('on'); setTimeout(() => { busyFlags.fade = false; after && after(); }, 380); }, 200); }, 470); };
@@ -297,20 +299,17 @@ function renderMenu(tab, body) {
     body.innerHTML = `<div class="sec">도구</div><div class="grid">${tools.length ? tools.map(k => `<div class="card">${icon('tool', Game.hand() === k ? '#f0d8b0' : '#c8c0b0')}<div class="t"><b>${esc(Game.TOOLS[k])}</b><span>${k === 'jar' || k === 'bigjar' ? `물 ${S.water}/${S.jarMax}` : Game.hand() === k ? '손에 들고 있어요' : '가방 속'}</span></div>${Game.TOOL_PROP[k] ? `<button class="sbtn" data-hold="${Game.hand() === k ? '' : k}">${Game.hand() === k ? '내려놓기' : '손에 들기'}</button>` : ''}</div>`).join('') : '<div class="card"><div class="t"><span>아직 도구가 없어요. 제작 탭에서 만들 수 있어요.</span></div></div>'}</div>
       <div class="sec">소지품 · 은 ${S.silver}</div><div class="grid">${items.length ? items.map(k => { const it = Game.ITEMS[k]; return `<div class="card">${itemIcon(k)}<div class="t"><b>${esc(it.n)}</b><span>×${S.inv[k]}</span></div>${it.stam || it.hp || (G.Surv && G.Surv.food(k) > 0) ? `<button class="sbtn" data-eat="${k}">먹기</button>` : ''}</div>`; }).join('') : '<div class="card"><div class="t"><span>비어 있어요</span></div></div>'}</div>`;
     body.onclick = e => { const b = e.target.closest('[data-eat]'); if (b) { Game.eat(b.dataset.eat); renderMenu('bag', body); } const h = e.target.closest('[data-hold]'); if (h) { Game.hold(h.dataset.hold || null); renderMenu('bag', body); } };
-  } else if (tab === 'gear') {
+  } else if (tab === 'gear') { /* v18.21 the gear tab looks like the bag: what you own, as cards — making new gear lives in the craft tab */
     const C = G.Combat, H = S.hero, GE = C.GEAR, near = Game.nearStation('fire') || Game.nearStation('smith');
-    const row = k => { const g = GE[k], own = !!H.gear[k], lv = C.lv(k), eq = H.weapon === k || H.ranged === k || H.armor === k;
-      const stat = g.kind === 'armor' ? `방어 ${g.def + lv}` : g.kind === 'ranged' ? `피해 ${Math.round(C.wdmg(k))} · 사거리 ${g.range}m` : `피해 ${Math.round(C.wdmg(k))} · ${g.rate < 0.45 ? '빠름' : g.rate > 0.72 ? '묵직함' : '보통'}`;
-      if (own) { const c = C.upCost(k); const can = lv < 5 && S.silver >= c.silver && Object.keys(c.items).every(x => Game.have(x, c.items[x]));
-        return `<div class="row">${icon(g.kind === 'armor' ? 'shield' : g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'sword', g.rareW ? '#ffd24a' : '#e8dcc0')}<div class="t"><b>${esc(g.n)}${lv ? ` +${lv}` : ''}${eq ? ' · 사용 중' : ''}</b><span>${stat} · ${esc(g.d || '')}</span>${lv < 5 ? costHTML(c.items, c.silver) : '<span>최고 단계</span>'}</div>${eq ? '' : `<button class="sbtn" data-eq="${k}">쓰기</button>`}<button class="sbtn ${can && near ? 'pri' : ''}" data-up="${k}" ${can && near ? '' : 'disabled'}>강화</button></div>`; }
-      const can = Object.keys(g.recipe || {}).every(x => Game.have(x, g.recipe[x])); const hint = g.rareW && !Object.keys(g.recipe).some(x => Game.have(x)) ;
-      return `<div class="row">${icon(g.kind === 'armor' ? 'shield' : g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'sword', '#8a8070')}<div class="t"><b>${hint ? '??? (희귀한 재료가 필요해요)' : esc(g.n)}</b><span>${hint ? '사냥하다 보면 희귀한 뼈나 뿔을 얻을 수 있어요' : stat + ' · ' + esc(g.d || '')}</span>${hint ? '' : costHTML(g.recipe)}</div><button class="sbtn ${can ? 'pri' : ''}" data-mk="${k}" ${can ? '' : 'disabled'}>만들기</button></div>`; };
-    const keys = Object.keys(GE).filter(k => k !== 'staff' && (GE[k].recipe || H.gear[k]) && (GE[k].kind !== 'ranged' || k === 'sling' || S.flags.slingOK || H.gear[k])); /* v18.14 the sling can always be made (실 1 · 가죽 1); bows still open after Egypt's huntsman */ // v18.13 slings and bows open after Egypt's huntsman (e_hunt)
-    body.innerHTML = `<div class="row"><div class="t"><b>근접 · ${esc(H.weapon ? GE[H.weapon].n : Game.tool('staff') ? '목자의 지팡이' : '없음')} / 원거리 · ${esc(H.ranged ? GE[H.ranged].n : '없음')} / 방어구 · ${esc(H.armor ? GE[H.armor].n : '없음')}</b><span>강화는 모닥불이나 대장장이 곁에서 할 수 있어요${near ? ' · 지금 가능' : ''}. 공격 버튼(PC: F), 구르기(C), 무기 바꾸기(T)</span></div></div>
-      <div class="sec">가진 장비</div>${Object.keys(H.gear).map(row).join('') || '<div class="row"><div class="t"><span>아직 없어요</span></div></div>'}
-      <div class="sec">만들 수 있는 장비</div>${keys.filter(k => !H.gear[k]).map(row).join('')}`;
-    body.onclick = e => { const b = e.target.closest('button'); if (!b || b.disabled) return;
-      if (b.dataset.mk) C.craftGear(b.dataset.mk); if (b.dataset.up) C.upgrade(b.dataset.up);
+    const gi = g => icon(g.kind === 'armor' ? 'shield' : g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'sword', g.rareW ? '#ffd24a' : '#e8dcc0');
+    const stat = (k, g) => { const lv = C.lv(k); return g.kind === 'armor' ? `방어 ${g.def + lv}` : g.kind === 'ranged' ? `피해 ${Math.round(C.wdmg(k))} · ${g.range}m` : `피해 ${Math.round(C.wdmg(k))} · ${g.rate < 0.45 ? '빠름' : g.rate > 0.72 ? '묵직함' : '보통'}`; };
+    const slot = (lab, k) => `<div class="card"><div class="t"><span>${lab}</span><b>${k ? esc(GE[k].n) + (C.lv(k) ? ' +' + C.lv(k) : '') : '없음'}</b></div></div>`;
+    const own = Object.keys(H.gear).filter(k => GE[k]);
+    body.innerHTML = `<div class="grid bagG">${slot('근접', H.weapon || (Game.tool('staff') ? 'staff' : null))}${slot('원거리', H.ranged)}${slot('방어구', H.armor)}</div>
+      <div class="sec">가진 장비 · ${own.length}</div><div class="grid bagG">${own.length ? own.map(k => { const g = GE[k], lv = C.lv(k), eq = H.weapon === k || H.ranged === k || H.armor === k, c = C.upCost(k), can = lv < 5 && S.silver >= c.silver && Object.keys(c.items).every(x => Game.have(x, c.items[x]));
+        return `<div class="card ${eq ? 'bag-val' : 'bag-etc'}">${gi(g)}<div class="t"><b>${esc(g.n)}${lv ? ' +' + lv : ''}</b><span>${stat(k, g)}${eq ? ' · 쓰는 중' : ''}</span></div><div class="bb">${eq ? '' : `<button class="sbtn" data-eq="${k}">쓰기</button>`}${lv < 5 ? `<button class="sbtn ${can && near ? 'pri' : ''}" data-up="${k}" ${can && near ? '' : 'disabled'}>강화${near ? '' : ' (모닥불)'}</button>` : ''}</div></div>`; }).join('') : '<div class="card"><div class="t"><span>아직 없어요</span></div></div>'}</div>
+      <div class="card"><div class="t"><span>새 장비는 제작 탭 · 강화는 모닥불 곁에서</span></div></div>`;
+    body.onclick = e => { const b = e.target.closest('button'); if (!b || b.disabled) return; if (b.dataset.up) C.upgrade(b.dataset.up);
       if (b.dataset.eq) { const g = GE[b.dataset.eq]; if (g.kind === 'melee') H.weapon = b.dataset.eq; else if (g.kind === 'ranged') H.ranged = b.dataset.eq; else { H.armor = b.dataset.eq; Game.refreshLook(); } G.Audio && G.Audio.sfx('click'); UI.hud(); }
       renderMenu('gear', body); };
   } else if (tab === 'skill') {
@@ -326,17 +325,27 @@ function renderMenu(tab, body) {
       `<div class="row"><div class="t"><b>맡은 부탁 ${act.length} · 마친 부탁 ${done}</b><span>이름 위에 <b style="color:var(--gold)">!</b> 표시가 있는 사람은 부탁할 일이 있어요. <b style="color:#9be0ff">?</b> 표시는 다 했으니 말을 걸어 보라는 뜻이에요.</span></div></div>` +
       (act.length ? act.map(id => { const q = QS[id], st = S.side.act[id], giver = Game.ENT.npcs[q.giver]; const on = gs && tr && tr.id === id; return `<div class="row qgoal side ${on ? 'on' : ''}"><div class="t"><b>${esc(q.title)}${on ? ' · 지금 목표' : ''}</b><span>${esc(giver ? giver.name : '')} · ${esc(q.desc || '')}</span>${q.obj.map(o => `<span>${o.ok(S, Game, st) ? '✓' : '·'} ${esc(typeof o.t === 'function' ? o.t(S, Game, st) : o.t)}</span>`).join('')}</div>${on ? '' : `<button class="sbtn sideb" data-tr="${id}">목표로</button>`}</div>`; }).join('') : '<div class="row"><div class="t"><span>지금 맡은 부탁이 없어요. 사람들에게 말을 걸어 보세요.</span></div></div>');
     body.onclick = e => { const b = e.target.closest('[data-tr],[data-goal]'); if (!b) return; L.goal(b.dataset.tr || null); G.Audio && G.Audio.sfx('click'); UI.toast(b.dataset.tr ? '부탁을 목표로 정했어요 · 집중하면 푸른 빛이 길을 비춰요' : '이야기를 목표로 정했어요 · 집중하면 금빛이 길을 비춰요'); renderMenu('quest', body); };
-  } else if (tab === 'craft') {
-    const rs = Game.recipes();
-    body.innerHTML = rs.map((r, i) => { const can = Object.keys(r.in).every(k => Game.have(k, r.in[k])) && (!r.water || S.water >= r.water) && !(r.tool && S.tools[r.tool]);
-      const stn = r.st ? ({ fire: '모닥불 근처', loom: '베틀 근처', press: '기름틀 근처', tan: '가죽 장인 작업대 근처', smith: '대장장이 화덕 근처' }[r.st] || '') : ''; const near = !r.st || Game.nearStation(r.st);
-      let ch = costHTML(r.in); if (r.water) ch = ch.replace('</div>', `<em class="${S.water >= r.water ? '' : 'no'}">물 ${r.water}</em></div>`);
-      return `<div class="row">${r.tool ? icon('tool', '#c8c0b0') : itemIcon(Object.keys(r.out)[0])}<div class="t"><b>${esc(r.n)}${r.tool && S.tools[r.tool] ? ' · 보유 중' : ''}</b><span>${esc(r.d || '')}${stn ? (r.d ? ' · ' : '') + stn + (near ? '' : ' (멀어요)') : ''}</span>${ch}</div><button class="sbtn ${can && near ? 'pri' : ''}" data-r="${i}" ${can && near ? '' : 'disabled'}>만들기</button>${!r.tool ? `<button class="sbtn" data-r5="${i}" ${can && near ? '' : 'disabled'}>×5</button>` : ''}</div>`; }).join('');
-    body.onclick = e => { const b = e.target.closest('[data-r],[data-r5]'); if (!b || b.disabled) return; const r = rs[+(b.dataset.r || b.dataset.r5)]; Game.craft(r, b.dataset.r5 ? 5 : 1); renderMenu('craft', body); };
+  } else if (tab === 'craft') { /* v18.21 only what can be made where you stand: a few simple things by hand, the rest at the fire, the loom, … */
+    const ST = { fire: '모닥불', loom: '베틀', press: '기름틀', tan: '가죽 작업대', smith: '대장장이 화덕' }, here = k => !k || Game.nearStation(k);
+    const rs = Game.recipes(), C = G.Combat, H = S.hero, GE = C.GEAR, forge = Game.nearStation('fire') || Game.nearStation('smith');
+    const gearKeys = Object.keys(GE).filter(k => k !== 'staff' && GE[k].recipe && !H.gear[k] && (GE[k].kind !== 'ranged' || k === 'sling' || S.flags.slingOK));
+    const groups = {}; let hidden = 0;
+    rs.forEach((r, i) => { if (!here(r.st)) { hidden++; return; } (groups[r.st || 'hand'] = groups[r.st || 'hand'] || []).push([r, i]); });
+    const gearNow = gearKeys.filter(k => k === 'sling' || forge); hidden += gearKeys.length - gearNow.length;
+    const card = (r, i) => { const can = Object.keys(r.in).every(k => Game.have(k, r.in[k])) && (!r.water || S.water >= r.water) && !(r.tool && S.tools[r.tool]); let ch = costHTML(r.in); if (r.water) ch = ch.replace('</div>', `<em class="${S.water >= r.water ? '' : 'no'}">물 ${r.water}</em></div>`);
+      return `<div class="card">${r.tool ? icon('tool', '#c8c0b0') : itemIcon(Object.keys(r.out)[0])}<div class="t"><b>${esc(r.n)}${r.tool && S.tools[r.tool] ? ' ✓' : ''}</b>${ch}</div><div class="bb"><button class="sbtn ${can ? 'pri' : ''}" data-r="${i}" ${can ? '' : 'disabled'}>만들기</button>${!r.tool ? `<button class="sbtn" data-r5="${i}" ${can ? '' : 'disabled'}>×5</button>` : ''}</div></div>`; };
+    const gcard = k => { const g = GE[k], can = Object.keys(g.recipe).every(x => Game.have(x, g.recipe[x])), hint = g.rareW && !Object.keys(g.recipe).some(x => Game.have(x));
+      return `<div class="card">${icon(g.kind === 'armor' ? 'shield' : g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'sword', '#c8c0b0')}<div class="t"><b>${hint ? '??? · 희귀한 재료' : esc(g.n)}</b>${hint ? '' : costHTML(g.recipe)}</div><div class="bb"><button class="sbtn ${can ? 'pri' : ''}" data-mk="${k}" ${can ? '' : 'disabled'}>만들기</button></div></div>`; };
+    const sec = (t, cards) => cards ? `<div class="sec">${t}</div><div class="grid bagG">${cards}</div>` : '';
+    body.innerHTML = sec('손으로', (groups.hand || []).map(([r, i]) => card(r, i)).join('') + gearNow.filter(k => k === 'sling').map(gcard).join(''))
+      + Object.keys(ST).map(k => sec(ST[k] + ' 곁에서', (groups[k] || []).map(([r, i]) => card(r, i)).join(''))).join('')
+      + sec('장비 · ' + (Game.nearStation('smith') ? '대장장이 화덕' : '모닥불') + ' 곁에서', gearNow.filter(k => k !== 'sling').map(gcard).join(''))
+      + (hidden ? `<div class="card"><div class="t"><span>모닥불·베틀 같은 곳에 가면 ${hidden}가지를 더 만들 수 있어요</span></div></div>` : '');
+    body.onclick = e => { const b = e.target.closest('[data-r],[data-r5],[data-mk]'); if (!b || b.disabled) return; if (b.dataset.mk) { C.craftGear(b.dataset.mk); UI.hud(); } else { const r = rs[+(b.dataset.r || b.dataset.r5)]; Game.craft(r, b.dataset.r5 ? 5 : 1); } renderMenu('craft', body); };
   } else if (tab === 'journal') {
     const st = Game.step(); const chs = EP.chapters; const cur = st ? st.ch : 1;
     const herdTxt = (EP.pens || []).filter(p => S.herds[p.id] && !(p.hidden && p.hidden(S))).map(p => `<div><b>${Game.herdCount(p.id)}</b><span>${esc(p.n)}</span></div>`).join('');
-    body.innerHTML = `<div class="row"><div class="t"><b>지금 할 일</b><span>${esc($('qObj').textContent)}</span></div></div>
+    body.innerHTML = `<div class="row"><div class="t"><b>지난 날</b><span>여정 ${S.day}일째 · ${UI.dayLabel(S.day)}</span></div></div><div class="row"><div class="t"><b>지금 할 일</b><span>${esc($('qObj').textContent)}</span></div></div>
       <div class="sec">${esc(EP.title)}</div>${chs.map((c, i) => `<div class="chap ${i + 1 < cur ? 'done' : i + 1 === cur ? 'cur' : 'lock'}"><span class="s">${i + 1 < cur ? '✓' : i + 1 === cur ? '▸' : i + 1}</span><span>${esc(c.t)}</span><span class="r">${esc(c.r)}</span></div>`).join('')}
       <div class="sec">살림</div>${EP.ledger ? `<div class="sec">${esc(EP.ledger(S, Game).title)}</div><div class="stats">${EP.ledger(S, Game).rows.map(r => `<div><b>${esc(String(r[1]))}</b><span>${esc(r[0])}</span>${r[2] !== undefined ? `<div class="bar"><i style="width:${Math.min(100, r[2] * 100)}%"></i></div>` : ''}</div>`).join('')}</div>` : ''}<div class="stats"><div><b>${S.day}</b><span>지난 날수</span></div><div><b>${S.silver}</b><span>은 (세겔)</span></div><div><b>${Object.values(S.stats.harvest).reduce((a, b) => a + b, 0)}</b><span>거둔 곡식과 열매</span></div><div><b>${S.stats.born || 0}</b><span>태어난 새끼</span></div>${herdTxt}</div>`;
   } else if (tab === 'set') {
@@ -555,7 +564,7 @@ UI.hud = function () {
   const S = Game.S(); if (!S) return;
   const h = S.time % 24, night = h < 5.6 || h > 19.6;
   const wic = G.Weather ? G.Weather.icon(S) : S.weather === 'rain' ? 'rain' : 'sun'; const ic = wic === 'sun' && night ? 'moon' : wic;
-  const ck = ic + S.day + fmtTime(S.time); if ($('clock').dataset.k !== ck) { $('clock').dataset.k = ck; $('clock').innerHTML = icon(ic, ic === 'sun' ? '#f7d070' : ic === 'moon' ? '#cfd8f0' : ic === 'dust' ? '#e0b070' : '#d8e0ec') + `${S.day}일째 · ${fmtTime(S.time)}`; $('clock').title = G.Weather ? G.Weather.name(S) : ''; }
+  const ck = ic + S.day + fmtTime(S.time); if ($('clock').dataset.k !== ck) { $('clock').dataset.k = ck; $('clock').innerHTML = icon(ic, ic === 'sun' ? '#f7d070' : ic === 'moon' ? '#cfd8f0' : ic === 'dust' ? '#e0b070' : '#d8e0ec') + `${UI.dayLabel(S.day)} · ${fmtTime(S.time)}`; $('clock').title = `${S.day}일째` + (G.Weather ? ' · ' + G.Weather.name(S) : ''); }
   if (G.Surv) { const sv = G.Surv.get(), gf = $('gFood'), gw = $('gWarm'); gf.hidden = !Game.feat('surv'); gw.hidden = !Game.feat('warm');
     if (!gf.hidden) { gf.querySelector('i').style.width = sv.food + '%'; gf.classList.toggle('low', sv.food < 28); }
     if (!gw.hidden) { gw.querySelector('i').style.width = sv.warm + '%'; gw.classList.toggle('low', sv.warm < 35); gw.classList.toggle('hot', !!G.Surv.src && G.Surv.heat > G.Surv.cold); } }

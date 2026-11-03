@@ -1,6 +1,6 @@
 /* 약속의 길 — 가방과 개인 창고 (v18.14)
    · 가방: 도구 / 음식 / 재료 / 씨앗 / 돌·화살 / 귀중품 / 그 밖에 로 나눠 보여 주고, 위쪽 칸 단추로 골라 봐요. 씨앗은 여기서 「심을 씨앗」으로
-     고르고(왼쪽 씨앗 단추는 없앴어요), 음식은 「빠른 칸」에 등록할 수 있어요.
+     고르고(왼쪽 씨앗 단추는 없앴어요), 음식은 「퀵슬롯」에 등록할 수 있어요.
    · 칸: 가방은 물건 종류 수로 칸을 써요. 기본 16칸 + 이야기 장마다 2칸 + 체력 레벨마다 1칸 + 부탁 2개마다 1칸 (최대 48).
      칸을 넘기면 물건은 그대로 들어오지만 짐이 무거워 걸음이 느려져요 → 잠자리 옆 「개인 창고」에 맡겨요.
    · 개인 창고: 잠자리(헤브론 장막·종들의 숙소·옥·총리 관저, 직접 지은 움막·집)마다 나무 궤짝. 보관함과 옷장이 여기 있어요. */
@@ -36,7 +36,7 @@ Bg.render = function (body, again) { const s = S(), used = St.used(), cap = St.c
   const order = CATS.map(c => c[0]); items.sort((a, b) => order.indexOf(catOf(a)) - order.indexOf(catOf(b)) || Game.ITEMS[a].n.localeCompare(Game.ITEMS[b].n, 'ko'));
   const shown = cat === 'all' ? items : items.filter(k => catOf(k) === cat), n = c => items.filter(k => catOf(k) === c).length;
   const card = k => { const it = Game.ITEMS[k], c = catOf(k), btn = [];
-    if (edible(k)) { btn.push(`<button class="sbtn" data-eat="${k}">먹기</button>`); btn.push(`<button class="sbtn ${s.quick === k ? 'pri' : ''}" data-quick="${k}">${s.quick === k ? '빠른 칸 ✓' : '빠른 칸'}</button>`); }
+    if (edible(k)) { btn.push(`<button class="sbtn" data-eat="${k}">먹기</button>`); btn.push(`<button class="sbtn ${s.quick === k ? 'pri' : ''}" data-quick="${k}">${s.quick === k ? '퀵슬롯 ✓' : '퀵슬롯'}</button>`); }
     if (c === 'seed') btn.push(`<button class="sbtn ${s.seedSel === k ? 'pri' : ''}" data-seed="${k}">${s.seedSel === k ? '심을 씨앗 ✓' : '심을 씨앗'}</button>`);
     const sub = G.Cuisine && G.Cuisine.line && edible(k) ? G.Cuisine.line(k) : '';
     return `<div class="card bag-${c}">${UI.itemIcon(k)}<div class="t"><b>${esc(it.n)} <i class="bn">×${s.inv[k]}</i></b><span>${esc(sub || CATS.find(x => x[0] === c)[1])}</span></div><div class="bb">${btn.join('')}</div></div>`; };
@@ -60,22 +60,24 @@ const dyn0 = EPJ.dyn; EPJ.dyn = function (list) { if (dyn0) dyn0.apply(this, arg
     if (!chestMesh) { const g = new G.GB(37); g.box(0.9, 0.5, 0.55, { at: [0, 0.25, 0], c: 0x8a5a32 }); g.box(0.94, 0.12, 0.59, { at: [0, 0.55, 0], c: 0x6e4424 }); for (const x of [-0.36, 0.36]) g.box(0.06, 0.52, 0.6, { at: [x, 0.27, 0], c: 0x4a3a2a }); g.box(0.12, 0.12, 0.04, { at: [0, 0.44, 0.3], c: 0xc8a040 }); chestMesh = G.R.mesh(g); }
     const m = CM[c.id] || (CM[c.id] = G.m4()); G.m4trs(m, c.x, W.heightAt(c.x, c.z), c.z, 0, 0, 0, 1, 1, 1); list.push({ mesh: chestMesh, m, outline: true }); } } catch (e) { } };
 
-St.open = function () { const s = S(); s.store = s.store || {}; sfx('door', { vol: 0.5, pitch: 1.3 });
-  const ward = EP().openWardrobe && EP().wardOk && EP().wardOk(s);
-  UI.openPanel('개인 창고', [['store', '보관함'], ['ward', '옷장']], 'store', function render(tab, body) {
+/* v18.21 one box panel for the personal chest (with the wardrobe) and the chariot's cargo space */
+St.openBox = function (title, key, withWard, cap) { const s = S(), box = s[key] || (s[key] = {}); sfx('door', { vol: 0.5, pitch: 1.3 });
+  const ward = withWard && EP().openWardrobe && EP().wardOk && EP().wardOk(s);
+  UI.openPanel(title, withWard ? [['store', '보관함'], ['ward', '옷장']] : null, 'store', function render(tab, body) {
     if (tab === 'ward') { body.innerHTML = ward ? `<div class="card"><div class="t"><b>옷장</b><span>모은 옷과 장신구를 고르고 갈아입어요.</span></div><button class="sbtn pri" id="wardGo">옷장 열기</button></div>` : '<div class="card"><div class="t"><span>총리가 된 뒤에 옷장을 쓸 수 있어요.</span></div></div>';
       if ($('wardGo')) $('wardGo').onclick = () => { UI.closePanel(); EP().openWardrobe(S(), Game); }; return; }
-    const inv = Object.keys(s.inv).filter(k => s.inv[k] > 0 && Game.ITEMS[k]).sort((a, b) => Game.ITEMS[a].n.localeCompare(Game.ITEMS[b].n, 'ko')), st = Object.keys(s.store).filter(k => s.store[k] > 0 && Game.ITEMS[k]).sort((a, b) => Game.ITEMS[a].n.localeCompare(Game.ITEMS[b].n, 'ko'));
+    const inv = Object.keys(s.inv).filter(k => s.inv[k] > 0 && Game.ITEMS[k]).sort((a, b) => Game.ITEMS[a].n.localeCompare(Game.ITEMS[b].n, 'ko')), st = Object.keys(box).filter(k => box[k] > 0 && Game.ITEMS[k]).sort((a, b) => Game.ITEMS[a].n.localeCompare(Game.ITEMS[b].n, 'ko'));
     const row = (k, n, act, lab) => `<div class="card">${UI.itemIcon(k)}<div class="t"><b>${esc(Game.ITEMS[k].n)} <i class="bn">×${n}</i></b><span>${esc(CATS.find(x => x[0] === catOf(k))[1])}</span></div><div class="bb"><button class="sbtn" data-${act}="${k}">${lab}</button></div></div>`;
-    body.innerHTML = `<div class="bagHead"><b class="${St.over() ? 'full' : ''}">가방 ${St.used()}/${St.cap()}칸</b><span>창고에는 칸 제한이 없어요</span></div>
+    body.innerHTML = `<div class="bagHead"><b class="${St.over() ? 'full' : ''}">가방 ${St.used()}/${St.cap()}칸</b><span>${cap ? `${title} ${Object.keys(box).filter(q => box[q] > 0).length}/${cap}칸` : '창고에는 칸 제한이 없어요'}</span></div>
       <div class="chips"><button class="chip" data-bulk="mat">재료 모두 맡기기</button><button class="chip" data-bulk="val">귀중품 모두 맡기기</button><button class="chip" data-bulk="etc">그 밖에 모두 맡기기</button></div>
       <div class="sec">가방</div><div class="grid bagG">${inv.length ? inv.map(k => row(k, s.inv[k], 'put', '맡기기')).join('') : '<div class="card"><div class="t"><span>비어 있어요</span></div></div>'}</div>
-      <div class="sec">창고</div><div class="grid bagG">${st.length ? st.map(k => row(k, s.store[k], 'take', '꺼내기')).join('') : '<div class="card"><div class="t"><span>창고가 비어 있어요</span></div></div>'}</div>`;
+      <div class="sec">${cap ? title : '창고'}</div><div class="grid bagG">${st.length ? st.map(k => row(k, box[k], 'take', '꺼내기')).join('') : '<div class="card"><div class="t"><span>창고가 비어 있어요</span></div></div>'}</div>`;
     body.onclick = e => { const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
-      const put = k => { const n = s.inv[k]; if (!n) return; s.store[k] = (s.store[k] || 0) + n; s.inv[k] = 0; delete s.inv[k]; if (s.quick === k) s.quick = null; };
-      if (d.put) put(d.put); else if (d.take) { s.inv[d.take] = (s.inv[d.take] || 0) + s.store[d.take]; delete s.store[d.take]; } else if (d.bulk) Object.keys(s.inv).filter(k => catOf(k) === d.bulk).forEach(put); else return;
+      const put = k => { const n = s.inv[k]; if (!n) return; if (cap && !box[k] && Object.keys(box).filter(q => box[q] > 0).length >= cap) { UI.toast(`${title}이 꽉 찼어요 (${cap}칸)`); return; } box[k] = (box[k] || 0) + n; s.inv[k] = 0; delete s.inv[k]; if (s.quick === k) s.quick = null; };
+      if (d.put) put(d.put); else if (d.take) { s.inv[d.take] = (s.inv[d.take] || 0) + box[d.take]; delete box[d.take]; } else if (d.bulk) Object.keys(s.inv).filter(k => catOf(k) === d.bulk).forEach(put); else return;
       sfx('pickup', { vol: 0.5 }); UI.hud(); render('store', body); Game.save && Game.save(true); }; }); };
 
+St.open = () => { St.openBox('개인 창고', 'store', true); UI.help && UI.help('chest', '개인 창고', '맡긴 물건은 칸을 쓰지 않아요 · 옷장도 여기'); };
 // ------------------------------------------------------------------ heavy bag: slower steps; a bigger bag as Joseph grows
 const sm0 = EPJ.speedMul; EPJ.speedMul = function (s, p, mag) { const r = sm0 ? sm0.apply(this, arguments) : 1; return St.over() && !(s.q && s.q.riding) ? r * 0.82 : r; };
 let tick = 0, warnT = -999, tAll = 0;

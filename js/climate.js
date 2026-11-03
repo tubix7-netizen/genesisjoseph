@@ -70,6 +70,7 @@ const chip = document.createElement('div'); chip.id = 'climChip'; chip.hidden = 
   Game.CTX.push(function (S) { const P = Game.P; if (P.ride || P.swim || P.act || Game.cineOn) return null; const EP = Game.EP();
     for (const st of EP.stations || []) { if (st.type !== 'well' || (st.on && !st.on(S, Game))) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d > (st.r || 2.6)) continue;
       const day = S.day + Math.floor(S.time / 6); if (S.flags.wellDrink === day) continue;
+      { const hk = Game.hand(); if ((hk === 'jar' || hk === 'bigjar') && S.water < S.jarMax) continue; } /* v18.21 with the jar in hand at a well, A draws water (it used to offer only a drink) */
       return [{ d: d - 0.9, label: '우물물 마시기', x: st.x, z: st.z, y: 1.2, key: 'drinkWell:' + st.id, well: st.rim || 1.75, use: () => { S.flags.wellDrink = day; drink(60, '시원한 우물물 · 기력이 차올라요'); } }]; }
     return null; });
   setTimeout(() => { const EP = G.EP && G.EP.joseph; if (EP) (EP.extra = EP.extra || []).push({ id: 'drink', label: S => `물 마시기 (${S.water})`, ic: 'drop', on: S => S.water > 0 && (Game.tool('jar') || Game.tool('bigjar')),
