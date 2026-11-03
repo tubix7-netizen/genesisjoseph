@@ -759,6 +759,7 @@ function locoPose(rig, st, t) { // returns true when a full-body hold pose (slee
     rig.rot[B.chest * 3] += 0.18 * up - 0.05 * dn; rig.rot[B.head * 3] -= 0.12 * up;
   }
   if (st.carry === 'head') { rig.set(B.uArmL, -2.75, 0, -0.25); rig.set(B.uArmR, -2.75, 0, 0.25); rig.set(B.fArmL, -0.65, 0, 0); rig.set(B.fArmR, -0.65, 0, 0); }
+  if (st.carry === 'one') { rig.set(B.uArmR, -0.35, 0, 0.12); rig.set(B.fArmR, -0.55, 0, 0); } /* v18.22 a light thing hangs from the right hand */
   if (st.carry === 'arms') { rig.set(B.uArmL, -0.7, 0, -0.15); rig.set(B.uArmR, -0.7, 0, 0.15); rig.set(B.fArmL, -1.1, 0, 0); rig.set(B.fArmR, -1.1, 0, 0); }
   if (st.talk) { const k = Math.sin(t * 5); rig.set(B.uArmR, -0.35 + k * 0.08, 0, -0.25); rig.set(B.fArmR, -1.1 + k * 0.15, 0, 0); rig.set(B.head, -0.05 + Math.sin(t * 3) * 0.04, st.look || 0, 0); }
   if (st.staff) { const pl = Math.sin((st.phase || 0) * 0.5) * Math.min(1, (st.speed || 0) / 2.2); // fist in front at the hip, elbow bent, reaching forward as the staff is planted

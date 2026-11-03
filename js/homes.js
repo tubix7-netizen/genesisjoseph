@@ -55,9 +55,17 @@ const TYPE = {
   kids: { n: '아이들이 노는 집', model(g) { for (let i = 0; i < 3; i++) g.sph(0.12, 8, 6, { at: [-0.4 + i * 0.6, 0.12, 0.2 + i * 0.3], c: [0xc04a3a, 0x2c5aa0, 0xe5b552][i] }); g.box(0.3, 0.18, 0.12, { at: [1.1, 0.12, 1.2], c: WOOD }); g.cyl(0.03, 0.03, 0.2, 5, { at: [1.1, 0.25, 1.2], c: WOOD }); g.box(1.2, 0.7, 0.7, { at: [0.3, 0.35, -0.6], c: WOOD }); g.sph(0.4, 8, 6, { at: [2.4, 0.15, 2.1], s: [1, 0.5, 1], c: 0x5a4a3a }); },
     act: { label: '아이들과 놀기', mind: 20, msg: '공 던지기·숨바꼭질 한 판! 아이들이 깔깔 웃어요 · 마음이 가벼워졌어요 (정신력 +20)' } },
 };
-const TYPES = Object.keys(TYPE);
+TYPE.mine = { n: '요셉의 집', model(g) { g.box(1.1, 0.45, 2.1, { at: [-2.5, 0.22, 1.9], c: 0x8a6440 }); g.box(1.0, 0.12, 2.0, { at: [-2.5, 0.5, 1.9], c: 0xece2c8 }); g.box(0.7, 0.14, 0.32, { at: [-2.5, 0.6, 2.7], c: 0xd8c8a8 });
+    g.box(0.9, 0.55, 0.55, { at: [2.4, 0.28, 2.3], c: 0x8a5a32 }); g.box(0.94, 0.12, 0.59, { at: [2.4, 0.6, 2.3], c: 0x6e4424 }); g.box(0.12, 0.12, 0.04, { at: [2.4, 0.46, 2.0], c: 0xc8a040 });
+    g.box(1.4, 0.7, 0.7, { at: [0.3, 0.35, 0.5], c: 0x7a5a3a }); for (let i = 0; i < 3; i++) g.cyl(0.05, 0.05, 0.5, 6, { at: [-0.1 + i * 0.3, 0.75, 0.5], rz: Math.PI / 2, c: 0xe8dcb8 }); g.cyl(0.08, 0.1, 0.08, 8, { at: [0.8, 0.76, 0.4], c: 0xc8a040 }); }, act: null };
+const TYPES = Object.keys(TYPE).filter(k => k !== 'mine');
+/* v18.22 Joseph's house (the vizier's house) can be entered too: his bed and his chest are inside */
+const ord = () => Game.stepOrder(), afterStep = k => { const o = ord(), s = S(); return !!s && o.indexOf(s.step) >= o.indexOf(k); };
+const MINE = { id: 'jhouse', n: '요셉의 집', x: 10, z: -144, r: 9, homes: [[10, -144, 0]], folk: [], mine: true, when: () => afterStep('c5_patrol') };
+const allV = () => (EP.villages || []).concat([MINE]);
+{ const b = (EP.stations || []).find(s => s.id === 'bJos'); if (b) b.on = () => false; } // his bed now stands inside his house
 const houseKey = (v, i) => v.id + ':' + i;
-const typeOf = (v, i) => TYPES[Math.floor(hash(houseKey(v, i)) * TYPES.length)];
+const typeOf = (v, i) => v.mine ? 'mine' : TYPES[Math.floor(hash(houseKey(v, i)) * TYPES.length)];
 
 // ------------------------------------------------------------------ going in and out
 const cur = () => S().flags.inHouse || null;
@@ -74,11 +82,14 @@ function doorOf(v, i) { const k = houseKey(v, i); if (DOORS[k] !== undefined) re
   if (!best) return (DOORS[k] = null); const a = Math.atan2(best.sa, best.ca), ox = Math.sin(a), oz = Math.cos(a), x = best.x + ox * (best.hd + 0.06), z = best.z + oz * (best.hd + 0.06);
   return (DOORS[k] = { k, x, z, a, y: W.heightAt(x, z), fx: x + ox * 0.95, fz: z + oz * 0.95 }); }
 const pop = (t, sub, ic) => G.UI.pop ? G.UI.pop(t, sub, ic) : G.UI.toast(sub ? t + ' · ' + sub : t);
-const whoOf = (v, i) => { const ow = ownerOf(v, i); return ow ? ow.name.split(' ').pop() + '네' : '빈집'; };
-function ownerNear(v, i, d) { const ow = ownerOf(v, i), n = ow && Game.ENT.npcs[ow.id]; if (!n || !n.vis && !n.schedHidden) return null; const hm = v.homes[i];
+const whoOf = (v, i) => { if (v.mine) return '내 집'; const ow = ownerOf(v, i); return ow ? ow.name.split(' ').pop() + '네' : '빈집'; };
+const FAM = ['할머니', '할아버지', '어머니', '맏딸', '아들'];
+function famHome(v, i) { if (v.mine || !ownerOf(v, i)) return null; const k = houseKey(v, i), h = S().time % 24; if (hash(k + 'fam') > 0.65 || h < 7 || h > 21.5) return null; return FAM[Math.floor(hash(k + 'who') * FAM.length)]; }
+function ownerNear(v, i, d) { if (v.mine) return { home: true, me: true }; const f0 = ownerNearReal(v, i, d); if (f0) return f0; const fm = famHome(v, i); return fm ? { home: true, fam: fm } : null; }
+function ownerNearReal(v, i, d) { const ow = ownerOf(v, i), n = ow && Game.ENT.npcs[ow.id]; if (!n || !n.vis && !n.schedHidden) return null; const hm = v.homes[i];
   if (n.schedHidden && Math.hypot(n.x - hm[0], n.z - hm[1]) < 3) return { n, home: true }; if (n.vis && !n.schedHidden && Math.hypot(n.x - d.x, n.z - d.z) < 9) return { n, home: false }; return null; }
 function knock() { sfx('thud', { vol: 0.6, pitch: 1.4 }); setTimeout(() => sfx('thud', { vol: 0.6, pitch: 1.5 }), 180); setTimeout(() => pop('아무도 없어요', '주인이 없을 땐 들어가지 않아요', 'house'), 450); }
-function nearDoor() { const s = S(), p = P(); let best = null, bd = 1e9; for (const v of EP.villages || []) { if (v.when && !v.when(s)) continue; if (Math.hypot(v.x - p.x, v.z - p.z) > v.r + 12) continue;
+function nearDoor() { const s = S(), p = P(); let best = null, bd = 1e9; for (const v of allV()) { if (v.when && !v.when(s)) continue; if (Math.hypot(v.x - p.x, v.z - p.z) > v.r + 12) continue;
     v.homes.forEach((hm, i) => { const d = doorOf(v, i); if (!d) return; const dd = Math.hypot(d.fx - p.x, d.fz - p.z); if (dd < bd) { bd = dd; best = [v, i, d]; } }); }
   return best && bd <= 2.3 ? best.concat([bd]) : null; }
 Ho.door = (v, i) => doorOf(v, i); // (for checking)
@@ -87,13 +98,17 @@ Ho.enter = function (v, i) { const s = S(), p = P(), t = typeOf(v, i), ow = owne
   G.UI.fade(() => { s.flags.inHouse = { v: v.id, i, t, x: d ? d.fx : p.x, z: d ? d.fz : p.z, f: d ? d.a : p.face + Math.PI, ow: ow ? ow.name : null, age: ow ? ow.age : null };
     Game.teleport(IX, IZ - RD / 2 + 1.9, 0); p.y = IY; sfx('door', { vol: 0.5 }); }, () => {
     const pr = ow && G.Persona && G.Persona.of(ow.id), g = !ow ? null : ow.age === 'kid' ? 'kid' : ow.age === 'old' ? 'old' : pr && pr.fem ? 'woman' : 'man';
-    if (!(G.UI.help && G.UI.help('house', '집 안', '쉬기 · 물 · 일 거들기 · 주인이 없으면 못 들어와요'))) pop(`${ow ? ow.name.split(' ').pop() + '네 집' : '빈집'}`, TYPE[t].n, 'house'); if (ow) setTimeout(() => G.UI.say([{ n: ow.name, t: GREET[g][Math.floor(Math.random() * 2)].replace('{you}', '총리님') }], () => { }), 900); }); };
+    if (v.mine) { pop('요셉의 집', '잠자리 · 개인 창고', 'house'); return; } const o = d && ownerNearReal(v, i, d), fm = !o && famHome(v, i), nm = ow ? ow.name.split(' ').pop() : '';
+    if (!(G.UI.help && G.UI.help('house', '집 안', '쉬기 · 물 · 일 거들기 · 아무도 없으면 못 들어와요'))) pop(`${nm ? nm + '네 집' : '빈집'}`, TYPE[t].n, 'house');
+    if (fm) setTimeout(() => G.UI.say([{ n: `${nm}네 ${fm}`, t: `어서 오세요, 총리님! ${nm}${jo(nm)} 일하러 나갔어요. 편히 계세요.` }], () => { }), 900);
+    else if (ow) setTimeout(() => G.UI.say([{ n: ow.name, t: GREET[g][Math.floor(Math.random() * 2)].replace('{you}', '총리님') }], () => { }), 900); }); };
+const jo = w => { const c = w.charCodeAt(w.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '은' : '는'; };
 Ho.leave = function () { const h = cur(); if (!h) return; if (h.lockReq) { Ho.lockUp(); return; } // asked to lock up: the little scene plays on the way out
   G.UI.fade(() => { S().flags.inHouse = null; Game.teleport(h.x, h.z, h.f); sfx('door', { vol: 0.5, pitch: 0.9 }); }, () => { }); };
 Ho.inside = () => !!cur();
 /* 문단속 — a little scene: Joseph steps out, pulls the door shut, slides the outer bar across (click), tests it once, and the
    family's thanks follow. The camera watches from the side of the doorway. */
-Ho.lockUp = function () { const h = cur(); if (!h || UI_busy()) return; const v = (EP.villages || []).find(q => q.id === h.v), d = v ? doorOf(v, h.i) : null, p = P(); if (!v || !d) { h.lockReq = 0; Ho.leave(); return; }
+Ho.lockUp = function () { const h = cur(); if (!h || UI_busy()) return; const v = allV().find(q => q.id === h.v), d = v ? doorOf(v, h.i) : null, p = P(); if (!v || !d) { h.lockReq = 0; Ho.leave(); return; }
   const push = dur => Object.assign(p, { act: 'push', actT: 0, actDur: dur, actHits: 1, actFn: null, actProp: null, fired: false, actRepeat: false }); // hands forward on the door
   G.UI.setBusy('lockup', true); const ox = Math.sin(d.a), oz = Math.cos(d.a), sx = Math.cos(d.a), sz = -Math.sin(d.a), at = (t, f) => setTimeout(f, t);
   G.UI.fade(() => { S().flags.inHouse = null; Game.teleport(d.x + ox * 0.6, d.z + oz * 0.6, d.a + Math.PI);
@@ -120,6 +135,8 @@ Game.CTX.push(function (s) { const p = P(); if (p.ride || p.swim || p.act || p.c
   // inside
   const L = (x, z) => [IX + x, IZ + z], out = [], add = (x, z, r, c) => { const [wx, wz] = L(x, z), d = Math.hypot(wx - p.x, wz - p.z); if (d < r) out.push(Object.assign({ d: d - 0.4, x: wx, z: wz, y: 1.2, noMagnet: true }, c)); };
   add(0, -RD / 2 + 0.2, 1.6, { label: h.lockReq ? '문단속하고 나가기' : '밖으로 나가기', use: Ho.leave, key: 'hLeave' });
+  if (h.t === 'mine') { add(-2.5, 1.9, 1.8, { label: '잠자기', key: 'hBed', use: () => G.UI.sleepAsk() }); add(2.4, 2.0, 1.7, { label: '개인 창고 열기', key: 'hChest', use: () => G.Storage && G.Storage.open() });
+    add(2.9, -2.0, 1.7, { label: '물항아리에서 물 마시기', key: 'hJar', use: () => { const H = s.hero, cap = (G.Vitals && G.Vitals.cap) || (H && H.stamMax) || 140; p.stam = Math.min(cap, p.stam + 30); if ((Game.tool('jar') || Game.tool('bigjar')) && s.water < s.jarMax) s.water = s.jarMax; if (G.Acts) G.Acts.play('drink', { quiet: true }); pop('꿀꺽!', '기력 +30', 'drop'); G.UI.hud(); } }); return out; }
   const rest = s.flags.hRest || -99, abs = s.day * 24 + s.time % 24;
   add(-2.5, 1.9, 1.8, abs - rest < 4 ? { label: '방금 쉬었어요', disabled: true, key: 'hRest' } : { label: '짚자리에서 잠깐 쉬기', key: 'hRest', use: () => G.UI.fade(() => { s.flags.hRest = abs + 1.5; s.time += 1.5; const H = s.hero; p.stam = (G.Vitals && G.Vitals.cap) || H.stamMax || 140; p.exhausted = false; if (H) H.hp = Math.min(H.hpMax, H.hp + H.hpMax * 0.15); }, () => G.UI.toast('한숨 쉬었어요 · 기력이 다 차고 몸이 조금 나았어요')) });
   add(2.9, -2.0, 1.7, { label: (Game.tool('jar') || Game.tool('bigjar')) && s.water < s.jarMax ? '물항아리 · 마시고 내 항아리 채우기' : '물항아리에서 물 마시기', key: 'hJar', use: () => { const H = s.hero, cap = (G.Vitals && G.Vitals.cap) || (H && H.stamMax) || 140; p.stam = Math.min(cap, p.stam + 30); p.exhausted = false; let msg = '시원한 물 · 기력 +30';
@@ -146,7 +163,7 @@ const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(thi
    the attack button reads 「문단속」 and plays a short scene (Ho.lockUp); leaving the plain way still reminds you to lock it. */
 let ownT = 0;
 function ownerWatch(s) { const h = cur(), p = P();
-  if (h && h.ow && !h.asked) { const v = (EP.villages || []).find(q => q.id === h.v), d = v && doorOf(v, h.i); if (!v || !d) return;
+  if (h && h.ow && !h.asked) { const v = allV().find(q => q.id === h.v), d = v && doorOf(v, h.i); if (!v || !d) return;
     if (ownerNear(v, h.i, d)) return; if (G.UI.busy() || Game.cineOn) return; h.asked = 1; h.lockReq = 1;
     G.UI.say([{ n: h.ow, t: '총리님, 저는 잠깐 일 보러 나가 봐야 해요. 편히 계시다 가세요!' }, { n: h.ow, t: '나가실 때 문단속만 부탁드려요!' }],
       () => pop('문단속 부탁', '나갈 때 문 앞에서 B키 「문단속」', 'house')); return; }

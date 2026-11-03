@@ -28,7 +28,7 @@ Ca.cycle = function () { const L = Ca.liquids(), i = L.indexOf(jarK()), k = L[(i
   G.UI.toast(k === 'water' ? `항아리 · 물 ${S().water}` : `항아리 · ${Game.ITEMS[k].n} ${Game.inv(k)}`); G.UI.hud(); };
 Game.CTX.push(function () { const p = P(), h = Game.hand(); if (!(h === 'jar' || h === 'bigjar') || p.ride || p.swim || p.act || p.climb || Game.cineOn || (G.Phys && G.Phys.held)) return null;
   const k = jarK(), n = k === 'water' ? S().water : Game.inv(k); /* v18.21 A just says 「마시기」 (what is in the jar shows on B); lowest priority, so a well's 「물 긷기」 wins */
-  return [{ d: 5, label: n > 0 ? '마시기' : '항아리가 비었어요', disabled: n <= 0, x: p.x + Math.sin(p.face) * 0.5, z: p.z + Math.cos(p.face) * 0.5, y: 1.4, use: Ca.drink, key: 'jarDrink', noMagnet: true }]; });
+  return [{ d: 5, label: n > 0 ? '마시기' : '항아리가 비었어요', disabled: n <= 0, x: p.x + Math.sin(p.face) * 0.5, z: p.z + Math.cos(p.face) * 0.5, y: 1.4, use: Ca.drink, key: 'jarDrink', noMagnet: true, noTag: true }]; });
 // the left 「물 마시기」 button goes; the water pill shows (and switches) what the jar holds
 setTimeout(() => { const EP = G.EP && G.EP.joseph; if (EP && EP.extra) EP.extra = EP.extra.filter(e => e.id !== 'drink'); const b = document.getElementById('xb_drink'); if (b) b.remove(); }, 60);
 if ($('waterBtn')) $('waterBtn').onclick = () => { if (G.UI.busy()) return; if (!hasJar()) { G.UI.toast('물항아리가 있어야 해요'); return; } Ca.cycle(); };
@@ -49,16 +49,18 @@ const hud0 = G.UI.hud; G.UI.hud = function () { const r = hud0.apply(this, argum
     else if (k === 'staff' || k === 'weapon') help('weapon', '지팡이·무기', 'B키로 공격');
     else help('tool_' + k, Game.TOOLS[k] || '도구', '쓸 수 있는 곳에서 A키가 바뀌어요'); } return r; }; }
 // ------------------------------------------------------------------ held things: throw (attack slot), put down (action), use (small button)
+function handBack() { const s = S(), k = s.flags.handBack; s.flags.handBack = undefined; if (k && !s.hand) s.hand = k; }
+if (G.Phys) { const th0 = G.Phys.throwIt, dr0 = G.Phys.drop; G.Phys.throwIt = function () { const r = th0.apply(this, arguments); handBack(); return r; }; G.Phys.drop = function () { const r = dr0.apply(this, arguments); handBack(); return r; }; }
 if (G.Combat) { const atk0 = G.Combat.attack; G.Combat.attack = function () { if (G.Phys && G.Phys.held) { G.Phys.throwIt(); G.UI.hud(); return; } const hk = Game.hand(); if (hk === 'jar' || hk === 'bigjar') { Ca.cycle(); return; } return atk0.apply(this, arguments); }; }
 const Ph = G.Phys;
 if (Ph) {
-  Ph.place = function () { const b = Ph.held, p = P(); if (!b) return; Ph.held = null; p.liftArms = false; const W = Game.W(), x = p.x + Math.sin(p.face) * 0.75, z = p.z + Math.cos(p.face) * 0.75;
+  Ph.place = function () { const b = Ph.held, p = P(); if (!b) return; Ph.held = null; p.liftArms = false; handBack(); const W = Game.W(), x = p.x + Math.sin(p.face) * 0.75, z = p.z + Math.cos(p.face) * 0.75;
     const q = { x, z }; W.collide(q, b.K.r, W.heightAt(x, z)); b.x = q.x; b.z = q.z; b.y = W.heightAt(b.x, b.z) + b.K.r; b.vx = b.vy = b.vz = 0; b.yaw = Math.round(p.face / (Math.PI / 4)) * Math.PI / 4; b.pitch = b.roll = 0; b.sleep = 0;
     G.m4trs(b.m, b.x, b.y, b.z, b.yaw, 0, 0); sfx('pickup', { pitch: 0.7, vol: 0.5 }); G.UI.hud(); };
   // the physics context offers 「던지기」 while holding; turn that into 「두기」 (throwing lives on the attack button now)
   const i = Game.CTX.findIndex(f => String(f).includes("key: 'throw'")); if (i >= 0) { const f0 = Game.CTX[i]; Game.CTX[i] = function (s, g) { const r = f0.apply(this, arguments);
     if (r && r[0] && r[0].key === 'throw') { const b = Ph.held; r[0] = Object.assign({}, r[0], { label: `${b.K.n} 두기`, use: Ph.place, key: 'place' }); } return r; }; }
-  const pick0 = Ph.pick; Ph.pick = function () { const r = pick0.apply(this, arguments); G.UI.hud(); help('lift', '물건을 들었어요', 'A키 두기 · B키 던지기 · 작은 단추 쓰기'); return r; };
+  const pick0 = Ph.pick; Ph.pick = function () { const s = S(), was = s.hand || null; const r = pick0.apply(this, arguments); if (Ph.held) { s.flags.handBack = was; s.hand = null; } G.UI.hud(); /* v18.22 both hands go to the thing: the tool is put away for a moment */ help('lift', '물건을 들었어요', 'A키 두기 · B키 던지기 · 작은 단추 쓰기'); return r; };
 }
 const USE = { // what the small 「쓰기」 button does with the thing in your arms
   melon: { l: '쪼개 먹기', f: b => { brk(b); breath(30); if (G.Surv && G.Surv.fed) G.Surv.fed('melon', 12); if (G.Acts) G.Acts.play('eat', { quiet: true }); pop('시원한 수박!', '기력 +30', 'berry'); } },
@@ -69,7 +71,7 @@ const USE = { // what the small 「쓰기」 button does with the thing in your 
 };
 function once(b, k, fn, empty) { const s = S(), f = s.flags.peek = s.flags.peek || {}, id = b.id + ':' + k; if (f[id] === s.day) { G.UI.toast(empty || '오늘은 이미 살펴봤어요 · 내일 다시 봐요'); return; } f[id] = s.day; fn(); }
 function gift(keys, where) { const ks = keys.filter(k => Game.ITEMS[k]); if (!ks.length || Math.random() < 0.3) { G.UI.toast(`${where} 아무것도 없네요`); return; } const k = ks[Math.floor(Math.random() * ks.length)]; Game.give(k, 1); sfx('pickup'); const n = Game.ITEMS[k].n, c = n.charCodeAt(n.length - 1), jo = c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '이' : '가'; pop(`${n}${jo} 있었어요!`, where.replace(' 안에', ''), Game.ITEMS[k].ic); }
-function brk(b) { Ph.held = null; P().liftArms = false; b.gone = true; G.FX && G.FX.burst(b.x, b.y, b.z, 18, { c: [0.85, 0.25, 0.25], sp: 2, up: 2, size: 0.07, g: 9 }); }
+function brk(b) { Ph.held = null; P().liftArms = false; handBack(); b.gone = true; G.FX && G.FX.burst(b.x, b.y, b.z, 18, { c: [0.85, 0.25, 0.25], sp: 2, up: 2, size: 0.07, g: 9 }); }
 const useBtn = document.createElement('button'); useBtn.className = 'cbtn'; useBtn.id = 'btnUse'; useBtn.hidden = true; ($('controls') || document.body).appendChild(useBtn);
 useBtn.addEventListener('pointerdown', e => { e.preventDefault(); const b = Ph && Ph.held, u = b && USE[b.k]; if (!u || G.UI.busy()) return; u.f(b); G.UI.hud(); });
 function useHud() { const b = Ph && Ph.held, u = b && USE[b.k]; useBtn.hidden = !u; if (u && useBtn.dataset.l !== u.l) { useBtn.dataset.l = u.l; useBtn.textContent = u.l; } }
@@ -79,13 +81,13 @@ const qBtn = document.createElement('button'); qBtn.className = 'cbtn'; qBtn.id 
 qBtn.addEventListener('pointerdown', e => { e.preventDefault(); const k = S().quick; if (!k || G.UI.busy() || Game.P.act) return; if (!(Game.inv(k) > 0)) { G.UI.toast('퀵슬롯 음식이 다 떨어졌어요'); return; } Game.eat(k); G.UI.hud(); });
 Ca.setQuick = k => { S().quick = k || null; if (k) { if (!(G.UI.help && G.UI.help('quick', '퀵슬롯', '점프 단추 위 작은 단추로 바로 먹어요'))) G.UI.pop ? G.UI.pop('퀵슬롯 등록', Game.ITEMS[k].n, 'bread') : G.UI.toast('퀵슬롯 · ' + Game.ITEMS[k].n); } else G.UI.toast('퀵슬롯을 비웠어요'); G.UI.hud(); };
 Ca.edible = edible;
-function quickHud() { const k = S().quick, n = k ? Game.inv(k) : 0; qBtn.hidden = !k; if (!k) return; const lab = `${Game.ITEMS[k] ? Game.ITEMS[k].n : ''}\n×${n}`; if (qBtn.dataset.l !== lab) { qBtn.dataset.l = lab; qBtn.innerHTML = `<span>${Game.ITEMS[k].n.slice(0, 4)}</span><small>×${n}</small>`; } qBtn.classList.toggle('low', n <= 0); }
+function quickHud() { const k = S().quick, n = k ? Game.inv(k) : 0; qBtn.hidden = !k; if (!k) return; const lab = `${Game.ITEMS[k] ? Game.ITEMS[k].n : ''}\n×${n}`; if (qBtn.dataset.l !== lab) { qBtn.dataset.l = lab; qBtn.innerHTML = `${G.UI.itemIcon(k)}<small>${n}</small>`; qBtn.title = Game.ITEMS[k].n; /* v18.22 an icon, not words */ } qBtn.classList.toggle('low', n <= 0); }
 addEventListener('keydown', e => { if (Game.mode !== 'play' || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return; if (e.code === 'KeyQ') qBtn.dispatchEvent(new PointerEvent('pointerdown')); if (e.code === 'KeyR') useBtn.dispatchEvent(new PointerEvent('pointerdown')); });
 
 const css = document.createElement('style'); css.textContent = `
 #btnUse{width:52px;height:52px;right:calc(var(--gr) + 300px);bottom:calc(env(safe-area-inset-bottom,0px) + 112px);font-size:11.5px;background:radial-gradient(circle at 40% 30%,#6a8a4a,#2a3a1c)}
 #btnQuick{width:50px;height:50px;right:calc(var(--gr) + 47px);bottom:calc(env(safe-area-inset-bottom,0px) + 222px);font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 40% 30%,#a07a3a,#4a3418)}
-#btnQuick small{font-size:10px;opacity:.85}#btnQuick.low{opacity:.5}
+#btnQuick svg{width:24px;height:24px}#btnQuick small{position:absolute;right:6px;bottom:3px;font-size:10px;font-weight:700;opacity:.9}#btnQuick.low{opacity:.5}
 @media (max-aspect-ratio:1/1){#btnUse{width:48px;height:48px;right:calc(var(--gr) + 160px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px)}#btnQuick{width:46px;height:46px;right:calc(var(--gr) + 23px);bottom:calc(env(safe-area-inset-bottom,0px) + 286px)}}
 body.busy #btnUse,body.cine #btnUse,body.photo #btnUse,body.busy #btnQuick,body.cine #btnQuick,body.photo #btnQuick{visibility:hidden}
 #btnAtkN{position:absolute;left:6px;bottom:4px;font-style:normal;font-size:10px;font-weight:700;opacity:.85}

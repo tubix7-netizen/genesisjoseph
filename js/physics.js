@@ -87,8 +87,13 @@ function brk(b, sp) { if (!b.K.brk || sp < b.K.brk || b.gone) return; b.gone = t
 
 // ------------------------------------------------------------------ pick up & throw
 function holdUpdate(dt) { const b = Ph.held, P = Game.P; if (b.gone) { Ph.held = null; return; } b.heroT = performance.now() / 1000; // v18.0 P6: remembered as something the hero carried / threw
-  const hm = P.rig.world[G.HBI.head]; b.x = hm[12] + Math.sin(P.face) * 0.03; b.z = hm[14] + Math.cos(P.face) * 0.03; b.y = hm[13] + 0.3 + b.K.r * 0.85; // balanced on the head b.vx = b.vy = b.vz = 0; b.sleep = 0;
+  /* v18.22 carried in the hands: heavy things (Ph.heavy) in both arms in front of the chest, light ones hanging from the right hand */
+  const W = P.rig.world, hl = W[G.HBI.handL], hr = W[G.HBI.handR], fx = Math.sin(P.face), fz = Math.cos(P.face);
+  if (Ph.heavy(b)) { b.x = (hl[12] + hr[12]) / 2 + fx * (b.K.r * 0.55); b.z = (hl[14] + hr[14]) / 2 + fz * (b.K.r * 0.55); b.y = (hl[13] + hr[13]) / 2 + b.K.r * 0.25; }
+  else { b.x = hr[12] + fx * 0.05; b.z = hr[14] + fz * 0.05; b.y = hr[13] - b.K.r * 0.75; }
+  b.vx = b.vy = b.vz = 0; b.sleep = 0;
   G.m4trs(b.m, b.x, b.y, b.z, P.face, 0, 0); if (P.ride || P.swim || P.climb || P.downed || Game.cineOn) Ph.drop(); }
+Ph.heavy = b => !!b && (b.K.m >= 4 || b.K.r >= 0.28);
 Ph.pick = function (b) { const P = Game.P; if (Ph.held || P.carry) return; Ph.held = b; P.liftArms = true; sfx('pickup'); if (G.Acts) G.Acts.stop(); };
 Ph.drop = function () { const b = Ph.held, P = Game.P; if (!b) return; Ph.held = null; P.liftArms = false; b.x = P.x + Math.sin(P.face) * 0.7; b.z = P.z + Math.cos(P.face) * 0.7; b.sleep = 0; };
 Ph.throwIt = function () { const b = Ph.held, P = Game.P; if (!b) return; Ph.held = null; P.liftArms = false; const sp = 7.5 - Math.min(4, b.K.m / 6);

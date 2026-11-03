@@ -16,5 +16,5 @@ const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(thi
   if (s.q.riding && cool <= 0 && !(G.Cine && G.Cine.on)) { const t = Ct.town(P().x, P().z); if (t) { cool = 2; s.q.riding = 0; Game.snapCam && Game.snapCam(); G.Audio && G.Audio.sfx('step'); pop('수레에서 내렸어요', `${t} 안에서는 걸어요`, 'donkey'); G.UI.hud(); } }
   return r; };
 Game.CTX.push(function (s) { const p = P(); if (!s.q.riding || Game.cineOn || p.act) return null;
-  return [{ d: 5, label: '공간', x: p.x, z: p.z, y: 1.6, noMagnet: true, rideOk: true, key: 'cartBox', use: () => G.Storage && G.Storage.openBox('수레 짐칸', 'cartStore', false, 12) }]; });
+  return [{ d: 5, label: '공간', x: p.x, z: p.z, y: 1.6, noMagnet: true, noTag: true, rideOk: true, key: 'cartBox', use: () => G.Storage && G.Storage.openBox('수레 짐칸', 'cartStore', false, 12) }]; });
 })(window.G);

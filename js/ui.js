@@ -719,7 +719,7 @@ UI.frame = function (dt) {
   if (ctg && ctg.st !== 'dead' && !UI.busy()) { const s = R.project(ctg.x, ctg.y + ctg.fy + (ctg.d.big ? 2.0 : 1.3), ctg.z, UI.W, UI.H); if (s) { tb.hidden = false; tb.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; $('tgtName').textContent = ctg.name; $('tgtFill').style.width = Math.max(0, ctg.hp / ctg.hpMax * 100) + '%'; } else tb.hidden = true; } else tb.hidden = true;
   // prompt bubble
   const pr = $('prompt');
-  if (c && !UI.busy()) { const EPf = Game.EP(), fl = EPf && EPf.floor ? EPf.floor(c.x, c.z, Game.S()) : null, gy = fl !== null && fl !== undefined ? fl : Game.W().heightAt(c.x, c.z); // v16.9 the bubble sits on the thing (absolute height when given, else above the floor/ground under it)
+  if (c && !UI.busy() && !c.noTag) { const EPf = Game.EP(), /* v18.22 noTag: things that are always there (drinking from the jar, the cart's space) show only on the A button, not as a tag beside Joseph */ fl = EPf && EPf.floor ? EPf.floor(c.x, c.z, Game.S()) : null, gy = fl !== null && fl !== undefined ? fl : Game.W().heightAt(c.x, c.z); // v16.9 the bubble sits on the thing (absolute height when given, else above the floor/ground under it)
     const s = R.project(c.x, c.yAbs !== undefined ? c.yAbs : gy + (c.y || 1.5), c.z, UI.W, UI.H); if (s) { pr.hidden = false; pr.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; $('promptT').textContent = c.label; pr.classList.toggle('off', !!c.disabled); } else pr.hidden = true; }
   else pr.hidden = true;
   // stamina ring

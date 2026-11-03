@@ -1998,7 +1998,7 @@ const STEPS7 = {
   // =============================================================== 8장 · 고센 땅
   g6_wagons: { ch: 9, obj: '아버지께 보낼 수레 채비', list: S => [{ t: '성읍 곳간에서 곡식 자루 싣기', ok: qd(S, 'wGrain') }, { t: '장터에서 애굽의 좋은 물품 고르기', ok: qd(S, 'wGoods') }, { t: '형들에게 옷 나눠 주기 (청지기)', ok: qd(S, 'wClothes') }],
     target: S => !qd(S, 'wGrain') ? { x: G7GRAN[0], z: G7GRAN[1] - 2 } : !qd(S, 'wGoods') ? { x: SPOTS.market[0], z: SPOTS.market[1] } : 'npc:steward2',
-    enter(S, G, re) { S.q.broShow = 0; S.q.famShow = 0; BRO11.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); if (!re) narr([{ kick: '창세기 45:17–20', title: '바로의 명령', t: '바로가 요셉에게 이르되 「너는 애굽 땅에서 수레를 가져다가 너희 자녀와 아내들을 태우고 너희 아버지를 모셔 오라. 온 애굽 땅의 좋은 것이 너희 것임이니라」', ref: '창세기 45:17–20' }]); },
+    enter(S, G, re) { S.q.broShow = 0; S.q.famShow = 0; BRO11.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); showAt('steward2', 15, -138.6, -0.6); /* v18.22 the steward is back at the house (the cup scene left him out on the road, so 「옷 나눠 주기」 pointed at an empty spot) */ if (!re) narr([{ kick: '창세기 45:17–20', title: '바로의 명령', t: '바로가 요셉에게 이르되 「너는 애굽 땅에서 수레를 가져다가 너희 자녀와 아내들을 태우고 너희 아버지를 모셔 오라. 온 애굽 땅의 좋은 것이 너희 것임이니라」', ref: '창세기 45:17–20' }]); },
     talk: { steward2(S, G) { if (S.q.wClothes || !S.q.wGrain || !S.q.wGoods) return false; say([N('steward2', '형제분들께 드릴 옷을 마련해 두었습니다. 어떻게 나누어 드릴까요?'),
       { n: '요셉', t: '(창세기 45:22)', choices: [{ t: '모두에게 한 벌씩, 베냐민에게는 은 삼백과 옷 다섯 벌', then: () => setTimeout(() => say([N('steward2', '알겠습니다. 막내분께는 각별히요.', '', 'happy')], () => tick(S, 'wClothes')), 30) },
         { t: '모두 똑같이 한 벌씩', then: () => setTimeout(() => say([T('요셉은 어머니 라헬의 아들, 하나뿐인 친동생 베냐민에게 특별한 사랑을 보였어요. 다시 골라 보세요.')], () => setTimeout(() => G.talkTo('steward2'), 60)), 30) }] }], null); } },
@@ -2172,7 +2172,10 @@ function update(dt, S, G, t) {
   // the second chariot
   const ride = !!S.q.riding && !!S.q.chariotOk && !GG.Cine.on;
   G.CAM.zoom = lerp(G.CAM.zoom || 1, S.q.riding ? 1.6 : 1, Math.min(1, dt * 2));
-  if (S.q.riding) { P.stam = Math.max(P.stam, 60); P.exhausted = false; RT.hoof = (RT.hoof || 0) + P.spd * dt; if (RT.hoof > 1.3 && P.spd > 1) { RT.hoof = 0; G.sfx('step', { surf: 'stone', vol: 0.4 + P.spd / 30, pitch: 0.7 + Math.random() * 0.2 }); }
+  if (S.q.riding) { /* v18.22 galloping (달리기) wears the horses out: breath drains, and at zero the gallop stops until they have rested */
+    /* (the game's own sprint already spends breath; the old floor of 60 that kept it full is gone) */
+    if (P.exhausted && !RT.horseTired) { RT.horseTired = 1; GG.UI.pop && GG.UI.pop('말이 지쳤어요', '숨을 돌리면 다시 달려요', 'donkey'); } else if (!P.exhausted) RT.horseTired = 0;
+    RT.hoof = (RT.hoof || 0) + P.spd * dt; if (RT.hoof > 1.3 && P.spd > 1) { RT.hoof = 0; G.sfx('step', { surf: 'stone', vol: 0.4 + P.spd / 30, pitch: 0.7 + Math.random() * 0.2 }); }
     if (ride && P.spd > 7) { RT.dustT = (RT.dustT || 0) - dt; if (RT.dustT < 0) { RT.dustT = 0.08; G.FX.burst(P.x - Math.sin(P.face) * 1.2, P.y + 0.1, P.z - Math.cos(P.face) * 1.2, 3, { c: [0.85, 0.76, 0.6], sp: 0.8, up: 0.6, size: 0.3, a: 0.6, g: 0.4 }); } } }
   if (RT.dust) { RT.dustT2 = (RT.dustT2 || 0) - dt; if (RT.dustT2 < 0) { RT.dustT2 = 0.05; const v = VISION[4]; G.FX.burst(v.x + 6 + Math.random() * 4, hAt(v.x, v.z) + 0.4 + Math.random() * 1.5, v.z + (Math.random() - 0.5) * 6, 3, { c: [0.8, 0.65, 0.45], sp: 3, up: 0.3, size: 0.25, a: 0.5, g: -0.1 }); } }
   // prefetch the next score

@@ -93,7 +93,10 @@ function update(dt, S, G, t) {
   // the second chariot
   const ride = !!S.q.riding && !!S.q.chariotOk && !GG.Cine.on;
   G.CAM.zoom = lerp(G.CAM.zoom || 1, S.q.riding ? 1.6 : 1, Math.min(1, dt * 2));
-  if (S.q.riding) { P.stam = Math.max(P.stam, 60); P.exhausted = false; RT.hoof = (RT.hoof || 0) + P.spd * dt; if (RT.hoof > 1.3 && P.spd > 1) { RT.hoof = 0; G.sfx('step', { surf: 'stone', vol: 0.4 + P.spd / 30, pitch: 0.7 + Math.random() * 0.2 }); }
+  if (S.q.riding) { /* v18.22 galloping (달리기) wears the horses out: breath drains, and at zero the gallop stops until they have rested */
+    /* (the game's own sprint already spends breath; the old floor of 60 that kept it full is gone) */
+    if (P.exhausted && !RT.horseTired) { RT.horseTired = 1; GG.UI.pop && GG.UI.pop('말이 지쳤어요', '숨을 돌리면 다시 달려요', 'donkey'); } else if (!P.exhausted) RT.horseTired = 0;
+    RT.hoof = (RT.hoof || 0) + P.spd * dt; if (RT.hoof > 1.3 && P.spd > 1) { RT.hoof = 0; G.sfx('step', { surf: 'stone', vol: 0.4 + P.spd / 30, pitch: 0.7 + Math.random() * 0.2 }); }
     if (ride && P.spd > 7) { RT.dustT = (RT.dustT || 0) - dt; if (RT.dustT < 0) { RT.dustT = 0.08; G.FX.burst(P.x - Math.sin(P.face) * 1.2, P.y + 0.1, P.z - Math.cos(P.face) * 1.2, 3, { c: [0.85, 0.76, 0.6], sp: 0.8, up: 0.6, size: 0.3, a: 0.6, g: 0.4 }); } } }
   if (RT.dust) { RT.dustT2 = (RT.dustT2 || 0) - dt; if (RT.dustT2 < 0) { RT.dustT2 = 0.05; const v = VISION[4]; G.FX.burst(v.x + 6 + Math.random() * 4, hAt(v.x, v.z) + 0.4 + Math.random() * 1.5, v.z + (Math.random() - 0.5) * 6, 3, { c: [0.8, 0.65, 0.45], sp: 3, up: 0.3, size: 0.25, a: 0.5, g: -0.1 }); } }
   // prefetch the next score
