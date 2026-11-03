@@ -31,7 +31,7 @@ const npcs = [
   { id: 'mk3', name: '구경꾼', look: LOOK.farmer, x: -2, z: 112, face: -2.4, show: S => S.step === 'c1_market', noTalk: true },
   // ---- Potiphar's household
   { id: 'potiphar', name: '보디발', look: LOOK.potiphar, x: -28, z: 39.4, face: 0, sit: true, talkR: 3.2, show: S => between(S, 'c1_market', 'c2_flee') && !S.q.empty, sched: S => S.step === 'c2_store' ? [[0, -12.6, 59.2, -1.6, 'wander:0.5']] : null },
-  { id: 'wife', name: '보디발의 아내', look: LOOK.wife, x: -20.6, z: 61.6, face: Math.PI, talkR: 3, show: S => between(S, 'c2_arrive', 'c2_flee') && S.step !== 'c2_tempt2', sched: S => S.step === 'c2_tempt3' ? [[0, -25, 39.2, 0.6, 'wander:0.2']] : null },
+  { id: 'wife', name: '보디발의 아내', look: LOOK.wife, x: -20.6, z: 61.6, face: Math.PI, talkR: 3, noTalk: S => S.step === 'c2_tempt3' || S.step === 'c2_flee', show: S => between(S, 'c2_arrive', 'c2_flee') && S.step !== 'c2_tempt2', sched: S => S.step === 'c2_tempt3' ? [[0, -25, 39.2, 0.6, 'wander:0.2']] : null },
   { id: 'ameni', name: NM.ameni, look: LOOK.ameni, x: -44, z: 55.4, face: 1.6, show: inEgyptHouse, chat: ['네 하나님 이야기를 또 들려다오.', '애굽 말이 많이 늘었구나.', '엠 헤테프, 요셉. 평안히.'] },
   { id: 'neb', name: NM.neb, look: LOOK.neb, x: -25.4, z: 66.6, face: Math.PI, show: inEgyptHouse, chat: S => S.q.nebOk ? ['대문은 내가 지키겠소, 총무.', '손님이 오시면 바로 알리리다.'] : ['…일이나 하라, 히브리 종.'] },
   { id: 'cook', name: NM.cook, look: LOOK.cook, x: -10.8, z: 43.8, face: Math.PI, act: 'gather', show: S => inEgyptHouse(S) && !S.q.empty, chat: ['타! 갓 구운 타가 최고지!', '오늘은 손님상에 낼 거위를 굽는다네.'] },
@@ -42,7 +42,7 @@ const npcs = [
   { id: 'maid', name: '여종', look: LOOK.maid, x: -30, z: 47, face: 0, show: S => between(S, 'c2_tempt2', 'c2_tempt3') && !S.q.empty, chat: ['마님 심기가 요즘 편치 않으세요.'] },
   { id: 'guest1', name: NM.guest1, look: LOOK.official, x: -34.4, z: 42.2, face: 0.5, sit: true, talkR: 2.4, show: S => S.step === 'c2_banquet' },
   { id: 'guest2', name: NM.guest2, look: LOOK.priest, x: -31.2, z: 43.4, face: 0.1, sit: true, talkR: 2.4, show: S => S.step === 'c2_banquet' },
-  { id: 'guest3', name: NM.guest3, look: LOOK.soldierEg, x: -23.8, z: 43.2, face: -0.4, sit: true, talkR: 2.4, show: S => S.step === 'c2_banquet' },
+  { id: 'guest3', name: NM.guest3, look: LOOK.soldierEg, x: -26, z: 43.8, face: -0.4, sit: true, talkR: 2.4, show: S => S.step === 'c2_banquet' },
   { id: 'calf', name: '진흙에 빠진 송아지', animal: 'cow', scale: 0.55, x: SPOTS.canal[0], z: SPOTS.canal[1] + 0.6, face: 0.3, noTalk: true, noTag: true, dy: -0.35, show: S => S.step === 'c2_field' && !S.q.calf },
   // ---- the king's prison
   { id: 'keeper', name: NM.keeper, look: LOOK.keeper, x: -22.6, z: 6.4, face: Math.PI, show: show('c3_cell', 'c4_shave'), chat: S => S.q.cupDone ? ['요셉, 너 없이는 이 옥이 돌아가지 않는다.', '바로의 관원장들이 다 네 말대로 되었다지…'] : ['일해라. 일하지 않으면 먹지도 못한다.'] },
@@ -70,7 +70,7 @@ const npcs = [
   { id: 'overseerS', name: NM.overseerS, look: Object.assign({}, LOOK.farmer, { collar: TURQ, top: LINEN, bare: false, sleeveless: true }), x: -141, z: 123, face: 0.3, show: show('c5_patrol'), chat: ['언덕 위 곳간은 물 한 방울 들지 않습니다!'] },
   { id: 'brick', name: NM.brick, look: Object.assign({}, LOOK.farmer, { bottom: 0xb07848, skin: 0x9a6038 }), x: -44, z: -116, face: 0.8, act: 'gather', show: show('c5_patrol'), chat: ['진흙 둘에 짚 하나. 그게 좋은 벽돌의 비결이지요.'] },
   { id: 'hunterE', name: '왕의 사냥꾼 세넵', look: Object.assign({}, LOOK.farmer, { skin: 0x9a6038, bottom: 0xd8c8a0, collar: TURQ }), x: 30, z: -54, face: 2.2, prop: 'bow', wander: 2, show: show('c5_patrol'), chat: ['바람을 등지고 다가가야 짐승이 눈치를 못 챕니다.', '물매는 손목이 아니라 허리로 돌리는 겁니다, 나으리.'] }, /* v18.13 gives the vizier his sling (e_hunt) */
-  { id: 'painter', name: '그림 그리는 아이 티티', look: KID({ skin: 0xa8683a, top: LINEN, long: true, fem: true, hairStyle: 'long' }), scale: 0.62, x: -14, z: -60, face: 2.4, wander: 1.5, show: show('c5_patrol'), chat: ['총리님, 오늘은 무엇을 보셨어요?', '나일 강은 정말 끝이 없어요?'] }, /* v18.13e photo requests (js/extras.js) */
+  { id: 'painter', name: '그림 그리는 아이 티티', look: KID({ skin: 0xa8683a, top: LINEN, long: true, fem: true, hairStyle: 'long' }), scale: 0.62, x: -35, z: -65.5, face: 2.6, wander: 1.5, show: show('c5_patrol'), chat: ['총리님, 오늘은 무엇을 보셨어요?', '나일 강은 정말 끝이 없어요?'] }, /* v18.13e photo requests (js/extras.js) */
   { id: 'scribeR', name: '왕궁 서기관', look: LOOK.scribe, x: 12, z: -58.6, face: 2.6, sit: true, show: show('c5_year1'), chat: ['곳간 기록은 오늘도 늘었습니다.'] },
   // ---- the famine: buyers at the city granary (창 41:56–57)
   { id: 'byFarmer', name: NM.farmer, look: LOOK.farmerThin, x: 10.5, z: -56, face: 2.4, show: show('c6_sell') },
@@ -92,9 +92,9 @@ const FK = (id, name, role, look, home, o) => Object.assign({ id, name, role, lo
 const egy = S => between(S, 'c1_market');
 const villages = [
   { id: 'city', n: '왕의 도성', x: -22, z: -74, r: 26, when: egy,
-    spots: { hub: [-22, -74, 3], well: [-22, -82, 2.5], market: [-22, -71, 3], fire: [-30, -80, 2], play: [-14, -80, 3.5], gate: [-24, -50, 2], work: [-40, -66, 3], shade: [-48, -110, 3] },
+    spots: { hub: [-22, -74, 3], well: [-21, -87.6, 2], market: [-22, -71, 3], fire: [-30, -80, 2], play: [-14, -80, 3.5], gate: [-24, -50, 2], work: [-40, -66, 3], shade: [-48, -110, 3] },
     homes: [[-40, -60, 0], [-12, -58, 0], [-42, -72, 0], [-6, -74, 0], [-30, -88, 0], [-12, -88, 0]], about: ['바로의 도성은 나일 강 동쪽에 있다오.', '궁 앞 오벨리스크는 해가 뜨면 금빛으로 빛나지요.'],
-    folk: [FK('ct_mer', '도성 상인 세네브', 'merchant', 'merchant', 2, { work: [-26, -73, 0, 1], persona: '도성 장터의 상인. 흥정을 좋아하고 소식에 밝다.' }), FK('ct_wat', '물 긷는 여인 네페르', 'water', 'waterA', 1, { persona: '나일 강에서 물을 긷는 상냥한 여인.' }),
+    folk: [FK('ct_mer', '도성 상인 세네브', 'merchant', 'merchant', 2, { work: [-27.4, -76, Math.PI / 2, 0.2], persona: '도성 장터의 상인. 흥정을 좋아하고 소식에 밝다.' }), FK('ct_wat', '물 긷는 여인 네페르', 'water', 'waterA', 1, { persona: '나일 강에서 물을 긷는 상냥한 여인.' }),
       FK('ct_pot', '토기장이 아메니', 'potter', 'potter', 3, { work: [-40, -66, 0, 1], persona: '물동이와 곡식 항아리를 빚는 토기장이.' }), FK('ct_kid', '아이 케티', 'child', 'kidA', 1, { age: 'kid', persona: '네페르의 아들. 수레 구경을 좋아한다.' }),
       FK('ct_eld', '노인 이푸', 'elder', 'elder', 4, { age: 'old', persona: '도성 성문에 앉아 옛이야기를 하는 노인.' }), FK('ct_wea', '베 짜는 여인 메리트', 'weaver', 'waterB', 5, { work: [-10, -86, 0, 0.6], persona: '세마포를 짜는 솜씨 좋은 여인.' })] },
   { id: 'west', n: '서쪽 마을', x: -140, z: -40, r: 22, when: S => between(S, 'c2_arrive'),
@@ -188,8 +188,8 @@ const stations = [
   { id: 'fOak', type: 'fire', x: SPOTS.restOak[0], z: SPOTS.restOak[1], r: 3 }, { id: 'fDot', type: 'fire', x: 158, z: -150, r: 3 }, { id: 'fCar', type: 'fire', x: SPOTS.caravanNight[0], z: SPOTS.caravanNight[1], r: 3 },
   { id: 'wPot', type: 'well', x: SPOTS.well[0], z: SPOTS.well[1], r: 3.2, on: inEgyptHouse }, { id: 'bPot', type: 'bed', x: -46.8, z: 50, on: inEgyptHouse },
   { id: 'wPri', type: 'well', x: SPOTS.basin[0], z: SPOTS.basin[1], r: 2.8, rim: 1.3, on: show('c3_keeper', 'c4_shave') }, { id: 'bPri', type: 'bed', x: -19.4, z: -8.6, on: show('c3_keeper', 'c3_wait') },
-  { id: 'bJos', type: 'bed', x: 10, z: -141.2, on: show('c5_patrol') }, { id: 'wCity', type: 'well', x: -22, z: -82, r: 3.2 }, { id: 'wW', type: 'well', x: -140, z: -40, r: 3.2 }, { id: 'wS', type: 'well', x: -145, z: 128, r: 3.2 },
-  { id: 'shopM', type: 'shop', shop: 'market', label: '도성 장터에서 사고팔기', x: -22, z: -66.4, r: 2.6, on: show('c5_patrol') },
+  { id: 'bJos', type: 'bed', x: 10, z: -141.2, on: show('c5_patrol') }, { id: 'wCity', type: 'well', x: -21, z: -90, r: 3.2 }, { id: 'wW', type: 'well', x: -140, z: -40, r: 3.2 }, { id: 'wS', type: 'well', x: -145, z: 128, r: 3.2 },
+  { id: 'shopM', type: 'shop', shop: 'market', label: '도성 장터에서 사고팔기', x: -24.4, z: -76, r: 2.2, on: show('c5_patrol') },
 ];
 const fields = [
   { id: 'pflax', x: 6, z: 44, cols: 8, rows: 4, ts: 1.6 },

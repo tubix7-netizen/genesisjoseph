@@ -83,6 +83,12 @@ function build(W, Game) {
       const road = roadD(x, z) < 11, thin = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1 < 0.34;
       if ((road || thin) && !PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r + 12) && !Object.keys(SPOTS).some(k => { const q = SPOTS[k]; return Array.isArray(q) && Math.hypot(x - q[0], z - q[1]) < 12; })) { W.skippedTrees = (W.skippedTrees || 0) + 1; return { x, y: W.heightAt(x, z), z }; }
     }
+    if (fn === 'crops' && !(o && o._tile)) { // v18.14 a field of crops is laid in small patches, each on its own ground (one flat slab floated over the river banks); too steep a patch is left out
+      const [w, d, rp] = (o && o.args) || [8, 6, false], a = (o && o.ry) || 0, ca = Math.cos(a), sa = Math.sin(a), nx = Math.max(1, Math.round(w / 2.2)), nz = Math.max(1, Math.round(d / 2)), tw = w / nx, td = d / nz, wl = W.water ? W.water.level : -99;
+      for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const lx = -w / 2 + (i + 0.5) * tw, lz = -d / 2 + (j + 0.5) * td, px = x + lx * ca + lz * sa, pz = z - lx * sa + lz * ca; let lo = 1e9, hi = -1e9;
+        for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 0], [0, 1], [0, -1], [1, 0], [-1, 0]]) { const qx = px + u * tw / 2 * ca + v * td / 2 * sa, qz = pz - u * tw / 2 * sa + v * td / 2 * ca, h = W.heightAt(qx, qz); lo = Math.min(lo, h); hi = Math.max(hi, h); }
+        if (hi - lo > 0.4 || lo < wl + 0.15) continue; P(fn, px, pz, Object.assign({}, o, { _tile: 1, args: [tw, td, rp], y: lo - 0.03 })); }
+      return { x, y: W.heightAt(x, z), z }; }
     if (typeof fn === 'string') o = Object.assign({ kind: fn }, o || {}); // v16.1: lets W.place give it a default collider by name
     if (fn === 'palmRow' && (!o || o.col === undefined)) { const n = (o && o.args && o.args[0]) || 3, a = (o && o.ry) || 0; for (let i = 0; i < n; i++) W.addCol({ x: x + Math.cos(a) * i * 4, z: z - Math.sin(a) * i * 4, r: 0.32, h: 5 }); }
     const res = W.place(typeof fn === 'string' && ENVX[fn] ? ENVX[fn] : fn, x, z, o);
@@ -138,6 +144,10 @@ function build(W, Game) {
     P('gatePosts', gx, z1, { args: [4] }); W.addCol({ x: gx - 2.6, z: z1, w: 1.2, d: 1.4, h: 4, cam: true }); W.addCol({ x: gx + 2.6, z: z1, w: 1.2, d: 1.4, h: 4, cam: true });
     P('portico', -28, 41.5, { args: [26, 9, 4.2, 7], col: null }); W.addCol({ x: -28, z: 37.2, w: 26, d: 0.7, h: 4.2, cam: true }); W.addCol({ x: -41, z: 41.5, w: 0.7, d: 9, h: 4.2, cam: true }); W.addCol({ x: -15, z: 41.5, w: 0.7, d: 9, h: 4.2, cam: true });
     for (let i = 0; i < 7; i++) W.addCol({ x: -28 - 13 + 1.2 + i * (26 - 2.4) / 6, z: 41.5 + 4.5 - 0.5, r: 0.38, h: 4 });
+    /* v18.14 the house is not one open porch any more: the east wing is a closed room for the accounts (장부방, door to the yard) and
+       the west wing a serving pantry (door to the hall); the hall in the middle stays open to the yard */
+    wallL(-24.6, 37.6, -24.6, 46.6, 4); wallL(-24.6, 46.6, -21.7, 46.6, 4); wallL(-19.5, 46.6, -15, 46.6, 4); // 장부방
+    wallL(-36.6, 37.6, -36.6, 41.3, 4); wallL(-36.6, 43.7, -36.6, 46.6, 4); wallL(-41, 46.6, -36.6, 46.6, 4); // 시중 방
     P('seatEg', -28, 39.4, { args: [], col: { r: 0.45, h: 1 } }); P('tableEg', -22.5, 40.2, { col: { w: 1.8, d: 0.8, h: 0.9 } }); P('couch', -34.5, 39.6, { col: { w: 2, d: 0.8, h: 0.8 } }); P('jars', -38.5, 39, { args: [3] });
     P('pavilion', -45.5, 52, { args: [7, 15, 2.6] }); for (let i = 0; i < 4; i++) P('straw', -47.6, 46 + i * 3.4, { ry: PI / 2 });   // 종들의 숙소
     P('pavilion', -10.5, 45, { args: [6, 9, 2.6, 0xd0b888] }); P('oven', -10, 41.8, { col: { r: 0.8, h: 1.2 } }); P('quern', SPOTS.quern[0], SPOTS.quern[1], { ry: 0.3 }); P('jars', -8.4, 47.6, { ry: PI / 2, args: [3] }); P('tableEg', -11.5, 44.6, { ry: PI / 2 });  // 부엌
@@ -162,7 +172,8 @@ function build(W, Game) {
   // ================= THE ROYAL CITY
   const city = [[-40, -60], [-30, -58], [-12, -58], [-2, -62], [-42, -72], [-6, -74], [-40, -86], [-30, -88], [-12, -88], [-2, -84], [-46, -98], [-34, -104]];
   city.forEach(([x, z], i) => P('egHouse', x, z, { ry: (i % 4) * PI / 2 + (r() - 0.5) * 0.1, args: [{ w: 6 + (i % 3), d: 5, h: 2.8 + (i % 2) * 1.2, awning: i % 3 === 0 ? OCHRE : null }], col: { w: 6 + (i % 3), d: 5, h: 3.4 + (i % 2) * 1.2, a: (i % 4) * PI / 2, cam: true } }));
-  [[-26, -76, 0x8a3a5a], [-18, -76, 0x2c5aa0], [-26, -66, 0x3e8a66], [-18, -66, 0xd9a73a]].forEach(([x, z, c], i) => P('stallM', x, z, { ry: i * 0.4, args: [c], col: { w: 2.6, d: 2.2, h: 2.2, a: i * 0.4 } }));
+  [[-26, -76, 0x8a3a5a], [-18, -76, 0x2c5aa0], [-26, -66, 0x3e8a66], [-18, -66, 0xd9a73a]].forEach(([x, z, c]) => { const a = x < -22 ? PI / 2 : -PI / 2; P('stallM', x, z, { ry: a, args: [c], col: { w: 2.6, d: 2.2, h: 2.2, a } }); }); // v18.14 the four stalls face the middle aisle (they stood at odd angles)
+  P('well', -21, -90, { col: { r: 1.7, h: 1 } }); // v18.14 the city well, at the south edge of the square (the well action used to sit in the middle of the market with no well)
   P('obelisk', -32, -71, { col: { r: 0.8, h: 8 } }); P('palmRow', -48, -114, { args: [5] });
   // temple of On (Heliopolis): Asenath's father Potiphera is its priest (창 41:45)
   P('obelisk', 5, -95, { col: { r: 0.8, h: 8 } }); P('obelisk', 19, -95, { col: { r: 0.8, h: 8 } }); P('portico', 12, -102, { args: [12, 6, 3.6, 4], col: { w: 12, d: 5, h: 4, cam: true } });

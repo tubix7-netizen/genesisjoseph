@@ -153,7 +153,7 @@ $('seedBtn').onclick = () => Game.cycleSeed();
 $('waterBtn').onclick = () => UI.toast(Game.water() > 0 ? `항아리의 물 ${Game.S().water}/${Game.S().jarMax}` : '우물이나 물가에서 물을 길을 수 있어요');
 $('bagBtn').onclick = () => UI.menu('bag');
 // 손 버튼: 빈손 → 가진 도구들 → 빈손… 차례로 바꿔 듭니다 (한 번에 하나만)
-$('handBtn').onclick = () => { if (UI.busy() || (G.Cine && G.Cine.on)) return; const S = Game.S(); const ks = [null, ...Object.keys(S.tools).filter(k => S.tools[k] && Game.TOOL_PROP[k])]; Game.hold(ks[(ks.indexOf(Game.hand()) + 1) % ks.length]); };
+$('handBtn').onclick = () => { if (UI.busy() || (G.Cine && G.Cine.on)) return; const S = Game.S(); if (Game.handLock && Game.handLock()) { UI.toast('지금은 손에 아무것도 들 수 없어요'); return; } const ks = [null, ...Object.keys(S.tools).filter(k => S.tools[k] && Game.TOOL_PROP[k]), ...(G.Combat && G.Combat.hasWeapon() ? ['weapon'] : [])]; Game.hold(ks[(ks.indexOf(Game.hand()) + 1) % ks.length]); };
 $('menuBtn').onclick = () => UI.menu('journal');
 $('questBox').onclick = () => UI.menu('journal');
 $('qSide').onclick = e => { e.stopPropagation(); const S = Game.S(), tr = G.Life && G.Life.tracked(S); if (!tr) return; const toSide = !Game.goalSide(); G.Life.goal(toSide ? tr.id : null); G.Audio && G.Audio.sfx('click'); UI.toast(toSide ? `「${tr.q.title}」을 목표로 · 푸른 빛이 길을 비춰요` : '이야기를 목표로 · 금빛이 길을 비춰요'); }; // v18.13 tap the side quest line to switch goals
@@ -303,7 +303,7 @@ function renderMenu(tab, body) {
         return `<div class="row">${icon(g.kind === 'armor' ? 'shield' : g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'sword', g.rareW ? '#ffd24a' : '#e8dcc0')}<div class="t"><b>${esc(g.n)}${lv ? ` +${lv}` : ''}${eq ? ' · 사용 중' : ''}</b><span>${stat} · ${esc(g.d || '')}</span>${lv < 5 ? costHTML(c.items, c.silver) : '<span>최고 단계</span>'}</div>${eq ? '' : `<button class="sbtn" data-eq="${k}">쓰기</button>`}<button class="sbtn ${can && near ? 'pri' : ''}" data-up="${k}" ${can && near ? '' : 'disabled'}>강화</button></div>`; }
       const can = Object.keys(g.recipe || {}).every(x => Game.have(x, g.recipe[x])); const hint = g.rareW && !Object.keys(g.recipe).some(x => Game.have(x)) ;
       return `<div class="row">${icon(g.kind === 'armor' ? 'shield' : g.kind === 'ranged' ? (g.ammo === 'stone' ? 'sling' : 'bow') : 'sword', '#8a8070')}<div class="t"><b>${hint ? '??? (희귀한 재료가 필요해요)' : esc(g.n)}</b><span>${hint ? '사냥하다 보면 희귀한 뼈나 뿔을 얻을 수 있어요' : stat + ' · ' + esc(g.d || '')}</span>${hint ? '' : costHTML(g.recipe)}</div><button class="sbtn ${can ? 'pri' : ''}" data-mk="${k}" ${can ? '' : 'disabled'}>만들기</button></div>`; };
-    const keys = Object.keys(GE).filter(k => k !== 'staff' && (GE[k].recipe || H.gear[k]) && (GE[k].kind !== 'ranged' || S.flags.slingOK || H.gear[k])); // v18.13 slings and bows open after Egypt's huntsman (e_hunt)
+    const keys = Object.keys(GE).filter(k => k !== 'staff' && (GE[k].recipe || H.gear[k]) && (GE[k].kind !== 'ranged' || k === 'sling' || S.flags.slingOK || H.gear[k])); /* v18.14 the sling can always be made (실 1 · 가죽 1); bows still open after Egypt's huntsman */ // v18.13 slings and bows open after Egypt's huntsman (e_hunt)
     body.innerHTML = `<div class="row"><div class="t"><b>근접 · ${esc(H.weapon ? GE[H.weapon].n : Game.tool('staff') ? '목자의 지팡이' : '없음')} / 원거리 · ${esc(H.ranged ? GE[H.ranged].n : '없음')} / 방어구 · ${esc(H.armor ? GE[H.armor].n : '없음')}</b><span>강화는 모닥불이나 대장장이 곁에서 할 수 있어요${near ? ' · 지금 가능' : ''}. 공격 버튼(PC: F), 구르기(C), 무기 바꾸기(T)</span></div></div>
       <div class="sec">가진 장비</div>${Object.keys(H.gear).map(row).join('') || '<div class="row"><div class="t"><span>아직 없어요</span></div></div>'}
       <div class="sec">만들 수 있는 장비</div>${keys.filter(k => !H.gear[k]).map(row).join('')}`;
@@ -564,7 +564,7 @@ UI.hud = function () {
   const hasJar = Game.tool('jar') || Game.tool('bigjar');
   $('waterBtn').hidden = !hasJar; $('waterBtn').innerHTML = icon('drop', '#63c3b6') + `<span class="wbar"><i style="width:${S.water / S.jarMax * 100}%"></i></span>${S.water}`;
   $('bagBtn').innerHTML = icon('bag', '#e5b552') + '가방';
-  { const hk = Game.hand(), any = Object.keys(S.tools).some(k => S.tools[k] && Game.TOOL_PROP[k]); $('handBtn').hidden = !any; if (any) { const lab = hk ? Game.TOOLS[hk] : '빈손'; if ($('handBtn').dataset.l !== lab) { $('handBtn').dataset.l = lab; $('handBtn').innerHTML = icon('tool', hk ? '#f0d8b0' : '#8a8070') + esc(lab); } } }
+  { const hk = Game.hand(), any = (Object.keys(S.tools).some(k => S.tools[k] && Game.TOOL_PROP[k]) || (G.Combat && G.Combat.hasWeapon())) && !(Game.handLock && Game.handLock()); $('handBtn').hidden = !any; if (any) { const lab = hk ? Game.handName(hk) : '빈손'; if ($('handBtn').dataset.l !== lab) { $('handBtn').dataset.l = lab; $('handBtn').innerHTML = icon('tool', hk ? '#f0d8b0' : '#8a8070') + esc(lab); } } }
   $('seedBtn').hidden = !Object.keys(S.inv).some(k => Game.ITEMS[k] && Game.ITEMS[k].cat === 'seed') && !Game.tool('hoe');
   const H = S.hero; if (H) { $('hpFill').style.width = (H.hp / H.hpMax * 100).toFixed(1) + '%'; $('hpTxt').textContent = `${Math.ceil(H.hp)} / ${H.hpMax}`; $('lvlTxt').textContent = `체력 Lv${H.lvl}`; $('menuDot').hidden = !(H.ip > 0);
     const C = G.Combat, mel = H.weapon || (Game.tool('staff') ? 'staff' : null); $('btnAtk').hidden = !mel && !H.ranged;
@@ -595,7 +595,7 @@ setInterval(() => { const now = Date.now(); if (fcEnd && now > fcEnd) closeFeat(
 function extraBtns() {
   const EP = Game.EP(), S = Game.S(), host = $('hot'); if (!EP || !S) return;
   for (const e of EP.extra || []) { let b = document.getElementById('xb_' + e.id);
-    if (!b) { b = document.createElement('button'); b.id = 'xb_' + e.id; b.className = 'xb'; b.onclick = () => { if (UI.busy() || (G.Cine && G.Cine.on)) return; e.click(Game.S(), Game); UI.hud(); }; host.insertBefore(b, host.firstChild); }
+    if (!b) { b = document.createElement('button'); b.id = 'xb_' + e.id; b.className = 'xb'; b.onclick = () => { if (UI.busy() || (G.Cine && G.Cine.on)) return; e.click(Game.S(), Game); UI.hud(); }; host.appendChild(b); } /* v18.14 episode buttons go on top of the column: the wide ones used to sit at the bottom, under 집중 / 조준 */
     const on = !e.on || e.on(S, Game); b.hidden = !on; if (on) { const lab = typeof e.label === 'function' ? e.label(S, Game) : e.label; if (b.dataset.l !== lab) { b.dataset.l = lab; b.innerHTML = icon(e.ic || 'star', '#e8d8b8') + '<span class="xl">' + esc(lab) + '</span>'; } } }
 }
 UI.enterGame = function () { document.querySelectorAll('.xb').forEach(b => b.remove()); $('title').hidden = true; $('hud').hidden = false; $('controls').hidden = false; UI.resize(); UI.hud(); UI.checkRotate(); };

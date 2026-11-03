@@ -30,7 +30,7 @@ const toWorld = (c, lx, lz) => [c.x + lx * c.ca + lz * c.sa, c.z - lx * c.sa + l
 // ------------------------------------------------------------------ start
 Cl.tryGrab = function (P, dt, mag, dx, dz) { // called after movement: pushing into a climbable wall for a moment grabs it
   const S = Game.S(), W = Game.W(), EP = Game.EP(); const c = P.hit;
-  if (!climbable(c) || mag < 0.6 || P.ride || P.carry || P.swim || P.act || P.atk || P.downed || Game.cineOn || P.climbCool > 0 || (EP.noClimb && EP.noClimb(P.x, P.z, S))) { P.grabT = 0; return; }
+  if (!climbable(c) || mag < 0.6 || P.ride || (S.q && S.q.riding) /* v18.14 never climb walls from the chariot */ || P.carry || P.swim || P.act || P.atk || P.downed || Game.cineOn || P.climbCool > 0 || (EP.noClimb && EP.noClimb(P.x, P.z, S))) { P.grabT = 0; return; }
   if (P.y > c.y1 - 0.5) { P.grabT = 0; return; } // already up there
   const f = faceOf(c, P.x, P.z); if (dx * f.nx + dz * f.nz > -0.55) { P.grabT = 0; return; } // must push into the face
   if (P.stam < 8) { if (!P.tipTired) { P.tipTired = 1; G.UI.toast('기력이 모자라 오를 수 없어요'); } return; }
@@ -55,7 +55,7 @@ Cl.useLadder = function (l) { const P = Game.P, W = Game.W(); const top = l.y0 +
   P.climb = { c, ladder: true, nx: Math.sin(l.a), nz: Math.cos(l.a), lx: l.x + Math.sin(l.a) * 0.42, lz: l.z + Math.cos(l.a) * 0.42, t: 0, ph: 0, mantle: 0 };
   P.face = l.a + PI; P.x = P.climb.lx; P.z = P.climb.lz; P.vx = P.vz = P.vy = 0; P.grounded = false; if (onTop) P.y = top - 1.5; sfx('step', { surf: 'wood' }); };
 // interaction: ladders are used with A
-Game.CTX.push(function (S, G2) { const P = Game.P, W = Game.W(); if (!W || P.climb || P.ride) return null; const out = [];
+Game.CTX.push(function (S, G2) { const P = Game.P, W = Game.W(); if (!W || P.climb || P.ride || (S.q && S.q.riding)) return null; const out = [];
   for (const l of W.ladders || []) { const d = Math.hypot(l.x - P.x, l.z - P.z); const top = l.y0 + l.h; if (d < 1.8 && Math.abs(P.y - l.y0) < 1) out.push({ d: d - 0.3, label: '사다리 오르기', x: l.x, z: l.z, y: 1.2, use: () => Cl.useLadder(l), key: 'ladder', noMagnet: true });
     else if (Math.abs(P.y - top) < 0.8) { const tx = l.x - Math.sin(l.a) * 0.6, tz = l.z - Math.cos(l.a) * 0.6; const dd = Math.hypot(tx - P.x, tz - P.z); if (dd < 1.6) out.push({ d: dd - 0.3, label: '사다리 내려가기', x: tx, z: tz, y: 0.6, use: () => Cl.useLadder(l), key: 'ladderDown', noMagnet: true }); } }
   return out; });

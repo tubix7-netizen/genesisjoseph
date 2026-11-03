@@ -41,12 +41,33 @@ function ripeLeft(S, f) { let n = 0; for (const k in S.plots) if (k.startsWith(f
 { const en = steps.c2_tempt2.enter; steps.c2_tempt2.enter = function (S, G, re) { if (!S.q.flax2Planted) { ripe(S, 'pflax', 'flax'); S.q.flax2Planted = 1; } en.call(this, S, G, re); }; }
 { const en = steps.c5_year2.enter; steps.c5_year2.enter = function (S, G, re) { G.unlock('royal'); if (!S.q.wheatPlanted) { ripe(S, 'royal', 'wheat'); S.q.wheatPlanted = 1; } en.call(this, S, G, re); }; }
 { const en = steps.c5_patrol.enter; steps.c5_patrol.enter = function (S, G, re) { S.q.chariotOk = 1; en.call(this, S, G, re); }; }
+{ const en = steps.c2_flee.enter; steps.c2_flee.enter = function (S, G, re) { RT.chase = { t: 0, w: 0, b: 0, caught: false }; en.call(this, S, G, re); }; }
+/* v18.14 「밖으로 나가」 (창 39:12): she runs after him. Caught before the gate, the house starts to whisper — the player goes back to
+   just before the ledger and tries again. Only running (달리기) gets away. */
+const HOUSE_ROOMS = [{ in: p => p.x > -24.6 && p.x < -15 && p.z > 37 && p.z < 46.6, di: [-20.6, 45.4], do: [-20.6, 47.9] }, // 장부방 (door to the yard)
+  { in: p => p.x < -36.6 && p.x > -41 && p.z > 37 && p.z < 46.6, di: [-37.7, 42.5], do: [-35.4, 42.5] }]; // 시중 방 (door to the hall)
+const CHASE_L = ['요셉! 거기 서!', '어딜 도망가느냐!', '내 말이 들리지 않느냐!', '이리 오너라, 요셉!'];
+function chase(dt, S, G) { const c = RT.chase || (RT.chase = { t: 0, w: 0, b: 0, caught: false }), n = G.npc('wife'), P = G.P; if (!n || !n.vis || c.caught) return;
+  c.t += dt; if (c.t < 1.3) return; // a breath of shock first
+  const d = Math.hypot(n.x - P.x, n.z - P.z);
+  if (d < 1.05) { caught(S, G, n); return; }
+  if ((c.w -= dt) <= 0) { c.w = 0.22; n.sit = false; n.act = null; n.wander = null; const path = [];
+    for (const R of HOUSE_ROOMS) { const a = R.in(n), b = R.in(P); if (a === b) continue; const [p1, p2] = a ? [R.di, R.do] : [R.do, R.di]; if (Math.hypot(n.x - p1[0], n.z - p1[1]) > 0.7) path.push(p1); path.push(p2); break; } // through the door, not into the wall
+    G.npcWalk('wife', P.x, P.z, null, Math.min(5.4, 3.8 + (c.t - 1.3) * 0.4), path); }
+  if (RT.t - c.b > 3) { c.b = RT.t; bubble('wife', CHASE_L[Math.floor(Math.random() * CHASE_L.length)], 2.2); } }
+function caught(S, G, n) { const c = RT.chase; c.caught = true; n.walk = null; n.face = Math.atan2(G.P.x - n.x, G.P.z - n.z); G.P.vx = G.P.vz = 0; G.P.sprint = false; G.sfx('rip', { pitch: 0.7 });
+  say([N('wife', '(요셉의 팔을 붙잡으며) …어디로 가려느냐.', '', 'cold'), T('여종 하나가 그 모습을 보고 말았습니다. 저녁이 되기도 전에, 집 안에 이상한 소문이 퍼지기 시작했습니다.')],
+    () => narr([{ kick: '다시 하기', title: '소문이 퍼졌어요', t: '요셉은 유혹 앞에서 「밖으로 나가」 피했습니다(창 39:12). 붙잡히지 않도록 달리기로 뛰어 대문 밖까지 피하세요. 장부 정리 전으로 돌아가요.', ref: '창세기 39:12', e: 'solemn' }],
+      () => GG.UI.fade(() => { S.q.robe = 0; S.q.flee = 0; n.walk = null; G.P.sprint = false; G.go('c2_tempt3', true); G.teleport(-27, 50.5, Math.PI); RT.chase = null; }, () => { GG.UI.hint('대청 동쪽 장부방으로 가요', 'ledger', 'star'); }))); }
 const SCENE_ONLY = { c1_market: 1, c4_answer: 1, c5_years: 1 };
 function update(dt, S, G, t) {
   const P = G.P, st = S.step; RT.t += dt;
   if (P.cpose) { P.cpose.t += dt; if (P.cpose.dur && !P.cpose.hold && P.cpose.t > P.cpose.dur) P.cpose = null; }
   if (P.cpose && P.spd > 0.6 && !GG.Cine.on && ['reach', 'scratchWall', 'shave', 'think', 'bow', 'gather'].includes(P.cpose.k)) P.cpose = null;
   if (P.cpose && P.cpose.hold && !GG.Cine.on && P.spd > 0.6 && !['bound'].includes(P.cpose.k)) P.cpose = null;
+  if (S.step === 'c2_flee' && !GG.Cine.on && !GG.UI.busy()) chase(dt, S, G);
+  if (S.q.chain) S.q.chain = 0; /* v18.14 no shackles any more (old saves kept them on forever: the clinking, the slow walk) */
+  if (S.outfit === 'josephFettered' && !GG.Cine.on) G.setOutfit('josephPrisoner');
   if ((S.q.bound || S.q.chain) && !P.cpose && !GG.Cine.on) P.cpose = { k: 'bound', t: 0, dur: 0, hold: true };
   if (!S.q.bound && !S.q.chain && P.cpose && P.cpose.k === 'bound' && !GG.Cine.on) P.cpose = null;
   if (S.q.bound || S.q.chain) P.sprint = false;
@@ -184,7 +205,10 @@ function dyn(list, S, G, t) {
   if (RT.coatG && S.step === 'p_approach') list.push({ mesh: mk('coatG', g => { const C = [0x7a3a2e, 0xa88a52, 0x40566e]; for (let i = 0; i < 9; i++) g.box(0.12, 0.03, 0.9, { at: [-0.5 + i * 0.125, 0.015 + (i % 2) * 0.004, 0], rz: (i % 3 - 1) * 0.04, c: C[i % 3] }); g.box(0.7, 0.05, 0.35, { at: [0.15, 0.03, -0.3], ry: 0.4, c: 0xeee4cc }); }), m: mat('coatG', RT.coatG.x, RT.coatG.y, RT.coatG.z, 0.7), outline: true });
   else if (RT.coatG && S.step !== 'p_approach') RT.coatG = null;
   // the garment left in her hand (창 39:12)
-  if (S.q.robe && (S.step === 'c2_tempt3' || between(S, 'c2_flee', 'c2_flee'))) { const n = G.npc('wife'); if (n && n.vis) list.push({ mesh: mk('robe', g => { g.box(0.5, 0.9, 0.06, { at: [0, -0.45, 0], c: 0xe8dcc0 }); g.box(0.52, 0.12, 0.07, { at: [0, -0.86, 0], c: 0x9a6a3a }); }), m: n.rig.world[HBI.handR], outline: true }); }
+  if (S.q.robe && (S.step === 'c2_tempt3' || between(S, 'c2_flee', 'c2_flee'))) { const n = G.npc('wife'); if (n && n.vis) list.push({ mesh: mk('robe2', g => { /* v18.14 a crumpled linen robe hanging from her fist (it was a flat board) */
+    g.surf((u, v) => { const w = 0.16 + 0.34 * Math.min(1, v * 1.6), a = (u - 0.5) * w; return [a + Math.sin(u * 19 + v * 3) * 0.022 * v, -0.04 - v * 0.95 + Math.cos(u * 7) * 0.03 * v, Math.sin(u * 13) * 0.05 * (0.3 + v) + Math.sin(v * 5) * 0.03]; }, 16, 10, { c: (x, y) => y < -0.84 ? 0x40566e : y < -0.8 ? 0xb89a5a : 0xd8c49a, ds: true, inner: 0.82 });
+    g.surf((u, v) => { const a = (u - 0.5) * 0.12; return [a + 0.17, -0.05 - v * 0.55, 0.05 + Math.sin(v * 6) * 0.02]; }, 4, 6, { c: 0xd0bc90, ds: true, inner: 0.82 }); // a sleeve
+    g.sph(0.06, 6, 4, { at: [0, -0.02, 0], s: [1.4, 0.8, 1], c: 0xd0bc90 }); }), m: n.rig.world[HBI.handR], outline: true }); }
   // days scratched on the wall
   if (between(S, 'c3_wait') && (S.q.wait || 0) >= 2 && before(S, 'c4_court')) list.push({ mesh: mk('marks', g => { for (let i = 0; i < 24; i++) g.box(0.02, 0.22, 0.01, { at: [(i % 12) * 0.07 + Math.floor((i % 12) / 4) * 0.04, Math.floor(i / 12) * 0.3, 0], rz: (i % 4 === 3) ? 0.9 : 0.05, c: 0x5a4a38 }); }), m: mat('marks', -20.62, hAt(-20.6, -6.4) + 1.2, -6.8, Math.PI / 2) });
   // grain piled before the granaries

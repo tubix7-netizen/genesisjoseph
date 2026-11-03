@@ -98,13 +98,16 @@ function stat(k, n) { S.stats[k] = (S.stats[k] || 0) + (n || 1); }
 // one hand, one tool: S.hand is what the hero visibly carries (or null = empty-handed). Actions that need another tool
 // use it only for the moment of the action; the chosen tool comes back to the hand afterwards.
 const TOOL_PROP = { hoe: 'hoe', jar: 'jar', bigjar: 'jar', sickle: 'sickle', axe: 'axe', hammer: 'hammer', staff: 'staff' };
-function hand() { return S && S.hand && tool(S.hand) ? S.hand : null; }
+/* v18.14 'weapon' = the weapon from the gear menu (sword, spear, sling…) held in the hand; some story moments keep the hands empty */
+function handLock() { return !!(S && EP && EP.handLock && EP.handLock(S)); }
+function hand() { if (!S || !S.hand || handLock()) return null; if (S.hand === 'weapon') return G.Combat && G.Combat.hasWeapon() ? 'weapon' : null; return tool(S.hand) ? S.hand : null; }
+const handName = k => k === 'weapon' ? (G.Combat ? G.Combat.weaponName() : '무기') : TOOLS[k];
 function hold(k) {
-  if (k && !tool(k)) return false; const was = hand(); S.hand = k || null;
-  if (S.hand !== was) { G.UI.toast(S.hand ? `손에 들었다 · ${TOOLS[S.hand]}` : `${TOOLS[was] || '도구'}를 내려놓았다 · 빈손`); sfx('pickup', { pitch: S.hand ? 1.1 : 0.8 }); }
+  if (k && (k === 'weapon' ? !(G.Combat && G.Combat.hasWeapon()) : !tool(k))) return false; if (k && handLock()) { G.UI.toast('지금은 손에 아무것도 들 수 없어요'); return false; } const was = hand(); S.hand = k || null;
+  if (S.hand !== was) { G.UI.toast(S.hand ? `손에 들었다 · ${handName(S.hand)}` : `${handName(was) || '도구'}를 내려놓았다 · 빈손`); sfx('pickup', { pitch: S.hand ? 1.1 : 0.8 }); }
   G.UI.hud(); return true;
 }
-Object.assign(Game, { inv, have, give, take, tool, giveTool, silver, stat, hand, hold, TOOL_PROP });
+Object.assign(Game, { inv, have, give, take, tool, giveTool, silver, stat, hand, hold, handName, handLock, TOOL_PROP });
 
 // =================================================================== FEATURES (opened one by one as the story goes on)
 /* Systems such as hunger, cold, building, riding or buying animals start hidden and are unlocked by the episode
@@ -702,8 +705,9 @@ function resolveContext() {
     cands.push({ d: d - 1.5, label: typeof sp.label === 'function' ? sp.label(S, Game) : sp.label, x: sp.x, z: sp.z, y: sp.y || 1.6, use: () => sp.use(S, Game), key: 'sp:' + sp.id, reach: sp.reach || 0.8 }); // v16.6: step right up to the thing you pick up
   }
   // npcs
-  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || n.d.noTalk) continue; const d = Math.hypot(n.x - P.x, n.z - P.z); if (d > (n.d.talkR || 2.6)) continue;
-    cands.push({ d: d - 0.6, label: n.d.label || '말하기', x: n.x, z: n.z, yAbs: n.y + (n.d.animal ? 1.4 : 2.1) * (n.scale || 1), use: () => talkTo(id), key: 'npc:' + id, npc: id }); }
+  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || (typeof n.d.noTalk === 'function' ? n.d.noTalk(S, Game) : n.d.noTalk)) continue; const d = Math.hypot(n.x - P.x, n.z - P.z); if (d > (n.d.talkR || 2.6)) continue;
+    if (Math.abs(P.y - (n.y || 0)) > 1.4) continue; /* v18.14 on a roof (or below one): too far up to talk */
+    cands.push({ d: d - 0.6, label: G.Persona && G.Persona.asleep(n) ? '깨우기' : n.d.label || '말하기', x: n.x, z: n.z, yAbs: n.y + (n.d.animal ? 1.4 : 2.1) * (n.scale || 1), use: () => talkTo(id), key: 'npc:' + id, npc: id }); }
   // stations
   for (const st of EP.stations || []) { if (st.on && !st.on(S, Game)) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d > (st.r || 2.4)) continue;
     const a = stationAction(st); if (a) cands.push(Object.assign({ d, x: st.x, z: st.z, y: 1.4, key: 'st:' + st.id }, a)); }
@@ -744,6 +748,7 @@ function talkTo(id) {
   const n = ENT.npcs[id]; n.talking = true; n.lookAt = true;
   if (P.cpose && !P.cpose.hold) P.cpose = null; if (P.emote && G.Acts) G.Acts.stop(); // stop a passing gesture (stretch, wave…) before speaking
   if (!n.d.animal) { P.face = Math.atan2(n.x - P.x, n.z - P.z); Game.dlgNpc = n; }
+  if (G.Persona && G.Persona.asleep(n) && G.Persona.wake(n)) return; /* v18.14 asleep at night: the first word wakes them */
   const st = EP.steps[S.step]; let h = st && st.talk && st.talk[id];
   const done = () => { n.talking = false; };
   if (h) { const r = h(S, Game); if (r === false) { } else return; }
@@ -922,7 +927,7 @@ function updateNPCs(dt, t) {
    people are left where the story put them), and followers keep a step away from the hero */
 const SEP = [];
 function separateNPCs(dt) {
-  SEP.length = 0; for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || !n.near || n.pass || n.seatY || n.d.fixed) continue; if (Math.hypot(n.x - P.x, n.z - P.z) > 40) continue; SEP.push(n); }
+  SEP.length = 0; for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || !n.near || n.pass || n.seatY || n.d.fixed || n.d.dy > 0.3) continue; if (Math.hypot(n.x - P.x, n.z - P.z) > 40) continue; SEP.push(n); } /* v18.14 someone seated up on a dais (Pharaoh on his throne) is not pushed off it by the dais collider */
   for (let i = 0; i < SEP.length; i++) { const a = SEP[i], ra = a.d.animal ? 0.55 : 0.34, ma = a.walk || a.wander || a.follow;
     if (a.follow) { const dx = a.x - P.x, dz = a.z - P.z, d = Math.hypot(dx, dz), m = 0.85; if (d < m && d > 1e-3) { const k = (m - d) * Math.min(1, dt * 10); a.x += dx / d * k; a.z += dz / d * k; } }
     for (let j = i + 1; j < SEP.length; j++) { const b = SEP[j], mb = b.walk || b.wander || b.follow; if (!ma && !mb) continue; const rb = b.d.animal ? 0.55 : 0.34;
@@ -1203,7 +1208,7 @@ function render(dt) {
   // only one thing in the hand: the action's own tool > a drawn weapon > the tool the player chose to hold
   const freeHand = !P.carry && !P.ride && !P.sleeping && !Game.cineOn && !(P.emote && (P.emote.k === 'eat' || P.emote.k === 'drink')) && !(pst.act && pst.act !== P.act && !(G.Acts && G.Acts.walkable(pst.act)));
   const busyP = P.actProp || (G.Combat && G.Combat.heldProp()), hk = !busyP && freeHand ? hand() : null;
-  const hp = Game.mode !== 'play' ? null : busyP || (hk && !((hk === 'staff' || hk === 'hoe') && !pst.staff) ? TOOL_PROP[hk] || null : null);
+  const hp = Game.mode !== 'play' ? null : busyP || (hk && !((hk === 'staff' || hk === 'hoe') && !pst.staff) ? (hk === 'weapon' ? G.Combat.wProp() : TOOL_PROP[hk]) || null : null);
   if (hp) scene.dyn.push(P.propD || (P.propD = { outline: true, m: P.propM = m4() })), P.propD.mesh = propMesh(hp), P.propD.m.set(P.rig.world[hp === 'bow' ? HBI.handL : HBI.handR]);
   if (hp && !busyP) { // carried, not in use: each tool sits in the fist the way it is really carried
     const hm = P.rig.world[HBI.handR], gy = W.heightAt(hm[12], hm[14]), A = Math.min(1, (P.spd || 0) / 2.2), sw = Math.sin(P.phase * 0.5) * A;

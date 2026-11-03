@@ -214,7 +214,7 @@ function seasonTick() { if (!egypt()) return; const s = X.season(), z = EP.wildZ
   const ck = $('clock'); if (ck && !ck.querySelector('.exSeason')) { const sp = document.createElement('span'); sp.className = 'exSeason'; sp.style.cssText = 'margin-left:6px;opacity:.75;font-size:.85em'; sp.textContent = SEASONS[s][0].split(' · ')[1]; ck.appendChild(sp); } }
 
 // =================================================================== 8 수레 순찰 기록
-const ROUTE = [{ n: '서쪽 마을 곳간', x: -152, z: -24 }, { n: '남쪽 마을 곳간', x: -158, z: 144 }, { n: '성읍 곳간', x: 16, z: -70 }, { n: '성읍 우물 (도착)', x: -22, z: -78 }];
+const ROUTE = [{ n: '서쪽 마을 곳간', x: -152, z: -24 }, { n: '남쪽 마을 곳간', x: -158, z: 144 }, { n: '성읍 곳간', x: 16, z: -70 }, { n: '성읍 우물 (도착)', x: -21, z: -86.8 }];
 const pat = X.patrol = { on: null };
 function patrolStart() { pat.on = { i: 0, t: 0 }; S().wp = { x: ROUTE[0].x, z: ROUTE[0].z, n: ROUTE[0].n }; sfx('quest', { pitch: 1.3 }); toast('순찰 시작! · 빨간 표시를 따라 곳간 세 곳을 돌고 우물로 돌아와요 · 나귀나 수레를 타도 돼요'); }
 function patrolTick(dt) { const o = pat.on; if (!o) return; o.t += dt; const r = ROUTE[o.i];
@@ -225,7 +225,7 @@ function patrolTick(dt) { const o = pat.on; if (!o) return; o.t += dt; const r =
   else if (!S().wp) S().wp = { x: r.x, z: r.z, n: r.n };
   hud.hidden = false; hud.textContent = `순찰 · ${o.i + 1}/${ROUTE.length} ${r.n} · ${Math.floor(o.t)}초${F().patrolBest ? ` · 최고 ${F().patrolBest}초` : ''}`;
   if (o.t > 600) { pat.on = null; hud.hidden = true; S().wp = null; toast('순찰을 멈췄어요'); } }
-spot('patrol', -22, -76, () => `수레 순찰 기록 도전${F().patrolBest ? ` · 최고 ${F().patrolBest}초` : ''}`, () => egypt() && !X.busy(), patrolStart);
+spot('patrol', -23.6, -86.6, () => `수레 순찰 기록 도전${F().patrolBest ? ` · 최고 ${F().patrolBest}초` : ''}`, () => egypt() && !X.busy(), patrolStart);
 
 // =================================================================== 9 므낫세와 숨바꼭질
 const hide = X.hide = { on: null };

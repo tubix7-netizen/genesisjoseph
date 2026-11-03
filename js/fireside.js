@@ -23,10 +23,10 @@ const npc = id => Game.ENT.npcs[id];
 const kidOf = n => KID.test(n.name + ' ' + (n.d.role || ''));
 
 // ------------------------------------------------------------------ village fires
-const ANCHORS = [['총리의 집 마당', 10, -140], ['왕의 도성', -22, -72], ['서쪽 마을', -140, -40], ['남쪽 마을', -145, 128], ['노예 장터', -8, 118], ['나일 나루', -92, -60], ['일꾼 마당', -45, 53]];
+const ANCHORS = [['총리의 집 마당', 10, -140], ['왕의 도성', -30, -80], ['서쪽 마을', -140, -40], ['남쪽 마을', -145, 128], ['노예 장터', -8, 118], ['나일 나루', -92, -60], ['일꾼 마당', -45, 53]];
 function seedFires(S) { const Bd = G.Build; if (!Bd || !Bd.check || !Bd.prebuild) return; S.flags.vfires = 1; let n = 0;
   for (const [name, ax, az] of ANCHORS) { let ok = null;
-    for (let r = 6; r <= 30 && !ok; r += 1.5) for (let k = 0; k < 10 && !ok; k++) { const a = k / 10 * Math.PI * 2 + r * 0.7, x = ax + Math.sin(a) * r, z = az + Math.cos(a) * r; if (!Bd.check('campfire', x, z, 0, 1, true) && !Bd.check('house', x, z, 0, 1, true)) ok = [x, z]; }
+    for (let r = 0; r <= 30 && !ok; r = r ? r + 1.5 : 6) for (let k = 0; k < 10 && !ok; k++) { const a = k / 10 * Math.PI * 2 + r * 0.7, x = ax + Math.sin(a) * r, z = az + Math.cos(a) * r; if (!Bd.check('campfire', x, z, 0, 1, true) && !Bd.check('house', x, z, 0, 1, true)) ok = [x, z]; }
     if (ok) { Bd.prebuild(S, 'campfire', ok[0], ok[1], Math.random() * 6, name + ' 모닥불'); n++; } }
   return n; }
 
@@ -125,6 +125,7 @@ F.thirst = function (force) { const S = Game.S(), P = Game.P;
   G.UI.toast(`땡볕에 지친 ${n.name}이(가) 물을 찾아요 · 물항아리에 물을 담아 건네 보세요`); sfx('quest', { pitch: 0.8, vol: 0.5 }); return id; };
 F.update = function (dt) { const S = Game.S(); if (!S || !S.flags || Game.mode !== 'play' || Game.EP() !== EPJ()) return; tT -= dt; if (tT > 0) return; tT = 1;
   if (!S.flags.vfires && egypt(S)) seedFires(S);
+  if (S.flags.vfires && !S.flags.vfire2 && G.Build && G.Build.relocate) { S.flags.vfire2 = 1; const b = (S.bld || []).find(q => q.pre && q.name === '왕의 도성 모닥불' && Math.hypot(q.x + 22, q.z + 71) < 12); if (b) G.Build.relocate(b.id, -30, -80); } // v18.14 the city fire leaves the market aisle
   const th = S.flags.thirst;
   if (th) { const n = npc(th.id); if (!n || !n.vis || absH(S) > th.until) { if (n && n.vis && Math.hypot(n.x - Game.P.x, n.z - Game.P.z) < 40) G.Life && G.Life.bubble(th.id, '휴… 그늘에서 좀 쉬어야겠다.', 3); S.flags.thirst = null; return; }
     if ((bT -= 1) <= 0 && !calm() && Math.hypot(n.x - Game.P.x, n.z - Game.P.z) < 40) { bT = 7; G.Life && G.Life.bubble(th.id, rnd(ASK), 3.5); } return; }

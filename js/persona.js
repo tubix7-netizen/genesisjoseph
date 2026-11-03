@@ -231,7 +231,7 @@ const BMP = {}; Pe.bump = BMP;
 let lpx = null, lpz = null, clk = 0;
 function bumpTick(dt) { clk += dt; const Pl = P(), now = clk, ENT = Game.ENT; if (!ENT) return; // game time, so a pause does not count
   const mv = lpx === null ? 0 : Math.hypot(Pl.x - lpx, Pl.z - lpz) / Math.max(dt, 1e-3); lpx = Pl.x; lpz = Pl.z; const sp = mv > 15 ? 0 : Math.max(mv, Pl.spd || 0); // how fast the hero really moved (a jump across the map is not a bump)
-  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || n.talking || n.follow || n.pass || n.seatY || n.d.fixed) continue;
+  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || n.talking || n.follow || n.pass || n.seatY || n.d.fixed || n.d.sit || n.sleep || (typeof n.d.noTalk === 'function' && n.d.noTalk(Game.S(), Game))) continue; // (no friendly 「oops」 from someone the story keeps silent)
     const dx = n.x - Pl.x, dz = n.z - Pl.z, d = Math.hypot(dx, dz), b = BMP[id] || (BMP[id] = { t: -9, anc: null, idle: 0 });
     // remember where a person who stands still belongs
     if (!n.walk && !n.wander && !b.off) { b.idle += dt; if (b.idle > 1.5) b.anc = [n.x, n.z, n.homeFace !== undefined ? n.homeFace : n.face]; } else if (n.walk || n.wander) { b.idle = 0; b.anc = null; }
@@ -249,23 +249,79 @@ function bumpTick(dt) { clk += dt; const Pl = P(), now = clk, ENT = Game.ENT; if
       else if (g > 0.015) { const st = Math.min(g, 0.7 * dt); n.x += (ax - n.x) / g * st; n.z += (az - n.z) / g * st; } // a small shuffle back
       else { b.off = false; n.x = ax; n.z = az; n.homeFace = af; n.face = af; } } } }
 
-// =================================================================== a day for everyone
-const ACT = { shepherd: 'gather', farmer: 'hoe', potter: 'mine', weaver: 'gather', water: 'gather', cook: 'gather', gardener: 'water', builder: 'mine', servant: 'gather', artist: 'gather' };
-function dayTick() { const ENT = Game.ENT; if (!ENT) return; const S2 = S(), h = S2.time % 24, tg = Game.curTarget, fam = isFam;
-  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || n.d.animal || n.d.sched || n.d.folk || n.talking || n.follow || n.walk || n.seatY || (fam && fam(id))) continue;
-    if (tg && tg.npc === id) { if (n._ract) { n.act = n.d.act || null; n._ract = null; } continue; } // the one the story wants stays as the story left them
+// =================================================================== a day for everyone (v18.14: each person keeps their own day)
+/* Every person builds their own day from who they are: when they get up and go to bed (J early, P late, children and the old
+   earlier), what they do in each hour-and-a-half block (their work, their hobby, chatting for E, sitting quietly for I), whether
+   they rest at noon and how they spend the evening. At night they lie down and sleep; talking to them wakes them for a while. */
+const ACT = { shepherd: ['gather', 'pet'], farmer: ['hoe', 'plant', 'harvest', 'water'], potter: ['mine', 'gather'], weaver: ['gather', 'pick'], water: ['gather', 'pick'], cook: ['gather', 'pick'], gardener: ['water', 'plant', 'pick'],
+  builder: ['mine', 'hoe'], servant: ['gather', 'pick', 'reach'], artist: ['gather', 'think'], scribe: ['think', 'point'], guard: ['crossArms'], official: ['crossArms', 'point', 'think'], priest: ['kneelPray', 'think'],
+  merchant: ['point', 'wave'], hunter: ['gather', 'stretch'], prisoner: ['sitHug', 'think'], child: [] };
+const HOB = [[/피리|노래|흥얼|지저귐/, 'flute'], [/기도/, 'kneelPray'], [/별/, 'think'], [/깎|다듬|엮|땋|무늬|팔찌|바구니|빚기|그림|글씨|모으기|말리기|만들기|들이기|굽기/, 'gather'],
+  [/털|염소|강아지|새끼/, 'pet'], [/씨름|달리기|던지기|물장구/, 'stretch'], [/졸기|햇볕/, 'sitg'], [/이야기|가르치기/, 'clap'], [/낚시|산책|따라가기|쫓아가기/, 'think']];
+const hobAct = p => { for (const [rx, a] of HOB) if (rx.test(p.hobby || '')) return a; return null; };
+const SOC = { E: ['wave', 'laugh', 'clap', 'point'], I: ['think', 'crossArms', 'sitHug'] };
+const pickH = (arr, k) => arr.length ? arr[Math.floor(hash(k) * arr.length) % arr.length] : null;
+function dayOf(id, p) { // the person's own clock (hours)
+  const J = p.mbti[3] === 'J', ag = p.age, r = hash(id + 'clk');
+  const wake = 5.0 + (J ? -0.45 : 0.55) + (ag === 'old' ? -0.5 : ag === 'kid' ? 0.4 : 0) + r * 0.7;
+  const bed = 21.4 + (J ? -0.5 : 0.7) + (ag === 'kid' ? -1.4 : ag === 'old' ? -0.7 : 0) + hash(id + 'bed') * 0.8;
+  return { wake, bed, nap: ag !== 'kid' && hash(id + 'nap') < (ag === 'old' ? 0.85 : p.mbti[0] === 'I' ? 0.6 : 0.35), napAt: 11.8 + hash(id + 'na') * 1.4 }; }
+function blockAct(id, p, n, blk, day) { // what they do in a day block
+  const pool = [], w = (a, k) => { if (a) for (let i = 0; i < k; i++) pool.push(a); };
+  const work = ACT[p.role] || [], E = p.mbti[0] === 'E', T = p.mbti[2] === 'T', J = p.mbti[3] === 'J';
+  for (const a of work) w(a, (T ? 3 : 2) + (J ? 1 : 0));
+  w(hobAct(p), p.mbti[3] === 'P' ? 3 : 2);
+  for (const a of SOC[E ? 'E' : 'I']) w(a, 1);
+  if (n.d.act) w(n.d.act, 3); // the story's own pose for them stays their favourite
+  if (p.age === 'old') w('sitg', 3); if (p.age === 'kid') { w('dance2', E ? 2 : 1); w('laugh', 1); w(null, 3); }
+  if (!pool.length) w(null, 1);
+  return pool[Math.floor(hash(id + ':' + day + ':' + blk) * pool.length) % pool.length]; }
+function evenAct(id, p) { const L = p.age === 'old' ? ['sitg', 'sitg', 'warmHands', 'kneelPray'] : p.age === 'kid' ? ['sitHug', 'laugh', 'dance2', 'sitg'] : p.mbti[0] === 'E' ? ['warmHands', 'clap', 'laugh', 'sitg'] : ['sitg', 'sitHug', 'think', 'warmHands'];
+  const h = hobAct(p); if (h === 'flute' || h === 'kneelPray') L.push(h, h); return pickH(L, id + 'ev' + S().day); }
+const SLP = { kid: ['으응… {you}? 졸려요…', '음냐… 벌써 아침이에요?', '…꿈에서 맛있는 거 먹고 있었는데…'], man: ['음… 누구요? 이 밤중에.', '으음, 깜빡 잠들었구려. 무슨 일이오?', '허, 잠결에 놀랐소. 말해 보시오.'],
+  woman: ['어머… 깜빡 잠들었네요. 무슨 일이세요?', '음… 이 밤에 어쩐 일이세요?', '아, 놀랐어요. 잠이 들었었나 봐요.'], old: ['허허… 늙은이 단잠을 깨우는구먼.', '으음… 누군가? 눈이 침침해서.', '아이고, 깜빡 잠들었다네.'] };
+let pclk = 0; const WAKE = {};
+Pe.asleep = n => !!(n && n.sleep && n._psleep);
+Pe.wake = function (n) { const p = Pe.of(n.id); if (!p) { n.sleep = false; n._psleep = false; return false; }
+  n.sleep = false; n._psleep = false; WAKE[n.id] = pclk + 150; n.act = null; n._ract = null; n.emote = { k: 'stretch', t: 0, dur: 1.8, amb: true };
+  const g = p.age === 'kid' ? 'kid' : p.age === 'old' ? 'old' : p.fem ? 'woman' : 'man', L = SLP[g], l = fill(L[Math.floor(Math.random() * L.length)], { you: youOf(p) || '' });
+  G.Audio && G.Audio.sfx('blip', { pitch: p.age === 'kid' ? 1.5 : p.fem ? 1.2 : 0.8, vol: 0.35, x: n.x, z: n.z });
+  G.UI.say([{ n: n.name, t: l }], () => { n.talking = false; }); return true; };
+function dayTick() { const ENT = Game.ENT; if (!ENT) return; const S2 = S(), h = S2.time % 24, tg = Game.curTarget, fam = isFam, Pl = P();
+  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || n.d.animal || n.d.sched || n.d.folk || n.talking || n.follow || n.walk || n.seatY || n.d.sit || n.d.kneel || n.d.fixed || (fam && fam(id))) { if (n._ract && n.act === n._ract) { n.act = n.d.act || null; n._ract = null; } continue; } // v18.14 people on a seat (Pharaoh on his throne) stay on it
+    if (tg && tg.npc === id) { if (n._ract) { n.act = n.d.act || null; n._ract = null; } if (n._psleep) { n.sleep = false; n._psleep = false; } continue; } // the one the story wants stays as the story left them
     if (n.act && n.act !== n._ract && n.act !== n.d.act) continue; // a story pose: leave it
-    const p = Pe.of(id); if (!p) continue; const early = p.mbti[3] === 'J' ? -0.6 : 0.5; let a = n.d.act || null;
-    if (h < 5.2 + early || h > 22 + early) a = 'sitg'; // asleep sitting by their place (still there to talk to)
-    else if (h < 6.4 + early) { if (!n._wk || n._wk !== S2.day) { n._wk = S2.day; n.emote = { k: 'stretch', t: 0, dur: 2.4, amb: true }; } }
-    else if (h > 12 && h < 13.6 && !n.d.sit) a = p.age === 'kid' ? null : 'sitg';
-    else if (h > 18.5 && h < 21.5 && !n.d.sit) a = p.age === 'old' || p.mbti[0] === 'I' ? 'sitg' : 'warmHands';
-    else if (!a && ACT[p.role] && h > 7 && h < 17 && hash(id + S2.day) < 0.5) a = ACT[p.role];
-    if (p.age === 'kid' && n.wander) n.wander.r = h > 7 && h < 18.5 ? Math.max(n.wander.r, 3) : 0.6; // children run about by day
+    if (n.sleep && !n._psleep) continue; // asleep because the story said so
+    const p = Pe.of(id); if (!p) continue; const D = dayOf(id, p); let a = n.d.act || null, sl = false;
+    const night = h < D.wake || h > D.bed, guard = p.role === 'guard';
+    if (night && !n.d.sit && !n.d.kneel && !(WAKE[id] > pclk)) { if (guard && hash(id + S2.day) < 0.7) a = h > 1 && h < 4 && p.mbti[3] === 'P' ? 'sitg' : 'crossArms'; else sl = true; }
+    else if (night) a = 'sitg';
+    else if (h < D.wake + 0.9) { if (!n._wk || n._wk !== S2.day) { n._wk = S2.day; n.emote = { k: hash(id + 'wk' + S2.day) < 0.6 ? 'stretch' : 'think', t: 0, dur: 2.4, amb: true }; } }
+    else if (D.nap && h > D.napAt && h < D.napAt + 1.1 && !n.d.sit) a = p.age === 'old' || hash(id + 'nn') < 0.5 ? 'sitg' : 'sitHug';
+    else if (h > D.bed - 2.8 && !n.d.sit) a = evenAct(id, p);
+    else if (h > 6.5) a = blockAct(id, p, n, Math.floor((h + hash(id + 'off') * 1.5) / 1.5), S2.day);
+    if (p.age === 'kid' && n.wander) n.wander.r = h > 7 && h < 18.5 ? Math.max(n.wander.r, 2 + hash(id + 'wr') * 4) : 0.6; // children run about by day, each as far as they dare
+    if (sl) { if (!n.sleep) { n.sleep = true; n._psleep = true; n.act = null; n._ract = null; } if (Pl && Math.hypot(Pl.x - n.x, Pl.z - n.z) < 7 && hash(id + Math.floor(pclk / 7)) < 0.35) G.Life && G.Life.bubble && G.Life.bubble(id, 'Zzz…', 2.4); continue; }
+    if (n._psleep) { n.sleep = false; n._psleep = false; n.emote = { k: 'stretch', t: 0, dur: 2.2, amb: true }; }
     if (a !== (n.act || null)) { n.act = a; n._ract = a; } } }
+// a straw mat under whoever sleeps out in the open (laid head to feet under the body)
+const MAT = {}; let matMesh = null; const dyn0 = EP.dyn;
+EP.dyn = function (list) { if (dyn0) dyn0.apply(this, arguments); try { const ENT = Game.ENT, Pl = P(), H = G.HBI; if (!ENT || !H) return;
+  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n._psleep || !n.sleep || !n.vis || !n.near || !n.rig || Math.hypot(n.x - Pl.x, n.z - Pl.z) > 45) continue;
+    const hd = n.rig.world[H.head], ft = n.rig.world[H.footL]; if (!hd || !ft) continue; const cx = (hd[12] + ft[12]) / 2, cz = (hd[14] + ft[14]) / 2, a = Math.atan2(hd[12] - ft[12], hd[14] - ft[14]);
+    if (!matMesh) { const g = new G.GB(31); g.box(0.85, 0.04, 2.1, { at: [0, 0.02, 0], c: 0xb89a62 }); g.box(0.86, 0.05, 0.95, { at: [0, 0.045, -0.5], c: 0x8a5a3a }); g.box(0.6, 0.08, 0.28, { at: [0, 0.07, 0.86], c: 0xd8c8a0 }); matMesh = G.R.mesh(g); }
+    const m = MAT[id] || (MAT[id] = G.m4()); G.m4trs(m, cx, Game.W().heightAt(cx, cz), cz, a, 0, 0, 1, 1, 1); list.push({ mesh: matMesh, m }); } } catch (e) { } };
+// villagers: same jobs, but each keeps their own hours and their own way of spending them
+if (G.NpcAI && G.NpcAI.plan) { const plan0 = G.NpcAI.plan; G.NpcAI.plan = function (v, f, S2) { const rows = plan0.apply(this, arguments);
+  try { const p = Pe.of(f.id); const mb = p ? p.mbti : 'ESTJ', sh = (hash(f.id + 'sh') - 0.5) * 1.3 + (mb[3] === 'J' ? -0.3 : 0.35);
+    return rows.map((r, i) => { let [h, x, z, fc, m] = r; h = Math.max(0, Math.min(23.9, h + sh));
+      if (m === 'sit' && p && hash(f.id + S2.day + 's' + i) < 0.6) m = 'act:' + evenAct(f.id + i, p);
+      else if (m && m.startsWith('act:') && p) { const alt = ACT[p.role] || [], ho = hobAct(p), k = hash(f.id + S2.day + 'a' + i); if (ho && k < 0.25) m = 'act:' + ho; else if (alt.length > 1 && k < 0.6) m = 'act:' + pickH(alt, f.id + i + S2.day); }
+      else if (m && m.startsWith('wander:')) m = 'wander:' + (+m.split(':')[1] * (mb[0] === 'E' ? 1.25 : 0.75)).toFixed(1);
+      return [+h.toFixed(2), x, z, fc, m]; }); } catch (e) { return rows; } }; }
 
 // =================================================================== per frame
 let dT = 0;
 const upd0 = EP.update; EP.update = function (dt) { const r = upd0 ? upd0.apply(this, arguments) : undefined; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
-  if (Game.mode === 'play') { try { bumpTick(d); if ((dT += d) > 1) { dT = 0; dayTick(); } } catch (e) { console.error('persona', e); } } return r; };
+  if (Game.mode === 'play') { pclk += d; try { bumpTick(d); if ((dT += d) > 1) { dT = 0; dayTick(); } } catch (e) { console.error('persona', e); } } return r; };
 })(window.G);

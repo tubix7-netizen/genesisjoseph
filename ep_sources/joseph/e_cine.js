@@ -48,7 +48,7 @@ const bubble = (id, t, d) => GG.Life && GG.Life.bubble(id, t, d || 3);
 const cine = (shots, done, o) => GG.Cine.play(shots, done, o);
 const fade = (mid, after) => GG.UI.fade(mid, after);
 const RT = { crumbs: [], car: null, cows: [], tw: [], t: 0, grace: 0 };
-const OUTFIT_AT = [['p_wake', 'josephCoat'], ['c1_pit', 'josephPlain'], ['c2_arrive', 'josephSlave'], ['c2_manage', 'josephSteward'], ['c2_flee', 'josephFled'], ['c3_cell', 'josephFettered'],
+const OUTFIT_AT = [['p_wake', 'josephCoat'], ['c1_pit', 'josephPlain'], ['c2_arrive', 'josephSlave'], ['c2_manage', 'josephSteward'], ['c2_flee', 'josephFled'], ['c3_cell', 'josephPrisoner'],
   ['c3_charge', 'josephPrisoner'], ['c4_court', 'josephShaved'], ['c5_patrol', 'josephVizier']];
 function outfitFor(S) { let o = 'josephCoat'; for (const [k, v] of OUTFIT_AT) if (!before(S, k)) o = v; const wd = S.flags && S.flags.ward; if (o === 'josephVizier' && wd && wd.sel && WARD[wd.sel]) o = wd.sel; return o; }
 // ------------------------------------------------------------------ v16 옷장: once Joseph is vizier he can have clothes made and change into them
@@ -92,7 +92,7 @@ function stage(S, G) {
   else if (between(S, 'c2_arrive', 'c2_flee')) {
     if (S.step === 'c2_store') { place('potiphar', -13.4, 60.6, -1.4); place('scribe', -14.2, 62.4, -1.6); }
     else { place('potiphar', -28, 39.4, 0, { sit: true }); place('scribe', -23.6, 41.2, 0, { sit: true }); }
-    if (S.step === 'c2_tempt3' || S.step === 'c2_flee') place('wife', -30.5, 39.6, 0.5); else place('wife', -20.6, 61.6, Math.PI);
+    if (S.step === 'c2_flee') place('wife', -23.6, 42.1, 1.5); else if (S.step === 'c2_tempt3') place('wife', -30.5, 39.6, 0.5); else place('wife', -20.6, 61.6, Math.PI);
   }
   if (between(S, 'c3_officers', 'c3_dreams')) { place('cupbearer', CELL[3][0] - 1.1, CELL[3][1] - 0.2, 0); place('baker', CELL[3][0] + 1.1, CELL[3][1] - 0.4, 0); }
   if (between(S, 'c5_patrol')) { place('pharaoh', -30, -177.2, 0, { sit: true }); }
@@ -390,13 +390,13 @@ function banquetStart(S, G, re) {
   fade(() => { S.time = Math.floor(S.time / 24) * 24 + 19.3; G.teleport(-37.2, 45.4, 2.6); }, () => say([N('ameni', '요셉, 잘 들어라. 손님들은 애굽 말로만 주문할 게다. 「이르프」는 포도주, 「데브」는 무화과란다.', '', 'whisper'),
     N('ameni', '무와 타는 알지? 시중 상에서 알맞은 것을 들고 가서 손님께 드려라.', '', 'tender')], () => { learn('irp'); learn('dab'); go(); }));
 }
-// v16.6: the order stays above the guest's head until it is served, and the table shows each dish with its Egyptian word —
-// you read the order and pick the matching dish instead of guessing
+// v16.6: the order stays above the guest's head until it is served; v18.14 the table names the dishes without their Egyptian
+// word, so the player has to remember what 「이르프」, 「무」, 「타」, 「데브」 mean
 function askNext(S) { const w = WANT[S.q.want]; if (!w) return; const id = S.q.want; const keep = () => { if (Gm().S().step === 'c2_banquet' && Gm().S().q.want === id && !GG.UI.busy()) bubble(id, w.eg, 6); }; setTimeout(keep, 600); clearInterval(RT.ordT); RT.ordT = setInterval(() => { if (Gm().S().step !== 'c2_banquet' || Gm().S().q.want !== id) { clearInterval(RT.ordT); return; } keep(); }, 5500); GG.UI.quest(); }
 function serveTable(S, G) {
   const keys = WANT_ORDER.map(k => WANT[k].item); keys.sort();
-  const w0 = WANT[S.q.want], EGW = { '포도주 항아리': '이르프', '물동이': '무', '빵 바구니': '타', '무화과 쟁반': '데브' };
-  GG.UI.choose(`무엇을 들고 갈까? · 지금 주문: 「${w0 ? w0.eg : '…'}」`, keys.map(k => `${k} · 「${EGW[k]}」`), i => { const it = keys[i]; const w = Object.values(WANT).find(x => x.item === it);
+  const w0 = WANT[S.q.want]; /* v18.14 the dishes are listed without their Egyptian words: the player has to remember them */
+  GG.UI.choose(`무엇을 들고 갈까? · 지금 주문: 「${w0 ? w0.eg : '…'}」`, keys, i => { const it = keys[i]; const w = Object.values(WANT).find(x => x.item === it);
     S.q.carry = it; G.P.carry = w.prop; G.P.carryArms = !!w.arms; G.sfx('pickup'); G.UI.quest(); });
 }
 for (const id of WANT_ORDER) steps.c2_banquet.talk = Object.assign(steps.c2_banquet.talk || {}, { [id]: (S, G) => serveGuest(S, G, id) });
@@ -453,12 +453,12 @@ function cinBless(S, G, next) {
 function cinGrab(S, G) {
   const tx = -22.5, tz = 41.6, th = hAt(tx, tz);
   cine([
-    { fn: () => { G.teleport(tx, tz, Math.PI); cpose('pick', 0, true); place('wife', -31, 39.6, 1.2); }, cam: [tx + 3.6, th + 1.7, tz + 3.2], look: [tx, th + 1, tz - 0.6], dur: 6, music: 'j_dread',
+    { fn: () => { G.teleport(tx, tz, Math.PI); cpose('pick', 0, true); place('wife', -20.6, 45.4, Math.PI); }, cam: [tx + 3.6, th + 1.7, tz + 3.2], look: [tx, th + 1, tz - 0.6], dur: 6, music: 'j_dread',
       t: '집 안은 고요했습니다. 요셉은 대청의 장부를 정리하고 있었습니다.' },
-    { fn: () => walkTo('wife', tx - 1.1, tz + 0.5, 1.1, () => face('wife', tx, tz)), cam: [tx - 4, th + 1.5, tz + 2.6], look: [tx - 2.4, th + 1.3, tz + 0.2], dur: 6, n: '보디발의 아내', t: '요셉… 아무도 없어. 오늘은 아무도.', e: 'whisper' },
+    { fn: () => walkTo('wife', tx - 1.1, tz + 0.5, 1.1, () => face('wife', tx, tz)), cam: [tx - 1.6, th + 1.5, tz - 3.0], look: [tx + 0.4, th + 1.3, tz + 2.4], dur: 6, n: '보디발의 아내', t: '요셉… 아무도 없어. 오늘은 아무도.', e: 'whisper' },
     { fn: () => { cpose(null); G.P.face = -1.5; }, cam: [tx + 1.6, th + 1.5, tz + 1.8], look: [tx - 1, th + 1.4, tz + 0.4], dur: 5, fov: 0.62, n: '보디발의 아내', t: '나와 동침하자.', ref: '창세기 39:12', e: 'whisper' },
     { fn: () => { emote('wife', 'grabCloth', 3); }, cam: [tx - 0.4, th + 1.3, tz + 2.6], look: [tx - 0.6, th + 1.2, tz + 0.4], dur: 3.5, n: '요셉', t: '안 됩니다!', e: 'shout', shake: 0.3, shakeDecay: 0.8 },
-    { fn: () => { G.sfx('rip'); G.setOutfit('josephFled'); S.q.robe = 1; G.P.face = 0.2; cpose(null); }, cam: [tx - 3.2, th + 1.6, tz + 3.4], look: [tx - 0.8, th + 1.1, tz + 0.6], dur: 6, shake: 0.4, shakeDecay: 1.2,
+    { fn: () => { G.sfx('rip'); G.setOutfit('josephFled'); S.q.robe = 1; G.P.face = 0.2; cpose(null); }, cam: [tx + 3.4, th + 1.6, tz + 3.6], look: [tx - 0.8, th + 1.1, tz + 0.6], dur: 6, shake: 0.4, shakeDecay: 1.2,
       t: '그 여인이 그의 옷을 잡고 동침하자 하니, 요셉이 자기의 옷을 그 여인의 손에 버리고 밖으로 나가매', ref: '창세기 39:12' },
     garmentBeat(1, [tx - 1.0, th + 1.0, tz + 0.5], [tx - 0.2, th + 0.7, tz + 1.7], '두 번째 옷 · 이번에는 요셉이 스스로 내려놓았습니다. 죄 대신 옷을 잃기로 했습니다.'),
   ], () => G.go('c2_flee'));
@@ -467,7 +467,7 @@ function cinGrab(S, G) {
 function cinAccuse(S, G, next) {
   const hx = -28, hz = 41.6, hh = hAt(hx, hz), gx = SPOTS.pGate[0], gz = SPOTS.pGate[1], gh = hAt(gx, gz);
   cine([
-    { fn: () => { S.q.empty = 0; place('wife', -27, 43, 0); emote('wife', 'cheer', 6); [['cook', -31, 46], ['gardener', -24.6, 46.4], ['maid', -29.4, 47.6], ['neb', -26.2, 48], ['ameni', -32.4, 47]].forEach(([id, x, z]) => place(id, x, z, Math.atan2(-27 - x, 43 - z))); G.teleport(gx + 0.6, gz + 2.6, 0); },
+    { fn: () => { S.q.empty = 0; place('wife', -27, 43, 0); emote('wife', 'cheer', 6); [['cook', -31, 46], ['gardener', -25.8, 47.4], ['maid', -29.4, 47.6], ['neb', -26.2, 48], ['ameni', -32.4, 47]].forEach(([id, x, z]) => place(id, x, z, Math.atan2(-27 - x, 43 - z))); G.teleport(gx + 0.6, gz + 2.6, 0); },
       cam: [hx + 5, hh + 2.2, hz + 9], cam2: [hx + 3.6, hh + 1.8, hz + 7], look: [-27, hh + 1.3, 44], dur: 6, sfx: 'crowd', t: '그 여인이 요셉이 그의 옷을 자기 손에 버리고 도망하여 나감을 보고, 그 여인의 집 사람들을 불러서', ref: '창세기 39:13–14' },
     { cam: [-25.2, hh + 1.5, 46], look: [-27, hh + 1.5, 43], dur: 9, fov: 0.65, n: '보디발의 아내', t: '보라! 주인이 히브리 사람을 우리에게 데려다가 우리를 희롱하게 하는도다. 그가 나와 동침하고자 내게로 들어오므로 내가 크게 소리 질렀더니, 그가 그의 옷을 내게 버려두고 도망하여 나갔느니라!', ref: '창세기 39:14–15', e: 'shout' },
     { cam: [-33.6, hh + 1.5, 48.6], look: [-32.4, hh + 1.5, 47], dur: 5, fov: 0.6, n: '늙은 종 아메니', t: '(…요셉이 그럴 리가 없어. 그 아이는…)', e: 'whisper' },
@@ -477,10 +477,10 @@ function cinAccuse(S, G, next) {
     { cam: [-26.4, hh + 1.6, 47.8], look: [-27.4, hh + 1.6, 45.6], dur: 7, fov: 0.6, t: '주인이 그의 아내가 자기에게 이르기를 「당신의 종이 내게 이같이 행하였다」 하는 말을 듣고 심히 노한지라.', ref: '창세기 39:19' },
     { fn: () => { G.teleport(-27.6, 49.4, Math.PI); cpose(null); }, cam: [-26.2, hh + 1.6, 51.4], look: [-27.6, hh + 1.5, 49.4], dur: 6, t: '요셉은 아무 말도 하지 않았습니다. 무슨 말을 한들, 종의 말을 누가 믿어 줄까요.' },
     { cam: [-28.6, hh + 1.6, 47.6], look: [-27.4, hh + 1.6, 45.6], dur: 6, n: '보디발', t: '……이자를 묶어라. 왕의 옥에 넣어라.', e: 'cold' },
-    { fn: () => { G.setOutfit('josephFettered'); S.q.chain = 1; cpose('bound', 0, true); G.sfx('chain'); walkTo('pg1', -28.8, 49.8, 2); walkTo('pg2', -26.4, 49.8, 2); }, cam: [-24, hh + 2, 52], look: [-27.6, hh + 1.2, 49.4], dur: 8,
+    { fn: () => { G.setOutfit('josephPrisoner'); cpose(null); /* v18.14 no shackles */ walkTo('pg1', -28.8, 49.8, 2); walkTo('pg2', -26.4, 49.8, 2); }, cam: [-24, hh + 2, 52], look: [-27.6, hh + 1.2, 49.4], dur: 8,
       t: '요셉의 주인이 그를 잡아 옥에 넣으니, 그 옥은 왕의 죄수를 가두는 곳이었더라. 요셉이 옥에 갇혔으나', ref: '창세기 39:20', fadeOut: 1.6 },
     { black: true, title: '3장 · 왕의 옥', sub: '창세기 39:20–41:14', cam: [-30, 4, 10], look: [-30, 1, 0], dur: 4, fn: () => { stage(S, G); } },
-    { hour: 21.4, fn: () => { G.teleport(-18.4, -6.2, Math.PI); cpose('bound', 0, true); G.sfx('door'); }, fadeIn: 1.6, music: 'j_prison',
-      cam: [-18.4, hAt(-18.4, -6) + 1.6, -1.6], look: [-18.4, hAt(-18.4, -6) + 1.0, -6.4], dur: 8, t: '「그의 발은 차꼬를 차고, 그의 몸은 쇠사슬에 매였으니」', ref: '시편 105:18', sfx: 'chain' },
+    { hour: 21.4, fn: () => { G.teleport(-18.4, -6.2, Math.PI); cpose(null); G.sfx('door'); }, fadeIn: 1.6, music: 'j_prison',
+      cam: [-18.4, hAt(-18.4, -6) + 1.6, -1.6], look: [-18.4, hAt(-18.4, -6) + 1.0, -6.4], dur: 8, t: '「그의 발은 차꼬를 차고, 그의 몸은 쇠사슬에 매였으니」', ref: '시편 105:18' },
   ], () => { GG.Game.musicOverride = null; next(); });
 }

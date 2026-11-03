@@ -241,7 +241,7 @@ const QUESTS = {
   e_hunt: { giver: 'hunterE', title: '왕의 사냥꾼과 첫 사냥', when: S => idx(S) >= ORDER.indexOf('c5_patrol'),
     offer: ['총리 나으리, 동쪽 들의 들짐승이 곡식 밭을 자꾸 헤집어 놓습니다. 저와 함께 사냥해 주시겠습니까?', '이건 제가 쓰던 물매입니다. 목자 출신이시라니 금방 손에 익으실 겁니다. 돌도 몇 개 챙겨 드리지요.'],
     obj: [{ t: (S, G2, st) => `동쪽 들에서 토끼나 가젤 사냥 (${Math.min(2, GG.Life.killsSince(st, ['hare', 'gazelle']))}/2)`, ok: (S, G2, st) => GG.Life.killsSince(st, ['hare', 'gazelle']) >= 2 }], loc: () => ({ x: 48, z: -40 }),
-    start(S) { S.flags.slingOK = 1; const C = GG.Combat; if (C) { C.giveGear('sling'); S.hero.mode = 'ranged'; } if ((S.inv.stone || 0) < 8) Gm().give('stone', 8 - (S.inv.stone || 0), true); GG.UI.featCard && GG.UI.featCard('sling', { kick: '새 무기', n: '물매', ic: 'star', d: '왼쪽 무기 단추로 근접 ↔ 물매를 바꿔요 · 「쏘기」를 누르고 있다가 놓아요' }); GG.UI.hud(); },
+    start(S) { S.flags.slingOK = 1; const C = GG.Combat; if (C) { C.giveGear('sling'); S.hero.mode = 'ranged'; if (!Gm().hand()) Gm().hold('weapon'); } if ((S.inv.stone || 0) < 8) Gm().give('stone', 8 - (S.inv.stone || 0), true); GG.UI.featCard && GG.UI.featCard('sling', { kick: '새 무기', n: '물매', ic: 'star', d: '왼쪽 무기 단추로 근접 ↔ 물매를 바꿔요 · 「쏘기」를 누르고 있다가 놓아요' }); GG.UI.hud(); },
     prog: '동쪽 들입니다. 몸을 낮추고 바람을 등지고 다가가십시오.', done: ['훌륭하십니다! 다윗 같은 목자가 따로 없군요.', '이제 물매와 활 만드는 법도 알려 드리지요. 메뉴 → 장비에서 만들 수 있습니다.'],
     reward: { silver: 12, items: { meat: 2, sinew: 2, smooth: 3 }, xp: 24 } },
   g_lamb: { giver: 'reuben', title: '르우벤의 길 잃은 어린양', when: goshenOn, repeat: 5,

@@ -64,7 +64,7 @@ Game.CTX.push(function (S) { const P = Game.P; if (P.ride || P.climb || P.swim |
   if (best) { const b = best;
     if (b.k === 'chest') out.push({ d: bd - 0.3, label: '보물상자 열기', x: b.x, z: b.z, yAbs: b.y + 0.9, key: 'loot:' + b.id, use: () => Lo.openChest(b) });
     else if (b.k === 'urn') out.push({ d: bd - 0.3, label: '항아리 들기', x: b.x, z: b.z, yAbs: b.y + 0.95, key: 'loot:' + b.id, noMagnet: true, use: () => Lo.liftUrn(b) });
-    else out.push({ d: bd + 0.4, label: '나무상자 · 막대기로 쳐서 부숴요', x: b.x, z: b.z, yAbs: b.y + 0.95, key: 'loot:' + b.id, disabled: true, use: () => G.UI.toast('맨손으로는 못 부숴요 · 지팡이 같은 무기로 공격해 보세요') }); }
+    /* v18.14 a wooden crate just breaks when you strike it — no hint line */ }
   return out.length ? out : null; });
 // lifting a jar turns it into a real thing you carry (physics.js); when it smashes — thrown, dropped hard — it spills what was inside
 Lo.liftUrn = function (b) { if (!G.Phys) return; const pb = G.Phys.add('jar', b.x, b.z, { yaw: b.ry }); if (!pb) return; pb.lootUrn = b; b.gone = true; if (b.col) b.col.on = false; Lo.state()[b.id] = Game.S().day; G.Phys.pick(pb);

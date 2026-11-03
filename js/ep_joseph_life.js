@@ -29,7 +29,7 @@ EP.featText = Object.assign({}, EP.featText, {
 const prevFeat = EP.onFeat;
 EP.onFeat = function (k, S, G2, quiet) {
   if (prevFeat) prevFeat(k, S, G2, quiet);
-  if (k === 'hunt' && G.Combat) { S.tools.staff = true; G.Combat.giveGear('staff', true); S.hero.mode = 'melee'; G.UI.hud(); } // v18.13 a staff first; the sling waits for Egypt (e_hunt)
+  if (k === 'hunt' && G.Combat) { S.tools.staff = true; G.Combat.giveGear('staff', true); S.hero.mode = 'melee'; if (!Game.hand()) Game.hold('staff'); G.UI.hud(); } // v18.13 a staff first; the sling waits for Egypt (e_hunt)
   if (k === 'fish') { S.tools.fishrod = true; G.UI.hud(); }
 };
 // the brothers strip him at the pit: the sling goes with the coat, until he is free again as vizier
@@ -40,6 +40,8 @@ EP.update = function (dt, S, G2, t) {
   if (!free && H.ranged) { S.q.slingAway = H.ranged; H.ranged = null; H.mode = 'melee'; G.UI.hud(); }
   if (free && !H.ranged && S.q.slingAway && between(S, 'c5_patrol')) { H.ranged = S.q.slingAway; H.mode = 'ranged'; S.q.slingAway = null; G.UI.hud(); }
 };
+// v18.14 a slave in Potiphar's house and a prisoner keep their hands empty (no staff, no weapon)
+EP.handLock = function (S) { return !!(S.q.bound || S.q.inPit || between(S, 'c1_pit', 'c4_answer')); };
 // hunger pauses while the story feeds or holds him
 EP.calmSurv = function (S) { return !!(S.q.inPit || S.q.bound || S.q.chain || S.q.cellLock || S.q.vision || S.step === 'c1_caravan' || between(S, 'c3_cell', 'c4_answer')); };
 EP.hungerMul = 0.65;
@@ -138,7 +140,7 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
     ring(156, -146, 6, 5, ['sack', 'jar', 'basket']);               // the brothers' camp at Dothan
     ring(-6, 118, 10, 7, ['melon', 'basket', 'jar', 'melon', 'sack']); // the market where Joseph is sold
     ring(-12, 46, 6, 3, ['jar', 'pot', 'basket']);                  // Potiphar's kitchen
-    ring(-22, -70, 10, 9, ['basket', 'melon', 'jar', 'sack']);      // the city
+    { const K = ['basket', 'melon', 'jar', 'sack']; let i = 0; for (const [sx, sz] of [[-26, -76], [-18, -76], [-26, -66], [-18, -66]]) for (const s of [-1, 1]) out.push([K[i++ % 4], sx + (sx < -22 ? -0.9 : 0.9), sz + s * 1.9]); } // v18.14 the city: goods stand beside each stall, not in the aisles
     ring(16, -58, 6, 5, ['sack', 'sack', 'jar']);                   // by the granary
     for (const [cx, cz] of [[196, 4], [204, -70], [190, 96], [160, 60]]) ring(cx, cz, 7, 10, ['stone', 'stone', 'stone', 'boulder']); // loose stones on the hills
     return out; };
@@ -177,7 +179,8 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
       out.push({ id: 'ch_' + s.id, k: 'chest', x, z, ry: r() * 6, table: 'treasure', rich: s.rich, insight: s.insight || 0, n: s.n }); });
     /* v18.12h tidy: jars and boxes stand in small neat rows (same direction, even gaps) instead of single random spots; the rows themselves are still scattered at random */
     { const ca = Math.cos(-0.5), sa = Math.sin(-0.5); [[4.55, 0.2, 'urn'], [4.6, 1.05, 'urn'], [4.5, -0.75, 'crate']].forEach(([lx, lz, k], i) => out.push({ id: `bkH_${i}`, k, x: 184 + ca * lx + sa * lz, z: 158 - sa * lx + ca * lz, ry: k === 'crate' ? -0.5 : i * 1.7, v: i % 3, re: 2 })); } // v18.13 Hebron: one tidy row beside Joseph's tent
-    TOWNS.forEach(([cx, cz, n, R], ti) => { let k = 0;
+    [[-30.2, -75.2, 'crate'], [-30.2, -76.1, 'crate'], [-30.2, -77, 'crate'], [-13.8, -65.2, 'urn'], [-13.8, -66.1, 'urn'], [-13.8, -67, 'urn']].forEach(([x, z, k], i) => out.push({ id: `bk_7_${i}`, k, x, z, ry: k === 'crate' ? 0 : i * 1.7, v: i % 3, re: 2 })); // v18.14 the city square: two neat rows behind the stalls
+    TOWNS.forEach(([cx, cz, n, R], ti) => { let k = 0; if (ti === 7) return;
       for (let tries = 0; tries < n * 14 && k < n; tries++) { const a = r() * PI * 2, d = R * (0.35 + r() * 0.65), x0 = cx + Math.cos(a) * d, z0 = cz + Math.sin(a) * d, th = Math.floor(r() * 4) * PI / 2 + (r() - 0.5) * 0.1, m = Math.min(n - k, 2 + Math.floor(r() * 3)), ux = Math.cos(th), uz = Math.sin(th), crateRow = r() < 0.45; let placed = 0;
         for (let q = 0; q < m; q++) { const x = x0 + ux * q * 0.9, z = z0 + uz * q * 0.9; if (!free(x, z, 0.5, q ? 0.8 : 1.3)) break;
           const kind = crateRow ? 'crate' : (q === 0 && r() < 0.25 ? 'crate' : 'urn'); out.push({ id: `bk_${ti}_${k}`, k: kind, x, z, ry: kind === 'crate' ? th + (r() - 0.5) * 0.06 : r() * 6, v: Math.floor(r() * 3), re: 2 }); k++; placed++; }

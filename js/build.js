@@ -152,6 +152,7 @@ Bd.confirm = function () {
     if (!(bp.many && canPay(cost))) Bd.cancel(); };
   sfx('hammer');
 };
+Bd.relocate = function (id, x, z) { const S = Game.S(), b = bld(S).find(q => q.id === id); if (!b) return; detachOne(b); b.x = x; b.z = z; attachOne(b, S, Game.W()); Game.ENT.plotsDirty = true; };
 Bd.remove = function (id) {
   const S = Game.S(), i = bld(S).findIndex(b => b.id === id); if (i < 0) return; const b = bld(S)[i], bp = bps()[b.k];
   if (b.pre) { G.UI.toast('마을 사람들이 함께 쓰는 모닥불이에요'); return; }

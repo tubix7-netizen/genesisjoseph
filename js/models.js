@@ -217,17 +217,20 @@ function humanoid(o, lod) {
     const fx = legX(0.06), FT = spline([[-0.06, 0.028, 0.045], [-0.02, 0.034, 0.07], [0.04, 0.037, 0.066], [0.1, 0.045, 0.045], [0.15, 0.044, 0.028], [0.185, 0.03, 0.018]]);
     const footPt = (u, v, gr) => { const z = -0.06 + 0.245 * v, r = FT(z), a = u * 2 * PI, ca = Math.cos(a), sa = Math.sin(a); const end = Math.min(1, Math.min(v, 1 - v) * 9);
       const w = r[0] * Math.sqrt(end) + (gr || 0), h = r[1] * Math.sqrt(end) + (gr || 0); return [fx + ca * w * (sa < 0 ? 1.05 : 1), 0.004 + (sa > 0 ? sa * h : sa * 0.004), z]; };
-    g.surf((u, v) => footPt(u, v, 0), Q(12, 8, 6), Q(10, 6, 4), J({ c: o.boots || legC, b: Ft, soft: o.boots || o.legs ? 0 : 1 }));
+    // v18.14 the foot surface was wound inside out: the lit foot was culled and only its flat, unlit outline shell showed (a dark reddish foot). flip turns faces and normals outward
+    g.surf((u, v) => footPt(u, v, 0), Q(12, 8, 6), Q(10, 6, 4), J({ c: o.boots || legC, b: Ft, soft: o.boots || o.legs ? 0 : 1, flip: true }));
     if (o.boots) { // calf boots with folded cuff
       g.tube(y => lr(y, 0.009 + 0.006 * sst(0.3, 0.06, y)), 0.035, 0.36, Q(12, 8, 6), Q(6, 3, 2), J({ c: (x, y) => shade(o.boots, 0.05 * Math.sin(y * 40)), b: Sh }));
       g.tube(y => lr(y, 0.019), 0.33, 0.395, Q(12, 8, 6), 2, J({ c: shade(o.boots, 0.16), b: Sh, cap0: 0.006, cap1: 0.006, capN: 1 }));
-      g.surf((u, v) => footPt(u, v, 0.008), Q(12, 8, 6), Q(10, 6, 4), J({ c: o.boots, b: Ft }));
-      g.surf((u, v) => { const p = footPt(u, 0.5 + (v - 0.5) * 1.0, 0.011); return [p[0], Math.min(p[1], 0.012), p[2]]; }, Q(12, 8, 6), Q(6, 4, 3), J({ c: shade(o.boots, -0.45), b: Ft }));
+      g.surf((u, v) => footPt(u, v, 0.008), Q(12, 8, 6), Q(10, 6, 4), J({ c: o.boots, b: Ft, flip: true }));
+      g.surf((u, v) => { const p = footPt(u, 0.5 + (v - 0.5) * 1.0, 0.011); return [p[0], Math.min(p[1], 0.012), p[2]]; }, Q(12, 8, 6), Q(6, 4, 3), J({ c: shade(o.boots, -0.45), b: Ft, flip: true }));
     } else if (!o.barefoot) { // sandal: sole + toe, instep and ankle straps
       g.surf((u, v) => { const ph = u * 2 * PI, z = -0.065 + 0.255 * (0.5 + 0.5 * Math.sin(ph)), r = FT(z); const w = (r[0] + 0.006) * Math.abs(Math.cos(ph)) ** 0.8 * Math.sign(Math.cos(ph)) + 0.0001;
-        return [fx + w, 0.002 + v * 0.013, z]; }, Q(16, 10, 6), 1, J({ c: shade(sandal, -0.22), b: Ft }));
+        return [fx + w, -0.004 + v * 0.019, z]; }, Q(16, 10, 6), 1, J({ c: shade(sandal, -0.22), b: Ft }));
       g.surf((u, v) => { const ph = u * 2 * PI, z = -0.065 + 0.255 * (0.5 + 0.5 * Math.sin(ph)) * (1 - v * 0.15) + v * 0.02, r = FT(z); const w = (r[0] + 0.006) * (1 - v * 0.9) * Math.sign(Math.cos(ph)) * Math.abs(Math.cos(ph)) ** 0.8;
         return [fx + w, 0.015, z]; }, Q(16, 10, 6), 1, J({ c: shade(sandal, 0.08), b: Ft, flip: true }));
+      g.surf((u, v) => { const ph = u * 2 * PI, z = -0.065 + 0.255 * (0.5 + 0.5 * Math.sin(ph)) * (1 - v * 0.15) + v * 0.02, r = FT(z); const w = (r[0] + 0.006) * (1 - v * 0.9) * Math.sign(Math.cos(ph)) * Math.abs(Math.cos(ph)) ** 0.8;
+        return [fx + w, -0.004, z]; }, Q(16, 10, 6), 1, J({ c: shade(sandal, -0.4), b: Ft })); // v18.14 the underside of the sole, just below the bare sole of the foot (which used to poke through as a bright patch)
       for (const [zz, ww, hh] of [[0.11, 0.05, 0.034], [0.035, 0.044, 0.064], [-0.01, 0.04, 0.07]]) g.tube(() => [ww, hh, fx, 0.0], -0.008, 0.008, Q(12, 8, 6), 1, J({ c: sandal, b: Ft, at: [0, 0.012, zz], rx: -PI / 2, a0: 0, al: PI }));
       g.tube(y => lr(y, 0.004), 0.085, 0.1, Q(12, 8, 6), 1, J({ c: sandal, b: Sh }));
     }

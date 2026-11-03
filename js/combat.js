@@ -212,7 +212,7 @@ C.pickTarget = function () {
 // =================================================================== PLAYER COMBAT
 C.attack = function () {
   const P = Game.P, S = Game.S(), h = S.hero; if (P.atk && P.atk.g.kind === 'melee' && P.atk.t > P.atk.dur * 0.4 && (P.atk.combo || 0) < 2) { P.atkQ = true; return; } /* v18.12i a press near the end of a swing is remembered and starts the next hit at once */ if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act) return;
-  const ranged = h.mode === 'ranged' && h.ranged; const k = ranged ? h.ranged : (h.weapon || (Game.tool('staff') ? 'staff' : null)); if (!k) { G.UI.toast('무기가 없어요. 지팡이를 만들거나 메뉴 → 장비에서 만들어요'); return; }
+  const k = C.armedK(); if (!k) { const any = C.hasWeapon() || Game.tool('staff'); G.UI.toast(Game.handLock() ? '지금은 손에 아무것도 들 수 없어요' : any ? '빈손으로는 공격할 수 없어요 · 왼쪽 손 단추로 지팡이나 무기를 들어요' : '무기가 없어요. 지팡이를 만들거나 메뉴 → 장비에서 만들어요'); return; } /* v18.14 only with a staff or weapon in hand */
   const g = GEAR[k];
   if (g.kind === 'ranged') { if (!(g.ammo === 'stone' && G.Stones ? G.Stones.has() : Game.have(g.ammo))) { G.UI.toast(g.ammo === 'stone' ? '물매에 쓸 돌이 없어요 (돌무더기에서 주워요)' : '화살이 없어요 (제작에서 만들어요)'); return; } }
   if (P.stam < 3) return; P.stam -= g.kind === 'ranged' ? 3 : 5; P.stamT = 0;
@@ -284,7 +284,13 @@ C.dodge = function () {
   P.stam -= cost; P.stamT = 0; P.dodgeT = 0.42 + h.sk.agi * 0.03; P.dodgeDir = null; sfx('dodge'); return true;
 };
 C.toggleMode = function () { const h = C.hero(); if (!h.ranged) { G.UI.toast('물매나 활이 있어야 바꿀 수 있어요'); return; } h.mode = h.mode === 'ranged' ? 'melee' : 'ranged'; G.UI.toast(h.mode === 'ranged' ? `원거리 · ${GEAR[h.ranged].n}` : `근접 · ${GEAR[h.weapon || 'staff'].n}`); sfx('click'); G.UI.hud(); };
-C.heldProp = function () { const P = Game.P, h = C.hero(); if (!h) return null; if (P.atk) return P.atk.g.prop; if (C.inCombat || (C.calmT || 0) < 4) { const k = h.mode === 'ranged' && h.ranged ? h.ranged : h.weapon || (Game.tool('staff') ? 'staff' : null); return k ? GEAR[k].prop : null; } return null; };
+C.heldProp = function () { const P = Game.P, h = C.hero(); if (!h) return null; if (P.atk) return P.atk.g.prop; if (C.inCombat || (C.calmT || 0) < 4) { const k = C.armedK(); return k ? GEAR[k].prop : null; } return null; };
+/* v18.14 what is in the hand decides the attack: the staff (a tool) or 'weapon' (the gear-menu weapon; the sling/bow in ranged mode) */
+C.hasWeapon = function () { const h = C.hero(); return !!(h && ((h.weapon && h.weapon !== 'staff') || h.ranged)); };
+C.curK = function () { const h = C.hero(); if (!h) return null; return h.mode === 'ranged' && h.ranged ? h.ranged : h.weapon || (Game.tool('staff') ? 'staff' : null); };
+C.armedK = function () { const hk = Game.hand(); return hk === 'weapon' ? C.curK() : hk === 'staff' ? 'staff' : null; };
+C.weaponName = function () { const k = C.curK(); return k ? GEAR[k].n : '무기'; };
+C.wProp = function () { const k = C.curK(); return k ? GEAR[k].prop : null; };
 
 // =================================================================== PROJECTILES
 const proj = [];

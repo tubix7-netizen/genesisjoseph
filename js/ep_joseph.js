@@ -209,6 +209,12 @@ function build(W, Game) {
       const road = roadD(x, z) < 11, thin = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1 < 0.34;
       if ((road || thin) && !PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r + 12) && !Object.keys(SPOTS).some(k => { const q = SPOTS[k]; return Array.isArray(q) && Math.hypot(x - q[0], z - q[1]) < 12; })) { W.skippedTrees = (W.skippedTrees || 0) + 1; return { x, y: W.heightAt(x, z), z }; }
     }
+    if (fn === 'crops' && !(o && o._tile)) { // v18.14 a field of crops is laid in small patches, each on its own ground (one flat slab floated over the river banks); too steep a patch is left out
+      const [w, d, rp] = (o && o.args) || [8, 6, false], a = (o && o.ry) || 0, ca = Math.cos(a), sa = Math.sin(a), nx = Math.max(1, Math.round(w / 2.2)), nz = Math.max(1, Math.round(d / 2)), tw = w / nx, td = d / nz, wl = W.water ? W.water.level : -99;
+      for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const lx = -w / 2 + (i + 0.5) * tw, lz = -d / 2 + (j + 0.5) * td, px = x + lx * ca + lz * sa, pz = z - lx * sa + lz * ca; let lo = 1e9, hi = -1e9;
+        for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 0], [0, 1], [0, -1], [1, 0], [-1, 0]]) { const qx = px + u * tw / 2 * ca + v * td / 2 * sa, qz = pz - u * tw / 2 * sa + v * td / 2 * ca, h = W.heightAt(qx, qz); lo = Math.min(lo, h); hi = Math.max(hi, h); }
+        if (hi - lo > 0.4 || lo < wl + 0.15) continue; P(fn, px, pz, Object.assign({}, o, { _tile: 1, args: [tw, td, rp], y: lo - 0.03 })); }
+      return { x, y: W.heightAt(x, z), z }; }
     if (typeof fn === 'string') o = Object.assign({ kind: fn }, o || {}); // v16.1: lets W.place give it a default collider by name
     if (fn === 'palmRow' && (!o || o.col === undefined)) { const n = (o && o.args && o.args[0]) || 3, a = (o && o.ry) || 0; for (let i = 0; i < n; i++) W.addCol({ x: x + Math.cos(a) * i * 4, z: z - Math.sin(a) * i * 4, r: 0.32, h: 5 }); }
     const res = W.place(typeof fn === 'string' && ENVX[fn] ? ENVX[fn] : fn, x, z, o);
@@ -264,6 +270,10 @@ function build(W, Game) {
     P('gatePosts', gx, z1, { args: [4] }); W.addCol({ x: gx - 2.6, z: z1, w: 1.2, d: 1.4, h: 4, cam: true }); W.addCol({ x: gx + 2.6, z: z1, w: 1.2, d: 1.4, h: 4, cam: true });
     P('portico', -28, 41.5, { args: [26, 9, 4.2, 7], col: null }); W.addCol({ x: -28, z: 37.2, w: 26, d: 0.7, h: 4.2, cam: true }); W.addCol({ x: -41, z: 41.5, w: 0.7, d: 9, h: 4.2, cam: true }); W.addCol({ x: -15, z: 41.5, w: 0.7, d: 9, h: 4.2, cam: true });
     for (let i = 0; i < 7; i++) W.addCol({ x: -28 - 13 + 1.2 + i * (26 - 2.4) / 6, z: 41.5 + 4.5 - 0.5, r: 0.38, h: 4 });
+    /* v18.14 the house is not one open porch any more: the east wing is a closed room for the accounts (장부방, door to the yard) and
+       the west wing a serving pantry (door to the hall); the hall in the middle stays open to the yard */
+    wallL(-24.6, 37.6, -24.6, 46.6, 4); wallL(-24.6, 46.6, -21.7, 46.6, 4); wallL(-19.5, 46.6, -15, 46.6, 4); // 장부방
+    wallL(-36.6, 37.6, -36.6, 41.3, 4); wallL(-36.6, 43.7, -36.6, 46.6, 4); wallL(-41, 46.6, -36.6, 46.6, 4); // 시중 방
     P('seatEg', -28, 39.4, { args: [], col: { r: 0.45, h: 1 } }); P('tableEg', -22.5, 40.2, { col: { w: 1.8, d: 0.8, h: 0.9 } }); P('couch', -34.5, 39.6, { col: { w: 2, d: 0.8, h: 0.8 } }); P('jars', -38.5, 39, { args: [3] });
     P('pavilion', -45.5, 52, { args: [7, 15, 2.6] }); for (let i = 0; i < 4; i++) P('straw', -47.6, 46 + i * 3.4, { ry: PI / 2 });   // 종들의 숙소
     P('pavilion', -10.5, 45, { args: [6, 9, 2.6, 0xd0b888] }); P('oven', -10, 41.8, { col: { r: 0.8, h: 1.2 } }); P('quern', SPOTS.quern[0], SPOTS.quern[1], { ry: 0.3 }); P('jars', -8.4, 47.6, { ry: PI / 2, args: [3] }); P('tableEg', -11.5, 44.6, { ry: PI / 2 });  // 부엌
@@ -288,7 +298,8 @@ function build(W, Game) {
   // ================= THE ROYAL CITY
   const city = [[-40, -60], [-30, -58], [-12, -58], [-2, -62], [-42, -72], [-6, -74], [-40, -86], [-30, -88], [-12, -88], [-2, -84], [-46, -98], [-34, -104]];
   city.forEach(([x, z], i) => P('egHouse', x, z, { ry: (i % 4) * PI / 2 + (r() - 0.5) * 0.1, args: [{ w: 6 + (i % 3), d: 5, h: 2.8 + (i % 2) * 1.2, awning: i % 3 === 0 ? OCHRE : null }], col: { w: 6 + (i % 3), d: 5, h: 3.4 + (i % 2) * 1.2, a: (i % 4) * PI / 2, cam: true } }));
-  [[-26, -76, 0x8a3a5a], [-18, -76, 0x2c5aa0], [-26, -66, 0x3e8a66], [-18, -66, 0xd9a73a]].forEach(([x, z, c], i) => P('stallM', x, z, { ry: i * 0.4, args: [c], col: { w: 2.6, d: 2.2, h: 2.2, a: i * 0.4 } }));
+  [[-26, -76, 0x8a3a5a], [-18, -76, 0x2c5aa0], [-26, -66, 0x3e8a66], [-18, -66, 0xd9a73a]].forEach(([x, z, c]) => { const a = x < -22 ? PI / 2 : -PI / 2; P('stallM', x, z, { ry: a, args: [c], col: { w: 2.6, d: 2.2, h: 2.2, a } }); }); // v18.14 the four stalls face the middle aisle (they stood at odd angles)
+  P('well', -21, -90, { col: { r: 1.7, h: 1 } }); // v18.14 the city well, at the south edge of the square (the well action used to sit in the middle of the market with no well)
   P('obelisk', -32, -71, { col: { r: 0.8, h: 8 } }); P('palmRow', -48, -114, { args: [5] });
   // temple of On (Heliopolis): Asenath's father Potiphera is its priest (창 41:45)
   P('obelisk', 5, -95, { col: { r: 0.8, h: 8 } }); P('obelisk', 19, -95, { col: { r: 0.8, h: 8 } }); P('portico', 12, -102, { args: [12, 6, 3.6, 4], col: { w: 12, d: 5, h: 4, cam: true } });
@@ -741,7 +752,7 @@ const npcs = [
   { id: 'mk3', name: '구경꾼', look: LOOK.farmer, x: -2, z: 112, face: -2.4, show: S => S.step === 'c1_market', noTalk: true },
   // ---- Potiphar's household
   { id: 'potiphar', name: '보디발', look: LOOK.potiphar, x: -28, z: 39.4, face: 0, sit: true, talkR: 3.2, show: S => between(S, 'c1_market', 'c2_flee') && !S.q.empty, sched: S => S.step === 'c2_store' ? [[0, -12.6, 59.2, -1.6, 'wander:0.5']] : null },
-  { id: 'wife', name: '보디발의 아내', look: LOOK.wife, x: -20.6, z: 61.6, face: Math.PI, talkR: 3, show: S => between(S, 'c2_arrive', 'c2_flee') && S.step !== 'c2_tempt2', sched: S => S.step === 'c2_tempt3' ? [[0, -25, 39.2, 0.6, 'wander:0.2']] : null },
+  { id: 'wife', name: '보디발의 아내', look: LOOK.wife, x: -20.6, z: 61.6, face: Math.PI, talkR: 3, noTalk: S => S.step === 'c2_tempt3' || S.step === 'c2_flee', show: S => between(S, 'c2_arrive', 'c2_flee') && S.step !== 'c2_tempt2', sched: S => S.step === 'c2_tempt3' ? [[0, -25, 39.2, 0.6, 'wander:0.2']] : null },
   { id: 'ameni', name: NM.ameni, look: LOOK.ameni, x: -44, z: 55.4, face: 1.6, show: inEgyptHouse, chat: ['네 하나님 이야기를 또 들려다오.', '애굽 말이 많이 늘었구나.', '엠 헤테프, 요셉. 평안히.'] },
   { id: 'neb', name: NM.neb, look: LOOK.neb, x: -25.4, z: 66.6, face: Math.PI, show: inEgyptHouse, chat: S => S.q.nebOk ? ['대문은 내가 지키겠소, 총무.', '손님이 오시면 바로 알리리다.'] : ['…일이나 하라, 히브리 종.'] },
   { id: 'cook', name: NM.cook, look: LOOK.cook, x: -10.8, z: 43.8, face: Math.PI, act: 'gather', show: S => inEgyptHouse(S) && !S.q.empty, chat: ['타! 갓 구운 타가 최고지!', '오늘은 손님상에 낼 거위를 굽는다네.'] },
@@ -752,7 +763,7 @@ const npcs = [
   { id: 'maid', name: '여종', look: LOOK.maid, x: -30, z: 47, face: 0, show: S => between(S, 'c2_tempt2', 'c2_tempt3') && !S.q.empty, chat: ['마님 심기가 요즘 편치 않으세요.'] },
   { id: 'guest1', name: NM.guest1, look: LOOK.official, x: -34.4, z: 42.2, face: 0.5, sit: true, talkR: 2.4, show: S => S.step === 'c2_banquet' },
   { id: 'guest2', name: NM.guest2, look: LOOK.priest, x: -31.2, z: 43.4, face: 0.1, sit: true, talkR: 2.4, show: S => S.step === 'c2_banquet' },
-  { id: 'guest3', name: NM.guest3, look: LOOK.soldierEg, x: -23.8, z: 43.2, face: -0.4, sit: true, talkR: 2.4, show: S => S.step === 'c2_banquet' },
+  { id: 'guest3', name: NM.guest3, look: LOOK.soldierEg, x: -26, z: 43.8, face: -0.4, sit: true, talkR: 2.4, show: S => S.step === 'c2_banquet' },
   { id: 'calf', name: '진흙에 빠진 송아지', animal: 'cow', scale: 0.55, x: SPOTS.canal[0], z: SPOTS.canal[1] + 0.6, face: 0.3, noTalk: true, noTag: true, dy: -0.35, show: S => S.step === 'c2_field' && !S.q.calf },
   // ---- the king's prison
   { id: 'keeper', name: NM.keeper, look: LOOK.keeper, x: -22.6, z: 6.4, face: Math.PI, show: show('c3_cell', 'c4_shave'), chat: S => S.q.cupDone ? ['요셉, 너 없이는 이 옥이 돌아가지 않는다.', '바로의 관원장들이 다 네 말대로 되었다지…'] : ['일해라. 일하지 않으면 먹지도 못한다.'] },
@@ -780,7 +791,7 @@ const npcs = [
   { id: 'overseerS', name: NM.overseerS, look: Object.assign({}, LOOK.farmer, { collar: TURQ, top: LINEN, bare: false, sleeveless: true }), x: -141, z: 123, face: 0.3, show: show('c5_patrol'), chat: ['언덕 위 곳간은 물 한 방울 들지 않습니다!'] },
   { id: 'brick', name: NM.brick, look: Object.assign({}, LOOK.farmer, { bottom: 0xb07848, skin: 0x9a6038 }), x: -44, z: -116, face: 0.8, act: 'gather', show: show('c5_patrol'), chat: ['진흙 둘에 짚 하나. 그게 좋은 벽돌의 비결이지요.'] },
   { id: 'hunterE', name: '왕의 사냥꾼 세넵', look: Object.assign({}, LOOK.farmer, { skin: 0x9a6038, bottom: 0xd8c8a0, collar: TURQ }), x: 30, z: -54, face: 2.2, prop: 'bow', wander: 2, show: show('c5_patrol'), chat: ['바람을 등지고 다가가야 짐승이 눈치를 못 챕니다.', '물매는 손목이 아니라 허리로 돌리는 겁니다, 나으리.'] }, /* v18.13 gives the vizier his sling (e_hunt) */
-  { id: 'painter', name: '그림 그리는 아이 티티', look: KID({ skin: 0xa8683a, top: LINEN, long: true, fem: true, hairStyle: 'long' }), scale: 0.62, x: -14, z: -60, face: 2.4, wander: 1.5, show: show('c5_patrol'), chat: ['총리님, 오늘은 무엇을 보셨어요?', '나일 강은 정말 끝이 없어요?'] }, /* v18.13e photo requests (js/extras.js) */
+  { id: 'painter', name: '그림 그리는 아이 티티', look: KID({ skin: 0xa8683a, top: LINEN, long: true, fem: true, hairStyle: 'long' }), scale: 0.62, x: -35, z: -65.5, face: 2.6, wander: 1.5, show: show('c5_patrol'), chat: ['총리님, 오늘은 무엇을 보셨어요?', '나일 강은 정말 끝이 없어요?'] }, /* v18.13e photo requests (js/extras.js) */
   { id: 'scribeR', name: '왕궁 서기관', look: LOOK.scribe, x: 12, z: -58.6, face: 2.6, sit: true, show: show('c5_year1'), chat: ['곳간 기록은 오늘도 늘었습니다.'] },
   // ---- the famine: buyers at the city granary (창 41:56–57)
   { id: 'byFarmer', name: NM.farmer, look: LOOK.farmerThin, x: 10.5, z: -56, face: 2.4, show: show('c6_sell') },
@@ -802,9 +813,9 @@ const FK = (id, name, role, look, home, o) => Object.assign({ id, name, role, lo
 const egy = S => between(S, 'c1_market');
 const villages = [
   { id: 'city', n: '왕의 도성', x: -22, z: -74, r: 26, when: egy,
-    spots: { hub: [-22, -74, 3], well: [-22, -82, 2.5], market: [-22, -71, 3], fire: [-30, -80, 2], play: [-14, -80, 3.5], gate: [-24, -50, 2], work: [-40, -66, 3], shade: [-48, -110, 3] },
+    spots: { hub: [-22, -74, 3], well: [-21, -87.6, 2], market: [-22, -71, 3], fire: [-30, -80, 2], play: [-14, -80, 3.5], gate: [-24, -50, 2], work: [-40, -66, 3], shade: [-48, -110, 3] },
     homes: [[-40, -60, 0], [-12, -58, 0], [-42, -72, 0], [-6, -74, 0], [-30, -88, 0], [-12, -88, 0]], about: ['바로의 도성은 나일 강 동쪽에 있다오.', '궁 앞 오벨리스크는 해가 뜨면 금빛으로 빛나지요.'],
-    folk: [FK('ct_mer', '도성 상인 세네브', 'merchant', 'merchant', 2, { work: [-26, -73, 0, 1], persona: '도성 장터의 상인. 흥정을 좋아하고 소식에 밝다.' }), FK('ct_wat', '물 긷는 여인 네페르', 'water', 'waterA', 1, { persona: '나일 강에서 물을 긷는 상냥한 여인.' }),
+    folk: [FK('ct_mer', '도성 상인 세네브', 'merchant', 'merchant', 2, { work: [-27.4, -76, Math.PI / 2, 0.2], persona: '도성 장터의 상인. 흥정을 좋아하고 소식에 밝다.' }), FK('ct_wat', '물 긷는 여인 네페르', 'water', 'waterA', 1, { persona: '나일 강에서 물을 긷는 상냥한 여인.' }),
       FK('ct_pot', '토기장이 아메니', 'potter', 'potter', 3, { work: [-40, -66, 0, 1], persona: '물동이와 곡식 항아리를 빚는 토기장이.' }), FK('ct_kid', '아이 케티', 'child', 'kidA', 1, { age: 'kid', persona: '네페르의 아들. 수레 구경을 좋아한다.' }),
       FK('ct_eld', '노인 이푸', 'elder', 'elder', 4, { age: 'old', persona: '도성 성문에 앉아 옛이야기를 하는 노인.' }), FK('ct_wea', '베 짜는 여인 메리트', 'weaver', 'waterB', 5, { work: [-10, -86, 0, 0.6], persona: '세마포를 짜는 솜씨 좋은 여인.' })] },
   { id: 'west', n: '서쪽 마을', x: -140, z: -40, r: 22, when: S => between(S, 'c2_arrive'),
@@ -898,8 +909,8 @@ const stations = [
   { id: 'fOak', type: 'fire', x: SPOTS.restOak[0], z: SPOTS.restOak[1], r: 3 }, { id: 'fDot', type: 'fire', x: 158, z: -150, r: 3 }, { id: 'fCar', type: 'fire', x: SPOTS.caravanNight[0], z: SPOTS.caravanNight[1], r: 3 },
   { id: 'wPot', type: 'well', x: SPOTS.well[0], z: SPOTS.well[1], r: 3.2, on: inEgyptHouse }, { id: 'bPot', type: 'bed', x: -46.8, z: 50, on: inEgyptHouse },
   { id: 'wPri', type: 'well', x: SPOTS.basin[0], z: SPOTS.basin[1], r: 2.8, rim: 1.3, on: show('c3_keeper', 'c4_shave') }, { id: 'bPri', type: 'bed', x: -19.4, z: -8.6, on: show('c3_keeper', 'c3_wait') },
-  { id: 'bJos', type: 'bed', x: 10, z: -141.2, on: show('c5_patrol') }, { id: 'wCity', type: 'well', x: -22, z: -82, r: 3.2 }, { id: 'wW', type: 'well', x: -140, z: -40, r: 3.2 }, { id: 'wS', type: 'well', x: -145, z: 128, r: 3.2 },
-  { id: 'shopM', type: 'shop', shop: 'market', label: '도성 장터에서 사고팔기', x: -22, z: -66.4, r: 2.6, on: show('c5_patrol') },
+  { id: 'bJos', type: 'bed', x: 10, z: -141.2, on: show('c5_patrol') }, { id: 'wCity', type: 'well', x: -21, z: -90, r: 3.2 }, { id: 'wW', type: 'well', x: -140, z: -40, r: 3.2 }, { id: 'wS', type: 'well', x: -145, z: 128, r: 3.2 },
+  { id: 'shopM', type: 'shop', shop: 'market', label: '도성 장터에서 사고팔기', x: -24.4, z: -76, r: 2.2, on: show('c5_patrol') },
 ];
 const fields = [
   { id: 'pflax', x: 6, z: 44, cols: 8, rows: 4, ts: 1.6 },
@@ -960,7 +971,7 @@ const bubble = (id, t, d) => GG.Life && GG.Life.bubble(id, t, d || 3);
 const cine = (shots, done, o) => GG.Cine.play(shots, done, o);
 const fade = (mid, after) => GG.UI.fade(mid, after);
 const RT = { crumbs: [], car: null, cows: [], tw: [], t: 0, grace: 0 };
-const OUTFIT_AT = [['p_wake', 'josephCoat'], ['c1_pit', 'josephPlain'], ['c2_arrive', 'josephSlave'], ['c2_manage', 'josephSteward'], ['c2_flee', 'josephFled'], ['c3_cell', 'josephFettered'],
+const OUTFIT_AT = [['p_wake', 'josephCoat'], ['c1_pit', 'josephPlain'], ['c2_arrive', 'josephSlave'], ['c2_manage', 'josephSteward'], ['c2_flee', 'josephFled'], ['c3_cell', 'josephPrisoner'],
   ['c3_charge', 'josephPrisoner'], ['c4_court', 'josephShaved'], ['c5_patrol', 'josephVizier']];
 function outfitFor(S) { let o = 'josephCoat'; for (const [k, v] of OUTFIT_AT) if (!before(S, k)) o = v; const wd = S.flags && S.flags.ward; if (o === 'josephVizier' && wd && wd.sel && WARD[wd.sel]) o = wd.sel; return o; }
 // ------------------------------------------------------------------ v16 옷장: once Joseph is vizier he can have clothes made and change into them
@@ -1004,7 +1015,7 @@ function stage(S, G) {
   else if (between(S, 'c2_arrive', 'c2_flee')) {
     if (S.step === 'c2_store') { place('potiphar', -13.4, 60.6, -1.4); place('scribe', -14.2, 62.4, -1.6); }
     else { place('potiphar', -28, 39.4, 0, { sit: true }); place('scribe', -23.6, 41.2, 0, { sit: true }); }
-    if (S.step === 'c2_tempt3' || S.step === 'c2_flee') place('wife', -30.5, 39.6, 0.5); else place('wife', -20.6, 61.6, Math.PI);
+    if (S.step === 'c2_flee') place('wife', -23.6, 42.1, 1.5); else if (S.step === 'c2_tempt3') place('wife', -30.5, 39.6, 0.5); else place('wife', -20.6, 61.6, Math.PI);
   }
   if (between(S, 'c3_officers', 'c3_dreams')) { place('cupbearer', CELL[3][0] - 1.1, CELL[3][1] - 0.2, 0); place('baker', CELL[3][0] + 1.1, CELL[3][1] - 0.4, 0); }
   if (between(S, 'c5_patrol')) { place('pharaoh', -30, -177.2, 0, { sit: true }); }
@@ -1302,13 +1313,13 @@ function banquetStart(S, G, re) {
   fade(() => { S.time = Math.floor(S.time / 24) * 24 + 19.3; G.teleport(-37.2, 45.4, 2.6); }, () => say([N('ameni', '요셉, 잘 들어라. 손님들은 애굽 말로만 주문할 게다. 「이르프」는 포도주, 「데브」는 무화과란다.', '', 'whisper'),
     N('ameni', '무와 타는 알지? 시중 상에서 알맞은 것을 들고 가서 손님께 드려라.', '', 'tender')], () => { learn('irp'); learn('dab'); go(); }));
 }
-// v16.6: the order stays above the guest's head until it is served, and the table shows each dish with its Egyptian word —
-// you read the order and pick the matching dish instead of guessing
+// v16.6: the order stays above the guest's head until it is served; v18.14 the table names the dishes without their Egyptian
+// word, so the player has to remember what 「이르프」, 「무」, 「타」, 「데브」 mean
 function askNext(S) { const w = WANT[S.q.want]; if (!w) return; const id = S.q.want; const keep = () => { if (Gm().S().step === 'c2_banquet' && Gm().S().q.want === id && !GG.UI.busy()) bubble(id, w.eg, 6); }; setTimeout(keep, 600); clearInterval(RT.ordT); RT.ordT = setInterval(() => { if (Gm().S().step !== 'c2_banquet' || Gm().S().q.want !== id) { clearInterval(RT.ordT); return; } keep(); }, 5500); GG.UI.quest(); }
 function serveTable(S, G) {
   const keys = WANT_ORDER.map(k => WANT[k].item); keys.sort();
-  const w0 = WANT[S.q.want], EGW = { '포도주 항아리': '이르프', '물동이': '무', '빵 바구니': '타', '무화과 쟁반': '데브' };
-  GG.UI.choose(`무엇을 들고 갈까? · 지금 주문: 「${w0 ? w0.eg : '…'}」`, keys.map(k => `${k} · 「${EGW[k]}」`), i => { const it = keys[i]; const w = Object.values(WANT).find(x => x.item === it);
+  const w0 = WANT[S.q.want]; /* v18.14 the dishes are listed without their Egyptian words: the player has to remember them */
+  GG.UI.choose(`무엇을 들고 갈까? · 지금 주문: 「${w0 ? w0.eg : '…'}」`, keys, i => { const it = keys[i]; const w = Object.values(WANT).find(x => x.item === it);
     S.q.carry = it; G.P.carry = w.prop; G.P.carryArms = !!w.arms; G.sfx('pickup'); G.UI.quest(); });
 }
 for (const id of WANT_ORDER) steps.c2_banquet.talk = Object.assign(steps.c2_banquet.talk || {}, { [id]: (S, G) => serveGuest(S, G, id) });
@@ -1365,12 +1376,12 @@ function cinBless(S, G, next) {
 function cinGrab(S, G) {
   const tx = -22.5, tz = 41.6, th = hAt(tx, tz);
   cine([
-    { fn: () => { G.teleport(tx, tz, Math.PI); cpose('pick', 0, true); place('wife', -31, 39.6, 1.2); }, cam: [tx + 3.6, th + 1.7, tz + 3.2], look: [tx, th + 1, tz - 0.6], dur: 6, music: 'j_dread',
+    { fn: () => { G.teleport(tx, tz, Math.PI); cpose('pick', 0, true); place('wife', -20.6, 45.4, Math.PI); }, cam: [tx + 3.6, th + 1.7, tz + 3.2], look: [tx, th + 1, tz - 0.6], dur: 6, music: 'j_dread',
       t: '집 안은 고요했습니다. 요셉은 대청의 장부를 정리하고 있었습니다.' },
-    { fn: () => walkTo('wife', tx - 1.1, tz + 0.5, 1.1, () => face('wife', tx, tz)), cam: [tx - 4, th + 1.5, tz + 2.6], look: [tx - 2.4, th + 1.3, tz + 0.2], dur: 6, n: '보디발의 아내', t: '요셉… 아무도 없어. 오늘은 아무도.', e: 'whisper' },
+    { fn: () => walkTo('wife', tx - 1.1, tz + 0.5, 1.1, () => face('wife', tx, tz)), cam: [tx - 1.6, th + 1.5, tz - 3.0], look: [tx + 0.4, th + 1.3, tz + 2.4], dur: 6, n: '보디발의 아내', t: '요셉… 아무도 없어. 오늘은 아무도.', e: 'whisper' },
     { fn: () => { cpose(null); G.P.face = -1.5; }, cam: [tx + 1.6, th + 1.5, tz + 1.8], look: [tx - 1, th + 1.4, tz + 0.4], dur: 5, fov: 0.62, n: '보디발의 아내', t: '나와 동침하자.', ref: '창세기 39:12', e: 'whisper' },
     { fn: () => { emote('wife', 'grabCloth', 3); }, cam: [tx - 0.4, th + 1.3, tz + 2.6], look: [tx - 0.6, th + 1.2, tz + 0.4], dur: 3.5, n: '요셉', t: '안 됩니다!', e: 'shout', shake: 0.3, shakeDecay: 0.8 },
-    { fn: () => { G.sfx('rip'); G.setOutfit('josephFled'); S.q.robe = 1; G.P.face = 0.2; cpose(null); }, cam: [tx - 3.2, th + 1.6, tz + 3.4], look: [tx - 0.8, th + 1.1, tz + 0.6], dur: 6, shake: 0.4, shakeDecay: 1.2,
+    { fn: () => { G.sfx('rip'); G.setOutfit('josephFled'); S.q.robe = 1; G.P.face = 0.2; cpose(null); }, cam: [tx + 3.4, th + 1.6, tz + 3.6], look: [tx - 0.8, th + 1.1, tz + 0.6], dur: 6, shake: 0.4, shakeDecay: 1.2,
       t: '그 여인이 그의 옷을 잡고 동침하자 하니, 요셉이 자기의 옷을 그 여인의 손에 버리고 밖으로 나가매', ref: '창세기 39:12' },
     garmentBeat(1, [tx - 1.0, th + 1.0, tz + 0.5], [tx - 0.2, th + 0.7, tz + 1.7], '두 번째 옷 · 이번에는 요셉이 스스로 내려놓았습니다. 죄 대신 옷을 잃기로 했습니다.'),
   ], () => G.go('c2_flee'));
@@ -1379,7 +1390,7 @@ function cinGrab(S, G) {
 function cinAccuse(S, G, next) {
   const hx = -28, hz = 41.6, hh = hAt(hx, hz), gx = SPOTS.pGate[0], gz = SPOTS.pGate[1], gh = hAt(gx, gz);
   cine([
-    { fn: () => { S.q.empty = 0; place('wife', -27, 43, 0); emote('wife', 'cheer', 6); [['cook', -31, 46], ['gardener', -24.6, 46.4], ['maid', -29.4, 47.6], ['neb', -26.2, 48], ['ameni', -32.4, 47]].forEach(([id, x, z]) => place(id, x, z, Math.atan2(-27 - x, 43 - z))); G.teleport(gx + 0.6, gz + 2.6, 0); },
+    { fn: () => { S.q.empty = 0; place('wife', -27, 43, 0); emote('wife', 'cheer', 6); [['cook', -31, 46], ['gardener', -25.8, 47.4], ['maid', -29.4, 47.6], ['neb', -26.2, 48], ['ameni', -32.4, 47]].forEach(([id, x, z]) => place(id, x, z, Math.atan2(-27 - x, 43 - z))); G.teleport(gx + 0.6, gz + 2.6, 0); },
       cam: [hx + 5, hh + 2.2, hz + 9], cam2: [hx + 3.6, hh + 1.8, hz + 7], look: [-27, hh + 1.3, 44], dur: 6, sfx: 'crowd', t: '그 여인이 요셉이 그의 옷을 자기 손에 버리고 도망하여 나감을 보고, 그 여인의 집 사람들을 불러서', ref: '창세기 39:13–14' },
     { cam: [-25.2, hh + 1.5, 46], look: [-27, hh + 1.5, 43], dur: 9, fov: 0.65, n: '보디발의 아내', t: '보라! 주인이 히브리 사람을 우리에게 데려다가 우리를 희롱하게 하는도다. 그가 나와 동침하고자 내게로 들어오므로 내가 크게 소리 질렀더니, 그가 그의 옷을 내게 버려두고 도망하여 나갔느니라!', ref: '창세기 39:14–15', e: 'shout' },
     { cam: [-33.6, hh + 1.5, 48.6], look: [-32.4, hh + 1.5, 47], dur: 5, fov: 0.6, n: '늙은 종 아메니', t: '(…요셉이 그럴 리가 없어. 그 아이는…)', e: 'whisper' },
@@ -1389,11 +1400,11 @@ function cinAccuse(S, G, next) {
     { cam: [-26.4, hh + 1.6, 47.8], look: [-27.4, hh + 1.6, 45.6], dur: 7, fov: 0.6, t: '주인이 그의 아내가 자기에게 이르기를 「당신의 종이 내게 이같이 행하였다」 하는 말을 듣고 심히 노한지라.', ref: '창세기 39:19' },
     { fn: () => { G.teleport(-27.6, 49.4, Math.PI); cpose(null); }, cam: [-26.2, hh + 1.6, 51.4], look: [-27.6, hh + 1.5, 49.4], dur: 6, t: '요셉은 아무 말도 하지 않았습니다. 무슨 말을 한들, 종의 말을 누가 믿어 줄까요.' },
     { cam: [-28.6, hh + 1.6, 47.6], look: [-27.4, hh + 1.6, 45.6], dur: 6, n: '보디발', t: '……이자를 묶어라. 왕의 옥에 넣어라.', e: 'cold' },
-    { fn: () => { G.setOutfit('josephFettered'); S.q.chain = 1; cpose('bound', 0, true); G.sfx('chain'); walkTo('pg1', -28.8, 49.8, 2); walkTo('pg2', -26.4, 49.8, 2); }, cam: [-24, hh + 2, 52], look: [-27.6, hh + 1.2, 49.4], dur: 8,
+    { fn: () => { G.setOutfit('josephPrisoner'); cpose(null); /* v18.14 no shackles */ walkTo('pg1', -28.8, 49.8, 2); walkTo('pg2', -26.4, 49.8, 2); }, cam: [-24, hh + 2, 52], look: [-27.6, hh + 1.2, 49.4], dur: 8,
       t: '요셉의 주인이 그를 잡아 옥에 넣으니, 그 옥은 왕의 죄수를 가두는 곳이었더라. 요셉이 옥에 갇혔으나', ref: '창세기 39:20', fadeOut: 1.6 },
     { black: true, title: '3장 · 왕의 옥', sub: '창세기 39:20–41:14', cam: [-30, 4, 10], look: [-30, 1, 0], dur: 4, fn: () => { stage(S, G); } },
-    { hour: 21.4, fn: () => { G.teleport(-18.4, -6.2, Math.PI); cpose('bound', 0, true); G.sfx('door'); }, fadeIn: 1.6, music: 'j_prison',
-      cam: [-18.4, hAt(-18.4, -6) + 1.6, -1.6], look: [-18.4, hAt(-18.4, -6) + 1.0, -6.4], dur: 8, t: '「그의 발은 차꼬를 차고, 그의 몸은 쇠사슬에 매였으니」', ref: '시편 105:18', sfx: 'chain' },
+    { hour: 21.4, fn: () => { G.teleport(-18.4, -6.2, Math.PI); cpose(null); G.sfx('door'); }, fadeIn: 1.6, music: 'j_prison',
+      cam: [-18.4, hAt(-18.4, -6) + 1.6, -1.6], look: [-18.4, hAt(-18.4, -6) + 1.0, -6.4], dur: 8, t: '「그의 발은 차꼬를 차고, 그의 몸은 쇠사슬에 매였으니」', ref: '시편 105:18' },
   ], () => { GG.Game.musicOverride = null; next(); });
 }
 
@@ -2035,7 +2046,7 @@ const QUESTS = {
   e_hunt: { giver: 'hunterE', title: '왕의 사냥꾼과 첫 사냥', when: S => idx(S) >= ORDER.indexOf('c5_patrol'),
     offer: ['총리 나으리, 동쪽 들의 들짐승이 곡식 밭을 자꾸 헤집어 놓습니다. 저와 함께 사냥해 주시겠습니까?', '이건 제가 쓰던 물매입니다. 목자 출신이시라니 금방 손에 익으실 겁니다. 돌도 몇 개 챙겨 드리지요.'],
     obj: [{ t: (S, G2, st) => `동쪽 들에서 토끼나 가젤 사냥 (${Math.min(2, GG.Life.killsSince(st, ['hare', 'gazelle']))}/2)`, ok: (S, G2, st) => GG.Life.killsSince(st, ['hare', 'gazelle']) >= 2 }], loc: () => ({ x: 48, z: -40 }),
-    start(S) { S.flags.slingOK = 1; const C = GG.Combat; if (C) { C.giveGear('sling'); S.hero.mode = 'ranged'; } if ((S.inv.stone || 0) < 8) Gm().give('stone', 8 - (S.inv.stone || 0), true); GG.UI.featCard && GG.UI.featCard('sling', { kick: '새 무기', n: '물매', ic: 'star', d: '왼쪽 무기 단추로 근접 ↔ 물매를 바꿔요 · 「쏘기」를 누르고 있다가 놓아요' }); GG.UI.hud(); },
+    start(S) { S.flags.slingOK = 1; const C = GG.Combat; if (C) { C.giveGear('sling'); S.hero.mode = 'ranged'; if (!Gm().hand()) Gm().hold('weapon'); } if ((S.inv.stone || 0) < 8) Gm().give('stone', 8 - (S.inv.stone || 0), true); GG.UI.featCard && GG.UI.featCard('sling', { kick: '새 무기', n: '물매', ic: 'star', d: '왼쪽 무기 단추로 근접 ↔ 물매를 바꿔요 · 「쏘기」를 누르고 있다가 놓아요' }); GG.UI.hud(); },
     prog: '동쪽 들입니다. 몸을 낮추고 바람을 등지고 다가가십시오.', done: ['훌륭하십니다! 다윗 같은 목자가 따로 없군요.', '이제 물매와 활 만드는 법도 알려 드리지요. 메뉴 → 장비에서 만들 수 있습니다.'],
     reward: { silver: 12, items: { meat: 2, sinew: 2, smooth: 3 }, xp: 24 } },
   g_lamb: { giver: 'reuben', title: '르우벤의 길 잃은 어린양', when: goshenOn, repeat: 5,
@@ -2107,12 +2118,33 @@ function ripeLeft(S, f) { let n = 0; for (const k in S.plots) if (k.startsWith(f
 { const en = steps.c2_tempt2.enter; steps.c2_tempt2.enter = function (S, G, re) { if (!S.q.flax2Planted) { ripe(S, 'pflax', 'flax'); S.q.flax2Planted = 1; } en.call(this, S, G, re); }; }
 { const en = steps.c5_year2.enter; steps.c5_year2.enter = function (S, G, re) { G.unlock('royal'); if (!S.q.wheatPlanted) { ripe(S, 'royal', 'wheat'); S.q.wheatPlanted = 1; } en.call(this, S, G, re); }; }
 { const en = steps.c5_patrol.enter; steps.c5_patrol.enter = function (S, G, re) { S.q.chariotOk = 1; en.call(this, S, G, re); }; }
+{ const en = steps.c2_flee.enter; steps.c2_flee.enter = function (S, G, re) { RT.chase = { t: 0, w: 0, b: 0, caught: false }; en.call(this, S, G, re); }; }
+/* v18.14 「밖으로 나가」 (창 39:12): she runs after him. Caught before the gate, the house starts to whisper — the player goes back to
+   just before the ledger and tries again. Only running (달리기) gets away. */
+const HOUSE_ROOMS = [{ in: p => p.x > -24.6 && p.x < -15 && p.z > 37 && p.z < 46.6, di: [-20.6, 45.4], do: [-20.6, 47.9] }, // 장부방 (door to the yard)
+  { in: p => p.x < -36.6 && p.x > -41 && p.z > 37 && p.z < 46.6, di: [-37.7, 42.5], do: [-35.4, 42.5] }]; // 시중 방 (door to the hall)
+const CHASE_L = ['요셉! 거기 서!', '어딜 도망가느냐!', '내 말이 들리지 않느냐!', '이리 오너라, 요셉!'];
+function chase(dt, S, G) { const c = RT.chase || (RT.chase = { t: 0, w: 0, b: 0, caught: false }), n = G.npc('wife'), P = G.P; if (!n || !n.vis || c.caught) return;
+  c.t += dt; if (c.t < 1.3) return; // a breath of shock first
+  const d = Math.hypot(n.x - P.x, n.z - P.z);
+  if (d < 1.05) { caught(S, G, n); return; }
+  if ((c.w -= dt) <= 0) { c.w = 0.22; n.sit = false; n.act = null; n.wander = null; const path = [];
+    for (const R of HOUSE_ROOMS) { const a = R.in(n), b = R.in(P); if (a === b) continue; const [p1, p2] = a ? [R.di, R.do] : [R.do, R.di]; if (Math.hypot(n.x - p1[0], n.z - p1[1]) > 0.7) path.push(p1); path.push(p2); break; } // through the door, not into the wall
+    G.npcWalk('wife', P.x, P.z, null, Math.min(5.4, 3.8 + (c.t - 1.3) * 0.4), path); }
+  if (RT.t - c.b > 3) { c.b = RT.t; bubble('wife', CHASE_L[Math.floor(Math.random() * CHASE_L.length)], 2.2); } }
+function caught(S, G, n) { const c = RT.chase; c.caught = true; n.walk = null; n.face = Math.atan2(G.P.x - n.x, G.P.z - n.z); G.P.vx = G.P.vz = 0; G.P.sprint = false; G.sfx('rip', { pitch: 0.7 });
+  say([N('wife', '(요셉의 팔을 붙잡으며) …어디로 가려느냐.', '', 'cold'), T('여종 하나가 그 모습을 보고 말았습니다. 저녁이 되기도 전에, 집 안에 이상한 소문이 퍼지기 시작했습니다.')],
+    () => narr([{ kick: '다시 하기', title: '소문이 퍼졌어요', t: '요셉은 유혹 앞에서 「밖으로 나가」 피했습니다(창 39:12). 붙잡히지 않도록 달리기로 뛰어 대문 밖까지 피하세요. 장부 정리 전으로 돌아가요.', ref: '창세기 39:12', e: 'solemn' }],
+      () => GG.UI.fade(() => { S.q.robe = 0; S.q.flee = 0; n.walk = null; G.P.sprint = false; G.go('c2_tempt3', true); G.teleport(-27, 50.5, Math.PI); RT.chase = null; }, () => { GG.UI.hint('대청 동쪽 장부방으로 가요', 'ledger', 'star'); }))); }
 const SCENE_ONLY = { c1_market: 1, c4_answer: 1, c5_years: 1 };
 function update(dt, S, G, t) {
   const P = G.P, st = S.step; RT.t += dt;
   if (P.cpose) { P.cpose.t += dt; if (P.cpose.dur && !P.cpose.hold && P.cpose.t > P.cpose.dur) P.cpose = null; }
   if (P.cpose && P.spd > 0.6 && !GG.Cine.on && ['reach', 'scratchWall', 'shave', 'think', 'bow', 'gather'].includes(P.cpose.k)) P.cpose = null;
   if (P.cpose && P.cpose.hold && !GG.Cine.on && P.spd > 0.6 && !['bound'].includes(P.cpose.k)) P.cpose = null;
+  if (S.step === 'c2_flee' && !GG.Cine.on && !GG.UI.busy()) chase(dt, S, G);
+  if (S.q.chain) S.q.chain = 0; /* v18.14 no shackles any more (old saves kept them on forever: the clinking, the slow walk) */
+  if (S.outfit === 'josephFettered' && !GG.Cine.on) G.setOutfit('josephPrisoner');
   if ((S.q.bound || S.q.chain) && !P.cpose && !GG.Cine.on) P.cpose = { k: 'bound', t: 0, dur: 0, hold: true };
   if (!S.q.bound && !S.q.chain && P.cpose && P.cpose.k === 'bound' && !GG.Cine.on) P.cpose = null;
   if (S.q.bound || S.q.chain) P.sprint = false;
@@ -2250,7 +2282,10 @@ function dyn(list, S, G, t) {
   if (RT.coatG && S.step === 'p_approach') list.push({ mesh: mk('coatG', g => { const C = [0x7a3a2e, 0xa88a52, 0x40566e]; for (let i = 0; i < 9; i++) g.box(0.12, 0.03, 0.9, { at: [-0.5 + i * 0.125, 0.015 + (i % 2) * 0.004, 0], rz: (i % 3 - 1) * 0.04, c: C[i % 3] }); g.box(0.7, 0.05, 0.35, { at: [0.15, 0.03, -0.3], ry: 0.4, c: 0xeee4cc }); }), m: mat('coatG', RT.coatG.x, RT.coatG.y, RT.coatG.z, 0.7), outline: true });
   else if (RT.coatG && S.step !== 'p_approach') RT.coatG = null;
   // the garment left in her hand (창 39:12)
-  if (S.q.robe && (S.step === 'c2_tempt3' || between(S, 'c2_flee', 'c2_flee'))) { const n = G.npc('wife'); if (n && n.vis) list.push({ mesh: mk('robe', g => { g.box(0.5, 0.9, 0.06, { at: [0, -0.45, 0], c: 0xe8dcc0 }); g.box(0.52, 0.12, 0.07, { at: [0, -0.86, 0], c: 0x9a6a3a }); }), m: n.rig.world[HBI.handR], outline: true }); }
+  if (S.q.robe && (S.step === 'c2_tempt3' || between(S, 'c2_flee', 'c2_flee'))) { const n = G.npc('wife'); if (n && n.vis) list.push({ mesh: mk('robe2', g => { /* v18.14 a crumpled linen robe hanging from her fist (it was a flat board) */
+    g.surf((u, v) => { const w = 0.16 + 0.34 * Math.min(1, v * 1.6), a = (u - 0.5) * w; return [a + Math.sin(u * 19 + v * 3) * 0.022 * v, -0.04 - v * 0.95 + Math.cos(u * 7) * 0.03 * v, Math.sin(u * 13) * 0.05 * (0.3 + v) + Math.sin(v * 5) * 0.03]; }, 16, 10, { c: (x, y) => y < -0.84 ? 0x40566e : y < -0.8 ? 0xb89a5a : 0xd8c49a, ds: true, inner: 0.82 });
+    g.surf((u, v) => { const a = (u - 0.5) * 0.12; return [a + 0.17, -0.05 - v * 0.55, 0.05 + Math.sin(v * 6) * 0.02]; }, 4, 6, { c: 0xd0bc90, ds: true, inner: 0.82 }); // a sleeve
+    g.sph(0.06, 6, 4, { at: [0, -0.02, 0], s: [1.4, 0.8, 1], c: 0xd0bc90 }); }), m: n.rig.world[HBI.handR], outline: true }); }
   // days scratched on the wall
   if (between(S, 'c3_wait') && (S.q.wait || 0) >= 2 && before(S, 'c4_court')) list.push({ mesh: mk('marks', g => { for (let i = 0; i < 24; i++) g.box(0.02, 0.22, 0.01, { at: [(i % 12) * 0.07 + Math.floor((i % 12) / 4) * 0.04, Math.floor(i / 12) * 0.3, 0], rz: (i % 4 === 3) ? 0.9 : 0.05, c: 0x5a4a38 }); }), m: mat('marks', -20.62, hAt(-20.6, -6.4) + 1.2, -6.8, Math.PI / 2) });
   // grain piled before the granaries
