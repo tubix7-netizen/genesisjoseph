@@ -171,11 +171,14 @@ pose('kneelRest', false, (rig, p, t) => { // sitting back on the heels, hands on
   rig.off[1] = -0.66; set(rig, B.thighL, -1.42, 0, 0.1); set(rig, B.thighR, -1.42, 0, -0.1); set(rig, B.shinL, 2.85); set(rig, B.shinR, 2.85);
   set(rig, B.chest, 0.05 + Math.sin(t * 1.5) * 0.015); set(rig, B.uArmL, -0.55, 0, 0.05); set(rig, B.uArmR, -0.55, 0, -0.05); set(rig, B.fArmL, -0.75); set(rig, B.fArmR, -0.75);
 });
-pose('climb', false, (rig, p, t) => { // facing the wall: hands reach overhead in turn, knees come up to find footholds
-  const a = Math.sin(p * PI * 2), ra = Math.max(0, a), la = Math.max(0, -a);
-  set(rig, B.uArmL, -2.55 - 0.4 * la + 0.25 * ra, 0, 0.28); set(rig, B.fArmL, -0.35 - 0.6 * ra); set(rig, B.uArmR, -2.55 - 0.4 * ra + 0.25 * la, 0, -0.28); set(rig, B.fArmR, -0.35 - 0.6 * la);
-  set(rig, B.thighL, -0.75 - 0.5 * ra, 0, 0.14); set(rig, B.shinL, 1.0 + 0.5 * ra); set(rig, B.thighR, -0.75 - 0.5 * la, 0, -0.14); set(rig, B.shinR, 1.0 + 0.5 * la);
-  set(rig, B.pelvis, 0.12); set(rig, B.chest, -0.06, 0.08 * a, 0); set(rig, B.head, -0.42, 0, 0); rig.off[1] = -0.12; rig.off[2] = -0.04;
+pose('climb', false, (rig, p, t) => { /* v18.14 a real climbing cycle (contralateral): the right hand reaches up while the left knee comes high to a new
+     foothold, then the body pulls up and the other pair goes — arms swing from a bent pull at the shoulder to fully stretched overhead,
+     the hips sway toward the reaching hand and the head looks up at it */
+  const s = Math.sin(p * PI * 2), c = Math.cos(p * PI * 2), rH = 0.5 + 0.5 * s, lH = 1 - rH, ease = x => x * x * (3 - 2 * x), R = ease(rH), L = ease(lH);
+  set(rig, B.uArmR, -1.7 - 1.35 * R, 0, -0.38 + 0.22 * R); set(rig, B.fArmR, -1.45 + 1.3 * R); set(rig, B.uArmL, -1.7 - 1.35 * L, 0, 0.38 - 0.22 * L); set(rig, B.fArmL, -1.45 + 1.3 * L);
+  set(rig, B.thighR, -0.22 - 1.25 * L, 0, -0.24); set(rig, B.shinR, 0.3 + 1.45 * L); set(rig, B.thighL, -0.22 - 1.25 * R, 0, 0.24); set(rig, B.shinL, 0.3 + 1.45 * R);
+  set(rig, B.pelvis, 0.14, 0.06 * s, 0.09 * s); set(rig, B.chest, -0.08, 0.12 * s, -0.07 * s); set(rig, B.head, -0.55, 0.22 * s, 0);
+  rig.off[1] = -0.12 + 0.05 * Math.abs(c); rig.off[2] = -0.04;
 });
 pose('squat', false, (rig, p, t) => { // v12: one knee down, forearm resting on the raised knee (no more deep frog squat)
   rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.42, 0, 0.12); set(rig, B.shinL, 1.42); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.5);

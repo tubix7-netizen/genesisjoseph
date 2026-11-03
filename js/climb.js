@@ -77,7 +77,7 @@ Cl.update = function (dt) {
   // lunge
   if (P.jumpBuf > 0 && !k.ladder) { P.jumpBuf = 0; if (P.stam > 12) { V && V.spend(14); k.lunge = 0.28; sfx('whoosh', { vol: 0.5 }); } }
   let vy = up * (k.ladder ? 1.6 : tired ? 0 : 1.05); if (k.lunge > 0) { k.lunge -= dt; vy = 4.2; }
-  P.y += vy * dt; k.ph += (Math.abs(vy) + Math.abs(side) * 1.1) * dt * 3.2;
+  P.y += vy * dt; k.ph += (Math.abs(vy) + Math.abs(side) * 1.1) * dt * (k.ladder ? 3.4 : 4.2);
   // sideways along the face (the face's tangent, from the climber's point of view: right = stick right)
   if (side && !k.ladder) { const tx = -k.nz, tz = k.nx; P.x -= tx * side * 0.95 * dt; P.z -= tz * side * 0.95 * dt; snap(P); }
   const ground = W.heightAt(P.x + k.nx * 0.4, P.z + k.nz * 0.4);

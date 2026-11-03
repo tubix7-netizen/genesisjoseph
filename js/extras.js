@@ -39,7 +39,14 @@ body.cine #starBtn,body.photo #starBtn{display:none}
 #photoFlash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:70;transition:opacity .35s}`;
 document.head.appendChild(css);
 const ctx = []; Game.CTX = Game.CTX || []; Game.CTX.push(() => ctx.filter(c => c.on()).map(c => ({ d: Math.hypot(c.x - P().x, c.z - P().z) - 1.2, label: typeof c.label === 'function' ? c.label() : c.label, x: c.x, z: c.z, y: 1.6, use: c.use, key: 'ex:' + c.id })).filter(c => c.d < 1.6));
-const spot = (id, x, z, label, on, use) => ctx.push({ id, x, z, label, on, use });
+const spot = (id, x, z, label, on, use, o) => ctx.push(Object.assign({ id, x, z, label, on, use, sign: true }, o || {}));
+/* v18.14 every challenge spot is marked: a wooden signpost with a painted board (and some have a keeper standing by), so nothing waits on bare ground */
+const SIGN = {}; let signMesh = null;
+const prevDynS = EP.dyn; EP.dyn = function (list) { if (prevDynS) prevDynS.apply(this, arguments); try { if (Game.mode !== 'play') return; const w = W();
+  for (const c of ctx) { if (!c.sign || Math.hypot(c.x - P().x, c.z - P().z) > 70 || !c.on()) continue;
+    if (!signMesh) { const g = new G.GB(41); g.cyl(0.06, 0.07, 1.7, 6, { at: [0, 0.85, 0], c: 0x7a5a3a }); g.box(0.9, 0.5, 0.06, { at: [0, 1.45, 0.05], c: 0xc8a068 }); g.box(0.96, 0.06, 0.09, { at: [0, 1.73, 0.05], c: 0x7a5a3a }); g.box(0.96, 0.06, 0.09, { at: [0, 1.17, 0.05], c: 0x7a5a3a });
+      for (let i = 0; i < 3; i++) g.box(0.55 - i * 0.12, 0.035, 0.07, { at: [0, 1.56 - i * 0.11, 0.06], c: 0x5a3a24 }); g.sph(0.08, 6, 4, { at: [0.33, 1.6, 0.08], c: 0xe5b552 }); signMesh = G.R.mesh(g); }
+    const sx = c.x + (c.sx || 0.9), sz = c.z + (c.sz || 0), m = SIGN[c.id] || (SIGN[c.id] = G.m4()); G.m4trs(m, sx, w.heightAt(sx, sz), sz, Math.atan2(P().x - sx, P().z - sz) * 0 + (c.sry || 0), 0, 0, 1, 1, 1); list.push({ mesh: signMesh, m, outline: true }); } } catch (e) { } };
 
 // =================================================================== 1 양치기 놀이
 C.WILD.sheep = C.WILD.sheep || { n: '양', hp: 9999, speed: 12, flee: 0, beh: 'herd', loot: {}, xp: 0 }; // 'herd': no flee of its own; herdTick steers each sheep (wander toward a point, speed × 0.18)
@@ -114,7 +121,7 @@ function viewer() { const f = F(), el = document.createElement('div'); el.classN
   document.body.appendChild(el); G.UI.setBusy('exv', true); sfx('page');
   const close = () => { el.remove(); G.UI.setBusy('exv', false); }; el.querySelector('.p-x').onclick = close; el.onclick = e => { if (e.target === el) close(); }; }
 X.viewer = viewer;
-spot('shelf', SH[0], SH[1] + 1.2, '진열대 · 모음집 보기', () => egypt() && !X.busy(), viewer);
+spot('shelf', SH[0], SH[1] + 1.2, '진열대 · 모음집 보기', () => egypt() && !X.busy(), viewer, { sign: false });
 
 // =================================================================== 4 별자리 찾기
 const CONS = X.CONS = [

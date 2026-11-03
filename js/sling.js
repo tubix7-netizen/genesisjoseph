@@ -8,7 +8,7 @@
 (function (G) {
 const Game = G.Game, $ = id => document.getElementById(id), sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const SL = G.Sling = { on: null };
-const isSling = () => { const S = Game.S(), h = S && S.hero; return h && h.mode === 'ranged' && h.ranged === 'sling' && (!G.Combat.armedK || G.Combat.armedK() === 'sling'); }; /* v18.14 the sling must be in hand */
+const isSling = () => { const S = Game.S(), h = S && S.hero; return h && h.mode === 'ranged' && h.ranged === 'sling' && (!G.Combat.armedK || G.Combat.armedK() === 'sling') && !(G.Phys && G.Phys.held); }; /* (holding a jar or a melon: the button throws it instead) */ /* v18.14 the sling must be in hand */
 const target = () => { const t = G.Lock && G.Lock.target; return t && !t.K && t.st !== 'dead' && t.st !== 'gone' ? t : null; };
 const RANGE = () => { const g = G.Combat.GEAR.sling, h = Game.S().hero; return g.range + (h.sk ? h.sk.aim * 2 : 0); };
 SL.start = function () { if (SL.on || G.UI.busy() || Game.cineOn) return;

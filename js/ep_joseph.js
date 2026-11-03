@@ -791,6 +791,7 @@ const npcs = [
   { id: 'overseerS', name: NM.overseerS, look: Object.assign({}, LOOK.farmer, { collar: TURQ, top: LINEN, bare: false, sleeveless: true }), x: -141, z: 123, face: 0.3, show: show('c5_patrol'), chat: ['언덕 위 곳간은 물 한 방울 들지 않습니다!'] },
   { id: 'brick', name: NM.brick, look: Object.assign({}, LOOK.farmer, { bottom: 0xb07848, skin: 0x9a6038 }), x: -44, z: -116, face: 0.8, act: 'gather', show: show('c5_patrol'), chat: ['진흙 둘에 짚 하나. 그게 좋은 벽돌의 비결이지요.'] },
   { id: 'hunterE', name: '왕의 사냥꾼 세넵', look: Object.assign({}, LOOK.farmer, { skin: 0x9a6038, bottom: 0xd8c8a0, collar: TURQ }), x: 30, z: -54, face: 2.2, prop: 'bow', wander: 2, show: show('c5_patrol'), chat: ['바람을 등지고 다가가야 짐승이 눈치를 못 챕니다.', '물매는 손목이 아니라 허리로 돌리는 겁니다, 나으리.'] }, /* v18.13 gives the vizier his sling (e_hunt) */
+  { id: 'patrolKeeper', name: '순찰 기록관 메네스', look: LOOK.scribe, x: -25.4, z: -85.4, face: 2.4, show: show('c5_patrol'), chat: ['총리님, 수레 순찰을 다녀오시면 걸린 시간을 이 판에 적어 드립니다.', '서쪽 곳간, 남쪽 곳간, 성읍 곳간을 돌아 이 우물로 오시면 됩니다.', '지난번 기록보다 빠르시면 금빛 표를 달아 드리지요.'] }, /* v18.14 the patrol challenge has a keeper (and a signpost) */
   { id: 'painter', name: '그림 그리는 아이 티티', look: KID({ skin: 0xa8683a, top: LINEN, long: true, fem: true, hairStyle: 'long' }), scale: 0.62, x: -35, z: -65.5, face: 2.6, wander: 1.5, show: show('c5_patrol'), chat: ['총리님, 오늘은 무엇을 보셨어요?', '나일 강은 정말 끝이 없어요?'] }, /* v18.13e photo requests (js/extras.js) */
   { id: 'scribeR', name: '왕궁 서기관', look: LOOK.scribe, x: 12, z: -58.6, face: 2.6, sit: true, show: show('c5_year1'), chat: ['곳간 기록은 오늘도 늘었습니다.'] },
   // ---- the famine: buyers at the city granary (창 41:56–57)
@@ -832,9 +833,9 @@ const strangers = { max: 0, when: () => false, looks: { default: LOOK.farmer } }
 // ------------------------------------------------------------------ SITES (granaries, ch5)
 const GRAN = (g, M, r) => G.env.granary(g, M, r, true);
 const sites = [
-  { id: 'granA', n: '성읍 곳간', x: 16, z: -64, cost: { brick: 20, wood: 6 }, model: GRAN, d: '각 성 주위 밭의 곡물을 그 성 중에 쌓아 두었더라 (창 41:48)', w: 10, d2: 6, avail: show('c5_year1'), col: { w: 10, d: 6.4, h: 4.5, cam: true } },
-  { id: 'granB', n: '서쪽 마을 곳간', x: -152, z: -20, cost: { brick: 20, wood: 6 }, model: GRAN, d: '서쪽 마을의 오분의 일을 쌓을 곳간', w: 10, d2: 6, avail: show('c5_year1'), col: { w: 10, d: 6.4, h: 4.5, cam: true } },
-  { id: 'granC', n: '남쪽 마을 곳간', x: -160, z: 150, cost: { brick: 20, wood: 6 }, model: GRAN, d: '물이 닿지 않는 언덕 위 곳간', w: 10, d2: 6, avail: show('c5_year1'), col: { w: 10, d: 6.4, h: 4.5, cam: true } },
+  { id: 'granA', n: '성읍 곳간', x: 16, z: -64, cost: { brick: 20, wood: 6 }, model: GRAN, puzzle: true, d: '각 성 주위 밭의 곡물을 그 성 중에 쌓아 두었더라 (창 41:48)', w: 10, d2: 6, avail: show('c5_year1'), col: { w: 10, d: 6.4, h: 4.5, cam: true } },
+  { id: 'granB', n: '서쪽 마을 곳간', x: -152, z: -20, cost: { brick: 20, wood: 6 }, model: GRAN, puzzle: true, d: '서쪽 마을의 오분의 일을 쌓을 곳간', w: 10, d2: 6, avail: show('c5_year1'), col: { w: 10, d: 6.4, h: 4.5, cam: true } },
+  { id: 'granC', n: '남쪽 마을 곳간', x: -160, z: 150, cost: { brick: 20, wood: 6 }, model: GRAN, puzzle: true, d: '물이 닿지 않는 언덕 위 곳간', w: 10, d2: 6, avail: show('c5_year1'), col: { w: 10, d: 6.4, h: 4.5, cam: true } },
 ];
 
 // ------------------------------------------------------------------ SPECIALS (things to use)
@@ -2218,7 +2219,7 @@ function pose(pst, S, G) {
 function rootY(S, G) { return S.q.riding && S.q.chariotOk ? 0.46 : 0; }
 const extra = [{ id: 'chariot', label: S => S.q.riding ? '수레 내리기' : '버금 수레 타기', ic: 'donkey', on: S => !!S.q.chariotOk && between(S, 'c5_patrol'),
   click: (S, G) => { S.q.riding = S.q.riding ? 0 : 1; G.sfx(S.q.riding ? 'whoosh' : 'step'); if (S.q.riding) { S.q.rode = 1; G.UI.toast('버금 수레 · 달리기 버튼을 누르면 말이 힘차게 달려요'); G.checkStep(); } G.snapCam(); } }];
-extra.push({ id: 'ward', label: '옷장', ic: 'cloth', on: S => !before(S, 'c5_patrol'), click: (S, G) => openWardrobe(S, G) });
+/* v18.14 the wardrobe lives in the personal chest now (storage.js): EP.openWardrobe / EP.wardOk */
 function canSleep(S) { return S.step === 'c2_night1' || S.step === 'p_night'; }
 
 // ------------------------------------------------------------------ DYNAMIC MESHES
@@ -2416,6 +2417,7 @@ G.EP.joseph = {
   start: { step: 'p_wake', x: SPOTS.bedHeb[0], z: SPOTS.bedHeb[1], face: -2.07, time: 6.4, silver: 0, inv: {}, tools: {}, outfit: 'josephCoat' },
   recipes: ['bread', 'bbread', 'linen', 'brick', 'grain', 'grainW', 'hay', 'torch'],
   showStaff: false, rain: 0.02, sleepFrom: 17, titleCam: { x: 176, z: 152, r: 32, h: 9, ty: 1.5 }, titleTime: 17.6, titleMusic: 'j_theme', timeScale: 1,
+  openWardrobe, wardOk: S => !before(S, 'c5_patrol'),
   mood, update, skinned, dyn, flats, bounds, camera, speedMul, pose, rootY, extra, onDay, onLoad, canSleep, music, ledger, aridAt, waterDist, climate, noRain: false,
   villages, strangers, opening: OPENING, places: PLACES, roads: ROADS, roadD, rumors, worldFacts, quiet, calmWeather, calmSurv,
   heroName: S => between(S, 'c5_patrol') ? '요셉 (사브낫바네아)' : '요셉', settled: (x, z) => PADS.some(p => p.set && Math.hypot(x - p.x, z - p.z) < p.r + 10),

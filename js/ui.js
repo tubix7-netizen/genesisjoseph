@@ -41,6 +41,7 @@ const IC = {
   sack: '<path d="M7 6 Q12 3 17 6 L19 18 Q12 21 5 18Z" fill="C"/><path d="M8 6 Q12 8 16 6" stroke="#8a6440" fill="none" stroke-width="1.5"/>',
   drop: '<path d="M12 3 Q18 11 18 15 A6 6 0 0 1 6 15 Q6 11 12 3Z" fill="C"/>',
   coin: '<circle cx="12" cy="12" r="8" fill="C"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/>',
+  key: '<circle cx="7.5" cy="12" r="4.5" fill="none" stroke="C" stroke-width="2.6"/><rect x="11" y="10.8" width="10.5" height="2.6" rx="1" fill="C"/><rect x="17" y="13" width="2.4" height="3.6" fill="C"/><rect x="13.6" y="13" width="2.2" height="2.6" fill="C"/>', /* v18.17 house keys */
   bag: '<path d="M6 9 H18 L19 20 H5Z" fill="C"/><path d="M9 9 Q9 4 12 4 Q15 4 15 9" stroke="C" stroke-width="2" fill="none"/>',
   sun: '<circle cx="12" cy="12" r="5" fill="C"/><path d="M12 2V5M12 19V22M2 12H5M19 12H22M5 5L7 7M17 17L19 19M5 19L7 17M17 7L19 5" stroke="C" stroke-width="2"/>',
   moon: '<path d="M15 3 A9 9 0 1 0 21 15 A7 7 0 1 1 15 3Z" fill="C"/>',
@@ -289,6 +290,7 @@ UI.menu = function (tab) {
 function renderMenu(tab, body) {
   const S = Game.S(), EP = Game.EP();
   if (tab === 'build') { G.Build.renderMenu(body, () => renderMenu('build', body)); }
+  else if (tab === 'bag' && G.Bag && G.Bag.render) { G.Bag.render(body, () => renderMenu('bag', body)); } // v18.14 storage.js: sorted bag, slots, quick slot, seeds
   else if (tab === 'bag') {
     const items = Object.keys(S.inv).filter(k => S.inv[k] > 0 && Game.ITEMS[k]);
     const tools = Object.keys(S.tools).filter(k => S.tools[k]);

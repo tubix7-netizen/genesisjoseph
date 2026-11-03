@@ -141,7 +141,7 @@ function pose(pst, S, G) {
 function rootY(S, G) { return S.q.riding && S.q.chariotOk ? 0.46 : 0; }
 const extra = [{ id: 'chariot', label: S => S.q.riding ? '수레 내리기' : '버금 수레 타기', ic: 'donkey', on: S => !!S.q.chariotOk && between(S, 'c5_patrol'),
   click: (S, G) => { S.q.riding = S.q.riding ? 0 : 1; G.sfx(S.q.riding ? 'whoosh' : 'step'); if (S.q.riding) { S.q.rode = 1; G.UI.toast('버금 수레 · 달리기 버튼을 누르면 말이 힘차게 달려요'); G.checkStep(); } G.snapCam(); } }];
-extra.push({ id: 'ward', label: '옷장', ic: 'cloth', on: S => !before(S, 'c5_patrol'), click: (S, G) => openWardrobe(S, G) });
+/* v18.14 the wardrobe lives in the personal chest now (storage.js): EP.openWardrobe / EP.wardOk */
 function canSleep(S) { return S.step === 'c2_night1' || S.step === 'p_night'; }
 
 // ------------------------------------------------------------------ DYNAMIC MESHES
@@ -339,6 +339,7 @@ G.EP.joseph = {
   start: { step: 'p_wake', x: SPOTS.bedHeb[0], z: SPOTS.bedHeb[1], face: -2.07, time: 6.4, silver: 0, inv: {}, tools: {}, outfit: 'josephCoat' },
   recipes: ['bread', 'bbread', 'linen', 'brick', 'grain', 'grainW', 'hay', 'torch'],
   showStaff: false, rain: 0.02, sleepFrom: 17, titleCam: { x: 176, z: 152, r: 32, h: 9, ty: 1.5 }, titleTime: 17.6, titleMusic: 'j_theme', timeScale: 1,
+  openWardrobe, wardOk: S => !before(S, 'c5_patrol'),
   mood, update, skinned, dyn, flats, bounds, camera, speedMul, pose, rootY, extra, onDay, onLoad, canSleep, music, ledger, aridAt, waterDist, climate, noRain: false,
   villages, strangers, opening: OPENING, places: PLACES, roads: ROADS, roadD, rumors, worldFacts, quiet, calmWeather, calmSurv,
   heroName: S => between(S, 'c5_patrol') ? '요셉 (사브낫바네아)' : '요셉', settled: (x, z) => PADS.some(p => p.set && Math.hypot(x - p.x, z - p.z) < p.r + 10),

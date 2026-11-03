@@ -717,6 +717,7 @@ function resolveContext() {
   // sites
   for (const s of ENT.sites) { if (siteBuilt(s.id) || (s.avail && !s.avail(S))) continue; const d = Math.hypot(s.x - P.x, s.z - P.z); if (d > (s.r || 4)) continue;
     const pr = S.siteWork && S.siteWork[s.id];
+    if (pr && s.puzzle && G.Puzzle) { cands.push({ d: d + 0.3, label: `${s.n} 짓기 · ${(s.stages || [])[pr.n] || '일하기'} 퍼즐 (${pr.n + 1}/${s.work})`, x: s.x, z: s.z, y: 1.6, use: () => G.Puzzle.work(s), key: 'site:' + s.id }); continue; } // v18.14 granaries: each stage is a brick puzzle
     if (pr) { cands.push({ d: d + 0.3, label: `${s.n} 짓기 · ${(s.stages || [])[pr.n] || '일하기'} (${pr.n + 1}/${s.work})`, x: s.x, z: s.z, y: 1.6, anim: 'hoe', dur: 0.55, hits: 3, prop: 'hammer', fn: () => Game.siteWork(s), key: 'site:' + s.id, repeat: true }); continue; }
     cands.push({ d: d + 0.3, label: `${s.n} 짓기`, x: s.x, z: s.z, y: 1.6, use: () => G.UI.site(s), key: 'site:' + s.id }); }
   // plot ahead
