@@ -65,7 +65,7 @@ function companions(f, S) { const P = Game.P, out = [];
     others.sort((a, b) => (B ? B.get(b).p - B.get(a).p : 0)); for (const id of others) { if (out.length >= 3) break; out.push(id); } }
   return out.slice(0, 3); }
 let ring = null; // { f, ids, key }
-F.sit = function (f) { const S = Game.S(), P = Game.P, C = G.Climate; if (ring || calm()) return; const key = nightKey(S), first = S.flags.fsNight !== key;
+F.sit = function (f, back) { const S = Game.S(), P = Game.P, C = G.Climate; if (ring || calm()) return; const key = nightKey(S), first = S.flags.fsNight !== key;
   const ids = companions(f, S); ring = { f, ids, key, told: 0 };
   G.UI.fade(() => { const W = Game.W(), y = W.heightAt(f.x, f.z) + 1.1; let a0 = Math.atan2(P.x - f.x, P.z - f.z), best = -1;
     // pick the side with room for Joseph behind him and for the camera across the fire
@@ -79,11 +79,13 @@ F.sit = function (f) { const S = Game.S(), P = Game.P, C = G.Climate; if (ring |
     const cd = 1 + 4 * Math.max(0.4, Math.min(1, W.ray(f.x - Math.sin(a0), y, f.z - Math.cos(a0), f.x - Math.sin(a0) * 5, y + 1.2, f.z - Math.cos(a0) * 5)) - 0.05), gy = W.heightAt(f.x, f.z);
     Game.cineCam = { x: f.x - Math.sin(a0) * cd, y: gy + 1.2 + cd * 0.3, z: f.z - Math.cos(a0) * cd, lx: f.x + Math.sin(a0) * 0.5, ly: gy + 0.65, lz: f.z + Math.cos(a0) * 0.5, fov: 1.2 };
     Game.CAM.yaw = P.face; Game.noDlgCam = true; }, () => {
-    const w = G.Weather && G.Weather.rainy() ? '빗소리 사이로 불이 타닥타닥 탑니다.' : isNight(S) ? rnd(['밤하늘에 별이 쏟아질 듯합니다. 불꽃이 타닥타닥 튀어 오릅니다.', '나일 쪽에서 서늘한 바람이 불어오고, 모닥불이 따뜻하게 일렁입니다.']) : '젖은 옷에서 김이 피어오릅니다. 불기운이 몸을 녹입니다.';
-    const intro = [{ n: '', t: w }]; if (first) intro.push({ n: '', t: '몸이 마르고 따뜻해졌어요 · 정신력 +15' });
+    if (back) { menu(); return; } /* back from cooking: straight to the menu */
+    const wetNow = C && (C.wet > 0.2 || C.cold), w = G.Weather && G.Weather.rainy() ? '빗소리 사이로 불이 타닥타닥 탑니다.' : !isNight(S) && !wetNow ? rnd(['모닥불 곁에 앉았어요. 장작이 타닥타닥 탑니다.', '불가에 앉으니 마음이 느긋해져요.']) : isNight(S) ? rnd(['밤하늘에 별이 쏟아질 듯합니다. 불꽃이 타닥타닥 튀어 오릅니다.', '나일 쪽에서 서늘한 바람이 불어오고, 모닥불이 따뜻하게 일렁입니다.']) : '젖은 옷에서 김이 피어오릅니다. 불기운이 몸을 녹입니다.';
+    const intro = [{ n: '', t: w }]; if (first) intro.push({ n: '', t: (wetNow ? '몸이 마르고 따뜻해졌어요' : '몸이 따뜻해졌어요') + ' · 정신력 +15' });
     if (ids.length) intro.push({ n: npc(ids[0]).name, t: ids[0] === 'asenath' ? rnd(['여기 계셨네요. 저도 같이 앉을게요.', '불 피워 두셨네요. 아이들도 데려올게요.']) : FAM.includes(ids[0]) ? rnd(['아빠! 나도 불 쬘래요!', '아빠 옆자리는 내 거예요!']) : rnd(['불 좀 같이 쬐어도 되겠소?', '아, 총리님도 불 쬐러 오셨구려. 앉으시오.', '이 불은 우리 마을 사람 누구나 쬐는 불이라오.']) });
     G.UI.say(intro, () => menu()); }); };
 function menu() { const S = Game.S(), r = ring; if (!r) return; const ch = [];
+  if (G.Hearth) ch.push({ t: '요리하기', then: () => setTimeout(cook, 30) });
   if (r.ids.length) { ch.push({ t: '옛이야기 들려주기', then: () => setTimeout(tellPick, 30) }); for (const id of r.ids) ch.push({ t: `${npc(id).name}의 이야기 듣기`, then: () => setTimeout(() => listen(id), 30) }); }
   else ch.push({ t: '불을 바라보며 생각하기', then: () => setTimeout(() => G.UI.say([{ n: '요셉', t: rnd(ALONE) }], menu), 30) });
   ch.push({ t: r.ids.length ? '함께 기도하기' : '기도하기', then: () => setTimeout(pray, 30) }); ch.push({ t: '일어나기', then: () => setTimeout(stand, 30) });
@@ -104,14 +106,16 @@ function listen(id) { const n = npc(id), B = G.Bond; const lv = B ? B.level(id).
 function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.emote = { k: 'pray', t: 0, dur: 4 }; const ls = [{ n: '요셉', t: rnd(['조상들의 하나님, 오늘 하루도 지켜 주셔서 감사합니다. 이 불가에 앉은 이들의 집에도 평안을 주세요.', '하나님, 멀리 가나안에 계신 아버지와 베냐민을 지켜 주세요. 그리고 이 땅의 사람들도요.']) }];
   if (r.ids.length) ls.push({ n: npc(r.ids[0]).name, t: FAM.includes(r.ids[0]) ? '아멘!' : rnd(['…아멘. 당신 하나님께 나도 인사드리오.', '(조용히 눈을 감고 따라 한다)']) });
   G.UI.say(ls, () => { P.emote = null; P.emote = { k: 'sitg', t: 0, dur: 1e4 }; if (S.flags.fsPray !== r.key) { S.flags.fsPray = r.key; G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(20); G.UI.toast('마음이 고요해졌어요 · 정신력 +20'); } menu(); }); }
-function stand() { const P = Game.P, r = ring; ring = null; P.emote = null; Game.noDlgCam = false; if (Game.cineCam && !(G.Cine && G.Cine.on)) Game.cineCam = null; if (!r) return;
+/* 요리하기: get up quietly, open the cooking sheet; when the dish is done (or the sheet is closed) sit back down by the same fire */
+function cook() { const r = ring; if (!r) return; const f = r.f; stand(true); G.Hearth.open(f); let n = 0;
+  const iv = setInterval(() => { const el = $('cookUI'); if (++n > 600) { clearInterval(iv); return; } if ((el && !el.hidden) || calm()) return; clearInterval(iv); if (Math.hypot(Game.P.x - f.x, Game.P.z - f.z) < 4) F.sit(f, true); }, 300); }
+function stand(quiet) { const P = Game.P, r = ring; ring = null; P.emote = null; Game.noDlgCam = false; if (Game.cineCam && !(G.Cine && G.Cine.on)) Game.cineCam = null; if (!r) return;
   for (const id of r.ids) { const n = npc(id); if (!n) continue; n.emote = null; n.sit = false; n.talking = false; }
-  G.UI.toast('불기운이 5분 동안 추위를 막아 줘요'); }
+  if (!quiet) G.UI.toast('불기운이 5분 동안 추위를 막아 줘요'); }
 
 // the action by the fire
 Game.CTX.push(function (S) { const P = Game.P, C = G.Climate; if (ring || P.ride || P.swim || P.act || Game.cineOn) return null; const E = Game.EP(); if (!E || E !== EPJ()) return null;
-  if (!(isNight(S) || (C && (C.wet > 0.2 || C.cold)))) return null;
-  for (const st of E.stations || []) { if (st.type !== 'fire' || (st.on && !st.on(S, Game))) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d > 3.4) continue;
+  for (const st of E.stations || []) { if (st.type !== 'fire' || st.oven || (st.on && !st.on(S, Game))) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d > 3.4) continue;
     return [{ d: d - 1.2, label: '모닥불가에 앉기', x: st.x, z: st.z, y: 0.8, key: 'fireside:' + st.id, reach: 1.7, use: () => F.sit(st) }]; }
   return null; });
 

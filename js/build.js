@@ -57,7 +57,7 @@ const BP = Bd.BP = {
     col: [{ dx: 0, dz: -4.5, w: 12, d: 0.7, h: 1.2 }, { dx: -6, dz: 0, w: 0.7, d: 9, h: 1.2 }, { dx: 6, dz: 0, w: 0.7, d: 9, h: 1.2 }, { dx: -3.7, dz: 4.5, w: 4.6, d: 0.7, h: 1.2 }, { dx: 3.7, dz: 4.5, w: 4.6, d: 0.7, h: 1.2 }] },
   field: { n: '밭', feat: 'build2', cost: { stone: 4, branch: 4 }, w: 8.8, d: 7.2, slope: 1.0, d0: '20칸 밭 · 괭이로 갈고 씨앗을 심어요', field: { cols: 5, rows: 4 }, ic: 'seed' },
   well: { n: '우물', feat: 'build2', cost: { stone: 18, wood: 2, clay: 4 }, w: 3.2, d: 4.4, d0: '물을 길을 수 있어요', col: [{ r: 1.45, h: 1 }, { dz: 2.1, w: 2.4, d: 0.8, h: 0.6 }], st: [{ type: 'well', r: 2.6 }], ic: 'drop' },
-  oven: { n: '흙 화덕', feat: 'build2', cost: { clay: 8, stone: 4 }, w: 2.2, d: 2.2, d0: '빵을 굽고 요리해요 · 곁이 따뜻해요', col: [{ r: 0.9, h: 1.1 }], st: [{ type: 'fire', r: 2.8, dz: 0.4 }], ic: 'fire' },
+  oven: { n: '흙 화덕', feat: 'build2', cost: { clay: 8, stone: 4 }, w: 2.2, d: 2.2, d0: '빵을 굽고 요리해요 · 곁이 따뜻해요', col: [{ r: 0.9, h: 1.1 }], st: [{ type: 'fire', r: 2.8, dz: 0.4, oven: true }], ic: 'fire' },
   loom: { n: '베틀', feat: 'build2', cost: { wood: 3, branch: 6 }, w: 2.4, d: 1.2, d0: '실로 천을, 아마로 세마포를 짜요', col: [{ w: 2, d: 0.6, h: 2.2 }], st: [{ type: 'loom', r: 2.6, dz: 0.8 }], ic: 'cloth' },
   altar: { n: '돌 제단', feat: 'build2', cost: { stone: 10 }, w: 2.2, d: 2.2, d0: '하루에 한 번 기도하면 몸과 마음이 새로워져요', col: [{ r: 1.0, h: 1.2 }], st: [{ type: 'custom', r: 2.6, pray: true }], ic: 'star' },
   stable: { n: '마구간', feat: 'ride', feat2: 'build2', cost: { wood: 6, straw: 6, branch: 6 }, w: 6.6, d: 4.6, slope: 1.4, d0: '탈것을 두 마리 더 기를 수 있어요 · 비를 피해요', col: [{ dz: -2.05, w: 6.2, d: 0.7, h: 1.9 }], shelter: [0, 0, 3.2], stable: [0, 0.4], ic: 'donkey' },

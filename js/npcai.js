@@ -79,10 +79,11 @@ AI.route = function (v, n, x, z) {
   return path;
 };
 // villagers become ordinary NPCs whose schedule comes from AI.plan
-AI.register = function (EP) {
-  for (const v of EP.villages || []) for (const f of v.folk) {
+AI.register = function (EP) { for (const v of EP.villages || []) for (const f of v.folk) AI.addFolk(EP, v, f); };
+/* v18.23 one villager at a time, so later scripts (village.js) can add more people to a village */
+AI.addFolk = function (EP, v, f) { if (v.folk.indexOf(f) < 0) v.folk.push(f); {
     const hm = v.homes[f.home || 0] || [v.x, v.z, 0];
-    EP.npcs.push({ id: f.id, name: f.name, look: f.look, x: hm[0], z: hm[1], face: hm[2] || 0, scale: f.scale || (f.age === 'kid' ? 0.6 : 1), prop: f.prop,
+    EP.npcs.push({ id: f.id, name: f.name, look: f.look, x: hm[0], z: hm[1], face: hm[2] || 0, scale: f.scale || (f.age === 'kid' ? 0.6 : 1), prop: f.prop, mount: f.mount, pack: f.pack,
       show: S => (!v.when || v.when(S)) && (!f.when || f.when(S)), sched: S => AI.plan(v, f, S), route: (n, x, z) => AI.route(v, n, x, z),
       village: v, folk: f, walkSp: f.age === 'old' ? 1.15 : f.age === 'kid' ? 2.1 : 1.55, rider: f.age === 'kid' || f.rider });
   }

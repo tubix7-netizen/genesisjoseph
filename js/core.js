@@ -444,26 +444,36 @@ void main(){
 }`;
 const VS_WATER = `layout(location=0) in vec3 aPos;uniform mat4 uVP;uniform float uLevel,uTime;out vec3 vW;
 void main(){vec3 w=aPos;w.y=uLevel+sin(uTime*1.3+w.x*0.35)*0.03+cos(uTime*1.1+w.z*0.3)*0.03;vW=w;gl_Position=uVP*vec4(w,1.0);}`;
+/* v18.23 water, after the literature: a sum of directional waves with deep-water dispersion ω² = g·k (Tessendorf 2001, "Simulating
+   Ocean Water"; Finch 2004, GPU Gems ch.1) plus fine ripples that fade with distance, Schlick's Fresnel with water's F0 ≈ 0.02,
+   Beer–Lambert absorption through the water depth (red goes first, so deep water turns blue-green), sun caustics on a shallow bed,
+   a light scattered through wave crests, a sharp sun glint and foam broken up along the shore. */
 const FS_WATER = `in vec3 vW;out vec4 o;uniform sampler2D uHeight;uniform vec4 uMap;uniform float uLevel,uTime;uniform vec3 uShallow,uDeep,uSkyTop,uSkyHor;uniform mat4 uShadowVP;
 ` + NOISE + FS_COMMON + `
 void main(){
   vec2 uv=(vW.xz-uMap.xy)/uMap.z;float th=texture(uHeight,uv).r;float depth=uLevel-th;
   if(depth<-0.03)discard;
-  vec2 q=vW.xz*0.55;float e=0.08;
-  float h0=noise(q+uTime*vec2(0.21,0.13))+0.5*noise(q*2.3-uTime*vec2(0.33,0.19));
-  float hx=noise(q+vec2(e,0)+uTime*vec2(0.21,0.13))+0.5*noise((q+vec2(e,0))*2.3-uTime*vec2(0.33,0.19));
-  float hz=noise(q+vec2(0,e)+uTime*vec2(0.21,0.13))+0.5*noise((q+vec2(0,e))*2.3-uTime*vec2(0.33,0.19));
-  vec3 N=normalize(vec3((h0-hx)*1.6,1.0,(h0-hz)*1.6));
-  vec3 V=normalize(uCamPos-vW);
-  float fr=pow(1.0-max(dot(N,V),0.0),3.0)*0.75+0.08;
-  vec3 R=reflect(-V,N);vec3 sky=mix(uSkyHor,uSkyTop,clamp(R.y*1.5,0.0,1.0));
-  vec3 base=mix(uShallow,uDeep,smoothstep(0.0,2.4,depth));
+  vec3 V=normalize(uCamPos-vW);float dist=length(uCamPos-vW);vec2 p=vW.xz;
+  vec2 g=vec2(0.0);float hs=0.0;
+  for(int i=0;i<6;i++){float fi=float(i);float an=fi*2.39996+0.6;vec2 D=vec2(cos(an),sin(an));float L=7.5/(1.0+fi*0.8);float k=6.2832/L;float A=0.05/(1.0+fi*0.9);
+    float w=sqrt(9.8*k)*0.32;float ph=k*dot(D,p)-w*uTime+fi*1.7;g+=D*(A*k*cos(ph));hs+=A*sin(ph);}
+  float fine=1.0/(1.0+dist*0.035);vec2 q=p*1.9+uTime*vec2(0.42,0.27);float e=0.05;
+  float n0=noise(q),nx=noise(q+vec2(e,0.0)),nz=noise(q+vec2(0.0,e));g+=vec2(n0-nx,n0-nz)*(0.85/e)*0.05*fine;
+  vec3 N=normalize(vec3(-g.x,1.0,-g.y));
+  float cv=max(dot(N,V),0.0);float F=0.02+0.98*pow(1.0-cv,5.0);
+  vec3 R=reflect(-V,N);R.y=abs(R.y);
+  vec3 sky=mix(uSkyHor,uSkyTop,pow(clamp(R.y,0.0,1.0),0.55));sky+=uSunCol*pow(max(dot(R,uSunDir),0.0),20.0)*0.22;
   float sh=shadowF(uShadowVP*vec4(vW,1.0));
-  vec3 c=mix(base*(uSkyAmb+uSunCol*0.55*sh),sky,fr);
-  c+=uSunCol*pow(max(dot(R,uSunDir),0.0),140.0)*1.8*sh;
-  float foam=smoothstep(0.32,0.0,depth)*(0.55+0.45*sin(uTime*2.2+h0*7.0));
-  c=mix(c,vec3(0.96,0.97,0.95),foam*0.65);
-  float a=mix(0.5,0.92,smoothstep(0.0,1.4,depth));a=max(a,foam*0.85);
+  vec3 T=exp(-vec3(0.55,0.2,0.12)*max(depth,0.0)*2.6);
+  vec3 bed=uShallow*(uSkyAmb+uSunCol*0.62*sh);
+  float ca=noise(p*1.35+uTime*vec2(0.33,0.21))*noise(p*1.8-uTime*vec2(0.24,0.3));bed+=uSunCol*sh*pow(ca,2.0)*1.5*smoothstep(1.8,0.0,depth);
+  vec3 body=uDeep*(uSkyAmb*0.85+uSunCol*0.3*sh);
+  vec3 c=mix(bed*T+body*(1.0-T),sky,F);
+  c+=uDeep*uSunCol*clamp(hs*7.0,0.0,1.0)*0.22*sh*(1.0-F);
+  vec3 Hh=normalize(V+uSunDir);float nh=max(dot(N,Hh),0.0);c+=uSunCol*(pow(nh,260.0)*3.2+pow(nh,48.0)*0.22)*sh;
+  float br=noise(p*2.3+uTime*vec2(0.5,-0.3))+0.35*sin(depth*24.0-uTime*2.6);float foam=smoothstep(0.38,0.0,depth)*smoothstep(0.25,0.75,br);
+  c=mix(c,vec3(0.95,0.96,0.94)*(uSkyAmb+uSunCol*0.7*sh),foam*0.7);
+  float a=mix(0.3,0.95,1.0-T.g);a=clamp(a+F*0.5,0.0,0.97);a=max(a,foam*0.85);
   o=vec4(tone(fog(c,vW)),a);
 }`;
 const VS_SKY = `layout(location=0) in vec3 aPos;out vec2 vP;void main(){vP=aPos.xy;gl_Position=vec4(aPos.xy,0.99999,1.0);}`;

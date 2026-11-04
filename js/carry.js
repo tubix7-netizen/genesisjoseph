@@ -38,7 +38,7 @@ const hud0 = G.UI.hud; G.UI.hud = function () { const r = hud0.apply(this, argum
      · staff / weapon → 공격·쏘기 · any other tool or empty hands → no B */
   const hb = $('btnAtk'), held = G.Phys && G.Phys.held, hk = Game.hand(), bl = $('btnAtkL'); let badge = '';
   if (hb) { if (held) { hb.hidden = false; bl.textContent = '던지기'; } else if (hk === 'jar' || hk === 'bigjar') { hb.hidden = false; bl.textContent = k === 'water' ? '물' : Game.ITEMS[k].n.slice(0, 5); badge = String(k === 'water' ? s.water : Game.inv(k)); }
-    else if (!(G.Combat && G.Combat.armedK && G.Combat.armedK())) hb.hidden = true;
+    else { const ak = G.Combat && G.Combat.armedK && G.Combat.armedK(); if (!ak) hb.hidden = true; else bl.textContent = G.Combat.GEAR[ak].kind === 'ranged' ? '쏘기' : '공격'; } /* v18.23 the staff says 공격 (it said 쏘기 while the sling was the ranged choice) */
     let bd = $('btnAtkN'); if (!bd) { bd = document.createElement('i'); bd.id = 'btnAtkN'; hb.appendChild(bd); } bd.textContent = badge; bd.hidden = !badge; }
   quickHud(); useHud(); } catch (e) { console.error('carry', e); } return r; };
 

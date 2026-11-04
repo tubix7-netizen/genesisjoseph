@@ -144,10 +144,15 @@ function newState(ep) {
 }
 
 // =================================================================== LOAD / SAVE
-const KEY = id => 'genesisSave_' + id;
-Game.hasSave = id => { try { return !!localStorage.getItem(KEY(id)); } catch (e) { return false; } };
-Game.save = function (quiet) { if (!S || Game.mode !== 'play') return; S.player = { x: P.x, z: P.z, face: P.face }; if (G.Ride) G.Ride.save(); try { localStorage.setItem(KEY(S.ep), JSON.stringify(S)); if (!quiet) G.UI.toast('저장했어요'); } catch (e) { } };
-Game.deleteSave = id => { try { localStorage.removeItem(KEY(id)); } catch (e) { } };
+/* v18.23 three save slots: slot 1 keeps the old key (old saves stay in slot 1), slots 2 and 3 add '#2' / '#3'. Game.slot is the slot being played (remembered in genesisSlot) and every save goes there. */
+Game.slot = (() => { try { return +localStorage.getItem('genesisSlot') || 1; } catch (e) { return 1; } })();
+const KEY = (id, slot) => 'genesisSave_' + id + ((slot || Game.slot) > 1 ? '#' + (slot || Game.slot) : '');
+Game.saveKey = KEY;
+Game.setSlot = n => { Game.slot = n; try { localStorage.setItem('genesisSlot', String(n)); } catch (e) { } };
+Game.readSlot = (id, n) => { try { return JSON.parse(localStorage.getItem(KEY(id, n)) || 'null'); } catch (e) { return null; } };
+Game.hasSave = (id, n) => { try { return !!localStorage.getItem(KEY(id, n)); } catch (e) { return false; } };
+Game.save = function (quiet) { if (!S || Game.mode !== 'play') return; S.player = { x: P.x, z: P.z, face: P.face }; S.savedAt = Date.now(); if (G.Ride) G.Ride.save(); try { localStorage.setItem(KEY(S.ep), JSON.stringify(S)); if (!quiet) G.UI.toast('저장했어요'); } catch (e) { } };
+Game.deleteSave = (id, n) => { try { localStorage.removeItem(KEY(id, n)); } catch (e) { } };
 
 // =================================================================== WORLD SETUP
 const ENT = { npcs: {}, animals: [], nodes: [], nodeSets: {}, plotsDirty: true, soilMesh: null, cropSets: {}, sites: [], specials: [], dyn: [], props: {} };
@@ -229,7 +234,7 @@ Game.start = function (epId, fresh, preview) {
   /* v18.12: pressing 시작하기 / 이어하기 used to build the whole world a second time (the title already has it), which doubled the memory peak
      and the wait. When the title's world is for the same story and was built from the same state (a saved game is read again; a new game
      only when the title had none either), it is kept and only the people, pens and state are set up again. ?reuse=0 turns this off. */
-  const sameEp = W && Game.worldEp === epId && Game.worldPreview && !preview && !/[?&]reuse=0\b/.test(location.search);
+  const sameEp = W && Game.worldEp === epId && Game.worldPreview && !preview && Game.worldSlot === Game.slot && !/[?&]reuse=0\b/.test(location.search); /* (a world built for another slot's save is not reused) */
   EP = G.EP[epId]; Game.mode = 'loading'; Game.preview = !!preview;
   let saved = null; if (!fresh) { try { saved = JSON.parse(localStorage.getItem(KEY(epId)) || 'null'); } catch (e) { } }
   const reuse = sameEp && (saved && saved.v === 2 ? Game.worldSaved : !Game.worldSaved);
@@ -243,7 +248,7 @@ Game.start = function (epId, fresh, preview) {
     if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
     if (window.__bc) __bc('build'); EP.build(W, Game);
     if (window.__bc) __bc('statics'); W.finishStatics();
-    Game.worldEp = epId; Game.worldPreview = !!preview; Game.worldSaved = !!(saved && saved.v === 2);
+    Game.worldEp = epId; Game.worldPreview = !!preview; Game.worldSaved = !!(saved && saved.v === 2); Game.worldSlot = Game.slot;
   } else { Game.worldPreview = false; if (window.__bc) __bc('reuse'); }
   // nodes
   buildNodeSets();
@@ -737,7 +742,8 @@ function resolveContext() {
 function stationAction(st) {
   if (st.type === 'well') { const mx = S.jarMax; if (!(tool('jar') || tool('bigjar'))) return { label: '물항아리가 없어요', disabled: true }; if (S.water >= mx) return { label: '항아리가 가득 찼어요', disabled: true }; return { label: '물 긷기', anim: 'pick', dur: 1.1, hits: 2, prop: 'jar', well: st.rim || 1.75, fn: () => { /* v16.6: drawn over the rim (stand at the well, reach in) */ S.water = mx; G.UI.toast(`물을 길었다 (${mx}/${mx})`); G.UI.hud(); FX.burst(st.x, W.heightAt(st.x, st.z) + 0.8, st.z, 14, { c: [0.6, 0.8, 1], sp: 1, up: 1.5 }); checkStep(); } }; }
   if (st.type === 'bed') return { label: '잠자기', use: () => G.UI.sleepAsk() };
-  if (st.type === 'fire' && G.Hearth) return { label: '모닥불에서 요리하기', use: () => G.Hearth.open(st) };
+  if (st.type === 'fire' && !st.oven && G.Fireside && G.Fireside.sit && G.EP && EP === G.EP.joseph) return { label: '모닥불가에 앉기', use: () => G.Fireside.sit(st) }; /* v18.23 sit first; cooking is in the fireside menu */
+  if (st.type === 'fire' && G.Hearth) return { label: st.oven ? '화덕에서 요리하기' : '모닥불에서 요리하기', use: () => G.Hearth.open(st) };
   if (st.type === 'fire' || st.type === 'loom' || st.type === 'press') return { label: st.type === 'fire' ? '모닥불에서 요리하기' : st.type === 'loom' ? '베틀에서 짜기' : '기름틀 쓰기', use: () => G.UI.menu('craft') };
   if (st.type === 'shop') return { label: st.label || '장터', use: () => G.UI.shop(st.shop) };
   if (st.type === 'smith') return { label: '화덕에서 장비 손보기', use: () => G.UI.menu('gear') };
@@ -879,7 +885,8 @@ function updateNPCs(dt, t) {
     const n = ENT.npcs[id]; n.vis = npcVisible(n); n.col.on = n.vis && !n.follow && !n.pass; if (!n.vis) continue;
     const dist = Math.hypot(n.x - P.x, n.z - P.z); const cc = Game.cineCam; n.near = dist < 90 || (!!cc && Math.hypot(n.x - cc.x, n.z - cc.z) < 90); if (!n.near) continue;
     let speed = 0;
-    if (n.follow) {
+    if (n._inCart) { /* v18.23 seated in the chariot: cart.js places them */ }
+    else if (n.follow) {
       const idx = P.follow.indexOf(n); const back = 2.4 + Math.floor(idx / 2) * 1.6; const lat = (idx % 2 ? 1 : -1) * (SET.view === 'classic' ? 0.9 : 1.6); const sl = G.Companion && !n.d.animal ? G.Companion.slot(n, idx, dt) : null; // v17.8 P7: the best of eight spots (js/companion.js)
       const tx = sl ? sl[0] : P.x - Math.sin(P.face) * back + Math.cos(P.face) * lat, tz = sl ? sl[1] : P.z - Math.cos(P.face) * back - Math.sin(P.face) * lat;
       const dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
@@ -919,7 +926,7 @@ function updateNPCs(dt, t) {
     if (n.rig.bodyLook !== n.d.look) { n.rig.body = G.Motion.bodyOf(n.d.look); n.rig.bodyLook = n.d.look; } n.gndOff = -(n.d.dy || 0); n.st.gnd = (cc ? Math.min(dist, Math.hypot(n.x - cc.x, n.z - cc.z)) : dist) < 30 && !n.d.animal ? G.Motion.groundFn(n) : null; n.st.npcLoop = true;
     n.st.listen = n.talking && !n.st.talk; n.st.cold = G.Surv && G.Surv.cold > 8;
     if (n.emote) { n.emote.t += dt; if (n.emote.t >= n.emote.dur || n.walk || n.talking) n.emote = null; else if (!n.emote.amb) n.face += angDiff(n.face, Math.atan2(P.x - n.x, P.z - n.z)) * Math.min(1, dt * 5); }
-    const emo = n.emote && n.emote.t >= 0 ? n.emote : null; n.st.act = emo ? emo.k : n.act; n.st.actT = emo ? Math.min(1, emo.t / emo.dur) : (t * 0.8) % 1; n.st.kneel = n.d.kneel; n.st.sit = n.d.sit || n.sit; n.st.sleep = n.sleep; n.st.limp = n.d.limp; n.st.long = n.d.look && n.d.look.long; n.st.ride = !!(n.pass || n.seatY); { const em = G.Cine && G.Cine.emoOf ? G.Cine.emoOf(n.name) : null; n.st.emo = em && !n.d.animal ? em[0] : null; n.st.emoK = em ? em[1] : 1; /* v16.8 acting */ } n.st.passenger = !!n.pass; n.st.rideSp = n.pass ? P.spd : n.aspd; n.st.ridePh = n.pass ? (P.ride ? P.ride.ph || 0 : 0) : (n.mph || 0); n.st.shiver = n.shiver;
+    const emo = n.emote && n.emote.t >= 0 ? n.emote : null; n.st.act = emo ? emo.k : n.act; n.st.actT = emo ? Math.min(1, emo.t / emo.dur) : (t * 0.8) % 1; n.st.kneel = n.d.kneel; n.st.sit = n.d.sit || n.sit; n.st.sleep = n.sleep; n.st.limp = n.d.limp; n.st.long = n.d.look && n.d.look.long; n.st.ride = !!((n.pass && !n._inCart) || n.seatY); /* v18.23 in the chariot they sit on its floor, not astride */ { const em = G.Cine && G.Cine.emoOf ? G.Cine.emoOf(n.name) : null; n.st.emo = em && !n.d.animal ? em[0] : null; n.st.emoK = em ? em[1] : 1; /* v16.8 acting */ } n.st.passenger = !!n.pass && !n._inCart; n.st.rideSp = n.pass ? P.spd : n.aspd; n.st.ridePh = n.pass ? (P.ride ? P.ride.ph || 0 : 0) : (n.mph || 0); n.st.shiver = n.shiver;
     n.st.graze = n.d.animal && !speed && Math.sin(t * 0.3 + n.x) > 0.2;
     if (n.d.animal) animAnimal(n.rig, n.st, t); else animHuman(n.rig, n.st, t + n.x);
     n.rig.update(m4trs(n.M || (n.M = m4()), n.x, n.y + (n.d.dy || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale));
@@ -1157,6 +1164,7 @@ Game.frame = function (now) {
 // =================================================================== RENDER ASSEMBLY
 const IDM = m4(), TMPM = m4();
 const scene = { cam: [0, 0, 0], target: [0, 0, 0], fov: 1, env: null, time: 0, focus: [0, 0, 0], shadowOn: true, terrain: [], statics: [], insts: [], dyn: [], skinned: [], grass: { on: true, center: [0, 0], player: [0, 0, 0], map: null }, water: null, flats: [], pts: { n: 0 } };
+Game.scene = scene; /* v18.23 byblos.js swaps the ground, buildings and sea while you are overseas */
 let markerMesh = null, ringMesh = null, tileMesh = null;
 function flatMeshes() {
   if (markerMesh) return; const g = new GB(1); const segs = 16, h = 60, r = 0.55;

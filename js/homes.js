@@ -59,13 +59,15 @@ TYPE.mine = { n: '요셉의 집', model(g) { g.box(1.1, 0.45, 2.1, { at: [-2.5, 
     g.box(0.9, 0.55, 0.55, { at: [2.4, 0.28, 2.3], c: 0x8a5a32 }); g.box(0.94, 0.12, 0.59, { at: [2.4, 0.6, 2.3], c: 0x6e4424 }); g.box(0.12, 0.12, 0.04, { at: [2.4, 0.46, 2.0], c: 0xc8a040 });
     g.box(1.4, 0.7, 0.7, { at: [0.3, 0.35, 0.5], c: 0x7a5a3a }); for (let i = 0; i < 3; i++) g.cyl(0.05, 0.05, 0.5, 6, { at: [-0.1 + i * 0.3, 0.75, 0.5], rz: Math.PI / 2, c: 0xe8dcb8 }); g.cyl(0.08, 0.1, 0.08, 8, { at: [0.8, 0.76, 0.4], c: 0xc8a040 }); }, act: null };
 const TYPES = Object.keys(TYPE).filter(k => k !== 'mine');
+Ho.TYPE = TYPE; Ho.room = () => ({ x: IX, z: IZ, y: IY, w: RW, d: RD, h: WH }); Ho.mk = mk; /* v18.23 rooms.js adds shops, a senet room, a scribe school, a healer and room layouts */
 /* v18.22 Joseph's house (the vizier's house) can be entered too: his bed and his chest are inside */
 const ord = () => Game.stepOrder(), afterStep = k => { const o = ord(), s = S(); return !!s && o.indexOf(s.step) >= o.indexOf(k); };
 const MINE = { id: 'jhouse', n: '요셉의 집', x: 10, z: -144, r: 9, homes: [[10, -144, 0]], folk: [], mine: true, when: () => afterStep('c5_patrol') };
 const allV = () => (EP.villages || []).concat([MINE]);
 { const b = (EP.stations || []).find(s => s.id === 'bJos'); if (b) b.on = () => false; } // his bed now stands inside his house
 const houseKey = (v, i) => v.id + ':' + i;
-const typeOf = (v, i) => v.mine ? 'mine' : TYPES[Math.floor(hash(houseKey(v, i)) * TYPES.length)];
+const typeOf = (v, i) => v.mine ? 'mine' : Ho.typeOf ? Ho.typeOf(v, i, TYPES, hash(houseKey(v, i))) : TYPES[Math.floor(hash(houseKey(v, i)) * TYPES.length)];
+Ho.houseKey = houseKey; Ho.ownerOf = (v, i) => ownerOf(v, i); Ho.allV = () => allV();
 
 // ------------------------------------------------------------------ going in and out
 const cur = () => S().flags.inHouse || null;
@@ -95,7 +97,7 @@ function nearDoor() { const s = S(), p = P(); let best = null, bd = 1e9; for (co
 Ho.door = (v, i) => doorOf(v, i); // (for checking)
 Ho.enter = function (v, i) { const s = S(), p = P(), t = typeOf(v, i), ow = ownerOf(v, i), d = doorOf(v, i);
   if (d && !ownerNear(v, i, d)) { knock(); return; }
-  G.UI.fade(() => { s.flags.inHouse = { v: v.id, i, t, x: d ? d.fx : p.x, z: d ? d.fz : p.z, f: d ? d.a : p.face + Math.PI, ow: ow ? ow.name : null, age: ow ? ow.age : null };
+  G.UI.fade(() => { s.flags.inHouse = { v: v.id, i, t, x: d ? d.fx : p.x, z: d ? d.fz : p.z, f: d ? d.a : p.face + Math.PI, ow: ow ? ow.name : null, age: ow ? ow.age : null, L: Ho.layoutOf ? Ho.layoutOf(v, i) : 'plain' };
     Game.teleport(IX, IZ - RD / 2 + 1.9, 0); p.y = IY; sfx('door', { vol: 0.5 }); }, () => {
     const pr = ow && G.Persona && G.Persona.of(ow.id), g = !ow ? null : ow.age === 'kid' ? 'kid' : ow.age === 'old' ? 'old' : pr && pr.fem ? 'woman' : 'man';
     if (v.mine) { pop('요셉의 집', '잠자리 · 개인 창고', 'house'); return; } const o = d && ownerNearReal(v, i, d), fm = !o && famHome(v, i), nm = ow ? ow.name.split(' ').pop() : '';
@@ -141,7 +143,8 @@ Game.CTX.push(function (s) { const p = P(); if (p.ride || p.swim || p.act || p.c
   add(-2.5, 1.9, 1.8, abs - rest < 4 ? { label: '방금 쉬었어요', disabled: true, key: 'hRest' } : { label: '짚자리에서 잠깐 쉬기', key: 'hRest', use: () => G.UI.fade(() => { s.flags.hRest = abs + 1.5; s.time += 1.5; const H = s.hero; p.stam = (G.Vitals && G.Vitals.cap) || H.stamMax || 140; p.exhausted = false; if (H) H.hp = Math.min(H.hpMax, H.hp + H.hpMax * 0.15); }, () => G.UI.toast('한숨 쉬었어요 · 기력이 다 차고 몸이 조금 나았어요')) });
   add(2.9, -2.0, 1.7, { label: (Game.tool('jar') || Game.tool('bigjar')) && s.water < s.jarMax ? '물항아리 · 마시고 내 항아리 채우기' : '물항아리에서 물 마시기', key: 'hJar', use: () => { const H = s.hero, cap = (G.Vitals && G.Vitals.cap) || (H && H.stamMax) || 140; p.stam = Math.min(cap, p.stam + 30); p.exhausted = false; let msg = '시원한 물 · 기력 +30';
     if ((Game.tool('jar') || Game.tool('bigjar')) && s.water < s.jarMax) { s.water = s.jarMax; msg += ' · 내 항아리도 가득 채웠어요'; } if (G.Acts) G.Acts.play('drink', { quiet: true }); sfx('water', { vol: 0.6 }); G.UI.toast(msg); G.UI.hud(); } });
-  const T = TYPE[h.t], a = T.act, did = (s.flags.hDid || {})[h.v + h.i] === s.day, meal = a.meal && !(s.time % 24 > 16.5 && s.time % 24 < 21.5);
+  const T = TYPE[h.t], a = T.act; if (a && a.use) { const c = a.use(h, s); if (c) add(0.3, 0.5, 2.1, Object.assign({ key: 'hAct' }, c)); return out; }
+  const did = (s.flags.hDid || {})[h.v + h.i] === s.day, meal = a.meal && !(s.time % 24 > 16.5 && s.time % 24 < 21.5);
   add(0.3, 0.5, 2.1, did ? { label: `${a.label} · 오늘은 했어요`, disabled: true, key: 'hAct' } : meal ? { label: '저녁때(오후 5시~9시)에 밥상이 차려져요', disabled: true, key: 'hAct' } : { label: a.label, key: 'hAct', anim: a.meal ? 'eat' : 'gather', dur: 0.9, hits: 2, fn: () => { (s.flags.hDid = s.flags.hDid || {})[h.v + h.i] = s.day; const H = s.hero;
     if (a.give && Game.ITEMS[a.give]) Game.give(a.give, 1); if (a.silver) Game.silver(a.silver); if (a.meal) { if (H) H.hp = H.hpMax; p.stam = (G.Vitals && G.Vitals.cap) || (H && H.stamMax) || 140; if (G.Surv && G.Surv.fed) G.Surv.fed('bread', 60); } if (a.mind && H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + a.mind);
     pop(a.label + ' 끝!', a.msg.split(' · ').slice(-1)[0], 'star'); sfx('pickup'); G.UI.hud(); } });
@@ -150,10 +153,11 @@ Game.CTX.push(function (s) { const p = P(); if (p.ride || p.swim || p.act || p.c
 const MX = G.m4(), MX2 = G.m4();
 const dyn0 = EP.dyn; EP.dyn = function (list) { if (dyn0) dyn0.apply(this, arguments); if (Game.mode !== 'play') return; const h = cur(), p = P();
   if (!h || Math.hypot(p.x - IX, p.z - IZ) > 40) return;
-  G.m4trs(MX, IX, IY, IZ, 0, 0, 0, 1, 1, 1); list.push({ mesh: mk('hRoom', room), m: MX, outline: true }); list.push({ mesh: mk('hT_' + h.t, TYPE[h.t].model), m: MX, outline: true }); };
+  G.m4trs(MX, IX, IY, IZ, 0, 0, 0, 1, 1, 1); list.push({ mesh: Ho.roomMesh ? Ho.roomMesh(h, room) : mk('hRoom', room), m: MX, outline: true }); if (Ho.decoMesh) { const dm = Ho.decoMesh(h); if (dm) list.push({ mesh: dm, m: MX, outline: true }); } list.push({ mesh: mk('hT_' + h.t, TYPE[h.t].model), m: MX, outline: true }); };
 /* inside: the camera looks down over the open-topped walls instead of hiding behind them */
 const cam0 = EP.camera; EP.camera = function (s, g, dt) { const h = cur(), p = P(); if (h && Math.hypot(p.x - IX, p.z - IZ) < 12 && !Game.cineCam) { const C = Game.CAM, yw = C.yaw || 0;
-    return { x: p.x + Math.sin(yw) * 2.4, y: IY + 6.2, z: p.z + Math.cos(yw) * 2.4, lx: p.x, ly: IY + 0.9, lz: p.z, fov: 1 }; } return cam0 ? cam0.apply(this, arguments) : null; };
+    const cl = (v, c, h) => Math.max(c - h, Math.min(c + h, v)); /* v18.23 kept above the inside of the room, so the walls never hide Joseph */
+    return { x: cl(p.x + Math.sin(yw) * 2.6, IX, RW / 2 - 0.5), y: IY + 6.6, z: cl(p.z + Math.cos(yw) * 2.6, IZ, RD / 2 - 0.5), lx: p.x, ly: IY + 0.9, lz: p.z, fov: 1 }; } return cam0 ? cam0.apply(this, arguments) : null; };
 // a safety net: inside the room but no house remembered (an old save) → the door still works; far from the room → you are outside
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s) return r;
   if (s.flags.inHouse && Math.hypot(P().x - IX, P().z - IZ) > 30) s.flags.inHouse = null;

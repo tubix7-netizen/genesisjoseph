@@ -367,7 +367,7 @@ function renderMenu(tab, body) {
       <div class="set"><span>주민이 먼저 말 걸기</span><div class="seg">${[['often', '자주'], ['some', '가끔'], ['off', '끄기']].map(q => `<button data-ch="${q[0]}" class="${(SET.chatty || 'some') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>움직임 느낌</span><div class="seg">${[['wild', '자유롭게'], ['heavy', '묵직하게'], ['bal', '균형'], ['snappy', '경쾌하게']].map(q => `<button data-fl="${q[0]}" class="${(SET.feel || 'wild') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>글자·버튼 크기</span><div class="seg">${[['s', '작게'], ['m', '보통'], ['l', '크게'], ['xl', '최대']].map(q => `<button data-ui="${q[0]}" class="${(SET.ui || 'm') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
-      <div class="set"><span>프레임 (60 목표: 기기가 못 따라가면 부드러운 30으로 내려가요)</span><div class="seg">${[['60', '60 목표'], ['30', '30 고정'], ['f60', '60 고정']].map(q => `<button data-fps="${q[0]}" class="${((SET.fps === 'auto' || !SET.fps) ? '60' : SET.fps) === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
+      ${'' /* v18.23 the frame-rate setting is gone (the game picks it by itself) */}
       <div class="set"><span>그래픽 품질</span><div class="seg">${[['low', '낮음'], ['mid', '보통'], ['high', '높음']].map(q => `<button data-q="${q[0]}" class="${SET.quality === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>진행 상황</span><div class="seg"><button id="sSave">저장하기</button><button id="sTitle">타이틀로</button></div></div>`;
     $('sSens').oninput = e => { SET.sens = +e.target.value; Game.saveSettings(); };
@@ -400,7 +400,7 @@ UI.shop = function (shopId) {
   openPanel(shop.n, [['sell', '팔기'], ['buy', '사기']], 'sell', function render(tab, body) {
     const S = Game.S();
     if (tab === 'sell') {
-      const ks = Object.keys(S.inv).filter(k => S.inv[k] > 0 && Game.ITEMS[k] && Game.ITEMS[k].cat !== 'key' && (!shop.sells || shop.sells.includes(Game.ITEMS[k].cat)));
+      const ks = Object.keys(S.inv).filter(k => S.inv[k] > 0 && Game.ITEMS[k] && Game.ITEMS[k].cat !== 'key' && (!shop.sells || shop.sells.includes(Game.ITEMS[k].cat)) && !(shop.no && shop.no.includes(k))); /* v18.23 a shop does not buy back what it sells */
       body.innerHTML = `<div class="sec">가진 은 ${S.silver}</div>` + (ks.length ? ks.map(k => { const it = Game.ITEMS[k]; const pr = Game.price(k, shop.mul); return `<div class="row">${itemIcon(k)}<div class="t"><b>${esc(it.n)} ×${S.inv[k]}</b><span>하나에 은 ${pr}</span></div><button class="sbtn" data-s="${k}" data-n="1">1개</button><button class="sbtn pri" data-s="${k}" data-n="999">모두</button></div>`; }).join('') : '<div class="row"><div class="t"><span>팔 물건이 없어요</span></div></div>');
       body.onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; Game.sell(b.dataset.s, +b.dataset.n, shop.mul); render('sell', body); };
     } else {

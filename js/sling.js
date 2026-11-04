@@ -31,14 +31,24 @@ SL.update = function (dt) { const s = SL.on, bar = $('slingBar'); if (!s) return
   $('slingMk').style.left = (s.x * 100).toFixed(1) + '%'; const far = Math.hypot(t.x - P.x, t.z - P.z) > RANGE(); bar.classList.toggle('far', far); };
 // take over the attack button and F while the sling is the weapon
 const btn = $('btnAtk');
-btn.addEventListener('pointerdown', e => { if (!isSling()) return; e.preventDefault(); e.stopImmediatePropagation(); y0 = e.clientY; cancelling = false; SL.start(); }, true);
+btn.addEventListener('pointerdown', e => { if (!isSling()) return; e.preventDefault(); e.stopImmediatePropagation(); y0 = e.clientY; cancelling = false; try { btn.setPointerCapture(e.pointerId); } catch (x) { } SL.start(); if (SL.on) guide(true, 0); }, true);
+/* v18.23 a guide under 「쏘기」 while the sling spins: ⌄⌄ arrows and a ✕ circle that fills as the finger slides down, red when letting go will cancel */
+const gd = document.createElement('div'); gd.id = 'slingCancel'; gd.hidden = true; gd.innerHTML = '<i>⌄</i><i>⌄</i><b><em></em>✕</b><span>아래로 끌면 취소</span>'; document.body.appendChild(gd);
+const gcss = document.createElement('style'); gcss.textContent = `#slingCancel{position:fixed;z-index:8;display:flex;flex-direction:column;align-items:center;gap:0;pointer-events:none;transform:translateX(-50%)}
+#slingCancel i{font-style:normal;font-size:16px;line-height:10px;color:#fff;opacity:.55;animation:slcA 1s infinite}#slingCancel i:nth-child(2){animation-delay:.15s}
+#slingCancel b{position:relative;width:38px;height:38px;margin-top:4px;border-radius:50%;display:grid;place-items:center;font-size:16px;color:#fff;background:rgba(9,16,34,.8);border:2px solid rgba(255,255,255,.5);overflow:hidden}
+#slingCancel b em{position:absolute;left:0;right:0;bottom:0;height:var(--p,0%);background:rgba(255,110,90,.55)}#slingCancel.on b{border-color:#ff7a6a;background:#a03a2a;box-shadow:0 0 14px #ff6a5a;animation:slcP .5s infinite alternate}
+#slingCancel span{margin-top:3px;font-size:10.5px;font-weight:700;color:#fff;text-shadow:0 1px 3px #000;white-space:nowrap}@keyframes slcA{0%,100%{transform:translateY(0);opacity:.3}50%{transform:translateY(4px);opacity:.9}}@keyframes slcP{to{transform:scale(1.12)}}`; document.head.appendChild(gcss);
+setInterval(() => { if (!SL.on && !gd.hidden) gd.hidden = true; }, 200); // (the sling may stop by itself: target lost, a menu opened)
+function guide(on, k) { if (!on) { gd.hidden = true; return; } const r = btn.getBoundingClientRect(); gd.style.left = (r.left + r.width / 2) + 'px'; gd.style.top = (r.bottom + 4) + 'px'; gd.hidden = false;
+  gd.style.setProperty('--p', Math.round(Math.min(1, Math.max(0, k)) * 100) + '%'); gd.querySelector('b em').style.height = Math.round(Math.min(1, Math.max(0, k)) * 100) + '%'; gd.classList.toggle('on', k >= 1); gd.querySelector('span').textContent = k >= 1 ? '놓으면 취소' : '아래로 끌면 취소'; }
 /* v18.12j slide the finger down off 「쏘기」 while holding and let go there = cancel (no stone is spent, nothing is shot) */
 let y0 = 0, cancelling = false;
 SL.cancel = function () { if (!SL.on) return; SL.on = null; cancelling = false; if (G.Focus && G.Focus.off) G.Focus.off(); $('slingBar').hidden = true; $('slingBar').classList.remove('cancel'); Game.P.emote = null; G.UI.toast('취소했어요'); };
-const mark = e => { if (!SL.on) return; const c = e.clientY - y0 > 48; if (c !== cancelling) { cancelling = c; $('slingBar').classList.toggle('cancel', c); const sp = $('slingBar').querySelector('span'); sp.textContent = c ? '여기서 놓으면 취소돼요' : '놓을 때 돌이 날아가요'; } };
+const mark = e => { if (!SL.on) return; guide(true, (e.clientY - y0) / 48); const c = e.clientY - y0 > 48; if (c !== cancelling) { cancelling = c; $('slingBar').classList.toggle('cancel', c); const sp = $('slingBar').querySelector('span'); sp.textContent = c ? '여기서 놓으면 취소돼요' : '놓을 때 돌이 날아가요'; } };
 btn.addEventListener('pointermove', mark, true);
-const up = e => { if (SL.on) { e.preventDefault(); if (e.clientY !== undefined && e.type !== 'pointercancel') mark(e); if (cancelling || e.type === 'pointercancel') SL.cancel(); else SL.release(); } };
-btn.addEventListener('pointerup', up, true); btn.addEventListener('pointercancel', up, true); btn.addEventListener('pointerleave', up, true);
+const up = e => { if (SL.on) { e.preventDefault(); if (e.clientY !== undefined && e.type !== 'pointercancel') mark(e); if (cancelling || e.type === 'pointercancel') SL.cancel(); else SL.release(); } guide(false); };
+btn.addEventListener('pointerup', up, true); btn.addEventListener('pointercancel', up, true); /* (no pointerleave: the finger is captured, so sliding down off the button no longer shoots early) */
 addEventListener('keydown', e => { if (e.code === 'KeyF' && isSling() && Game.mode === 'play') { e.stopImmediatePropagation(); if (!e.repeat) SL.start(); } }, true);
 addEventListener('keyup', e => { if (e.code === 'KeyF' && SL.on) SL.release(); }, true);
 const bar = document.createElement('div'); bar.id = 'slingBar'; bar.hidden = true; bar.innerHTML = '<i class="g"></i><i class="p"></i><b id="slingMk"></b><span>놓을 때 돌이 날아가요</span>'; document.body.appendChild(bar);
