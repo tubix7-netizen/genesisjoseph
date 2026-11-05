@@ -7,7 +7,12 @@
      · 수레 뒤: A키 「수레 타기」, B키 「짐칸」(12칸) — 물건을 들고 있으면 B키 「싣기」(수레 바닥에 실려요),
        따라오는 사람이 있으면 「싣기 · 이름」(뒤칸에 앉아요), 실은 것이 있으면 「내리기 · 이름」.
      · 탄 채로: A키 「내리기」(수레 뒤로 내려요), B키 「짐칸」.
-     · 말 앞: A키 「먹이 주기」(꼴·보리·밀 → 기력 +30, 하루 동안 달려도 기력이 늦게 닳아요), B키 「쓰다듬기」(정신력 +3). */
+     · 말 앞: A키 「먹이 주기」, B키 「쓰다듬기」(정신력 +3).
+   v18.25 · 몰기: 탄 채로 A키 「전진」 — 한 번 누르면 걷기보다 조금 빠르게, 연달아 누를수록 점점 빨라지고 요셉이 고삐를 내리쳐요.
+       안 누르면 천천히 느려져 멈춰요. 앉기 버튼 자리는 「정지」(달리는 중, 꾹 누를수록 세게 서요) / 「후진」(멈춘 뒤).
+       B키 「내리기」, 달리기 버튼 「먹이 주기」(움직임 없이 같은 시간 기다려요), 점프 버튼 「짐칸」(멈춰 서서 옆에 사람이 있으면 「태우기」).
+       수레를 쓰는 동안 달리기는 없어요. 말은 따로 기력이 있어서 빨리 달릴수록 아주 빨리 지쳐요(지치면 천천히만 가요).
+     · 먹이: 곡식(꼴·짚·보리·밀·곡식 자루)이 주식 — 말 기력을 채우고 잠깐 덜 지치게 해요. 대추야자·무화과·석청·약초는 더 오래가요. */
 'use strict';
 (function (G) {
 const Game = G.Game, EP = G.EP && G.EP.joseph; if (!EP) return;
@@ -25,11 +30,84 @@ const rearOf = c => { const [fx, fz] = fwd(c.f); return [c.x - fx * (TAIL + 0.35
 let drive = null; /* the cart coming when called: { x0, z0, x1, z1, f, L, s, v } */
 const LOAD = []; /* things laid on the cart floor: physics bodies (hidden from the world while they ride along) */
 
+// ------------------------------------------------------------------ v18.25 driving: the reins, not the stick, set the pace
+/* D.v = the wagon's speed along its heading (minus = backing up), D.thr = the pace the horses are asked for.
+   A taps raise the pace (fast taps more), with no taps it ebbs away; 「정지」 brakes harder the longer it is held. */
+/* v18.25b a little physics: the horses (D.hv) run at the pace the reins ask; the wagon (D.v) only moves because the traces pull it —
+   a springy link (D.sx = how far the traces are stretched, minus = the wagon pushing on the pole). The wheels roll by the distance the
+   wagon travels; pull hard on the reins and the horses dig in, the wheels lock and the wagon skids to a stop. */
+const D = { v: 0, hv: 0, sx: 0, ca: 0, pitch: 0, lock: false, pend: null, thr: 0, last: -9, idle: 9, brake: null, holdT: 0, whipT: 0, feedT: 0, feedK: null, tired: false, dust: 0 };
+const WH = { a: 0 }; /* the wheels' roll (metres travelled) */
+const WALKP = 3.6, MAXV = 13;
+/* horse feed: [stamina back, seconds of easy breath, note] — grain is the daily fare; the good things last longer */
+const FD = { hay: [30, 40, ''], straw: [15, 25, ''], barley: [45, 60, ''], wheat: [45, 60, ''], grain: [60, 90, ''],
+  dates: [55, 150, '달콤한 별미'], fig: [45, 120, '달콤한 별미'], honey: [70, 240, '귀한 석청'], herb: [40, 180, '약초 · 피로가 풀려요'] };
+const driving = () => { const s = S(); return !!(s && s.q.riding && s.q.chariotOk && Game.mode === 'play' && !Game.cineOn && !(G.Cine && G.Cine.on)); };
+const now = () => performance.now() / 1000;
+function tapGo() { const s = S(), gap = now() - D.last; D.last = now(); D.idle = 0; D.brake = null;
+  const cap = D.tired ? WALKP : MAXV, base = D.pend !== null ? D.pend : D.thr; let nt = base; if (base < WALKP) nt = WALKP; else if (gap < 0.8) nt = base + (gap < 0.45 ? 1.9 : 1.3);
+  D.pend = Math.min(nt, cap); D.whipT = 0.001; /* the pace changes when the reins land on the horses' backs, not before */ sfx('whoosh', { pitch: 1.5 + Math.random() * 0.2, vol: 0.5 }); if (D.tired && gap < 0.8) G.UI.toast('말이 지쳤어요 · 먹이를 주거나 천천히 쉬게 해요');
+  if (D.thr >= 9 && !s.flags.cartFast) { s.flags.cartFast = 1; help('cartFast', '힘차게 달려요', '빨리 달릴수록 말이 금방 지쳐요 · 요셉 옆의 금색 고리가 말의 기력이에요'); } G.UI.hud(); }
+function brakeDown() { D.brake = Math.abs(D.v) < 0.3 ? 'rev' : 'stop'; D.holdT = 0; D.pend = null; if (D.brake === 'stop') { D.thr = 0; sfx('step', { surf: 'stone', vol: 0.4, pitch: 0.6 }); } G.UI.hud(); }
+function brakeUp() { D.brake = null; G.UI.hud(); }
+function driveTick2(dt) { const s = S(), riding = s.q.riding && s.q.chariotOk;
+  let st = s.q.horseSt === undefined ? 100 : s.q.horseSt; if (s.q.horseBuffT > 0) s.q.horseBuffT = Math.max(0, s.q.horseBuffT - dt);
+  if (!riding) { D.v = D.hv = D.sx = D.ca = 0; D.thr = 0; D.pend = null; D.lock = false; D.brake = null; s.q.horseSt = Math.min(100, st + dt * 8); if (s.q.horseSt > 35) D.tired = false; return; }
+  if (D.whipT > 0) { D.whipT += dt / 0.6; if (D.pend !== null && D.whipT >= 0.42) { D.thr = D.pend; D.pend = null; D.idle = 0; if (D.thr > D.hv + 0.4) D.hv += 0.35; sfx('hit', { pitch: 1.9, vol: 0.35 }); } if (D.whipT >= 1) D.whipT = 0; }
+  if (D.feedT > 0) { D.feedT -= dt; if (D.feedT <= 0) { D.feedT = 0; feedDone(D.feedK); } }
+  D.idle += dt; if (D.idle > 2.2) D.thr = Math.max(0, D.thr - dt * (D.thr > WALKP ? 1.1 : 0.45)); /* no taps: the horses ease off and stop */
+  if (G.UI.busy()) D.thr = Math.max(0, D.thr - dt * 3);
+  if (D.brake) { D.holdT += dt; D.thr = 0; }
+  const stF = 0.35 + 0.65 * Math.min(1, st / 40), want = D.brake === 'rev' ? -1.9 : D.thr;
+  const aUp = (D.hv < WALKP ? 2.3 : 1.75) * stF, aDn = D.brake === 'stop' ? 3 + 6.5 * Math.min(1, D.holdT / 0.9) : 1.1;
+  D.lock = D.brake === 'stop' && D.holdT > 0.3 && D.v > 1.2; /* a hard pull: the wheels stop turning and slide */
+  const n = 4, h = dt / n; let caS = 0;
+  for (let i = 0; i < n; i++) { const ha = Math.max(-aDn, Math.min(aUp, (want - D.hv) * 2.6)), T = 18 * D.sx + 4.5 * (D.hv - D.v); /* trace tension (per unit of wagon mass) */
+    const roll = (0.12 + 0.004 * D.v * D.v) * Math.sign(D.v) + (D.lock ? 3.2 * Math.sign(D.v) : 0), ca = T - roll;
+    D.hv += (ha - T * 0.22) * h; D.v += ca * h; if (Math.abs(D.v) < 0.04 && Math.abs(T) < 0.25 && Math.abs(want) < 0.05) D.v = 0;
+    D.sx = Math.max(-0.22, Math.min(0.22, D.sx + (D.hv - D.v) * h)); caS += ca / n; }
+  D.ca = caS; D.pitch += (Math.max(-0.045, Math.min(0.045, -caS * 0.011)) - D.pitch) * Math.min(1, dt * 6); /* the body nods forward when it brakes, back when it surges */
+  if (!D.lock) WH.a += D.v * dt;
+  if (D.lock && (D.dust -= dt) <= 0) { D.dust = 0.09; const p = P(); for (const sd of [1, -1]) G.FX && G.FX.burst(p.x - Math.sin(p.face) * 1.95 + Math.cos(p.face) * sd * 0.88, p.y + 0.05, p.z - Math.cos(p.face) * 1.95 - Math.sin(p.face) * sd * 0.88, 2, { c: [0.85, 0.76, 0.6], sp: 0.6, up: 0.5, size: 0.28, a: 0.55, g: 0.3 });
+    sfx('step', { surf: 'stone', vol: 0.25, pitch: 0.45 + Math.random() * 0.1 }); }
+  const buff = s.q.horseBuffT > 0; if (D.hv > 4.2) st -= (D.hv - 4.2) * 1.8 * dt * (buff ? 0.45 : 1); else st += dt * (Math.abs(D.hv) < 0.3 ? 11 : 5);
+  st = Math.max(0, Math.min(100, st)); s.q.horseSt = st;
+  if (st <= 0 && !D.tired) { D.tired = true; D.thr = Math.min(D.thr, WALKP); pop('말이 지쳤어요', '천천히 가며 쉬게 하거나 먹이를 주어요', 'donkey'); } if (D.tired && st > 35) D.tired = false;
+  if (D.tired) { D.thr = Math.min(D.thr, WALKP); if (D.pend !== null) D.pend = Math.min(D.pend, WALKP); }
+  const p = P(); p.sprint = false; }
+/* called by the movement code while on the wagon: the stick turns the horses (slowly, slower the faster they go), the reins give the speed */
+Ct.steer = function (dt, mag, dx, dz) { const p = P(), v = D.v, av = Math.abs(v);
+  if (mag > 0) { let want = Math.atan2(dx, dz); if (v < -0.1) want += Math.PI; const df = Game.angDiff ? Game.angDiff(p.face, want) : Math.atan2(Math.sin(want - p.face), Math.cos(want - p.face));
+    const mt = Math.max(0.7, Math.min(1.9, 1.9 - av * 0.11)) * dt * (0.25 + 0.75 * Math.min(1, av / 1.2)); p.face += Math.max(-mt, Math.min(mt, df));
+    if (av > 4 && Math.abs(df) > 0.9) D.v -= Math.sign(v) * dt * 2.2 * Math.min(1, (Math.abs(df) - 0.9) / 1.2); }
+  return [Math.sin(p.face) * D.v, Math.cos(p.face) * D.v]; };
+Ct.jumpLabel = () => driving() ? (paxCand() ? '태우기' : '짐칸') : null; Ct.speed = () => D.v; Ct.hv = () => D.hv; Ct.sx = () => D.sx;
+/* the horses' stamina ring (shown in place of Joseph's while he drives) */
+Ct.ring = () => { const s = S(); if (!s || !driving()) return null; const st = s.q.horseSt === undefined ? 100 : s.q.horseSt; return { f: st / 100, tired: D.tired, buff: s.q.horseBuffT > 0 }; };
+/* the buttons while driving: 달리기 → 먹이 주기, 점프 → 짐칸(태우기), 앉기 → 정지/후진 */
+const BTN = { btnRun: () => feedRide(), btnJump: () => jumpBtn(), btnCrouch: () => brakeDown() };
+addEventListener('pointerdown', e => { if (!driving() || G.UI.busy() || !e.target.closest) return; const b = e.target.closest('#btnRun,#btnJump,#btnCrouch'); if (!b) return;
+  e.stopPropagation(); e.preventDefault(); BTN[b.id](); }, true);
+for (const t of ['pointerup', 'pointercancel']) addEventListener(t, e => { if (D.brake && e.target.closest && e.target.closest('#btnCrouch')) brakeUp(); if (driving() && e.target.closest && e.target.closest('#btnJump,#btnRun,#btnCrouch')) e.stopPropagation(); }, true);
+addEventListener('pointerup', () => { if (D.brake) brakeUp(); }); /* (finger slid off the button) */
+addEventListener('keydown', e => { if (!driving() || G.UI.busy() || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return; const c = e.code;
+  if (c === 'ShiftLeft' || c === 'ShiftRight') { e.stopPropagation(); if (!e.repeat) feedRide(); }
+  else if (c === 'Space') { e.stopPropagation(); e.preventDefault(); if (!e.repeat) jumpBtn(); }
+  else if (c === 'KeyC' || c === 'ControlLeft') { e.stopPropagation(); if (!e.repeat) brakeDown(); } }, true);
+addEventListener('keyup', e => { if (D.brake && (e.code === 'KeyC' || e.code === 'ControlLeft')) brakeUp(); if (driving() && /Shift/.test(e.code)) e.stopPropagation(); }, true);
+const LBL = { btnRun: '달리기', btnJump: null, btnCrouch: '앉기' }; let lblOn = false;
+function driveLabels() { const on = driving(), set = (id, t) => { const b = document.getElementById(id); if (b && b.textContent !== t) b.textContent = t; };
+  if (on) { lblOn = true; set('btnRun', D.feedT > 0 ? '먹이는 중' : '먹이 주기'); set('btnJump', paxCand() ? '태우기' : '짐칸');
+    set('btnCrouch', D.brake === 'rev' || (Math.abs(D.v) < 0.3 && !D.brake) || D.v < -0.1 ? '후진' : '정지');
+    const r = document.getElementById('btnRun'); if (r) r.classList.toggle('on', D.feedT > 0); const c = document.getElementById('btnCrouch'); if (c) c.classList.toggle('on', !!D.brake); }
+  else if (lblOn) { lblOn = false; set('btnRun', '달리기'); set('btnCrouch', '앉기'); const c = document.getElementById('btnCrouch'); if (c) c.classList.remove('on'); } }
+
 // ------------------------------------------------------------------ getting on and off
 function mount() { const s = S(), c = s.q.cartAt; if (!c || drive) return; const t = Ct.town(c.x, c.z); if (t) { pop('여기선 못 타요', `${t} 안이에요 · 넓은 곳에서 타요`, 'donkey'); return; }
   Game.teleport(c.x, c.z, c.f); s.q.riding = 1; s.q.rode = 1; sfx('whoosh'); Game.checkStep(); Game.snapCam && Game.snapCam();
-  if (!help('cartRide', '버금 수레', 'A키 내리기 · B키 짐칸 · 달리기 버튼을 누르면 말이 힘차게 달려요')) pop('수레에 탔어요', '달리기 버튼으로 힘차게 달려요', 'donkey'); G.UI.hud(); }
-function dismount(quiet) { const s = S(), p = P(); if (!s.q.riding) return; s.q.cartAt = { x: p.x, z: p.z, f: p.face }; s.q.riding = 0;
+  D.v = D.hv = D.sx = 0; D.thr = 0; D.pend = null; D.brake = null; D.whipT = 0; if (s.q.horseSt === undefined) s.q.horseSt = 100;
+  if (!help('cartDrive', '수레 몰기', 'A키 전진 — 연달아 누를수록 빨라져요 · 안 누르면 천천히 서요 · 「정지」 꾹 누르면 급정거, 멈춘 뒤엔 「후진」 · B키 내리기 · 달리기 버튼 먹이 주기 · 점프 버튼 짐칸')) pop('수레에 탔어요', 'A키를 연달아 누르면 점점 빨라져요', 'donkey'); G.UI.hud(); }
+function dismount(quiet) { const s = S(), p = P(); if (!s.q.riding) return; D.v = 0; D.thr = 0; D.brake = null; D.feedT = 0; s.q.cartAt = { x: p.x, z: p.z, f: p.face }; s.q.riding = 0;
   const [rx, rz] = rearOf(s.q.cartAt), [fx, fz] = fwd(p.face); Game.teleport(rx - fx * 0.5, rz - fz * 0.5, p.face); sfx('step'); Game.snapCam && Game.snapCam(); if (!quiet) pop('수레에서 내렸어요', '수레는 여기 서 있어요', 'donkey'); G.UI.hud(); }
 Ct.mount = mount; Ct.dismount = dismount;
 // the left button: 「수레 부르기」 (no 「타기/내리기」 there any more — that is A at the cart)
@@ -48,22 +126,34 @@ Ct.call = function () { const s = S(), p = P(), W = Game.W(); if (s.q.riding || 
   drive = { x0: from.x, z0: from.z, x1, z1, f, L, s: 0, v: 0, hoof: 0 }; s.q.cartAt = { x: from.x, z: from.z, f }; sfx('whoosh', { pitch: 0.8 });
   pop('수레를 불렀어요', '말이 달려와요', 'donkey'); };
 function driveTick(dt) { const s = S(), d = drive; if (!d) return; const rem = d.L - d.s; d.v = rem < 6 ? Math.max(1.1, Math.min(d.v, rem * 1.25)) : Math.min(7.5, d.v + dt * 6); d.s = Math.min(d.L, d.s + d.v * dt);
-  const u = d.L > 0 ? d.s / d.L : 1; s.q.cartAt = { x: d.x0 + (d.x1 - d.x0) * u, z: d.z0 + (d.z1 - d.z0) * u, f: d.f }; HR.ph += d.v * dt * 1.6;
+  WH.a += d.v * dt; const u = d.L > 0 ? d.s / d.L : 1; s.q.cartAt = { x: d.x0 + (d.x1 - d.x0) * u, z: d.z0 + (d.z1 - d.z0) * u, f: d.f }; HR.ph += d.v * dt * 1.6;
   d.hoof += d.v * dt; if (d.hoof > 1.3) { d.hoof = 0; sfx('step', { surf: 'stone', vol: 0.3 + d.v / 30, pitch: 0.7 + Math.random() * 0.2, x: s.q.cartAt.x, z: s.q.cartAt.z }); }
   if (d.s >= d.L - 0.01) { drive = null; HR.spd = 0; sfx('blip', { pitch: 0.55 }); if (!help('cart', '버금 수레', '수레 뒤에서 A키 타기 · B키 짐칸(들고 있으면 싣기) · 말 앞에서 A키 먹이 주기 · B키 쓰다듬기')) pop('수레가 왔어요', '수레 뒤에서 A키로 타요', 'donkey'); }
   else HR.spd = d.v; }
 
 let cool = 0, bKey = '';
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s) return r; const dd = typeof dt === 'number' && dt < 1 ? dt : 1 / 60; cool -= dd;
-  try { driveTick(dd); cartPeople(); } catch (er) { console.error('cart', er); }
-  { const p = P(), now = s.day * 24 + s.time % 24; if (s.q.riding && p.sprint && p.spd > 3 && (s.flags.horseBuff || 0) > now) p.stam = Math.min((G.Vitals && G.Vitals.cap) || 140, p.stam + 10 * dd); } /* fed horses: half the breath */
+  try { driveTick(dd); cartPeople(); cartSolid(); } catch (er) { console.error('cart', er); }
+  document.body.classList.toggle('riding', !!s.q.riding); driveLabels();
+  try { driveTick2(dd); } catch (er) { console.error('cart drive', er); }
   if (s.q.riding && cool <= 0 && !(G.Cine && G.Cine.on)) { const t = Ct.town(P().x, P().z); if (t) { cool = 2; dismount(true); pop('수레에서 내렸어요', `${t} 안에서는 걸어요`, 'donkey'); } }
   { const b = Ct.bCtx(), k = b ? b.k + b.label : ''; if (k !== bKey) { bKey = k; G.UI.hud(); } } /* B follows where you stand at once (the HUD only refreshes twice a second) */
   return r; };
 /* seated on the cart's floor instead of standing at the reins */
 const ry0 = EP.rootY; EP.rootY = function (s, g) { const b = ry0 ? ry0.apply(this, arguments) || 0 : 0; return s && s.q && s.q.riding && s.q.chariotOk ? b + (BENCH_Y - 0.46) : b; }; /* (episode base 0.46 + this = on the bench cushion) */
-const pose0 = EP.pose; EP.pose = function (pst, s, g) { const r = pose0 ? pose0.apply(this, arguments) : undefined; if (s.q.riding && s.q.chariotOk) { pst.act = 'sitg'; pst.actT = 0; pst.sit = false; } return r; };
+const pose0 = EP.pose; EP.pose = function (pst, s, g) { const r = pose0 ? pose0.apply(this, arguments) : undefined; if (s.q.riding && s.q.chariotOk) { pst.act = 'reins'; pst.actT = D.brake === 'stop' ? 1 + Math.min(1, D.holdT * 4) : D.whipT; /* (1..2 = pulling the reins back) */ pst.sit = false; } /* v18.25 hands on the reins; a tap of 전진 flicks them */ return r; };
 
+/* v18.24 the wagon is solid: riding, its whole length (tailgate, bed, pole, horses) is kept out of walls and houses — the push on any
+   part moves the whole team; parked, Joseph walks round it instead of through it */
+const PROBE = [[-2.35, 0.75], [-1.2, 0.8], [0.2, 0.75], [1.5, 0.35], [2.6, 0.7], [3.5, 0.55]];
+function cartSolid() { const s = S(), p = P(), W = Game.W(); if (!W || Game.cineOn || (G.Cine && G.Cine.on)) return;
+  if (s.q.riding && s.q.chariotOk) { for (let it = 0; it < 2; it++) { let mx = 0, mz = 0, hit = false; const [fx, fz] = fwd(p.face);
+      for (const [lz, r] of PROBE) { const q = { x: p.x + fx * lz, z: p.z + fz * lz }, x0 = q.x, z0 = q.z; W.collide(q, r, p.y + 0.2); const ddx = q.x - x0, ddz = q.z - z0; if (Math.abs(ddx) + Math.abs(ddz) > 1e-4) { hit = true; if (Math.abs(ddx) > Math.abs(mx)) mx = ddx; if (Math.abs(ddz) > Math.abs(mz)) mz = ddz; } }
+      if (!hit) break; p.x += mx; p.z += mz; const vn = p.vx * fx + p.vz * fz; if (vn * (mx * fx + mz * fz) < 0) { p.vx *= 0.3; p.vz *= 0.3; D.v *= 0.3; D.hv *= 0.3; D.sx = 0; D.thr = Math.min(D.thr, WALKP); } } return; }
+  const c = parked(); if (!c || Math.hypot(c.x - p.x, c.z - p.z) > 8) return; const [fx, fz] = fwd(c.f), sx = fz, sz = -fx; /* (sx, sz) = the wagon's right */
+  for (const [z0, z1, hw] of [[-TAIL - 0.05, 0.65, 0.95], [1.6, 3.9, 0.95]]) { const dx = p.x - c.x, dz = p.z - c.z, lx = dx * sx + dz * sz, lz = dx * fx + dz * fz, r = 0.32;
+    if (lx > -hw - r && lx < hw + r && lz > z0 - r && lz < z1 + r) { const pen = [hw + r - lx, lx + hw + r, z1 + r - lz, lz - z0 + r], m = Math.min(...pen); let nx = lx, nz = lz;
+      if (m === pen[0]) nx = hw + r; else if (m === pen[1]) nx = -hw - r; else if (m === pen[2]) nz = z1 + r; else nz = z0 - r; p.x = c.x + nx * sx + nz * fx; p.z = c.z + nx * sz + nz * fz; } } }
 // ------------------------------------------------------------------ people in the cart: one beside Joseph, the loaded ones (and caught prisoners) in the back
 const cartPos = () => { const s = S(), p = P(); return s.q.riding ? { x: p.x, z: p.z, f: p.face } : s.q.cartAt; };
 const seatAt = (n, c, side, back, y) => { const f = c.f, x = c.x + Math.cos(f) * side - Math.sin(f) * back, z = c.z - Math.sin(f) * side - Math.cos(f) * back;
@@ -77,12 +167,14 @@ function cartPeople() { const s = S(), c = cartPos(); let k = 0;
   if (!c) return;
   for (const L of LOAD) if (L.n) { const n = L.n; if (!n.vis) continue; seatAt(n, c, k % 2 ? 0.36 : -0.36, 1.3 + Math.floor(k / 2) * 0.6); k++; }
   if (s.q.riding) for (const n of P().follow || []) if (/^cul/.test(n.id) && !n._cartBack) { seatAt(n, c, k % 2 ? 0.36 : -0.36, 1.3 + Math.floor(k / 2) * 0.6); k++; } }
-Game.CTX.push(function (s) { const p = P(); if (!s.q.riding || Game.cineOn || p.act || G.UI.busy()) return null; const out = [];
-  out.push({ d: 1.3, label: '내리기', x: p.x, z: p.z, y: 1.6, noMagnet: true, noTag: true, rideOk: true, key: 'cartOff', use: () => dismount() });
-  if (!s.q.cartPax) { let best = null, bd = 2.6; for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.vis || n.d.animal || n.d.noTalk === true || n.sleep || n.talking || n.follow || n._inCart || n.d.fixed || n.d.sit || n.seatY) continue; const tg = Game.curTarget; if (tg && tg.npc === id) continue;
-      const d = Math.hypot(n.x - p.x, n.z - p.z); if (d < bd) { bd = d; best = n; } }
-    if (best) out.push({ d: bd - 1.4, label: `옆자리에 태우기 · ${short(best)}`, x: best.x, z: best.z, yAbs: best.y + 2, noMagnet: true, rideOk: true, key: 'cartPax', use: () => { s.q.cartPax = best.id; G.UI.say([{ n: best.name, t: '우와, 총리님 수레에 타 보다니요!' }], () => { }); pop('옆자리에 태웠어요', best.name, 'donkey'); } }); }
-  return out; });
+/* v18.25 on the wagon A is 「전진」 (always first — get down with B to talk to someone) */
+Game.CTX.push(function (s) { const p = P(); if (!s.q.riding || !s.q.chariotOk || Game.cineOn || G.UI.busy()) return null;
+  return [{ d: -9, label: D.feedT > 0 ? '전진 · 먹이는 중' : D.thr > 0.5 || D.v > 0.5 ? '전진 · 더 빨리' : '전진', x: p.x, z: p.z, y: 1.6, noMagnet: true, noTag: true, rideOk: true, key: 'cartGo', use: tapGo }]; });
+const paxCand = () => { const s = S(), p = P(); if (s.q.cartPax || Math.abs(D.v) > 0.3) return null; let best = null, bd = 2.8;
+  for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.vis || n.d.animal || n.d.noTalk === true || n.sleep || n.talking || n.follow || n._inCart || n.d.fixed || n.d.sit || n.seatY) continue; const tg = Game.curTarget; if (tg && tg.npc === id) continue;
+    const d = Math.hypot(n.x - p.x, n.z - p.z); if (d < bd) { bd = d; best = n; } } return best; };
+function takePax(n) { const s = S(); s.q.cartPax = n.id; G.UI.say([{ n: n.name, t: '우와, 총리님 수레에 타 보다니요!' }], () => { }); pop('옆자리에 태웠어요', n.name, 'donkey'); }
+function jumpBtn() { const n = paxCand(); if (n) takePax(n); else G.Storage && G.Storage.openBox('수레 짐칸', 'cartStore', false, 12); }
 
 // ------------------------------------------------------------------ at the parked cart: behind it, and by the horses
 const HR = { rigs: null, ph: 0, spd: 0 }, CM = G.m4(), HM = [G.m4(), G.m4()], LM = [G.m4(), G.m4(), G.m4(), G.m4()];
@@ -91,11 +183,22 @@ const horsePos = (c, i) => { const s = i ? 1 : -1, f = c.f; return [c.x + Math.s
 const parked = () => { const s = S(); return !s.q.riding && s.q.chariotOk && s.q.cartAt ? s.q.cartAt : null; };
 const rearD = () => { const c = parked(); if (!c || drive) return null; const [rx, rz] = rearOf(c); return Math.hypot(rx - P().x, rz - P().z); };
 const nearHorse = () => { const c = parked(); if (!c || drive) return null; let bd = 1e9; for (const i of [0, 1]) { const [hx, hz] = horsePos(c, i); bd = Math.min(bd, Math.hypot(hx - P().x, hz - P().z)); } return bd < 2.3 ? bd : null; };
-const FEED = ['hay', 'barley', 'wheat'];
-function feed() { const s = S(), k = FEED.find(x => Game.inv(x) > 0); if (!k) { G.UI.toast('꼴·보리·밀 중 하나가 있어야 해요'); return; }
-  Game.take(k, 1); s.flags.horseBuff = s.day * 24 + s.time % 24 + 24; s.flags.horseEat = Date.now() + 4000; P().stam = Math.min((G.Vitals && G.Vitals.cap) || 140, P().stam + 30); sfx('blip', { pitch: 0.5 });
-  pop('말이 먹이를 먹어요', `${Game.ITEMS[k].n} · 하루 동안 지치지 않고 달려요`, 'donkey'); G.UI.hud(); }
-function pet() { const H = S().hero; if (H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 3); sfx('blip', { pitch: 0.6 }); if (G.Acts) G.Acts.play('pet', { quiet: true }); pop('히히힝~', '말이 좋아해요 · 정신력 +3', 'donkey'); G.UI.hud(); }
+const FEED = Object.keys(FD);
+/* v18.24 feeding and stroking are real motions: Joseph turns to the horse, reaches out, and only when the motion is over does the next thing happen */
+function act(k, dur, fn) { const p = P(), c = parked(); if (!c || p.act) return; const [hx, hz] = horsePos(c, Math.hypot(horsePos(c, 0)[0] - p.x, horsePos(c, 0)[1] - p.z) < Math.hypot(horsePos(c, 1)[0] - p.x, horsePos(c, 1)[1] - p.z) ? 0 : 1);
+  p.face = Math.atan2(hx - p.x, hz - p.z); p.vx = p.vz = 0; Object.assign(p, { act: k, actT: 0, actDur: dur, actHits: 1, actFn: fn, actProp: null, fired: false, actRepeat: false }); }
+/* what to feed: pick when there is more than one kind (grain first in the list) */
+function chooseFeed(go) { const ks = FEED.filter(x => Game.inv(x) > 0); if (!ks.length) { G.UI.toast('말 먹이가 없어요 · 꼴·짚·보리·밀 같은 곡식을 주어요'); return; }
+  if (ks.length === 1) { go(ks[0]); return; }
+  G.UI.choose('무엇을 먹일까요?', ks.map(k => `${Game.ITEMS[k] ? Game.ITEMS[k].n : k} (${Game.inv(k)}) · 말 기력 +${FD[k][0]} · ${FD[k][1]}초 덜 지쳐요`), i => go(ks[i])); }
+function feed() { chooseFeed(k => { S().flags.horseEat = Date.now() + 5200; sfx('pickup', { pitch: 0.8 }); act('reach', 1.9, () => feedDone(k)); }); }
+/* from the bench (the 달리기 button while riding): no motion, but the same wait before it takes effect */
+function feedRide() { if (D.feedT > 0) return; chooseFeed(k => { D.feedT = 1.9; D.feedK = k; sfx('pickup', { pitch: 0.8 }); G.UI.toast('말에게 먹이를 건네요…'); G.UI.hud(); }); }
+function feedDone(k) { const s = S(); if (Game.inv(k) <= 0) return; const [add, sec, kind] = FD[k];
+  Game.take(k, 1); s.q.horseSt = Math.min(100, (s.q.horseSt === undefined ? 100 : s.q.horseSt) + add); s.q.horseBuffT = Math.max(s.q.horseBuffT || 0, sec); if (s.q.horseSt > 35) D.tired = false; sfx('blip', { pitch: 0.5 });
+  pop('말이 먹이를 먹어요', `${Game.ITEMS[k] ? Game.ITEMS[k].n : k} · 말 기력 +${add} · ${sec >= 120 ? Math.round(sec / 60) + '분' : sec + '초'} 동안 덜 지쳐요${kind ? ' (' + kind + ')' : ''}`, 'donkey'); G.UI.hud(); }
+function pet() { act('reach', 1.5, petDone); }
+function petDone() { const H = S().hero; if (H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 3); sfx('blip', { pitch: 0.6 }); pop('히히힝~', '말이 좋아해요 · 정신력 +3', 'donkey'); G.UI.hud(); }
 const follower = () => { for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (n.vis && (n.follow || (P().follow || []).includes(n)) && !n._cartBack && !n.d.animal && Math.hypot(n.x - P().x, n.z - P().z) < 6) return n; } return null; };
 function loadHeld() { const b = G.Phys && G.Phys.held; if (!b) return; if (LOAD.length >= 4) { G.UI.toast('수레 바닥이 꽉 찼어요'); return; } G.Phys.drop(); b.gone = true; b._onCart = true; LOAD.push({ b }); sfx('pickup', { pitch: 0.8 }); pop('수레에 실었어요', b.K.n, 'donkey'); G.UI.hud(); }
 function loadMan(n) { if (LOAD.length >= 4) { G.UI.toast('수레가 꽉 찼어요'); return; } n._cartBack = true; n._wasFollow = !!n.follow; if (n.follow && !/^cul/.test(n.id)) n.follow = false; LOAD.push({ n }); sfx('step'); pop('수레 뒤칸에 태웠어요', n.name, 'donkey'); G.UI.hud(); }
@@ -106,7 +209,7 @@ function unloadLast() { const L = LOAD.pop(); if (!L) return; const p = P();
 const loadName = L => L.b ? L.b.K.n : short(L.n);
 /* B, by the cart: what it does depends on where Joseph stands and what is in his arms */
 Ct.bCtx = function () { const s = S(), p = P(); if (!s || Game.mode !== 'play' || Game.cineOn || G.UI.busy() || p.act) return null;
-  if (s.q.riding) return { k: 'box', label: '짐칸', fn: () => G.Storage && G.Storage.openBox('수레 짐칸', 'cartStore', false, 12) };
+  if (s.q.riding) return { k: 'off', label: '내리기', fn: () => { if (Math.abs(D.v) > 1.6) { G.UI.toast('먼저 수레를 세워요 · 「정지」를 꾹 눌러요'); return; } dismount(); } };
   const r = rearD(); if (r !== null && r < 1.9) { if (G.Phys && G.Phys.held) return { k: 'load', label: '싣기', fn: loadHeld };
     const n = follower(); if (n) return { k: 'loadN', label: `싣기 · ${short(n)}`, fn: () => loadMan(n) };
     if (LOAD.length) return { k: 'unload', label: `내리기 · ${loadName(LOAD[LOAD.length - 1])}`, fn: unloadLast };
@@ -119,20 +222,15 @@ Game.CTX.push(function (s) { const p = P(); if (p.act || Game.cineOn || s.q.ridi
   const h = nearHorse(); if (h !== null) { const [hx, hz] = horsePos(c, 0); out.push({ d: h - 0.6, label: '먹이 주기', x: hx, z: hz, y: 1.8, noMagnet: true, key: 'horseFeed', use: feed }); }
   return out.length ? out : null; });
 if (G.Combat) { const atk0 = G.Combat.attack; G.Combat.attack = function () { const b = Ct.bCtx(); if (b) { b.fn(); return; } return atk0.apply(this, arguments); }; }
-{ const hud0 = G.UI.hud; G.UI.hud = function () { const r = hud0.apply(this, arguments); try { const f = Game.mode === 'play' && Ct.bCtx(), b = document.getElementById('btnAtk'); if (f && b) { b.hidden = false; document.getElementById('btnAtkL').textContent = f.label; const n = document.getElementById('btnAtkN'); if (n) n.hidden = true; } } catch (e) { } return r; }; }
+{ const hud0 = G.UI.hud; G.UI.hud = function () { const r = hud0.apply(this, arguments); try { const f = Game.mode === 'play' && Ct.bCtx(), b = document.getElementById('btnAtk'); if (f && b) { b.hidden = false; document.getElementById('btnAtkL').textContent = f.label; const n = document.getElementById('btnAtkN'); if (n) n.hidden = true; } driveLabels(); } catch (e) { } return r; }; }
 // picking a loaded thing up from the cart by hand takes it off the load
 if (G.Phys) { const pk0 = G.Phys.pick; G.Phys.pick = function (b) { const i = LOAD.findIndex(L => L.b === b); if (i >= 0 && b._onCart) { LOAD.splice(i, 1); b._onCart = false; b.gone = false; } return pk0.apply(this, arguments); }; }
 
 /* v18.24c the royal wagon in white and gold: open spoked wheels (you see through them), a white driver's box with a gold sun disc,
    a white coach-bed framed in gold with lapis panels, a white linen canopy on gold posts with a gold fringe and finials */
 function wagon() { const g = new G.GB(43), PI = Math.PI, GOLD = 0xe2b440, GOLDH = 0xf6d878, WHITE = 0xf4efe4, IVORY = 0xe6dccb, LAPIS = 0x2c4f9a, RED = 0xa83a2a;
-  const wheel = (x, z, r, n) => { const N = 22, seg = 2 * PI * r / N * 1.12;
-    for (let k = 0; k < N; k++) { const a = k / N * 2 * PI; g.box(0.075, 0.07, seg, { at: [x, r + Math.cos(a) * (r - 0.035), z + Math.sin(a) * (r - 0.035)], rx: a, c: GOLD, j: 0 });
-      g.box(0.085, 0.025, seg, { at: [x, r + Math.cos(a) * (r - 0.085), z + Math.sin(a) * (r - 0.085)], rx: a, c: WHITE, j: 0 }); }
-    for (let k = 0; k < n; k++) g.box(0.035, 0.035, (r - 0.08) * 2, { at: [x, r, z], rx: k * PI / n, c: k % 2 ? GOLD : WHITE, j: 0 });
-    g.cyl(0.1, 0.1, 0.16, 12, { at: [x, r, z], rz: PI / 2, c: GOLD, j: 0 }); g.cyl(0.055, 0.055, 0.2, 10, { at: [x, r, z], rz: PI / 2, c: GOLDH, j: 0 }); };
-  // undercarriage (white beams, gold axles) and four open wheels
-  for (const sx of [1, -1]) { g.box(0.09, 0.1, 3.0, { at: [sx * 0.55, 0.58, -1.0], c: IVORY }); wheel(sx * 0.88, -1.95, 0.6, 12); wheel(sx * 0.84, 0.05, 0.45, 10); }
+  // undercarriage (white beams, gold axles); the four open wheels are their own meshes so they can roll (wheelMesh)
+  for (const sx of [1, -1]) g.box(0.09, 0.1, 3.0, { at: [sx * 0.55, 0.58, -1.0], c: IVORY });
   g.cyl(0.035, 0.035, 1.8, 8, { at: [0, 0.6, -1.95], rz: PI / 2, c: GOLD }); g.cyl(0.035, 0.035, 1.72, 8, { at: [0, 0.45, 0.05], rz: PI / 2, c: GOLD });
   // the driver's box: a white body with gold edges, a raised dashboard with a gold sun disc, a lapis cushion, a white backrest with gold rail and finials
   g.box(1.36, 0.28, 0.85, { at: [0, 0.74, 0.02], c: WHITE }); g.box(1.4, 0.05, 0.89, { at: [0, 0.885, 0.02], c: GOLD }); g.box(1.4, 0.05, 0.89, { at: [0, 0.6, 0.02], c: GOLD });
@@ -157,6 +255,14 @@ function wagon() { const g = new G.GB(43), PI = Math.PI, GOLD = 0xe2b440, GOLDH 
   g.box(0.09, 0.09, 2.6, { at: [0, 0.64, 1.75], rx: -0.08, c: WHITE }); for (const z of [0.8, 1.75, 2.7]) g.box(0.11, 0.11, 0.06, { at: [0, 0.64 + (z - 1.75) * 0.08, z], rx: -0.08, c: GOLD });
   g.box(1.6, 0.08, 0.08, { at: [0, 1.12, 3.0], c: WHITE }); for (const sx of [1, -1]) g.sph(0.06, 8, 6, { at: [sx * 0.82, 1.12, 3.0], c: GOLDH }); g.sph(0.08, 8, 6, { at: [0, 1.12, 3.0], c: GOLD });
   return g; }
+/* one open spoked wheel centred on its hub (axle along x), white and gold */
+function wheelMesh(r, n) { const g = new G.GB(44 + n), PI = Math.PI, GOLD = 0xe2b440, GOLDH = 0xf6d878, WHITE = 0xf4efe4, N = 22, seg = 2 * PI * r / N * 1.12;
+  for (let k = 0; k < N; k++) { const a = k / N * 2 * PI; g.box(0.075, 0.07, seg, { at: [0, Math.cos(a) * (r - 0.035), Math.sin(a) * (r - 0.035)], rx: a, c: GOLD, j: 0 });
+    g.box(0.085, 0.025, seg, { at: [0, Math.cos(a) * (r - 0.085), Math.sin(a) * (r - 0.085)], rx: a, c: WHITE, j: 0 }); }
+  for (let k = 0; k < n; k++) g.box(0.035, 0.035, (r - 0.08) * 2, { at: [0, 0, 0], rx: k * PI / n, c: k % 2 ? GOLD : WHITE, j: 0 });
+  g.cyl(0.1, 0.1, 0.16, 12, { at: [0, 0, 0], rz: PI / 2, c: GOLD, j: 0 }); g.cyl(0.055, 0.055, 0.2, 10, { at: [0, 0, 0], rz: PI / 2, c: GOLDH, j: 0 }); return G.R.mesh(g); }
+const WHEELS = [[0.88, -1.95, 0.6, 12], [-0.88, -1.95, 0.6, 12], [0.84, 0.05, 0.45, 10], [-0.84, 0.05, 0.45, 10]], WMs = WHEELS.map(() => G.m4());
+let wheelMs = null;
 // ------------------------------------------------------------------ drawing the parked (or coming) cart, its horses and its load
 const sk0 = EP.skinned; EP.skinned = function (list, s, g, t) { if (sk0) sk0.apply(this, arguments); const c = s.q.cartAt; if (s.q.riding || !c || !s.q.chariotOk || Math.hypot(c.x - P().x, c.z - P().z) > 70) return;
   if (!HR.rigs) HR.rigs = [new G.Rig(G.AB.horse), new G.Rig(G.AB.horse)]; if (!drive) HR.ph += 0.01;
@@ -164,8 +270,12 @@ const sk0 = EP.skinned; EP.skinned = function (list, s, g, t) { if (sk0) sk0.app
     list.push({ mesh: Game.animalMesh('horse', 'plain', { saddle: 0xe2b440 }) /* a matched pair of white horses */, bones: rig.bones, outline: true }); }); };
 const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, arguments); if (!s) return; const c = cartPos(); if (!c || !s.q.chariotOk || Math.hypot(c.x - P().x, c.z - P().z) > 70) return;
   if (!cartMesh) cartMesh = G.R.mesh(wagon());
-  G.m4trs(CM, c.x, hAt(c.x, c.z), c.z, c.f, 0, 0, 1, 1, 1); list.push({ mesh: cartMesh, m: CM, outline: true }); /* the same wagon parked or ridden (the episode's old standing chariot is not drawn any more) */
+  const y0 = hAt(c.x, c.z), rid = s.q.riding; G.m4trs(CM, c.x, y0, c.z, c.f, rid ? D.pitch : 0, 0, 1, 1, 1); list.push({ mesh: cartMesh, m: CM, outline: true });
+  if (!wheelMs) wheelMs = { big: wheelMesh(0.6, 12), small: wheelMesh(0.45, 10) };
+  WHEELS.forEach(([lx, lz, r], i) => { const x = c.x + Math.cos(c.f) * lx + Math.sin(c.f) * lz, z = c.z - Math.sin(c.f) * lx + Math.cos(c.f) * lz; /* each wheel turns by distance ÷ its own radius: the small front ones spin faster */
+    G.m4trs(WMs[i], x, y0 + r, z, c.f, WH.a / r, 0, 1, 1, 1); list.push({ mesh: r > 0.5 ? wheelMs.big : wheelMs.small, m: WMs[i], outline: true }); }); /* the same wagon parked or ridden (the episode's old standing chariot is not drawn any more) */
   if (G.Phys && G.Phys.meshOf) { let i = 0; const SL = [[-0.38, -1.25], [0.38, -1.25], [-0.38, -1.95], [0.38, -1.95]];
     for (const L of LOAD) { if (!L.b) continue; const [lx, lz] = SL[i % 4], f = c.f, x = c.x + Math.cos(f) * lx + Math.sin(f) * lz, z = c.z - Math.sin(f) * lx + Math.cos(f) * lz;
       G.m4trs(LM[i % 4], x, hAt(c.x, c.z) + BED_Y - 0.04 + L.b.K.r * 0.9, z, f + i, 0, 0); list.push({ mesh: G.Phys.meshOf(L.b.k), m: LM[i % 4], outline: true }); i++; } } };
+/* v18.25 (the 앉기 button is 「정지 / 후진」 on the wagon now — there is still no crouching there) */
 })(window.G);

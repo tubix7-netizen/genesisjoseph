@@ -62,7 +62,7 @@ function giveUp(n, a) { appr.cur = null; const h = a.home; if (n.d.sched) { n.sc
 // =================================================================== DAILY SCHEDULES
 function schedules(S) {
   const ENT = Game.ENT, hr = S.time % 24;
-  for (const id in ENT.npcs) { const n = ENT.npcs[id], sc = n.d.sched; if (!sc || n.follow || n.talking || n.pass || (appr.cur && appr.cur.id === id) || (G.NpcAI && G.NpcAI.busyId && G.NpcAI.busyId() === id) || n.d.show && !n.d.show(S, Game)) continue;
+  for (const id in ENT.npcs) { const n = ENT.npcs[id], sc = n.d.sched; if (!sc || n.follow || n.talking || n._chat || n.pass || (appr.cur && appr.cur.id === id) || (G.NpcAI && G.NpcAI.busyId && G.NpcAI.busyId() === id) || n.d.show && !n.d.show(S, Game)) continue;
     const list = typeof sc === 'function' ? sc(S, Game) : sc; if (!list || !list.length) continue;
     let k = list.length - 1; for (let i = 0; i < list.length; i++) if (hr >= list[i][0]) k = i; // last slot whose hour has passed (wraps from previous day)
     const key = list[k].join(','); if (n.schedSlot === k && n.schedKey === key) continue; n.schedSlot = k; n.schedKey = key;

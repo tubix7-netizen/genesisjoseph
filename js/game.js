@@ -838,10 +838,13 @@ function updatePlayer(dt) {
   if (EP.speedMul && target > 0) target *= EP.speedMul(S, P, mag);
   const yaw = CAM.yaw; const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
   let dx = fx * (-my) + rx * mx, dz = fz * (-my) + rz * mx; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+  /* v18.24 the chariot cannot pivot on the spot: the horses swing round slowly (slower the faster they run), the wagon rolls where they face, and a sharp turn costs speed */
+  /* v18.25 on the wagon the stick only turns the horses; the pace comes from the reins (A taps, 「정지」, 「후진」) in cart.js */
+  const cartOn = !!(S.q && S.q.riding && S.q.chariotOk), cartV = cartOn && G.Cart && G.Cart.steer ? G.Cart.steer(dt, mag, dx, dz) : null; if (cartV) target = 0;
   const tvx = dx * target, tvz = dz * target;
   const FL = G.Motion.feel(), acc = target > P.spd ? (P.grounded ? FL.acc : FL.air) : FL.dec;
   const k = 1 - Math.exp(-acc * dt / 3);
-  P.vx = lerp(P.vx, tvx, k); P.vz = lerp(P.vz, tvz, k);
+  P.vx = lerp(P.vx, tvx, k); P.vz = lerp(P.vz, tvz, k); if (cartV) { P.vx = cartV[0]; P.vz = cartV[1]; }
   if (P.dodgeT > 0) { // dodge roll: quick dash in the stick direction (or backwards from the target), brief invulnerability
     if (!P.dodgeDir) { let ddx = mag > 0 ? dx : -Math.sin(P.face), ddz = mag > 0 ? dz : -Math.cos(P.face); P.dodgeDir = [ddx, ddz]; P.face = mag > 0 ? Math.atan2(ddx, ddz) : P.face; }
     P.dodgeT -= dt; const sp = 9.5 * (P.limp ? 0.75 : 1) * Math.min(1, P.dodgeT * 4 + 0.3); P.vx = P.dodgeDir[0] * sp; P.vz = P.dodgeDir[1] * sp; }
@@ -849,7 +852,7 @@ function updatePlayer(dt) {
   if (P.tintT > 0) { P.tintT -= dt; if (P.tintT <= 0) P.tint = null; }
   P.spd = Math.hypot(P.vx, P.vz);
   if (P.atk && P.atk.tg) P.face += angDiff(P.face, Math.atan2(P.atk.tg.x - P.x, P.atk.tg.z - P.z)) * Math.min(1, dt * 14);
-  else if (mag > 0 && !(P.dodgeT > 0) && (P.spd > 0.25 || P.grounded)) { // face the stick (not the lagging velocity); pivot faster from a standstill
+  else if (mag > 0 && !cartOn && !(P.dodgeT > 0) && (P.spd > 0.25 || P.grounded)) { // face the stick (not the lagging velocity); pivot faster from a standstill
     const want = Math.atan2(dx, dz), piv = 1 + 1.2 * (1 - Math.min(1, P.spd / 3)); P.face += angDiff(P.face, want) * Math.min(1, dt * (P.grounded ? FL.turn * piv : 5)); }
   // move with slope check
   // swept in short steps so a sprint, a dodge or a slow frame never tunnels through a wall
@@ -898,6 +901,18 @@ function updatePlayer(dt) {
 let holdRepeat = 0;
 
 // =================================================================== NPC / ANIMAL UPDATE
+/* v18.24 walkers look ahead: if a wall, house or stall stands in the next 1.6 m they turn aside (keeping to one side) instead of walking into it */
+function solidAt(x, z, pad, self) { for (const c of W.near(x, z)) { if (!c.on || c === self || (c.y1 !== undefined && c.y1 - (c.y0 || 0) < 0.7)) continue;
+    if (c.t === 'b') { const dx = x - c.x, dz = z - c.z, lx = dx * c.ca - dz * c.sa, lz = dx * c.sa + dz * c.ca; if (Math.abs(lx) < c.hw + pad && Math.abs(lz) < c.hd + pad) return true; }
+    else if (c.r && c.r > 0.45 && Math.hypot(x - c.x, z - c.z) < c.r + pad) return true; } return false; }
+function aheadFree(n, a, L) { for (const k of [0.55, 1.0, L]) { if (solidAt(n.x + Math.sin(a) * k, n.z + Math.cos(a) * k, 0.3, n.col)) return false; } return true; }
+function steer(n, w, dx, dz, d, dt) { const a0 = Math.atan2(dx, dz), L = Math.min(1.6, d);
+  if (w.det && (w.det.t -= dt) > 0 && aheadFree(n, w.det.a, 1.0)) return w.det.a;
+  if (aheadFree(n, a0, L)) { w.det = null; return a0; }
+  const sd = w.side || (w.side = Math.random() < 0.5 ? 1 : -1);
+  for (const o of [0.5, 0.95, 1.4, 1.9, 2.5]) for (const s2 of [sd, -sd]) { const a = a0 + o * s2; if (aheadFree(n, a, 1.3)) { w.det = { a, t: 0.5 }; if (s2 !== sd) w.side = s2; return a; } }
+  return a0; }
+Game.solidAt = (x, z, pad) => solidAt(x, z, pad || 0.3, null);
 let npcFrame = 0;
 function updateNPCs(dt, t) { npcFrame++;
   for (const id in ENT.npcs) {
@@ -922,19 +937,21 @@ function updateNPCs(dt, t) { npcFrame++;
       if (wp && d < 0.8) w.path.shift();
       else if (d < 0.3 && !det) { const cb = w.cb; n.walk = null; n.homeFace = n.face; cb && cb(); }
       else { speed = w.sp; const st = Math.min(speed * dt, d), q = { x: n.x, z: n.z };
+        let mdx = dx, mdz = dz; if (!Game.cineOn && d > 0.6 && (dist < 70)) { const a = steer(n, w, dx, dz, d, dt); mdx = Math.sin(a) * d; mdz = Math.cos(a) * d; }
         /* walkers always respect walls now (cutscene walkers used to glide through them). If one is truly wedged for a moment,
            it slips sideways along the wall first and only as a last resort steps through, so a story beat can never stall */
-        if (dist < 70 || (Game.cineCam && Math.hypot(n.x - Game.cineCam.x, n.z - Game.cineCam.z) < 70)) { n.col.on = false; W.move(q, dx / d * st, dz / d * st, 0.32); n.col.on = true; const mv = Math.hypot(q.x - n.x, q.z - n.z);
+        if (dist < 70 || (Game.cineCam && Math.hypot(n.x - Game.cineCam.x, n.z - Game.cineCam.z) < 70)) { n.col.on = false; W.move(q, mdx / d * st, mdz / d * st, 0.32); n.col.on = true; const mv = Math.hypot(q.x - n.x, q.z - n.z);
           if (mv < st * 0.3) { w.stuck += dt; if (w.stuck > 0.5) { const sx = -dz / d * (w.side || (w.side = Math.random() < 0.5 ? 1 : -1)); q.x += sx * st; q.z += dx / d * w.side * st; n.col.on = false; W.collide(q, 0.32); n.col.on = true; }
-            if (w.stuck > (w.solid === false ? 1.6 : 2.5)) { q.x = n.x + dx / d * st; q.z = n.z + dz / d * st; } } else w.stuck = Math.max(0, w.stuck - dt); }
+            if (n.d.folk && !Game.cineOn && w.stuck > 3) { /* a villager who truly cannot get there gives up and lets the day plan choose again (no head against the wall) */ const cb = w.cb; n.walk = null; n.homeFace = n.face; n.schedSlot = -1; cb && cb(); }
+            else if (w.stuck > (w.solid === false ? 1.6 : 2.5)) { q.x = n.x + dx / d * st; q.z = n.z + dz / d * st; } } else w.stuck = Math.max(0, w.stuck - dt); }
         else { q.x += dx / d * st; q.z += dz / d * st; }
         if (W.avoids.length) W.avoid(q, n.x, n.z);
-        n.x = q.x; n.z = q.z; n.face += angDiff(n.face, Math.atan2(dx, dz)) * Math.min(1, dt * 8); }
+        { const mx2 = q.x - n.x, mz2 = q.z - n.z; n.x = q.x; n.z = q.z; const fa = Math.hypot(mx2, mz2) > st * 0.2 ? Math.atan2(mx2, mz2) : Math.atan2(mdx, mdz); n.face += angDiff(n.face, fa) * Math.min(1, dt * 8); } } /* (they face where they actually go) */
     } else if (n.wander && !n.talking && dist > 3) {
-      const w = n.wander; if (w.tx === null || w.stuck > 1.2) { const a = Math.random() * PI * 2, r = Math.random() * w.r; w.tx = w.cx + Math.cos(a) * r; w.tz = w.cz + Math.sin(a) * r; w.wait = 1 + Math.random() * 4; w.stuck = 0; }
-      if (w.wait > 0) w.wait -= dt; else { const dx = w.tx - n.x, dz = w.tz - n.z, d = Math.hypot(dx, dz); if (d < 0.4) w.tx = null; else { speed = n.d.animal ? 0.9 : 1.3; const q = { x: n.x, z: n.z }; n.col.on = false; W.move(q, dx / d * speed * dt, dz / d * speed * dt, 0.35); n.col.on = true; if (W.avoids.length) W.avoid(q, n.x, n.z); if (Math.hypot(q.x - n.x, q.z - n.z) < speed * dt * 0.4) w.stuck += dt; n.x = q.x; n.z = q.z; n.face += angDiff(n.face, Math.atan2(dx, dz)) * Math.min(1, dt * 6); } }
+      const w = n.wander; if (w.tx === null || w.stuck > 1.2) { for (let k = 0; k < 5; k++) { const a = Math.random() * PI * 2, r = Math.random() * w.r; w.tx = w.cx + Math.cos(a) * r; w.tz = w.cz + Math.sin(a) * r; if (!solidAt(w.tx, w.tz, 0.45, n.col) && !(G.NpcAI && G.NpcAI.blocked && G.NpcAI.blocked(n.x, n.z, w.tx, w.tz))) break; if (k === 4) { w.tx = n.x; w.tz = n.z; } } w.wait = 1 + Math.random() * 4; w.stuck = 0; } /* v18.24 never a spot inside or behind a wall */
+      if (w.wait > 0) w.wait -= dt; else { const dx = w.tx - n.x, dz = w.tz - n.z, d = Math.hypot(dx, dz); if (d < 0.4) w.tx = null; else { speed = n.d.animal ? 0.9 : 1.3; const q = { x: n.x, z: n.z }; const sa = steer(n, w, dx, dz, d, dt); n.col.on = false; W.move(q, Math.sin(sa) * speed * dt, Math.cos(sa) * speed * dt, 0.35); n.col.on = true; if (W.avoids.length) W.avoid(q, n.x, n.z); if (Math.hypot(q.x - n.x, q.z - n.z) < speed * dt * 0.4) w.stuck += dt; n.x = q.x; n.z = q.z; n.face += angDiff(n.face, sa) * Math.min(1, dt * 6); } }
     } else {
-      const want = (n.talking || dist < 4) && !n.d.fixedFace && !n.sleep ? Math.atan2(P.x - n.x, P.z - n.z) : n.homeFace; /* v18.21 a sleeper (and the mat) no longer turns to watch you */
+      const want = n._chatFace !== undefined ? n._chatFace /* v18.25 talking with a neighbour (street.js) */ : (n.talking || dist < 4) && !n.d.fixedFace && !n.sleep ? Math.atan2(P.x - n.x, P.z - n.z) : n.homeFace; /* v18.21 a sleeper (and the mat) no longer turns to watch you */
       n.face += angDiff(n.face, want) * Math.min(1, dt * 4);
     }
     if (!n.pass) { let gy = W.heightAt(n.x, n.z); if (EP.floor && !n.d.animal) { const f2 = EP.floor(n.x, n.z, S); if (f2 !== null && f2 !== undefined && f2 > gy - 0.3) gy = Math.max(gy, f2); }

@@ -77,7 +77,7 @@ function wake() {
 if (G.Combat) G.Combat.faint = () => V.down();
 
 // ------------------------------------------------------------------ crouch / stealth
-V.crouch = function (on) { const P = Game.P; if (P.ride || P.swim || P.climb || Game.cineOn) on = false; P.crouch = on === undefined ? !P.crouch : !!on; if (P.crouch) P.sprint = false;
+V.crouch = function (on) { const P = Game.P, S0 = Game.S(); if (P.ride || P.swim || P.climb || Game.cineOn || (S0 && S0.q && S0.q.riding)) on = false; P.crouch = on === undefined ? !P.crouch : !!on; if (P.crouch) P.sprint = false;
   const b = $('btnCrouch'); if (b) b.classList.toggle('on', !!P.crouch); };
 /* footstep noise radius (m): how far away an animal can hear the hero this moment */
 V.noiseNow = function () {

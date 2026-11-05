@@ -92,7 +92,7 @@ function update(dt, S, G, t) {
   if (S.q.chain && P.spd > 0.5) { RT.chT = (RT.chT || 0) - dt; if (RT.chT <= 0) { RT.chT = 0.62; G.sfx('chain', { vol: 0.32, pitch: 0.9 + Math.random() * 0.2 }); } }
   // the second chariot
   const ride = !!S.q.riding && !!S.q.chariotOk && !GG.Cine.on;
-  G.CAM.zoom = lerp(G.CAM.zoom || 1, S.q.riding ? 1.6 : 1, Math.min(1, dt * 2));
+  G.CAM.zoom = lerp(G.CAM.zoom || 1, S.q.riding ? 2.35 : 1, Math.min(1, dt * 2)); /* v18.24 farther back on the chariot (it is long now) */
   if (S.q.riding) { /* v18.22 galloping (달리기) wears the horses out: breath drains, and at zero the gallop stops until they have rested */
     /* (the game's own sprint already spends breath; the old floor of 60 that kept it full is gone) */
     if (P.exhausted && !RT.horseTired) { RT.horseTired = 1; GG.UI.pop && GG.UI.pop('말이 지쳤어요', '숨을 돌리면 다시 달려요', 'donkey'); } else if (!P.exhausted) RT.horseTired = 0;
@@ -223,9 +223,9 @@ function band2(g) { for (let i = 0; i < 6; i++) g.box(0.2, 0.08, 0.02, { at: [-0
 const HR = { rigs: [new Rig(AB.horse), new Rig(AB.horse)], ph: 0 };
 function skinned(list, S, G, t) {
   for (const c of RT.cows) if (c.st !== 'hidden' && c.eaten < 0.99) list.push({ mesh: c.mesh, bones: c.rig.bones, outline: true, tint: c.thin ? [0.72, 0.66, 0.62] : null });
-  if (S.q.riding && S.q.chariotOk) { const P = G.P, f = P.face; HR.ph += P.spd * 0.016 * 1.6;
-    HR.rigs.forEach((rig, i) => { const s = i ? 1 : -1, hx = P.x + Math.sin(f) * 2.6 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 2.6 - Math.sin(f) * s * 0.55;
-      animAnimal(rig, { speed: P.spd * 0.55, phase: HR.ph + i * 0.4, graze: false }, t); rig.update(m4trs(HR['M' + i] || (HR['M' + i] = m4()), hx, hAt(hx, hz), hz, f));
+  if (S.q.riding && S.q.chariotOk) { const P = G.P, f = P.face, CT = GG.Cart, hv = CT && CT.hv ? Math.abs(CT.hv()) : P.spd, ex = CT && CT.sx ? CT.sx() : 0; HR.ph += hv * 0.016 * 1.6; /* v18.25b the horses run at their own pace, a little ahead of the wagon when the traces are taut */
+    HR.rigs.forEach((rig, i) => { const s = i ? 1 : -1, hx = P.x + Math.sin(f) * (2.6 + ex) + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * (2.6 + ex) - Math.sin(f) * s * 0.55;
+      animAnimal(rig, { speed: hv * 0.55, phase: HR.ph + i * 0.4, graze: false }, t); rig.update(m4trs(HR['M' + i] || (HR['M' + i] = m4()), hx, hAt(hx, hz), hz, f));
       list.push({ mesh: G.animalMesh('horse', 'plain', { saddle: 0xe2b440 }), bones: rig.bones, outline: true }); }); }
 }
 // light: the moonlight shaft in Joseph's cell, the dream glows

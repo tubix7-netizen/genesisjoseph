@@ -73,6 +73,7 @@ function blocked(ax, az, bx, bz) {
     for (const c of W.near(x, z)) { if (!c.on || c.t !== 'b' || (c.y1 - c.y0) < 1.3) continue; const dx = x - c.x, dz = z - c.z, lx = dx * c.ca - dz * c.sa, lz = dx * c.sa + dz * c.ca; if (Math.abs(lx) < c.hw + 0.3 && Math.abs(lz) < c.hd + 0.3) return true; } }
   return false;
 }
+AI.blocked = (ax, az, bx, bz) => blocked(ax, az, bx, bz);
 AI.route = function (v, n, x, z) {
   if (!blocked(n.x, n.z, x, z)) return null; const hub = v.spots.hub || [v.x, v.z]; const path = [[hub[0], hub[1]]];
   if (v.gate) { const outN = Math.hypot(n.x - v.x, n.z - v.z) > v.r * 0.8, outD = Math.hypot(x - v.x, z - v.z) > v.r * 0.8; if (outN) path.unshift([v.gate[0], v.gate[1]]); if (outD) path.push([v.gate[0], v.gate[1]]); }
@@ -362,7 +363,7 @@ function villageChatter(dt, S) {
   const P = Game.P;
   if (chatQ.run) { const r = chatQ.run; r.t -= dt; if (r.t <= 0) { if (r.i >= r.lines.length) { chatQ.run = null; return; } const [w, txt] = r.lines[r.i]; const id = w === 0 ? r.a.id : r.b.id; const n = w === 0 ? r.a : r.b, o = w === 0 ? r.b : r.a;
     G.Life.bubble(id, txt.replace('야곱', hero(S)), 3.4); if (!n.walk) n.face = Math.atan2(o.x - n.x, o.z - n.z); r.i++; r.t = 3.3; } return; }
-  ctT -= dt; if (ctT > 0) return; ctT = 8 + Math.random() * 9; if (G.UI.busy() || Game.cineOn) return;
+  ctT -= dt; if (ctT > 0) return; ctT = 8 + Math.random() * 9; if (G.UI.busy() || Game.cineOn) return; if (G.Street && G.Street.on()) return; /* v18.25 the street scenes (street.js) speak for the villagers now */
   const list = Object.values(Game.ENT.npcs).filter(n => n.vis && n.near && n.d.folk && !n.talking && !n.walk && !n.schedHidden && Math.hypot(n.x - P.x, n.z - P.z) < 24);
   const pairs = []; for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) if (Math.hypot(list[i].x - list[j].x, list[i].z - list[j].z) < 5) pairs.push([list[i], list[j]]);
   if (pairs.length && Math.random() < 0.75) { const [a, b] = rnd(pairs); const pool = (EPf().villageChat ? EPf().villageChat(S) : []).concat(CHAT2); chatQ.run = { a, b, lines: rnd(pool), i: 0, t: 0 }; return; }
@@ -386,7 +387,7 @@ function approach(dt, S) {
     return; }
   ap.t -= dt; if (ap.t > 0) return; const mode = Game.SET.chatty || 'some'; ap.t = mode === 'often' ? 14 + Math.random() * 16 : 34 + Math.random() * 34; if (mode === 'off') return;
   if (AI.quietNow(S)) return; const now = S.day * 24 + S.time;
-  const pool = Object.values(ENT.npcs).filter(n => n.d.folk && n.vis && n.near && !n.talking && !n.walk && !n.schedHidden && !n.pass && (ap.cool[n.id] || 0) < now && (() => { const d = Math.hypot(n.x - P.x, n.z - P.z); return d > 3.5 && d < 17; })());
+  const pool = Object.values(ENT.npcs).filter(n => n.d.folk && n.vis && n.near && !n.talking && !n._chat && !n.walk && !n.schedHidden && !n.pass && (ap.cool[n.id] || 0) < now && (() => { const d = Math.hypot(n.x - P.x, n.z - P.z); return d > 3.5 && d < 17; })());
   if (!pool.length) return; const n = rnd(pool); ap.cool[n.id] = now + 5 + Math.random() * 5;
   const rm = remarks(S, n), fr = friend(n.id), f = n.d.folk; const kinds = [['hello', 3], ['news', 2], ['gift', fr >= 3 ? 2 : 0.6], ['req', Object.keys(dq(S)).length < 2 ? 1.6 : 0], ['remark', rm.length ? 2.6 : 0], ['kid', f.age === 'kid' ? 4 : 0]];
   let tot = 0; for (const k of kinds) tot += k[1]; let r = Math.random() * tot, kind = 'hello'; for (const k of kinds) { r -= k[1]; if (r <= 0) { kind = k[0]; break; } }

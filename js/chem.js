@@ -125,7 +125,7 @@ Game.RECIPES.push({ id: 'torch', n: '횃불', tool: 'torch', in: { branch: 1, re
 Game.CTX.push(function (S, g) {
   if (!Ch.on || !Ch.ready || Game.hand() !== 'torch') return null; const P = Game.P, out = [];
   if (Ch.torchT <= 0) { for (const st of (Game.EP().stations || [])) { if (st.type !== 'fire') continue; if (st.on && !st.on(S, Game)) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d < (st.r || 2.4) + 0.6) out.push({ d: d - 0.4, label: '횃불에 불 붙이기', x: st.x, z: st.z, y: 1.2, key: 'chem:light', reach: 0.8, use: () => { Ch.torchT = 150; sfx('fire', { vol: 0.7 }); G.UI.toast('횃불이 타올라요 · 약 2분 동안'); } }); } }
-  else { const px = P.x + Math.sin(P.face) * 1.5, pz = P.z + Math.cos(P.face) * 1.5; out.push({ d: 1.1, label: '불 붙이기', x: px, z: pz, y: 0.4, key: 'chem:ignite', reach: 0.8, use: () => { const n = Ch.ignite(px, pz, 1); sfx('fire', { vol: 0.8 }); G.UI.toast(n ? '풀에 불이 붙었어요 · 바람과 불길을 조심하세요!' : '여기는 불이 붙지 않아요 (젖었거나 탈 것이 없어요)'); } }); }
+  else if (!(G.Cave && G.Cave.inside && G.Cave.inside())) { const px = P.x + Math.sin(P.face) * 1.5, pz = P.z + Math.cos(P.face) * 1.5; out.push({ d: 1.1, label: '불 붙이기', x: px, z: pz, y: 0.4, key: 'chem:ignite', reach: 0.8, use: () => { const n = Ch.ignite(px, pz, 1); sfx('fire', { vol: 0.8 }); G.UI.toast(n ? '풀에 불이 붙었어요 · 바람과 불길을 조심하세요!' : '여기는 불이 붙지 않아요 (젖었거나 탈 것이 없어요)'); } }); }
   return out;
 });
 

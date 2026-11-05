@@ -63,7 +63,7 @@ Ho.TYPE = TYPE; Ho.room = () => ({ x: IX, z: IZ, y: IY, w: RW, d: RD, h: WH }); 
 /* v18.22 Joseph's house (the vizier's house) can be entered too: his bed and his chest are inside */
 const ord = () => Game.stepOrder(), afterStep = k => { const o = ord(), s = S(); return !!s && o.indexOf(s.step) >= o.indexOf(k); };
 const MINE = { id: 'jhouse', n: '요셉의 집', x: 10, z: -144, r: 9, homes: [[10, -144, 0]], folk: [], mine: true, when: () => afterStep('c5_patrol') };
-const allV = () => (EP.villages || []).concat([MINE]);
+const allV = () => (EP.villages || []).concat([MINE], (G.Cy && G.Cy.extraV) || []); /* v18.24 (+ lone houses whose painted door is a real door now, city.js) */
 { const b = (EP.stations || []).find(s => s.id === 'bJos'); if (b) b.on = () => false; } // his bed now stands inside his house
 const houseKey = (v, i) => v.id + ':' + i;
 const typeOf = (v, i) => v.mine ? 'mine' : Ho.typeOf ? Ho.typeOf(v, i, TYPES, hash(houseKey(v, i))) : TYPES[Math.floor(hash(houseKey(v, i)) * TYPES.length)];
@@ -95,6 +95,7 @@ function nearDoor() { const s = S(), p = P(); let best = null, bd = 1e9; for (co
     v.homes.forEach((hm, i) => { const d = doorOf(v, i); if (!d) return; const dd = Math.hypot(d.fx - p.x, d.fz - p.z); if (dd < bd) { bd = dd; best = [v, i, d]; } }); }
   return best && bd <= 2.3 ? best.concat([bd]) : null; }
 Ho.door = (v, i) => doorOf(v, i); // (for checking)
+Ho.setDoor = (k, d) => { DOORS[k] = d; }; /* v18.24 city.js knows the exact painted door of the houses it registers */
 Ho.enter = function (v, i) { const s = S(), p = P(), t = typeOf(v, i), ow = ownerOf(v, i), d = doorOf(v, i);
   if (d && !ownerNear(v, i, d)) { knock(); return; }
   G.UI.fade(() => { s.flags.inHouse = { v: v.id, i, t, x: d ? d.fx : p.x, z: d ? d.fz : p.z, f: d ? d.a : p.face + Math.PI, ow: ow ? ow.name : null, age: ow ? ow.age : null, L: Ho.layoutOf ? Ho.layoutOf(v, i) : 'plain' };

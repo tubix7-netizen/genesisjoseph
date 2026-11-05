@@ -286,11 +286,12 @@ const costHTML = (cost, silver) => { const S = Game.S(); let h = ''; for (const 
 
 UI.menu = function (tab) {
   if (UI.busy()) return;
-  const tabs = [['bag', '가방'], ['gear', '장비'], ['craft', '제작']].concat(Game.feat('build') && G.Build ? [['build', '짓기']] : []).concat([['skill', '깨달음'], ['quest', '부탁'], ['journal', '일지'], ['set', '설정']]);
+  const tabs = [['bag', '가방'], ['gear', '장비'], ['craft', '제작']].concat(Game.feat('build') && G.Build ? [['build', '짓기']] : []).concat([['skill', '깨달음'], ['quest', '부탁'], ['journal', '일지']]).concat((UI.extraTabs || []).filter(t => !t.on || t.on()).map(t => [t.k, t.n])).concat([['set', '설정']]); /* v18.26 extra tabs (꿈 앨범 · 편지) */
   openPanel('여정 메뉴', tabs, tabs.some(t => t[0] === tab) ? tab : 'bag', renderMenu);
 };
 function renderMenu(tab, body) {
   const S = Game.S(), EP = Game.EP();
+  const xt = (UI.extraTabs || []).find(t => t.k === tab); if (xt) { xt.render(body, () => renderMenu(tab, body)); return; }
   if (tab === 'build') { G.Build.renderMenu(body, () => renderMenu('build', body)); }
   else if (tab === 'bag' && G.Bag && G.Bag.render) { G.Bag.render(body, () => renderMenu('bag', body)); } // v18.14 storage.js: sorted bag, slots, quick slot, seeds
   else if (tab === 'bag') {
@@ -711,7 +712,7 @@ UI.frame = function (dt) {
   if ($('btnAL').textContent !== lab) $('btnAL').textContent = lab;
   btnA.classList.toggle('off', !c && !busyFlags.dialog); btnA.classList.toggle('on', !!c && !c.disabled && !UI.busy());
   $('btnRun').classList.toggle('on', P.sprint); $('btnJump').hidden = P.swim;
-  const C = G.Combat, inC = C && C.inCombat; const jl = inC ? '구르기' : '점프'; if ($('btnJump').textContent !== jl) $('btnJump').textContent = jl;
+  const C = G.Combat, inC = C && C.inCombat; const jl = (G.Cart && G.Cart.jumpLabel && G.Cart.jumpLabel()) || (inC ? '구르기' : '점프'); /* v18.25 on the wagon: 짐칸 / 태우기 */ if ($('btnJump').textContent !== jl) $('btnJump').textContent = jl;
   if (C && C.fish) { const f = C.fish, l2 = f.st === 'bite' ? '챔질!' : f.st === 'reel' ? '당기기' : '거두기'; if ($('btnAL').textContent !== l2) $('btnAL').textContent = l2; btnA.classList.toggle('on', f.st === 'bite'); btnA.classList.remove('off'); }
   if (G.Cine && G.Cine.on) $('btnAL').textContent = '다음';
   if (C && C.hpDirty) { C.hpDirty = 0; const H = S.hero; $('hpFill').style.width = (H.hp / H.hpMax * 100).toFixed(1) + '%'; $('hpTxt').textContent = `${Math.ceil(H.hp)} / ${H.hpMax}`; }
@@ -725,7 +726,9 @@ UI.frame = function (dt) {
   // stamina ring
   const sv = $('stam');
   const scap = (G.Vitals && G.Vitals.cap) || 100, smx = (Game.S().hero && Game.S().hero.stamMax) || 100;
-  if ((P.stam < scap - 0.5 || scap < smx - 1) && !UI.busy() && !P.downed) { $('stamCap').setAttribute('stroke-dashoffset', String(106.8 * (1 - scap / smx))); const s = R.project(P.x, P.y + 2.3, P.z, UI.W, UI.H); if (s) { sv.hidden = false; sv.style.transform = `translate(${s[0] + 38}px,${s[1]}px) translate(-50%,-50%) scale(var(--uik,1))`; $('stamArc').setAttribute('stroke-dashoffset', String(106.8 * (1 - P.stam / smx))); $('stamArc').setAttribute('stroke', P.exhausted ? '#e0704f' : P.stam < 30 ? '#f0c040' : '#9be07a'); } }
+  const hr = G.Cart && G.Cart.ring ? G.Cart.ring() : null; /* v18.25 driving the wagon: the ring is the horses' breath (gold) */
+  if (hr) { const s = R.project(P.x, P.y + 2.3, P.z, UI.W, UI.H); if (s && hr.f < 0.995 && !UI.busy()) { sv.hidden = false; $('stamCap').setAttribute('stroke-dashoffset', '0'); sv.style.transform = `translate(${s[0] + 38}px,${s[1]}px) translate(-50%,-50%) scale(var(--uik,1))`; $('stamArc').setAttribute('stroke-dashoffset', String(106.8 * (1 - hr.f))); $('stamArc').setAttribute('stroke', hr.tired ? '#e0704f' : hr.f < 0.3 ? '#f0a040' : hr.buff ? '#fff0a0' : '#f0c850'); } else sv.hidden = true; }
+  else if ((P.stam < scap - 0.5 || scap < smx - 1) && !UI.busy() && !P.downed) { $('stamCap').setAttribute('stroke-dashoffset', String(106.8 * (1 - scap / smx))); const s = R.project(P.x, P.y + 2.3, P.z, UI.W, UI.H); if (s) { sv.hidden = false; sv.style.transform = `translate(${s[0] + 38}px,${s[1]}px) translate(-50%,-50%) scale(var(--uik,1))`; $('stamArc').setAttribute('stroke-dashoffset', String(106.8 * (1 - P.stam / smx))); $('stamArc').setAttribute('stroke', P.exhausted ? '#e0704f' : P.stam < 30 ? '#f0c040' : '#9be07a'); } }
   else sv.hidden = true;
   // compass
   const tg = Game.curTarget; const cp = $('compass');

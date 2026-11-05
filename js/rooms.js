@@ -67,7 +67,7 @@ const RM = Ho.room;
 function roomOf(L) { const r = RM(), RW = r.w, RD = r.d, WH = r.h, hw = RW / 2, hd = RD / 2, Lc = LAY[L] || LAY.plain, WALL = Lc.wall, BAND = Lc.band;
   return g => { g.box(RW + 0.6, 0.3, RD + 0.6, { at: [0, -0.15, 0], c: 0xb89a70 }); g.box(RW + 0.6, 4, RD + 0.6, { at: [0, -2.3, 0], c: 0xa88a60 });
     const fr = Lc.frieze; const wall = (x, z, w, d) => { g.box(w, WH, d, { at: [x, WH / 2, z], c: WALL }); g.box(w + 0.03, 0.34, d + 0.03, { at: [x, 0.17, z], c: BAND, j: 0 });
-      if (fr) { const along = w > d, L = along ? w : d, n = Math.floor(L / 0.5); for (let k = 0; k < n; k++) { const o = -L / 2 + 0.25 + k * 0.5; g.box(along ? 0.46 : d + 0.03, 0.28, along ? d + 0.03 : 0.46, { at: [along ? x + o : x, WH - 0.36, along ? z : z + o], c: fr[k % fr.length], j: 0 }); } } };
+      if (fr) { const along = w > d, L = along ? w : d, n = Math.floor(L / 0.5); for (let k = 0; k < n; k++) { const o = -L / 2 + 0.25 + k * 0.5; g.box(along ? 0.46 : w + 0.03, 0.28, along ? d + 0.03 : 0.46, /* v18.24 (was d + 0.03 across: the side walls' frieze became 6.8 m slabs roofing the room) */ { at: [along ? x + o : x, WH - 0.36, along ? z : z + o], c: fr[k % fr.length], j: 0 }); } } };
     wall(0, hd + 0.15, RW + 0.6, 0.3); wall(-hw - 0.15, 0, 0.3, RD + 0.6); wall(hw + 0.15, 0, 0.3, RD + 0.6);
     wall(-(hw + 0.7) / 2 - 0.35, -hd - 0.15, hw - 0.7 + 0.3, 0.3); wall((hw + 0.7) / 2 + 0.35, -hd - 0.15, hw - 0.7 + 0.3, 0.3);
     g.box(1.6, 0.4, 0.34, { at: [0, WH - 0.2, -hd - 0.15], c: WALL });
