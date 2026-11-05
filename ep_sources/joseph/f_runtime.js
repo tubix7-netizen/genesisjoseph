@@ -194,12 +194,12 @@ function dyn(list, S, G, t) {
   // the rope: last camel → Joseph's hands
   if (S.step === 'c1_caravan' && S.q.bound && RT.car) { const n = G.npc('camel3'); if (n && n.vis) { const a = [n.x - Math.sin(n.face) * 0.9, n.y + 1.2, n.z - Math.cos(n.face) * 0.9], h = wpos(P.rig.world[HBI.handR]), mid = [(a[0] + h[0]) / 2, Math.min(a[1], h[1]) - 0.35, (a[2] + h[2]) / 2];
     ropeSeg(list, 'r1', a, mid); ropeSeg(list, 'r2', mid, h); } }
-  // the second chariot and its horses
-  if (S.q.riding && S.q.chariotOk) {
+  // the second chariot and its horses (v18.24b: cart.js draws the wagon itself)
+  if (S.q.riding && S.q.chariotOk && !GG.Cart) {
     const f = P.face, y = P.y + (G.EP().rootY ? 0 : 0);
     list.push({ mesh: mk('chariot', g => { g.box(1.3, 0.08, 1.0, { at: [0, 0.42, 0], c: 0x8a6440 }); g.box(1.3, 0.62, 0.06, { at: [0, 0.74, 0.48], c: 0xd9a73a }); for (const s of [1, -1]) { g.box(0.06, 0.5, 0.95, { at: [s * 0.62, 0.7, 0], c: 0xd9a73a }); g.cyl(0.42, 0.42, 0.07, 14, { at: [s * 0.74, 0.42, -0.1], rz: Math.PI / 2, c: 0x6a4a30 }); g.cyl(0.06, 0.06, 0.14, 6, { at: [s * 0.78, 0.42, -0.1], rz: Math.PI / 2, c: 0xd9a73a }); }
       g.box(0.08, 0.08, 2.2, { at: [0, 0.6, 1.5], rx: -0.15, c: 0x8a6440 }); g.box(1.8, 0.07, 0.07, { at: [0, 0.82, 2.55], c: 0x8a6440 }); band2(g); }), m: mat('char', P.x, y, P.z, f), outline: true });
-    for (const s of [1, -1]) { const hx = P.x + Math.sin(f) * 3.0 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 3.0 - Math.sin(f) * s * 0.55; RT.hph = (RT.hph || 0) + 0; }
+    for (const s of [1, -1]) { const hx = P.x + Math.sin(f) * 2.6 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 2.6 - Math.sin(f) * s * 0.55; RT.hph = (RT.hph || 0) + 0; }
   }
   // the banquet table
   if (S.step === 'c2_banquet') list.push({ mesh: mk('feast', g => { ENVX.tableEg(g, m4()); for (let i = 0; i < 4; i++) { g.lathe([[0.05, 0], [0.16, 0.1], [0.18, 0.32], [0.08, 0.5], [0.1, 0.55]], 8, { at: [-0.6 + i * 0.4, 0.84, -0.15], c: [0x8a3a3a, 0xc8865a, 0xd8b860, 0x6a4a6a][i] }); }
@@ -224,9 +224,9 @@ const HR = { rigs: [new Rig(AB.horse), new Rig(AB.horse)], ph: 0 };
 function skinned(list, S, G, t) {
   for (const c of RT.cows) if (c.st !== 'hidden' && c.eaten < 0.99) list.push({ mesh: c.mesh, bones: c.rig.bones, outline: true, tint: c.thin ? [0.72, 0.66, 0.62] : null });
   if (S.q.riding && S.q.chariotOk) { const P = G.P, f = P.face; HR.ph += P.spd * 0.016 * 1.6;
-    HR.rigs.forEach((rig, i) => { const s = i ? 1 : -1, hx = P.x + Math.sin(f) * 3.0 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 3.0 - Math.sin(f) * s * 0.55;
+    HR.rigs.forEach((rig, i) => { const s = i ? 1 : -1, hx = P.x + Math.sin(f) * 2.6 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 2.6 - Math.sin(f) * s * 0.55;
       animAnimal(rig, { speed: P.spd * 0.55, phase: HR.ph + i * 0.4, graze: false }, t); rig.update(m4trs(HR['M' + i] || (HR['M' + i] = m4()), hx, hAt(hx, hz), hz, f));
-      list.push({ mesh: G.animalMesh('horse', i ? 'plain' : 'brown', { saddle: 0xd9a73a }), bones: rig.bones, outline: true }); }); }
+      list.push({ mesh: G.animalMesh('horse', 'plain', { saddle: 0xe2b440 }), bones: rig.bones, outline: true }); }); }
 }
 // light: the moonlight shaft in Joseph's cell, the dream glows
 let shaftMesh = null;

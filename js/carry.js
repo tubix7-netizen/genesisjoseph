@@ -59,8 +59,8 @@ if (Ph) {
     G.m4trs(b.m, b.x, b.y, b.z, b.yaw, 0, 0); sfx('pickup', { pitch: 0.7, vol: 0.5 }); G.UI.hud(); };
   // the physics context offers 「던지기」 while holding; turn that into 「두기」 (throwing lives on the attack button now)
   const i = Game.CTX.findIndex(f => String(f).includes("key: 'throw'")); if (i >= 0) { const f0 = Game.CTX[i]; Game.CTX[i] = function (s, g) { const r = f0.apply(this, arguments);
-    if (r && r[0] && r[0].key === 'throw') { const b = Ph.held; r[0] = Object.assign({}, r[0], { label: `${b.K.n} 두기`, use: Ph.place, key: 'place' }); } return r; }; }
-  const pick0 = Ph.pick; Ph.pick = function () { const s = S(), was = s.hand || null; const r = pick0.apply(this, arguments); if (Ph.held) { s.flags.handBack = was; s.hand = null; } G.UI.hud(); /* v18.22 both hands go to the thing: the tool is put away for a moment */ help('lift', '물건을 들었어요', 'A키 두기 · B키 던지기 · 작은 단추 쓰기'); return r; };
+    if (r && r[0] && r[0].key === 'throw') { const b = Ph.held, u = useOf(b); r[0] = u ? Object.assign({}, r[0], { label: u.l, use: () => { u.f(b); G.UI.hud(); }, key: 'heldUse' }) : Object.assign({}, r[0], { label: `${b.K.n} 두기`, use: Ph.place, key: 'place' }); } return r; }; }
+  const pick0 = Ph.pick; Ph.pick = function () { const s = S(), was = s.hand || null; const r = pick0.apply(this, arguments); if (Ph.held) { s.flags.handBack = was; s.hand = null; } G.UI.hud(); /* v18.22 both hands go to the thing: the tool is put away for a moment */ help('lift', '물건을 들었어요', useOf(Ph.held) ? 'A키 먹기·살펴보기 · A키를 아래로 끌면 두기 · B키 던지기' : 'A키 두기 · B키 던지기'); return r; };
 }
 const USE = { // what the small 「쓰기」 button does with the thing in your arms
   melon: { l: '쪼개 먹기', f: b => { brk(b); breath(30); if (G.Surv && G.Surv.fed) G.Surv.fed('melon', 12); if (G.Acts) G.Acts.play('eat', { quiet: true }); pop('시원한 수박!', '기력 +30', 'berry'); } },
@@ -72,9 +72,20 @@ const USE = { // what the small 「쓰기」 button does with the thing in your 
 function once(b, k, fn, empty) { const s = S(), f = s.flags.peek = s.flags.peek || {}, id = b.id + ':' + k; if (f[id] === s.day) { G.UI.toast(empty || '오늘은 이미 살펴봤어요 · 내일 다시 봐요'); return; } f[id] = s.day; fn(); }
 function gift(keys, where) { const ks = keys.filter(k => Game.ITEMS[k]); if (!ks.length || Math.random() < 0.3) { G.UI.toast(`${where} 아무것도 없네요`); return; } const k = ks[Math.floor(Math.random() * ks.length)]; Game.give(k, 1); sfx('pickup'); const n = Game.ITEMS[k].n, c = n.charCodeAt(n.length - 1), jo = c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '이' : '가'; pop(`${n}${jo} 있었어요!`, where.replace(' 안에', ''), Game.ITEMS[k].ic); }
 function brk(b) { Ph.held = null; P().liftArms = false; handBack(); b.gone = true; G.FX && G.FX.burst(b.x, b.y, b.z, 18, { c: [0.85, 0.25, 0.25], sp: 2, up: 2, size: 0.07, g: 9 }); }
-const useBtn = document.createElement('button'); useBtn.className = 'cbtn'; useBtn.id = 'btnUse'; useBtn.hidden = true; ($('controls') || document.body).appendChild(useBtn);
-useBtn.addEventListener('pointerdown', e => { e.preventDefault(); const b = Ph && Ph.held, u = b && USE[b.k]; if (!u || G.UI.busy()) return; u.f(b); G.UI.hud(); });
-function useHud() { const b = Ph && Ph.held, u = b && USE[b.k]; useBtn.hidden = !u; if (u && useBtn.dataset.l !== u.l) { useBtn.dataset.l = u.l; useBtn.textContent = u.l; } }
+/* v18.24 no extra 「쓰기」 button (too many buttons): A does the thing's use (eat the melon, drink from the jar, look in the basket);
+   to put it down instead, press A and slide the finger down (like cancelling a sling shot) — or use A when today's use is spent */
+const ONCE = { jar: 'drink', pot: 'peek', basket: 'peek', sack: 'peek' };
+function useOf(b) { const u = b && USE[b.k]; if (!u) return null; const k = ONCE[b.k], s = S(); if (k && s.flags.peek && s.flags.peek[b.id + ':' + k] === s.day) return null; return u; }
+Ca.useOf = useOf;
+{ const A = $('btnA'); let dn = null; const tip = document.createElement('div'); tip.id = 'aDrop'; tip.innerHTML = '<i>⌄</i><span>끌어 내리면 두기</span>'; tip.hidden = true; ($('controls') || document.body).appendChild(tip);
+  const heldUse = () => { const c = Game.ctx && Game.ctx(); return !!(c && c.key === 'heldUse' && Ph && Ph.held && !G.UI.busy()); };
+  addEventListener('pointerdown', e => { if (!A || !e.target.closest || !e.target.closest('#btnA') || !heldUse()) return; e.stopPropagation(); e.preventDefault(); dn = { id: e.pointerId, y: e.clientY }; try { A.setPointerCapture(e.pointerId); } catch (_) { } tip.classList.remove('go'); }, true);
+  addEventListener('pointermove', e => { if (!dn || e.pointerId !== dn.id) return; tip.classList.toggle('go', e.clientY - dn.y > 38); }, true);
+  const up = e => { if (!dn || e.pointerId !== dn.id) return; const far = e.clientY - dn.y > 38; dn = null; tip.classList.remove('go'); if (!Ph.held) return;
+    if (far) { Ph.place(); return; } const c = Game.ctx(); if (c && c.key === 'heldUse') c.use(); };
+  addEventListener('pointerup', up, true); addEventListener('pointercancel', e => { if (dn && e.pointerId === dn.id) { dn = null; tip.classList.remove('go'); } }, true);
+  Ca.tipHud = () => { const on = heldUse(); if (tip.hidden === on) tip.hidden = !on; }; }
+function useHud() { if (Ca.tipHud) Ca.tipHud(); }
 
 // ------------------------------------------------------------------ quick slot: one food, eaten with one tap
 const qBtn = document.createElement('button'); qBtn.className = 'cbtn'; qBtn.id = 'btnQuick'; qBtn.hidden = true; ($('controls') || document.body).appendChild(qBtn);
@@ -82,14 +93,14 @@ qBtn.addEventListener('pointerdown', e => { e.preventDefault(); const k = S().qu
 Ca.setQuick = k => { S().quick = k || null; if (k) { if (!(G.UI.help && G.UI.help('quick', '퀵슬롯', '점프 단추 위 작은 단추로 바로 먹어요'))) G.UI.pop ? G.UI.pop('퀵슬롯 등록', Game.ITEMS[k].n, 'bread') : G.UI.toast('퀵슬롯 · ' + Game.ITEMS[k].n); } else G.UI.toast('퀵슬롯을 비웠어요'); G.UI.hud(); };
 Ca.edible = edible;
 function quickHud() { const k = S().quick, n = k ? Game.inv(k) : 0; qBtn.hidden = !k; if (!k) return; const lab = `${Game.ITEMS[k] ? Game.ITEMS[k].n : ''}\n×${n}`; if (qBtn.dataset.l !== lab) { qBtn.dataset.l = lab; qBtn.innerHTML = `${G.UI.itemIcon(k)}<small>${n}</small>`; qBtn.title = Game.ITEMS[k].n; /* v18.22 an icon, not words */ } qBtn.classList.toggle('low', n <= 0); }
-addEventListener('keydown', e => { if (Game.mode !== 'play' || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return; if (e.code === 'KeyQ') qBtn.dispatchEvent(new PointerEvent('pointerdown')); if (e.code === 'KeyR') useBtn.dispatchEvent(new PointerEvent('pointerdown')); });
+addEventListener('keydown', e => { if (Game.mode !== 'play' || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return; if (e.code === 'KeyQ') qBtn.dispatchEvent(new PointerEvent('pointerdown')); if (e.code === 'KeyR') { const b = Ph && Ph.held; if (b && Ph.held) Ph.place(); } });
 
 const css = document.createElement('style'); css.textContent = `
-#btnUse{width:52px;height:52px;right:calc(var(--gr) + 300px);bottom:calc(env(safe-area-inset-bottom,0px) + 112px);font-size:11.5px;background:radial-gradient(circle at 40% 30%,#6a8a4a,#2a3a1c)}
+#aDrop{position:absolute;right:calc(var(--gr) + 18px);bottom:calc(env(safe-area-inset-bottom,0px) + 92px);display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;background:rgba(9,16,34,.62);color:#f4e8cc;font-size:10.5px;pointer-events:none;transition:background .15s}#aDrop i{font-style:normal;font-size:13px;line-height:1}#aDrop.go{background:rgba(160,110,40,.9);color:#fff}
 #btnQuick{width:50px;height:50px;right:calc(var(--gr) + 47px);bottom:calc(env(safe-area-inset-bottom,0px) + 222px);font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 40% 30%,#a07a3a,#4a3418)}
 #btnQuick svg{width:24px;height:24px}#btnQuick small{position:absolute;right:6px;bottom:3px;font-size:10px;font-weight:700;opacity:.9}#btnQuick.low{opacity:.5}
-@media (max-aspect-ratio:1/1){#btnUse{width:48px;height:48px;right:calc(var(--gr) + 160px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px)}#btnQuick{width:46px;height:46px;right:calc(var(--gr) + 23px);bottom:calc(env(safe-area-inset-bottom,0px) + 286px)}}
-body.busy #btnUse,body.cine #btnUse,body.photo #btnUse,body.busy #btnQuick,body.cine #btnQuick,body.photo #btnQuick{visibility:hidden}
+@media (max-aspect-ratio:1/1){#aDrop{right:calc(var(--gr) + 4px);bottom:calc(env(safe-area-inset-bottom,0px) + 116px)}#btnQuick{width:46px;height:46px;right:calc(var(--gr) + 23px);bottom:calc(env(safe-area-inset-bottom,0px) + 286px)}}
+body.busy #aDrop,body.cine #aDrop,body.photo #aDrop,body.busy #btnQuick,body.cine #btnQuick,body.photo #btnQuick{visibility:hidden}
 #btnAtkN{position:absolute;left:6px;bottom:4px;font-style:normal;font-size:10px;font-weight:700;opacity:.85}
 .hot i.liq{display:inline-block;width:12px;height:12px;border-radius:50% 50% 40% 40%;border:1px solid #fff6;flex:none}`;
 document.head.appendChild(css);

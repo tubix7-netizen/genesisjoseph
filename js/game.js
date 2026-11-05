@@ -143,6 +143,7 @@ function newState(ep) {
   };
 }
 
+Game.newState = ep => newState(ep); /* v18.24 (the title builds the cart test slot from it) */
 // =================================================================== LOAD / SAVE
 /* v18.23 three save slots: slot 1 keeps the old key (old saves stay in slot 1), slots 2 and 3 add '#2' / '#3'. Game.slot is the slot being played (remembered in genesisSlot) and every save goes there. */
 Game.slot = (() => { try { return +localStorage.getItem('genesisSlot') || 1; } catch (e) { return 1; } })();
@@ -246,7 +247,7 @@ Game.start = function (epId, fresh, preview) {
   { const tm = /[?&]trees=(hi|lo)\b/.exec(location.search); G.treeLod = tm ? (tm[1] === 'lo' ? 1 : 0) : (COARSE && SET.quality !== 'high' ? 1 : 0); } // v18.6 tree detail (phones: lighter)
   if (!reuse) {
     if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
-    if (window.__bc) __bc('build'); EP.build(W, Game);
+    if (window.__bc) __bc('build'); G.POOLS = []; EP.build(W, Game); W.pools = poolMesh(G.POOLS); G.POOLS = [];
     if (window.__bc) __bc('statics'); W.finishStatics();
     Game.worldEp = epId; Game.worldPreview = !!preview; Game.worldSaved = !!(saved && saved.v === 2); Game.worldSlot = Game.slot;
   } else { Game.worldPreview = false; if (window.__bc) __bc('reuse'); }
@@ -275,8 +276,14 @@ Game.start = function (epId, fresh, preview) {
   Game.go(S.step, true); featCheck(true);
   if (fresh && EP.opening && G.Opening && !S.flags.opened) { S.flags.opened = 1; G.Opening.play(EP.opening, S, Game); }
 };
+/* v18.24 garden pools: every pool the episode built leaves its four water corners in G.POOLS; they become one water mesh (a 1 m grid, for the ripples) */
+function poolMesh(list) { if (!list || !list.length) return null; const d = []; const v = p => d.push(p[0], p[1], p[2], 0, 1, 0, 1, 1, 1, 0, 0);
+  for (const [a, b, c, e] of list) { const nu = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[2] - a[2]))), nv = Math.max(1, Math.round(Math.hypot(e[0] - a[0], e[2] - a[2])));
+    const at = (u, w) => [0, 1, 2].map(k => a[k] + (b[k] - a[k]) * u + (e[k] - a[k]) * w);
+    for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) { const u0 = i / nu, u1 = (i + 1) / nu, w0 = j / nv, w1 = (j + 1) / nv; v(at(u0, w0)); v(at(u1, w0)); v(at(u1, w1)); v(at(u0, w0)); v(at(u1, w1)); v(at(u0, w1)); } }
+  return R.mesh(new Float32Array(d)); }
 Game.dispose = function () {
-  if (!W) return; W.terrain.forEach(R.free); W.statics.forEach(R.free); if (W.water) R.free(W.water.mesh);
+  if (!W) return; W.terrain.forEach(R.free); if (W.pools) R.free(W.pools); W.statics.forEach(R.free); if (W.water) R.free(W.water.mesh);
   for (const k in ENT.nodeSets) R.free(ENT.nodeSets[k]); ENT.nodeSets = {}; for (const k in ENT.cropSets) R.free(ENT.cropSets[k]); ENT.cropSets = {};
   if (ENT.soilMesh) R.free(ENT.soilMesh); ENT.soilMesh = null; ENT.dyn.forEach(d => d.own && R.free(d.mesh)); ENT.dyn = [];
   R.gl.deleteTexture(W.heightTex); R.gl.deleteTexture(W.colTex); W = null; ENT.animals = []; ENT.nodes = [];
@@ -284,7 +291,7 @@ Game.dispose = function () {
 Game.applyQuality = function () {
   const q = SET.quality; R.setShadow(q === 'high' ? 2048 : q === 'mid' ? 1024 : 0);
   R.setFarK(PERF.farMax = (/[?&]far=(\d(?:\.\d+)?)\b/.exec(location.search) || [])[1] ? +RegExp.$1 : (COARSE ? (q === 'high' ? 0.85 : q === 'mid' ? 0.7 : 0.6) : 1)); // v18.6 phone draw distance (?far=1 for the old one)
-  R.cloudLo = COARSE; R.cloudSh = R.skyOn && q !== 'low' ? 1 : 0; // v18.3 P10: cloud shadows (a little noise per pixel) are off on the lowest quality, as are shadows; ?sky=0 turns the whole new sky/fog look off
+  R.cloudLo = COARSE; R.waterLite = COARSE && q !== 'high' && !/[?&]wlite=0\b/.test(location.search); R.cloudSh = R.skyOn && q !== 'low' ? 1 : 0; // v18.3 P10: cloud shadows (a little noise per pixel) are off on the lowest quality, as are shadows; ?sky=0 turns the whole new sky/fog look off
   if (R.grass) R.grass.n = q === 'high' ? 9000 : q === 'mid' ? 5000 : 0;
   Game.dpr = Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : q === 'mid' ? (COARSE ? 1.4 : 1.5) : 1);
   G.UI.resize && G.UI.resize();
@@ -800,6 +807,16 @@ Game.useAction = function (a, mag) {
 Game.pressAction = function () { if (G.Cine && G.Cine.on) { G.Cine.skip(); return; } if (G.Combat && G.Combat.fish && G.Combat.fishPress()) return; if (G.UI.busy()) { G.UI.advance(); return; } if (ctx) Game.useAction(ctx); };
 
 // =================================================================== PLAYER UPDATE
+/* v18.24 where Joseph walks rather than runs: the villages (Egypt's towns, the workers' village, Byblos), Hebron's camp, Potiphar's estate,
+   the palace, the vizier's house and inside any house. Checked a few times a second, not every frame. */
+const TOWN_EXTRA = [[176, 152, 20], [-30, -162, 18], [10, -141, 20]];
+let townT = 0;
+function townTick(dt) { if ((townT -= dt) > 0) return; townT = 0.35; P.town = townAt(P.x, P.z); }
+function townAt(x, z) { if (!S) return false; const f = S.flags || {}; if (f.inHouse || f.byblos) return true;
+  for (const v of EP.villages || []) { if (v.when && !v.when(S)) continue; if (Math.hypot(v.x - x, v.z - z) < v.r + 2) return true; }
+  if (EP.id === 'joseph') { for (const [tx, tz, r] of TOWN_EXTRA) if (Math.hypot(tx - x, tz - z) < r) return true; if (x > -51 && x < 16 && z > 34 && z < 84) return true; }
+  return false; }
+Game.townAt = townAt;
 function updatePlayer(dt) {
   if (G.Climb) { G.Climb.frame(dt); if (P.climb) { G.Climb.update(dt); if (G.Acts) G.Acts.update(dt); return; } }
   const busy = G.UI.busy(); if (P.magnet && (busy || (G.Cine && G.Cine.on))) P.magnet = null;
@@ -812,10 +829,11 @@ function updatePlayer(dt) {
   mag = mag < 0.1 ? 0 : Math.pow((mag - 0.1) / 0.9, 1.15);
   const g0 = W.heightAt(P.x, P.z), wl = W.water ? W.water.level : -99; P.swim = g0 < wl - 0.75;
   if (mag === 0 || P.exhausted || P.swim) P.sprint = P.sprint && mag > 0 && !P.exhausted && !P.swim;
+  townTick(dt); if (P.chaseT > 0) P.chaseT -= dt; const XS = G.Extras, town = P.town && !P.ride && !(S.q && S.q.riding) && !(P.chaseT > 0) && S.step !== 'c2_flee' && !(S.q && S.q.flee) && !(XS && ((XS.hide && XS.hide.on) || (XS.herd && XS.herd.on))); /* v18.24 inside a village: 달리기 is only a brisk walk, and it costs no breath */
   let target = 0;
   const RD = P.ride && G.Ride ? G.Ride.spec(P.ride) : null; if (RD && P.swim) G.Ride.dismount(false, '물이 깊어 내렸어요');
   if (mag > 0 && RD) { target = mag < 0.6 ? lerp(1.2, RD.walk * 0.62, mag / 0.6) : lerp(RD.walk * 0.62, RD.walk, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45 && !P.ride.tired) target = RD.run; if (g0 < wl) target *= 0.6; }
-  else if (mag > 0) { target = mag < 0.6 ? lerp(1.0, 2.6, mag / 0.6) : lerp(2.6, 4.8, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45) target = 7.6; if (P.limp) target *= 0.72; if (P.atk) target *= 0.3; if (P.swim) target = Math.min(target, 2.2); else if (g0 < wl) target *= 0.7; if (P.exhausted) target = Math.min(target, 2.0); if (P.crouch) target = Math.min(target, P.swim ? target : 1.75); }
+  else if (mag > 0) { target = town ? (mag < 0.6 ? lerp(0.9, 2.1, mag / 0.6) : lerp(2.1, 3.0, (mag - 0.6) / 0.4)) : mag < 0.6 ? lerp(1.0, 2.6, mag / 0.6) : lerp(2.6, 4.8, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45) target = town ? 3.9 : 7.6; /* (in a village the legs keep a walking stride: the run blend starts at 3 m/s) */ if (P.limp) target *= 0.72; if (P.atk) target *= 0.3; if (P.swim) target = Math.min(target, 2.2); else if (g0 < wl) target *= 0.7; if (P.exhausted) target = Math.min(target, 2.0); if (P.crouch) target = Math.min(target, P.swim ? target : 1.75); }
   if (G.Surv && target > 0) target *= G.Surv.mul;
   if (EP.speedMul && target > 0) target *= EP.speedMul(S, P, mag);
   const yaw = CAM.yaw; const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
@@ -860,7 +878,7 @@ function updatePlayer(dt) {
   P.jumpBuf -= dt; if (P.jumpBuf > 0 && (P.grounded || P.coyote > 0) && !busy && !P.act && !P.swim && !P.ride && !P.downed && P.stam > 4) { if (P.crouch && G.Vitals) G.Vitals.crouch(false); P.vy = 7.9; P.grounded = false; P.coyote = 0; P.jumpBuf = 0; P.stam -= 6; P.jumpCut = !INPUT.jumpHeld && !P.jumpTap; P.jumpTap = false; }
   // stamina
   if (P.ride) { P.stamT = (P.stamT || 0) + dt; const sm = (S.hero && S.hero.stamMax) || 100; P.stam = Math.min(sm, P.stam + 30 * dt); if (P.exhausted && P.stam > 45) P.exhausted = false; }
-  else if (P.sprint && P.spd > 3) { P.stam -= 20 * dt; P.stamT = 0; if (P.stam <= 0) { P.stam = 0; P.exhausted = true; P.sprint = false; G.UI.toast('숨이 차요… 잠시 쉬어요'); } }
+  else if (P.sprint && P.spd > 3 && !town) { P.stam -= 20 * dt; P.stamT = 0; if (P.stam <= 0) { P.stam = 0; P.exhausted = true; P.sprint = false; G.UI.toast('숨이 차요… 잠시 쉬어요'); } }
   else { P.stamT = (P.stamT || 0) + dt; const sm = (S.hero && S.hero.stamMax) || 100; if (P.stamT > 1.2 && !(G.Climate && G.Climate.cold) && P.stam < ((G.Vitals && G.Vitals.cap) || sm)) P.stam = Math.min((G.Vitals && G.Vitals.cap) || sm, P.stam + (P.exhausted ? 7 : 10) * dt * (G.Surv ? G.Surv.regen : 1) * (P.resting ? 2.5 : 1)); if (P.exhausted && P.stam > 45) P.exhausted = false; }
   // footsteps (sound on each foot plant) + dust
   if (P.grounded && P.spd > 0.6 && !P.act && !P.ride) { const ph = Math.floor(P.phase / Math.PI); if (ph !== P.lastStepPh) { P.lastStepPh = ph; const gi = W.surfAt ? W.surfAt(P.x, P.z) : 'sand'; sfx('step', { surf: g0 < wl + 0.05 ? 'water' : gi, vol: Math.min(1, 0.35 + P.spd / 8), pitch: 0.9 + Math.random() * 0.2, gap: 0.12 }); } }
@@ -880,7 +898,8 @@ function updatePlayer(dt) {
 let holdRepeat = 0;
 
 // =================================================================== NPC / ANIMAL UPDATE
-function updateNPCs(dt, t) {
+let npcFrame = 0;
+function updateNPCs(dt, t) { npcFrame++;
   for (const id in ENT.npcs) {
     const n = ENT.npcs[id]; n.vis = npcVisible(n); n.col.on = n.vis && !n.follow && !n.pass; if (!n.vis) continue;
     const dist = Math.hypot(n.x - P.x, n.z - P.z); const cc = Game.cineCam; n.near = dist < 90 || (!!cc && Math.hypot(n.x - cc.x, n.z - cc.z) < 90); if (!n.near) continue;
@@ -928,6 +947,10 @@ function updateNPCs(dt, t) {
     if (n.emote) { n.emote.t += dt; if (n.emote.t >= n.emote.dur || n.walk || n.talking) n.emote = null; else if (!n.emote.amb) n.face += angDiff(n.face, Math.atan2(P.x - n.x, P.z - n.z)) * Math.min(1, dt * 5); }
     const emo = n.emote && n.emote.t >= 0 ? n.emote : null; n.st.act = emo ? emo.k : n.act; n.st.actT = emo ? Math.min(1, emo.t / emo.dur) : (t * 0.8) % 1; n.st.kneel = n.d.kneel; n.st.sit = n.d.sit || n.sit; n.st.sleep = n.sleep; n.st.limp = n.d.limp; n.st.long = n.d.look && n.d.look.long; n.st.ride = !!((n.pass && !n._inCart) || n.seatY); /* v18.23 in the chariot they sit on its floor, not astride */ { const em = G.Cine && G.Cine.emoOf ? G.Cine.emoOf(n.name) : null; n.st.emo = em && !n.d.animal ? em[0] : null; n.st.emoK = em ? em[1] : 1; /* v16.8 acting */ } n.st.passenger = !!n.pass && !n._inCart; n.st.rideSp = n.pass ? P.spd : n.aspd; n.st.ridePh = n.pass ? (P.ride ? P.ride.ph || 0 : 0) : (n.mph || 0); n.st.shiver = n.shiver;
     n.st.graze = n.d.animal && !speed && Math.sin(t * 0.3 + n.x) > 0.2;
+    /* v18.24 phones: people far away or behind the camera re-pose every 2nd-4th frame (their place still moves every frame; the pose clock is absolute, so nothing drifts) */
+    if (COARSE && !Game.cineOn && !n.talking && n.rig.bones && n.M) { if (n._ah === undefined) { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0; n._ah = Math.abs(h); }
+      const vx = -Math.sin(CAM.yaw), vz = -Math.cos(CAM.yaw), bx = n.x - CAM.x, bz = n.z - CAM.z, behind = dist > 7 && vx * bx + vz * bz < -0.25 * Math.hypot(bx, bz);
+      const k = behind ? 4 : dist > 55 ? 3 : dist > 28 ? 2 : 1; if (k > 1 && (npcFrame + n._ah) % k) { n.rig.update(m4trs(n.M, n.x, n.y + (n.d.dy || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale)); continue; } } /* (only the pose maths is skipped; the bones follow the body every frame) */
     if (n.d.animal) animAnimal(n.rig, n.st, t); else animHuman(n.rig, n.st, t + n.x);
     n.rig.update(m4trs(n.M || (n.M = m4()), n.x, n.y + (n.d.dy || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale));
   }
@@ -997,7 +1020,7 @@ function updateCamera(dt, snap) {
   const k = snap ? 1 : 1 - Math.exp(-dt * (sh ? 16 : 12)), kv = snap ? 1 : 1 - Math.exp(-dt * 8);
   const rideUp = P.ride && G.Ride ? G.Ride.spec(P.ride).camUp : 0; CAM.rideK = lerp(CAM.rideK || 0, rideUp, snap ? 1 : 1 - Math.exp(-dt * 3));
   CAM.tx = lerp(CAM.tx, P.x, k); CAM.tz = lerp(CAM.tz, P.z, k); CAM.ty = lerp(CAM.ty, P.y + lerp(C.piv, AC.piv, aw2) + CAM.rideK, kv);
-  const run = P.sprint && P.spd > 5 ? 1 : 0;
+  const run = P.sprint && P.spd > 5.8 ? 1 : 0;
   /* indoors: under a roof the boom stays below the ceiling, the view levels out and comes in a little, so the people in
      the room are in shot instead of the roof (RDR2-style interior camera). Eases in and out at the doorway. */
   const roof = W.roofAt(P.x, P.z, P.y); P.indoor = !!roof; if (roof) CAM.ceil = roof.y;
@@ -1058,9 +1081,13 @@ function dialogCam(dt) {
     const f = W.ray(A.x, ay, A.z, cx, cy, cz); if (f < 1) { cx = A.x + (cx - A.x) * Math.max(0.3, f - 0.1); cz = A.z + (cz - A.z) * Math.max(0.3, f - 0.1); }
     const tx = Bn.x - dx * 0.05, tz = Bn.z - dz * 0.05, ty = by - 0.07;
     /* v18.12j a tree or wall between the lens and the listener's face: try the other shoulder, a wider swing, a closer lens, until the face is clear */
-    { const clear = (x, z, y) => { const dd = Math.hypot(tx - x, tz - z) || 1, g = W.ray(x, y, z, tx, ty, tz); return g >= 1 - 1.0 / dd; };
-      if (!clear(cx, cz, cy)) { const tries = [[-sideO, back], [sideO * 1.8, back], [-sideO * 1.8, back], [sideO, back * 0.55], [-sideO, back * 0.55], [0, back * 1.6], [sideO * 2.6, back * 0.8], [-sideO * 2.6, back * 0.8]];
-        for (const [so, bk] of tries) { const x = A.x - dx * bk + sx * so, z = A.z - dz * bk + sz * so; if (W.ray(A.x, ay, A.z, x, cy, z) >= 1 && clear(x, z, cy)) { cx = x; cz = z; break; } } } }
+    /* v18.24 tree crowns count too (W.ray only knows trunks and walls, so a crown between the lens and Joseph's face used to pass as clear) */
+    const cans = []; if (W.canopies) for (const c of W.canopies) if (Math.abs(c.x - A.x) < c.r + 9 && Math.abs(c.z - A.z) < c.r + 9) cans.push(c);
+    const leafy = (x, y, z) => { for (let i = 0; i < 9; i++) { const u = i / 9, px = x + (tx - x) * u, py = y + (ty - y) * u, pz = z + (tz - z) * u; for (const c of cans) if (py > c.y0 - 0.3 && py < c.y1 && Math.hypot(c.x - px, c.z - pz) < c.r * 0.95) return true; } return false; };
+    { const clear = (x, z, y) => { const dd = Math.hypot(tx - x, tz - z) || 1, g = W.ray(x, y, z, tx, ty, tz); return g >= 1 - 1.0 / dd && !leafy(x, y, z); };
+      if (!clear(cx, cz, cy)) { const tries = [[-sideO, back], [sideO * 1.8, back], [-sideO * 1.8, back], [sideO, back * 0.55], [-sideO, back * 0.55], [0, back * 1.6], [sideO * 2.6, back * 0.8], [-sideO * 2.6, back * 0.8], [sideO * 3.4, 0], [-sideO * 3.4, 0], [sideO * 1.6, -back * 0.6], [-sideO * 1.6, -back * 0.6]];
+        let got = false; for (const [so, bk] of tries) { const x = A.x - dx * bk + sx * so, z = A.z - dz * bk + sz * so; if (W.ray(A.x, ay, A.z, x, cy, z) >= 1 && clear(x, z, cy)) { cx = x; cz = z; got = true; break; } }
+        if (!got) { /* nothing clear: come in close beside the face (a crown that hangs low still leaves the last metre open) */ const x = tx - dx * 1.15 + sx * 0.45, z = tz - dz * 1.15 + sz * 0.45; if (!leafy(x, ty + 0.05, z)) { cx = x; cz = z; cy = ty + 0.05; } } } }
     const side = (heroTalks ? 'h' : 'n') + (n.id || ''); // shot / reverse-shot: cut when the speaker changes sides instead of swinging the camera through the pair
     if (!DC.ok || (DC.side && DC.side !== side && Game.dlgW > 0.9)) { DC.ax = cx; DC.ay = cy; DC.az = cz; DC.lx = tx; DC.ly = ty; DC.lz = tz; DC.ok = true; }
     DC.side = side;
@@ -1186,7 +1213,7 @@ function render(dt) {
   scene.cam[0] = CAM.x; scene.cam[1] = CAM.y; scene.cam[2] = CAM.z; scene.target[0] = CAM.lx === undefined ? CAM.tx : CAM.lx; scene.target[1] = CAM.ly === undefined ? CAM.ty : CAM.ly; scene.target[2] = CAM.lz === undefined ? CAM.tz : CAM.lz;
   scene.focus[0] = P.x + Math.sin(CAM.yaw + PI) * 8; scene.focus[1] = P.y; scene.focus[2] = P.z + Math.cos(CAM.yaw + PI) * 8;
   scene.shadowOn = SET.quality !== 'low' && env.night < 0.9; scene.shadowExt = COARSE ? 28 : 34; // v18.9 phones: a smaller shadow square (fewer casters, sharper texels)
-  scene.terrain = W.terrain; scene.statics = W.statics; scene.water = W.water;
+  scene.terrain = W.terrain; scene.statics = W.statics; scene.water = W.water; scene.pools = W.pools;
   scene.insts.length = 0; for (const k in ENT.nodeSets) scene.insts.push(ENT.nodeSets[k]); for (const k in ENT.cropSets) scene.insts.push(ENT.cropSets[k]);
   scene.dyn.length = 0; for (const d of ENT.dyn) scene.dyn.push(d); if (ENT.soilMesh) { const sd = ENT.soilDyn || (ENT.soilDyn = { m: IDM, shadow: false }); sd.mesh = ENT.soilMesh; scene.dyn.push(sd); }
   if (EP.dyn) EP.dyn(scene.dyn, S, Game, tAll);
@@ -1195,7 +1222,7 @@ function render(dt) {
   scene.skinned.length = 0;
   // player
   const pst = P.pst || (P.pst = {}); const spk = G.UI.speaker && G.UI.speaker(); Object.assign(pst, { talk: !!spk && (spk === EP.hero || spk === '이스라엘'), face: P.face, speed: P.spd, phase: P.phase, air: !P.grounded && !P.swim, act: P.act, actT: P.act ? (P.actT % P.actDur) / P.actDur : 0, idle: 1, limp: P.limp, carry: P.carry ? (P.carryArms ? 'arms' : 'head') : G.Phys && G.Phys.held ? (G.Phys.heavy(G.Phys.held) ? 'arms' : 'one') : null, staff: (hand() === 'staff' || hand() === 'hoe') && !P.act && !P.ride && !P.carry && !P.sit && !P.kneel && !P.sleeping && !Game.cineOn && !(G.Combat && G.Combat.heldProp()), long: P.look.long, kneel: P.kneel, sleep: P.sleeping, sit: P.sit, ride: !!P.ride, rideSp: P.spd, ridePh: P.ride ? P.ride.ph || 0 : 0, shiver: G.Surv ? G.Surv.shiver : 0 });
-  { pst.vy = P.vy; pst.hero = true; pst.sprint = P.sprint && P.spd > 5; // v16.7 야숨: the hero glances at what he could use / who he could talk to
+  { pst.vy = P.vy; pst.hero = true; pst.sprint = P.sprint && P.spd > 5.8; // v16.7 야숨: the hero glances at what he could use / who he could talk to
     let lk = 0; const c = ctx; if (c && c.x !== undefined && !P.act && !P.ride && !Game.cineOn && !G.UI.busy()) { const d = Math.hypot(c.x - P.x, c.z - P.z); if (d > 0.4 && d < 7) lk = clamp(angDiff(P.face, Math.atan2(c.x - P.x, c.z - P.z)), -1.05, 1.05); }
     P.lookS = lerp(P.lookS || 0, lk, 0.1); if (Math.abs(P.lookS) > 0.02) pst.look = P.lookS; else delete pst.look; }
   pst.gnd = P.grounded && !P.swim && !(EP.floor && EP.floor(P.x, P.z, S) !== null) ? G.Motion.groundFn(P) : null; pst.listen = !pst.talk && !!spk; pst.swim = P.swim;

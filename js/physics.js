@@ -23,6 +23,7 @@ const KINDS = Ph.KINDS = {
   sack: { n: '곡식 자루', r: 0.3, m: 20, e: 0.05, f: 0.9, roll: 0.05, lift: true, snd: 'rustle', model(g) { g.lathe([[0.2, -0.3], [0.3, -0.18], [0.29, 0.12], [0.12, 0.28], [0.16, 0.32]], 10, { c: 0xd8c49a, j: 0.05 }); } },
 };
 const MESH = {};
+Ph.meshOf = k => meshOf(k); /* v18.24 (the cart draws what it carries) */
 function meshOf(k) { if (!MESH[k]) { const g = new G.GB(70 + k.length); KINDS[k].model(g); MESH[k] = G.R.mesh(g); } return MESH[k]; }
 
 Ph.add = function (k, x, z, o) { const W = Game.W(), K = KINDS[k]; o = o || {};

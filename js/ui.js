@@ -733,12 +733,17 @@ UI.frame = function (dt) {
   else cp.hidden = true;
   document.body.classList.toggle('dlgcam', Game.dlgW > 0.3); // dialogue close-up: clear the frame
   // name tags
-  const goal = tg && tg.npc;
+  if (UI.tagReveal > 0) UI.tagReveal -= dt; const goal = tg && tg.npc;
   for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; let el = tagEls[id]; const d = Math.hypot(n.x - P.x, n.z - P.z);
-    const mk0 = !n.d.noTag && n.vis && n.near && d < 34 && G.Life && G.Life.mark(id); const show = n.vis && n.near && (d < 16 || mk0) && !n.d.noTag && !busyFlags.narr && !(Game.dlgW > 0.3); if (!show) { if (el) el.hidden = true; continue; }
+    const mk0 = !n.d.noTag && n.vis && n.near && d < 34 && G.Life && G.Life.mark(id); let show = n.vis && n.near && (d < 16 || mk0) && !n.d.noTag && !busyFlags.narr && !(Game.dlgW > 0.3);
+    /* v18.24 only the people Joseph could actually see: not through walls, not from inside a house to the street. 「집중」 shows every name once for a moment. */
+    if (show && !(UI.tagReveal > 0)) { const W = Game.W(); if ((n._losT = (n._losT || 0) - dt) <= 0) { n._losT = 0.25 + Math.random() * 0.15; const hy = n.y + (n.d.animal ? 1.0 : 1.55) * (n.scale || 1), C = Game.CAM;
+        n._los = !W || !W.sees || (W.sees(P.x, P.y + 1.6, P.z, n.x, hy, n.z) && (C.x === undefined || W.sees(C.x, C.y, C.z, n.x, hy, n.z))); }
+      if (n._los === false) show = false; }
+    if (!show) { if (el) el.hidden = true; continue; }
     if (!el) { el = document.createElement('div'); el.className = 'tag'; $('tags').appendChild(el); tagEls[id] = el; } const mk = G.Life && G.Life.mark(id); const key = (mk || '') + n.name; if (el.dataset.k !== key) { el.dataset.k = key; el.innerHTML = (mk ? `<i class="mk ${mk === '?' ? 'q' : ''}">${mk}</i>` : '') + esc(n.name); }
     const s = R.project(n.x, n.y + (n.d.animal ? 1.6 : 2.5) * (n.scale || 1), n.z, UI.W, UI.H); if (!s) { el.hidden = true; continue; }
-    el.hidden = false; el.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; el.classList.toggle('goal', id === goal); el.classList.toggle('sideGoal', id === goal && !!tg.side); }
+    el.hidden = false; el.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; { const op = UI.tagReveal > 0 && n._los === false ? String(Math.min(1, UI.tagReveal / 0.8)) : ''; if (el.style.opacity !== op) el.style.opacity = op; } el.classList.toggle('goal', id === goal); el.classList.toggle('sideGoal', id === goal && !!tg.side); }
   mapT -= dt; if (mapT <= 0) { mapT = 0.12; drawMap(tg); }
   featTick(dt); if (BM.on) drawBig();
 };

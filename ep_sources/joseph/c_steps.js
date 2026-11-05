@@ -60,8 +60,8 @@ const steps = {
     target: S => (S.q.climb || 0) < 2 ? null : !qd(S, 'shout') ? { x: PIT.x, z: PIT.z } : { x: PIT.x + 0.8, z: PIT.z - 0.8 },
     check: S => (S.q.climb || 0) >= 2 && qd(S, 'shout') && qd(S, 'pitPray'), done(S, G, next) { G.UI.hint(null); cinSold(S, G, next); }, next: 'c1_caravan' },
   c1_caravan: { ch: 2, obj: S => S.q.night ? '대상을 따라 애굽으로' : '줄에 묶여 이스마엘 대상을 따라 걷기', list: S => [{ t: '광야의 밤', ok: !!S.q.night }, { t: '애굽 국경', ok: !!S.q.reveal }],
-    enter(S, G, re) { S.q.inPit = 0; setTimeout(() => cinJourney(S, G), re ? 600 : 250); }, // v16.1: the journey is a cutscene
-    target: S => caravanTarget(S), check: (S, G) => !!S.q.reveal && (G.dist(SPOTS.market[0], SPOTS.market[1]) < 24 || G.dist(SPOTS.market[0] + 14, SPOTS.market[1] - 12) < 12), done(S, G, next) { G.UI.hint(null); next(); }, next: 'c1_market' },
+    enter(S, G, re) { S.q.inPit = 0; if (!re) GG.Cine.hold = true; setTimeout(() => cinJourney(S, G), re ? 600 : 30); }, // v16.1: the journey is a cutscene
+    target: S => caravanTarget(S), check: (S, G) => !!S.q.reveal && (!!S.q.atMkt || G.dist(SPOTS.market[0], SPOTS.market[1]) < 24 || G.dist(SPOTS.market[0] + 14, SPOTS.market[1] - 12) < 12), done(S, G, next) { G.UI.hint(null); next(); }, next: 'c1_market' },
   c1_market: { ch: 2, obj: '애굽의 노예 장터', enter(S, G, re) { cinMarket(S, G); } },
   // =============================================================== 2장 · 보디발의 집
   c2_arrive: { ch: 3, obj: '종들의 숙소의 늙은 종과 이야기하기', target: 'npc:ameni', enter(S, G, re) { if (!re) setTimeout(() => GG.Life.bubble('neb', '세헤브! 셰마! (서둘러! 가라!)', 3.2), 800); },
@@ -172,7 +172,7 @@ const steps = {
   c4_answer: { ch: 5, obj: '바로께 꿈을 해석해 드리기', enter(S, G, re) { answerScene(S, G); } },
   // =============================================================== 5장 · 일곱 해 풍년
   c5_patrol: { ch: 6, obj: '애굽 온 땅을 순찰하기', list: S => [{ t: '버금 수레 타기', ok: qd(S, 'rode') }, { t: '성읍 감독관 만나기', ok: qd(S, 'metC') }, { t: '서쪽 마을 촌장 만나기 (북쪽 나루 건너)', ok: qd(S, 'metW') }, { t: '남쪽 마을 촌장 만나기 (남쪽 나루 건너)', ok: qd(S, 'metS') }],
-    enter(S, G, re) { if (!re) { narr([{ kick: '창세기 41:46', title: '순찰', t: '요셉이 바로 앞에서 나가 애굽 온 땅을 순찰하였습니다. 바로가 내어 준 버금 수레를 타고 가면 먼 길도 금세예요.', ref: '창세기 41:46' }], () => { GG.UI.featCard('chariot', { kick: '새로 열린 기능', n: '버금 수레', ic: 'donkey', d: '왼쪽 아래 「수레 타기」로 타고 내려요. 달리기 버튼을 누르면 말이 힘차게 달려요. 사람이나 장소 가까이 가면 저절로 멈춰요.' }); }); } },
+    enter(S, G, re) { if (!re) { narr([{ kick: '창세기 41:46', title: '순찰', t: '요셉이 바로 앞에서 나가 애굽 온 땅을 순찰하였습니다. 바로가 내어 준 버금 수레를 타고 가면 먼 길도 금세예요.', ref: '창세기 41:46' }], () => { GG.UI.featCard('chariot', { kick: '새로 열린 기능', n: '버금 수레', ic: 'donkey', d: '왼쪽 「수레 부르기」로 수레를 불러요. 수레 뒤에서 A키 타기 · B키 짐칸, 탄 채로 A키 내리기. 달리기 버튼을 누르면 말이 힘차게 달려요.' }); }); } },
     target: S => !qd(S, 'metC') ? 'npc:overseerC' : !qd(S, 'metW') ? 'npc:overseerW' : !qd(S, 'metS') ? 'npc:overseerS' : null, check: S => qd(S, 'rode') && qd(S, 'metC') && qd(S, 'metW') && qd(S, 'metS'),
     talk: { overseerC(S, G) { if (S.q.metC) return false; say([N('overseerC', '총리님! 바로께서 명하신 대로 성읍 동쪽에 곳간 터를 닦아 두었습니다.'), J('수고했소. 풍년 일곱 해 동안 거둔 곡식을 각 성에 쌓을 것이오. 이 성읍 곳간이 그 첫 곳간이 될 것이오.'), N('overseerC', '벽돌은 벽돌 굽는 우니의 가마에서 가져오시면 됩니다.')], () => tick(S, 'metC')); },
       overseerW(S, G) { if (S.q.metW) return false; say([N('overseerW', '오분의 일이라니요, 총리님! 풍년에 곡식을 왜 쌓아 둡니까? 지금 팔면 다 금이 될 텐데!', '', 'angry'),

@@ -152,8 +152,12 @@ const ENVX = {
     h = h || 3; doorW = doorW || 1.6; g.box(w, h, 0.5, { m: M, at: [0, h / 2, -d / 2], c: WHITE, j: 0.02 }); for (const s of [1, -1]) g.box(0.5, h, d, { m: M, at: [s * w / 2, h / 2, 0], c: WHITE, j: 0.02 });
     const side = (w - doorW) / 2; for (const s of [1, -1]) g.box(side, h, 0.5, { m: M, at: [s * (doorW / 2 + side / 2), h / 2, d / 2], c: WHITE, j: 0.02 }); g.box(doorW, 0.6, 0.5, { m: M, at: [0, h - 0.3, d / 2], c: WHITE });
     g.box(w + 0.4, 0.22, d + 0.4, { m: M, at: [0, h + 0.05, 0], c: 0xe0d4b8, j: 0.02 }); band(g, M, w, h - 0.45, 0, d / 2 + 0.26); },
-  pool(g, M, r, w, d) { g.box(w + 0.8, 0.35, d + 0.8, { m: M, at: [0, 0.12, 0], c: 0xd8c8a4 }); g.box(w, 0.06, d, { m: M, at: [0, 0.31, 0], c: 0x3a7a8a, j: 0 });
-    for (let i = 0; i < 9; i++) { const x = (r() - 0.5) * (w - 0.8), z = (r() - 0.5) * (d - 0.8); g.cyl(0.28, 0.28, 0.02, 8, { m: M, at: [x, 0.35, z], c: 0x4a8a4a, j: 0.1 }); if (i % 3 === 0) g.sph(0.09, 6, 4, { m: M, at: [x + 0.1, 0.42, z], c: [0xf0e0f0, 0x8aa0e0, 0xf0f0f8][i % 3] }); } },
+  pool(g, M, r, w, d) { /* v18.24 a sunken basin of real water: a stone rim, a tiled bed below, and the water surface (drawn by the water shader, GG.POOLS) between */
+    const RIM = 0.42, LV = 0.36; for (const s of [1, -1]) { g.box(w + 0.8, RIM, 0.4, { m: M, at: [0, RIM / 2, s * (d / 2 + 0.2)], c: 0xd8c8a4, j: 0.02 }); g.box(0.4, RIM, d, { m: M, at: [s * (w / 2 + 0.2), RIM / 2, 0], c: 0xd8c8a4, j: 0.02 }); }
+    g.box(w, 0.05, d, { m: M, at: [0, 0.025, 0], c: 0x3f8a8e, j: 0 }); for (let i = 1; i < Math.floor(w); i++) g.box(0.03, 0.006, d, { m: M, at: [-w / 2 + i, 0.052, 0], c: 0x7ab8b4 });
+    for (let i = 0; i < 9; i++) { const x = (r() - 0.5) * (w - 0.8), z = (r() - 0.5) * (d - 0.8); g.cyl(0.28, 0.28, 0.015, 8, { m: M, at: [x, LV + 0.012, z], c: 0x4a8a4a, j: 0.1 }); if (i % 3 === 0) g.sph(0.09, 6, 4, { m: M, at: [x + 0.1, LV + 0.08, z], c: [0xf0e0f0, 0x8aa0e0, 0xf0f0f8][i % 3] }); }
+    const P4 = (x, z) => [M[0] * x + M[8] * z + M[4] * LV + M[12], M[1] * x + M[9] * z + M[5] * LV + M[13], M[2] * x + M[10] * z + M[6] * LV + M[14]];
+    (GG.POOLS = GG.POOLS || []).push([P4(-w / 2, -d / 2), P4(w / 2, -d / 2), P4(w / 2, d / 2), P4(-w / 2, d / 2)]); },
   cellRow(g, M, r, n, w, d, h) { // prison cells: back wall, side walls, roof, iron/wood bars in front
     h = h || 2.8; const W2 = n * w; g.box(W2, h, 0.5, { m: M, at: [0, h / 2, -d / 2], c: 0xb8a888, j: 0.03 }); g.box(W2 + 0.5, 0.25, d + 0.3, { m: M, at: [0, h + 0.05, 0], c: 0xa89878, j: 0.03 });
     for (let i = 0; i <= n; i++) g.box(0.4, h, d, { m: M, at: [-W2 / 2 + i * w, h / 2, 0], c: 0xb0a080, j: 0.03 });
@@ -557,8 +561,8 @@ const steps = {
     target: S => (S.q.climb || 0) < 2 ? null : !qd(S, 'shout') ? { x: PIT.x, z: PIT.z } : { x: PIT.x + 0.8, z: PIT.z - 0.8 },
     check: S => (S.q.climb || 0) >= 2 && qd(S, 'shout') && qd(S, 'pitPray'), done(S, G, next) { G.UI.hint(null); cinSold(S, G, next); }, next: 'c1_caravan' },
   c1_caravan: { ch: 2, obj: S => S.q.night ? '대상을 따라 애굽으로' : '줄에 묶여 이스마엘 대상을 따라 걷기', list: S => [{ t: '광야의 밤', ok: !!S.q.night }, { t: '애굽 국경', ok: !!S.q.reveal }],
-    enter(S, G, re) { S.q.inPit = 0; setTimeout(() => cinJourney(S, G), re ? 600 : 250); }, // v16.1: the journey is a cutscene
-    target: S => caravanTarget(S), check: (S, G) => !!S.q.reveal && (G.dist(SPOTS.market[0], SPOTS.market[1]) < 24 || G.dist(SPOTS.market[0] + 14, SPOTS.market[1] - 12) < 12), done(S, G, next) { G.UI.hint(null); next(); }, next: 'c1_market' },
+    enter(S, G, re) { S.q.inPit = 0; if (!re) GG.Cine.hold = true; setTimeout(() => cinJourney(S, G), re ? 600 : 30); }, // v16.1: the journey is a cutscene
+    target: S => caravanTarget(S), check: (S, G) => !!S.q.reveal && (!!S.q.atMkt || G.dist(SPOTS.market[0], SPOTS.market[1]) < 24 || G.dist(SPOTS.market[0] + 14, SPOTS.market[1] - 12) < 12), done(S, G, next) { G.UI.hint(null); next(); }, next: 'c1_market' },
   c1_market: { ch: 2, obj: '애굽의 노예 장터', enter(S, G, re) { cinMarket(S, G); } },
   // =============================================================== 2장 · 보디발의 집
   c2_arrive: { ch: 3, obj: '종들의 숙소의 늙은 종과 이야기하기', target: 'npc:ameni', enter(S, G, re) { if (!re) setTimeout(() => GG.Life.bubble('neb', '세헤브! 셰마! (서둘러! 가라!)', 3.2), 800); },
@@ -669,7 +673,7 @@ const steps = {
   c4_answer: { ch: 5, obj: '바로께 꿈을 해석해 드리기', enter(S, G, re) { answerScene(S, G); } },
   // =============================================================== 5장 · 일곱 해 풍년
   c5_patrol: { ch: 6, obj: '애굽 온 땅을 순찰하기', list: S => [{ t: '버금 수레 타기', ok: qd(S, 'rode') }, { t: '성읍 감독관 만나기', ok: qd(S, 'metC') }, { t: '서쪽 마을 촌장 만나기 (북쪽 나루 건너)', ok: qd(S, 'metW') }, { t: '남쪽 마을 촌장 만나기 (남쪽 나루 건너)', ok: qd(S, 'metS') }],
-    enter(S, G, re) { if (!re) { narr([{ kick: '창세기 41:46', title: '순찰', t: '요셉이 바로 앞에서 나가 애굽 온 땅을 순찰하였습니다. 바로가 내어 준 버금 수레를 타고 가면 먼 길도 금세예요.', ref: '창세기 41:46' }], () => { GG.UI.featCard('chariot', { kick: '새로 열린 기능', n: '버금 수레', ic: 'donkey', d: '왼쪽 아래 「수레 타기」로 타고 내려요. 달리기 버튼을 누르면 말이 힘차게 달려요. 사람이나 장소 가까이 가면 저절로 멈춰요.' }); }); } },
+    enter(S, G, re) { if (!re) { narr([{ kick: '창세기 41:46', title: '순찰', t: '요셉이 바로 앞에서 나가 애굽 온 땅을 순찰하였습니다. 바로가 내어 준 버금 수레를 타고 가면 먼 길도 금세예요.', ref: '창세기 41:46' }], () => { GG.UI.featCard('chariot', { kick: '새로 열린 기능', n: '버금 수레', ic: 'donkey', d: '왼쪽 「수레 부르기」로 수레를 불러요. 수레 뒤에서 A키 타기 · B키 짐칸, 탄 채로 A키 내리기. 달리기 버튼을 누르면 말이 힘차게 달려요.' }); }); } },
     target: S => !qd(S, 'metC') ? 'npc:overseerC' : !qd(S, 'metW') ? 'npc:overseerW' : !qd(S, 'metS') ? 'npc:overseerS' : null, check: S => qd(S, 'rode') && qd(S, 'metC') && qd(S, 'metW') && qd(S, 'metS'),
     talk: { overseerC(S, G) { if (S.q.metC) return false; say([N('overseerC', '총리님! 바로께서 명하신 대로 성읍 동쪽에 곳간 터를 닦아 두었습니다.'), J('수고했소. 풍년 일곱 해 동안 거둔 곡식을 각 성에 쌓을 것이오. 이 성읍 곳간이 그 첫 곳간이 될 것이오.'), N('overseerC', '벽돌은 벽돌 굽는 우니의 가마에서 가져오시면 됩니다.')], () => tick(S, 'metC')); },
       overseerW(S, G) { if (S.q.metW) return false; say([N('overseerW', '오분의 일이라니요, 총리님! 풍년에 곡식을 왜 쌓아 둡니까? 지금 팔면 다 금이 될 텐데!', '', 'angry'),
@@ -1154,7 +1158,7 @@ function cinSold(S, G, next) {
     { cam: [heb[0] + 3.6, hh + 0.9, heb[1] + 1.4], look: [heb[0] + 2.4, hh + 0.8, heb[1] + 2.2], dur: 6, n: '베냐민', t: '아버지… 요셉 형은요? 형이 금방 온다고… 약속했는데…', e: 'cry', fn: () => { const n = G.npc('benjamin'); if (n) n.act = 'weep'; } },
     { cam: [heb[0] - 2.4, hh + 1.3, heb[1] + 4.6], look: [heb[0], hh + 0.9, heb[1] + 2.6], dur: 8, n: '야곱', t: '내가 슬퍼하며 스올로 내려가 아들에게로 가리라.', ref: '창세기 37:35', e: 'cry' },
     { cam: [heb[0] + 10, hh + 7, heb[1] + 14], cam2: [heb[0] + 14, hh + 12, heb[1] + 20], look: [heb[0], hh + 1, heb[1] + 2], dur: 8, t: '그의 모든 자녀가 위로하되 그가 그 위로를 받지 아니하였으며, 그의 아버지가 그를 위하여 울었더라.', ref: '창세기 37:35', fadeOut: 1.5 },
-    { hour: 17.6, fn: () => { S.q.heb = 0; S.q.broShow = 0; const n = npcSet('jacob', { look: LOOK.jacob }); if (n) n.act = null; const b = G.npc('benjamin'); if (b) b.act = null; caravanStart(S, G, false); },
+    { hour: 17.6, fn: () => { GG.Cine.hold = true; /* v18.24 from the prayer in the pit to Egypt: one unbroken chain of scenes, no control in between */ S.q.heb = 0; S.q.broShow = 0; const n = npcSet('jacob', { look: LOOK.jacob }); if (n) n.act = null; const b = G.npc('benjamin'); if (b) b.act = null; caravanStart(S, G, false); },
       fadeIn: 1.4, cam: () => { const P = G.P; return [P.x + 5, P.y + 2.2, P.z + 4]; }, look: () => { const P = G.P; return [P.x, P.y + 1.2, P.z]; }, dur: 7, music: 'j_caravan',
       t: '그 시각, 요셉은 아버지가 자기를 위해 울고 있는 줄도 모른 채, 낯선 이들의 낙타 뒤를 따라 걷고 있었습니다.' },
   ], () => { next(); });
@@ -1211,7 +1215,7 @@ function caravanUpdate(dt, S, G) {
 function stageCar(x, z, a, bound) { CAR_IDS.forEach(id => { const g = CAR_GAP[id] * 0.6; place(id, x - Math.sin(a) * g, z - Math.cos(a) * g, a); });
   const g = CAR_ME * 0.6; Gm().teleport(x - Math.sin(a) * g, z - Math.cos(a) * g, a); if (bound) cpose('bound', 0, true); }
 function cinJourney(S, G) {
-  if (S.q.reveal || GG.Cine.on) return; RT.car = null; S.q.caravanOn = 1; S.q.bound = 1; GG.UI.hint(null); GG.Cine.hold = true; // one long cutscene to the market
+  if (GG.Cine.on) return; if (S.q.reveal) { if (S.step === 'c1_caravan') Gm().go('c1_market'); return; } /* v18.24 (a save from after the border goes on to the market) */ RT.car = null; S.q.caravanOn = 1; S.q.bound = 1; GG.UI.hint(null); GG.Cine.hold = true; // one long cutscene to the market
   const a1 = Math.atan2(LEG1[1][0] - LEG1[0][0], LEG1[1][1] - LEG1[0][1]), m = LEG1[3], a2 = Math.atan2(LEG1[4][0] - m[0], LEG1[4][1] - m[1]);
   const p0 = LEG1[0], h0 = hAt(p0[0], p0[1]), hm = hAt(m[0], m[1]);
   const jx = () => Gm().P.x, jz = () => Gm().P.z;
@@ -1228,11 +1232,11 @@ function cinJourney(S, G) {
 function afterNight(S, G) {
   const a = LEG2[0], b = LEG2[1], ang = Math.atan2(b[0] - a[0], b[1] - a[1]), h = hAt(a[0], a[1]);
   cine([{ fn: () => stageCar(a[0], a[1], ang, true), cam: [a[0] + 14, h + 6, a[1] - 6], cam2: [a[0] + 8, h + 4, a[1] - 2], look: [a[0] - 2, h + 1, a[1] + 3], dur: 5.5, music: 'j_caravan', t: '여러 날을 걸어 광야를 건넜습니다. 모래 너머로 초록빛이 비치기 시작했습니다.' }],
-    () => { const g = SPOTS.egyptGate; stageCar(g[0] + 1, g[1] - 4, ang, true); cinReveal(S, G, () => { stageCar(SPOTS.market[0] + 6, SPOTS.market[1] - 9, -0.4, true); S.q.reveal = 1; Gm().checkStep(); }); });
+    () => { const g = SPOTS.egyptGate; stageCar(g[0] + 1, g[1] - 4, ang, true); cinReveal(S, G, () => { stageCar(SPOTS.market[0] + 6, SPOTS.market[1] - 9, -0.4, true); S.q.reveal = 1; S.q.atMkt = 1; GG.Cine.hold = true; if (S.step === 'c1_caravan') Gm().go('c1_market'); }); });
 }
 function cinCaravanNight(S, G, then) {
   const [cx, cz] = SPOTS.caravanNight, h = hAt(cx, cz);
-  RT.car = null; fade(() => { S.time = Math.floor(S.time / 24) * 24 + 20.6; place('ishmael', cx + 2, cz + 1.4, -2.2, { sit: true }); place('midian', cx - 1.8, cz + 1.8, 2.4, { sit: true }); place('ishBoy', cx + 1.6, cz - 2.2, -0.6);
+  RT.car = null; const fd = (a, b) => { if (GG.Cine.hold) { a(); b(); } else fade(a, b); }; fd(() => { S.time = Math.floor(S.time / 24) * 24 + 20.6; place('ishmael', cx + 2, cz + 1.4, -2.2, { sit: true }); place('midian', cx - 1.8, cz + 1.8, 2.4, { sit: true }); place('ishBoy', cx + 1.6, cz - 2.2, -0.6);
     ['camel1', 'camel2', 'camel3'].forEach((id, i) => place(id, cx + 6 + i * 2.6, cz - 3 + i, -1.2)); G.teleport(cx - 0.4, cz - 2.6, 0.2); cpose(null); G.P.sit = true; },
   () => cine([
     { cam: [cx - 9, h + 3.6, cz - 7], cam2: [cx - 6, h + 2.4, cz - 4.6], look: [cx, h + 0.8, cz], dur: 6, t: '광야의 밤. 대상은 길가에 불을 피우고 쉬었습니다.', music: 'j_night' },
@@ -2273,12 +2277,12 @@ function dyn(list, S, G, t) {
   // the rope: last camel → Joseph's hands
   if (S.step === 'c1_caravan' && S.q.bound && RT.car) { const n = G.npc('camel3'); if (n && n.vis) { const a = [n.x - Math.sin(n.face) * 0.9, n.y + 1.2, n.z - Math.cos(n.face) * 0.9], h = wpos(P.rig.world[HBI.handR]), mid = [(a[0] + h[0]) / 2, Math.min(a[1], h[1]) - 0.35, (a[2] + h[2]) / 2];
     ropeSeg(list, 'r1', a, mid); ropeSeg(list, 'r2', mid, h); } }
-  // the second chariot and its horses
-  if (S.q.riding && S.q.chariotOk) {
+  // the second chariot and its horses (v18.24b: cart.js draws the wagon itself)
+  if (S.q.riding && S.q.chariotOk && !GG.Cart) {
     const f = P.face, y = P.y + (G.EP().rootY ? 0 : 0);
     list.push({ mesh: mk('chariot', g => { g.box(1.3, 0.08, 1.0, { at: [0, 0.42, 0], c: 0x8a6440 }); g.box(1.3, 0.62, 0.06, { at: [0, 0.74, 0.48], c: 0xd9a73a }); for (const s of [1, -1]) { g.box(0.06, 0.5, 0.95, { at: [s * 0.62, 0.7, 0], c: 0xd9a73a }); g.cyl(0.42, 0.42, 0.07, 14, { at: [s * 0.74, 0.42, -0.1], rz: Math.PI / 2, c: 0x6a4a30 }); g.cyl(0.06, 0.06, 0.14, 6, { at: [s * 0.78, 0.42, -0.1], rz: Math.PI / 2, c: 0xd9a73a }); }
       g.box(0.08, 0.08, 2.2, { at: [0, 0.6, 1.5], rx: -0.15, c: 0x8a6440 }); g.box(1.8, 0.07, 0.07, { at: [0, 0.82, 2.55], c: 0x8a6440 }); band2(g); }), m: mat('char', P.x, y, P.z, f), outline: true });
-    for (const s of [1, -1]) { const hx = P.x + Math.sin(f) * 3.0 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 3.0 - Math.sin(f) * s * 0.55; RT.hph = (RT.hph || 0) + 0; }
+    for (const s of [1, -1]) { const hx = P.x + Math.sin(f) * 2.6 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 2.6 - Math.sin(f) * s * 0.55; RT.hph = (RT.hph || 0) + 0; }
   }
   // the banquet table
   if (S.step === 'c2_banquet') list.push({ mesh: mk('feast', g => { ENVX.tableEg(g, m4()); for (let i = 0; i < 4; i++) { g.lathe([[0.05, 0], [0.16, 0.1], [0.18, 0.32], [0.08, 0.5], [0.1, 0.55]], 8, { at: [-0.6 + i * 0.4, 0.84, -0.15], c: [0x8a3a3a, 0xc8865a, 0xd8b860, 0x6a4a6a][i] }); }
@@ -2303,9 +2307,9 @@ const HR = { rigs: [new Rig(AB.horse), new Rig(AB.horse)], ph: 0 };
 function skinned(list, S, G, t) {
   for (const c of RT.cows) if (c.st !== 'hidden' && c.eaten < 0.99) list.push({ mesh: c.mesh, bones: c.rig.bones, outline: true, tint: c.thin ? [0.72, 0.66, 0.62] : null });
   if (S.q.riding && S.q.chariotOk) { const P = G.P, f = P.face; HR.ph += P.spd * 0.016 * 1.6;
-    HR.rigs.forEach((rig, i) => { const s = i ? 1 : -1, hx = P.x + Math.sin(f) * 3.0 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 3.0 - Math.sin(f) * s * 0.55;
+    HR.rigs.forEach((rig, i) => { const s = i ? 1 : -1, hx = P.x + Math.sin(f) * 2.6 + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * 2.6 - Math.sin(f) * s * 0.55;
       animAnimal(rig, { speed: P.spd * 0.55, phase: HR.ph + i * 0.4, graze: false }, t); rig.update(m4trs(HR['M' + i] || (HR['M' + i] = m4()), hx, hAt(hx, hz), hz, f));
-      list.push({ mesh: G.animalMesh('horse', i ? 'plain' : 'brown', { saddle: 0xd9a73a }), bones: rig.bones, outline: true }); }); }
+      list.push({ mesh: G.animalMesh('horse', 'plain', { saddle: 0xe2b440 }), bones: rig.bones, outline: true }); }); }
 }
 // light: the moonlight shaft in Joseph's cell, the dream glows
 let shaftMesh = null;

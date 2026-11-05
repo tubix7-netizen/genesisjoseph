@@ -25,8 +25,12 @@ const ENVX = {
     h = h || 3; doorW = doorW || 1.6; g.box(w, h, 0.5, { m: M, at: [0, h / 2, -d / 2], c: WHITE, j: 0.02 }); for (const s of [1, -1]) g.box(0.5, h, d, { m: M, at: [s * w / 2, h / 2, 0], c: WHITE, j: 0.02 });
     const side = (w - doorW) / 2; for (const s of [1, -1]) g.box(side, h, 0.5, { m: M, at: [s * (doorW / 2 + side / 2), h / 2, d / 2], c: WHITE, j: 0.02 }); g.box(doorW, 0.6, 0.5, { m: M, at: [0, h - 0.3, d / 2], c: WHITE });
     g.box(w + 0.4, 0.22, d + 0.4, { m: M, at: [0, h + 0.05, 0], c: 0xe0d4b8, j: 0.02 }); band(g, M, w, h - 0.45, 0, d / 2 + 0.26); },
-  pool(g, M, r, w, d) { g.box(w + 0.8, 0.35, d + 0.8, { m: M, at: [0, 0.12, 0], c: 0xd8c8a4 }); g.box(w, 0.06, d, { m: M, at: [0, 0.31, 0], c: 0x3a7a8a, j: 0 });
-    for (let i = 0; i < 9; i++) { const x = (r() - 0.5) * (w - 0.8), z = (r() - 0.5) * (d - 0.8); g.cyl(0.28, 0.28, 0.02, 8, { m: M, at: [x, 0.35, z], c: 0x4a8a4a, j: 0.1 }); if (i % 3 === 0) g.sph(0.09, 6, 4, { m: M, at: [x + 0.1, 0.42, z], c: [0xf0e0f0, 0x8aa0e0, 0xf0f0f8][i % 3] }); } },
+  pool(g, M, r, w, d) { /* v18.24 a sunken basin of real water: a stone rim, a tiled bed below, and the water surface (drawn by the water shader, GG.POOLS) between */
+    const RIM = 0.42, LV = 0.36; for (const s of [1, -1]) { g.box(w + 0.8, RIM, 0.4, { m: M, at: [0, RIM / 2, s * (d / 2 + 0.2)], c: 0xd8c8a4, j: 0.02 }); g.box(0.4, RIM, d, { m: M, at: [s * (w / 2 + 0.2), RIM / 2, 0], c: 0xd8c8a4, j: 0.02 }); }
+    g.box(w, 0.05, d, { m: M, at: [0, 0.025, 0], c: 0x3f8a8e, j: 0 }); for (let i = 1; i < Math.floor(w); i++) g.box(0.03, 0.006, d, { m: M, at: [-w / 2 + i, 0.052, 0], c: 0x7ab8b4 });
+    for (let i = 0; i < 9; i++) { const x = (r() - 0.5) * (w - 0.8), z = (r() - 0.5) * (d - 0.8); g.cyl(0.28, 0.28, 0.015, 8, { m: M, at: [x, LV + 0.012, z], c: 0x4a8a4a, j: 0.1 }); if (i % 3 === 0) g.sph(0.09, 6, 4, { m: M, at: [x + 0.1, LV + 0.08, z], c: [0xf0e0f0, 0x8aa0e0, 0xf0f0f8][i % 3] }); }
+    const P4 = (x, z) => [M[0] * x + M[8] * z + M[4] * LV + M[12], M[1] * x + M[9] * z + M[5] * LV + M[13], M[2] * x + M[10] * z + M[6] * LV + M[14]];
+    (GG.POOLS = GG.POOLS || []).push([P4(-w / 2, -d / 2), P4(w / 2, -d / 2), P4(w / 2, d / 2), P4(-w / 2, d / 2)]); },
   cellRow(g, M, r, n, w, d, h) { // prison cells: back wall, side walls, roof, iron/wood bars in front
     h = h || 2.8; const W2 = n * w; g.box(W2, h, 0.5, { m: M, at: [0, h / 2, -d / 2], c: 0xb8a888, j: 0.03 }); g.box(W2 + 0.5, 0.25, d + 0.3, { m: M, at: [0, h + 0.05, 0], c: 0xa89878, j: 0.03 });
     for (let i = 0; i <= n; i++) g.box(0.4, h, d, { m: M, at: [-W2 / 2 + i * w, h / 2, 0], c: 0xb0a080, j: 0.03 });

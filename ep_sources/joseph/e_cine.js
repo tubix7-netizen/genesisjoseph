@@ -229,7 +229,7 @@ function cinSold(S, G, next) {
     { cam: [heb[0] + 3.6, hh + 0.9, heb[1] + 1.4], look: [heb[0] + 2.4, hh + 0.8, heb[1] + 2.2], dur: 6, n: '베냐민', t: '아버지… 요셉 형은요? 형이 금방 온다고… 약속했는데…', e: 'cry', fn: () => { const n = G.npc('benjamin'); if (n) n.act = 'weep'; } },
     { cam: [heb[0] - 2.4, hh + 1.3, heb[1] + 4.6], look: [heb[0], hh + 0.9, heb[1] + 2.6], dur: 8, n: '야곱', t: '내가 슬퍼하며 스올로 내려가 아들에게로 가리라.', ref: '창세기 37:35', e: 'cry' },
     { cam: [heb[0] + 10, hh + 7, heb[1] + 14], cam2: [heb[0] + 14, hh + 12, heb[1] + 20], look: [heb[0], hh + 1, heb[1] + 2], dur: 8, t: '그의 모든 자녀가 위로하되 그가 그 위로를 받지 아니하였으며, 그의 아버지가 그를 위하여 울었더라.', ref: '창세기 37:35', fadeOut: 1.5 },
-    { hour: 17.6, fn: () => { S.q.heb = 0; S.q.broShow = 0; const n = npcSet('jacob', { look: LOOK.jacob }); if (n) n.act = null; const b = G.npc('benjamin'); if (b) b.act = null; caravanStart(S, G, false); },
+    { hour: 17.6, fn: () => { GG.Cine.hold = true; /* v18.24 from the prayer in the pit to Egypt: one unbroken chain of scenes, no control in between */ S.q.heb = 0; S.q.broShow = 0; const n = npcSet('jacob', { look: LOOK.jacob }); if (n) n.act = null; const b = G.npc('benjamin'); if (b) b.act = null; caravanStart(S, G, false); },
       fadeIn: 1.4, cam: () => { const P = G.P; return [P.x + 5, P.y + 2.2, P.z + 4]; }, look: () => { const P = G.P; return [P.x, P.y + 1.2, P.z]; }, dur: 7, music: 'j_caravan',
       t: '그 시각, 요셉은 아버지가 자기를 위해 울고 있는 줄도 모른 채, 낯선 이들의 낙타 뒤를 따라 걷고 있었습니다.' },
   ], () => { next(); });
@@ -286,7 +286,7 @@ function caravanUpdate(dt, S, G) {
 function stageCar(x, z, a, bound) { CAR_IDS.forEach(id => { const g = CAR_GAP[id] * 0.6; place(id, x - Math.sin(a) * g, z - Math.cos(a) * g, a); });
   const g = CAR_ME * 0.6; Gm().teleport(x - Math.sin(a) * g, z - Math.cos(a) * g, a); if (bound) cpose('bound', 0, true); }
 function cinJourney(S, G) {
-  if (S.q.reveal || GG.Cine.on) return; RT.car = null; S.q.caravanOn = 1; S.q.bound = 1; GG.UI.hint(null); GG.Cine.hold = true; // one long cutscene to the market
+  if (GG.Cine.on) return; if (S.q.reveal) { if (S.step === 'c1_caravan') Gm().go('c1_market'); return; } /* v18.24 (a save from after the border goes on to the market) */ RT.car = null; S.q.caravanOn = 1; S.q.bound = 1; GG.UI.hint(null); GG.Cine.hold = true; // one long cutscene to the market
   const a1 = Math.atan2(LEG1[1][0] - LEG1[0][0], LEG1[1][1] - LEG1[0][1]), m = LEG1[3], a2 = Math.atan2(LEG1[4][0] - m[0], LEG1[4][1] - m[1]);
   const p0 = LEG1[0], h0 = hAt(p0[0], p0[1]), hm = hAt(m[0], m[1]);
   const jx = () => Gm().P.x, jz = () => Gm().P.z;
@@ -303,11 +303,11 @@ function cinJourney(S, G) {
 function afterNight(S, G) {
   const a = LEG2[0], b = LEG2[1], ang = Math.atan2(b[0] - a[0], b[1] - a[1]), h = hAt(a[0], a[1]);
   cine([{ fn: () => stageCar(a[0], a[1], ang, true), cam: [a[0] + 14, h + 6, a[1] - 6], cam2: [a[0] + 8, h + 4, a[1] - 2], look: [a[0] - 2, h + 1, a[1] + 3], dur: 5.5, music: 'j_caravan', t: '여러 날을 걸어 광야를 건넜습니다. 모래 너머로 초록빛이 비치기 시작했습니다.' }],
-    () => { const g = SPOTS.egyptGate; stageCar(g[0] + 1, g[1] - 4, ang, true); cinReveal(S, G, () => { stageCar(SPOTS.market[0] + 6, SPOTS.market[1] - 9, -0.4, true); S.q.reveal = 1; Gm().checkStep(); }); });
+    () => { const g = SPOTS.egyptGate; stageCar(g[0] + 1, g[1] - 4, ang, true); cinReveal(S, G, () => { stageCar(SPOTS.market[0] + 6, SPOTS.market[1] - 9, -0.4, true); S.q.reveal = 1; S.q.atMkt = 1; GG.Cine.hold = true; if (S.step === 'c1_caravan') Gm().go('c1_market'); }); });
 }
 function cinCaravanNight(S, G, then) {
   const [cx, cz] = SPOTS.caravanNight, h = hAt(cx, cz);
-  RT.car = null; fade(() => { S.time = Math.floor(S.time / 24) * 24 + 20.6; place('ishmael', cx + 2, cz + 1.4, -2.2, { sit: true }); place('midian', cx - 1.8, cz + 1.8, 2.4, { sit: true }); place('ishBoy', cx + 1.6, cz - 2.2, -0.6);
+  RT.car = null; const fd = (a, b) => { if (GG.Cine.hold) { a(); b(); } else fade(a, b); }; fd(() => { S.time = Math.floor(S.time / 24) * 24 + 20.6; place('ishmael', cx + 2, cz + 1.4, -2.2, { sit: true }); place('midian', cx - 1.8, cz + 1.8, 2.4, { sit: true }); place('ishBoy', cx + 1.6, cz - 2.2, -0.6);
     ['camel1', 'camel2', 'camel3'].forEach((id, i) => place(id, cx + 6 + i * 2.6, cz - 3 + i, -1.2)); G.teleport(cx - 0.4, cz - 2.6, 0.2); cpose(null); G.P.sit = true; },
   () => cine([
     { cam: [cx - 9, h + 3.6, cz - 7], cam2: [cx - 6, h + 2.4, cz - 4.6], look: [cx, h + 0.8, cz], dur: 6, t: '광야의 밤. 대상은 길가에 불을 피우고 쉬었습니다.', music: 'j_night' },

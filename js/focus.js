@@ -72,7 +72,7 @@ F.press = function () { if (Game.mode !== 'play' || calm()) return; const S = Ga
   const P = Game.P, R = 32, list = [], seen = S.flags.chSeen = S.flags.chSeen || {};
   if (G.Loot) { for (const b of G.Loot.list) { if (Math.hypot(b.x - P.x, b.z - P.z) > R) continue; if (b.k === 'chest' ? b.open : b.gone) continue; list.push({ x: b.x, y: b.y, z: b.z, k: b.k === 'chest' ? 'chest' : 'jar' }); if (b.k === 'chest') seen[b.id] = 1; }
     for (const d of G.Loot.drops || []) if (Math.hypot(d.x - P.x, d.z - P.z) < R) list.push({ x: d.x, y: d.gy, z: d.z, k: 'drop' }); }
-  F.sense = { list, t: 0, dur: 8 }; marks.innerHTML = list.map(o => `<i class="sm ${o.k}"></i>`).join('');
+  G.UI.tagReveal = 3.2; /* v18.24 a moment of every name nearby, even behind walls, then it fades */ F.sense = { list, t: 0, dur: 8 }; marks.innerHTML = list.map(o => `<i class="sm ${o.k}"></i>`).join('');
   const nc = list.filter(o => o.k === 'chest').length, nj = list.filter(o => o.k === 'jar').length;
   G.UI.toast(`정신을 모았어요 (정신력 15) · ${said}${nc ? ` · 가까이에 보물상자 ${nc}개!` : ''}${nj ? ` · 항아리·상자 ${nj}개` : ''}`); };
 F.aimOn = () => F.aim && mind() >= 6;

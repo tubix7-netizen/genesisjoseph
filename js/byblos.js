@@ -133,7 +133,7 @@ const fl0 = EP.floor; EP.floor = function (x, z, s) { if (inBy()) { const lx = x
 // while overseas: draw Byblos instead of Egypt, and keep the wild things of the real map away
 const EMPTY = [];
 const dyn0 = EP.dyn; EP.dyn = function (list) { if (dyn0) dyn0.apply(this, arguments); if (!inBy() || !STAGE) return; const sc = Game.scene; if (!sc) return;
-  sc.terrain = EMPTY; sc.statics = STAGE.statics; sc.water = STAGE.sea; sc.insts.length = 0;
+  sc.terrain = EMPTY; sc.statics = STAGE.statics; sc.water = STAGE.sea; sc.pools = null; sc.insts.length = 0;
   for (let i = list.length - 1; i >= 0; i--) { const m = list[i] && list[i].m; if (!m || Math.hypot(m[12] - BX, m[14] - BZ) > 150) list.splice(i, 1); } };
 const q0 = EP.quiet; EP.quiet = function (s) { return inBy() || (q0 ? q0.apply(this, arguments) : false); };
 let modeOn = null;

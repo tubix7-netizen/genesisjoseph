@@ -287,8 +287,12 @@ Pe.wake = function (n) { const p = Pe.of(n.id); if (!p) { n.sleep = false; n._ps
   const g = p.age === 'kid' ? 'kid' : p.age === 'old' ? 'old' : p.fem ? 'woman' : 'man', L = SLP[g], l = fill(L[Math.floor(Math.random() * L.length)], { you: youOf(p) || '' });
   G.Audio && G.Audio.sfx('blip', { pitch: p.age === 'kid' ? 1.5 : p.fem ? 1.2 : 0.8, vol: 0.35, x: n.x, z: n.z });
   G.UI.say([{ n: n.name, t: l }], () => { n.talking = false; }); return true; };
+let wasCine = false; /* v18.24 a scene starting or ending runs the routine at once */
 function dayTick() { const ENT = Game.ENT; if (!ENT) return; const S2 = S(), h = S2.time % 24, tg = Game.curTarget, fam = isFam, Pl = P();
-  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || n.d.animal || n.d.sched || n.d.folk || n.talking || n.follow || n.walk || n.seatY || n.d.sit || n.d.kneel || n.d.fixed || (fam && fam(id))) { if (n._ract && n.act === n._ract) { n.act = n.d.act || null; n._ract = null; } continue; } // v18.14 people on a seat (Pharaoh on his throne) stay on it
+  /* v18.24 nobody the cutscene is using lies down to sleep: while a scene plays (or a scene chain is held behind black), everyone our day routine put to sleep or posed
+     stands back up as the story placed them, and no new routine starts until the scene is over */
+  if ((G.Cine && G.Cine.on) || Game.cineOn) { for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (n._psleep) { n.sleep = false; n._psleep = false; } if (n._ract && n.act === n._ract) { n.act = n.d.act || null; n._ract = null; } } return; }
+  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || n.d.animal || n.d.sched || n.d.folk || n.talking || n.follow || n.walk || n.seatY || n.sit || n.d.sit || n.d.kneel || n.d.fixed || (fam && fam(id))) { if (n._ract && n.act === n._ract) { n.act = n.d.act || null; n._ract = null; } continue; } // v18.14 people on a seat (Pharaoh on his throne) stay on it
     if (tg && tg.npc === id) { if (n._ract) { n.act = n.d.act || null; n._ract = null; } if (n._psleep) { n.sleep = false; n._psleep = false; } continue; } // the one the story wants stays as the story left them
     if (n.act && n.act !== n._ract && n.act !== n.d.act) continue; // a story pose: leave it
     if (n.sleep && !n._psleep) continue; // asleep because the story said so
@@ -323,5 +327,5 @@ if (G.NpcAI && G.NpcAI.plan) { const plan0 = G.NpcAI.plan; G.NpcAI.plan = functi
 // =================================================================== per frame
 let dT = 0;
 const upd0 = EP.update; EP.update = function (dt) { const r = upd0 ? upd0.apply(this, arguments) : undefined; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
-  if (Game.mode === 'play') { pclk += d; try { bumpTick(d); if ((dT += d) > 1) { dT = 0; dayTick(); } } catch (e) { console.error('persona', e); } } return r; };
+  if (Game.mode === 'play') { pclk += d; try { bumpTick(d); { const cn = !!((G.Cine && G.Cine.on) || Game.cineOn); if (cn !== wasCine) { wasCine = cn; dT = 2; } } if ((dT += d) > 1) { dT = 0; dayTick(); } } catch (e) { console.error('persona', e); } } return r; };
 })(window.G);

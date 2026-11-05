@@ -181,6 +181,15 @@ class World {
   }
   addLadder(o) { const l = Object.assign({ a: 0, w: 0.8 }, o); this.ladders.push(l); return l; }
   // ray from a to b against tall boxes/circles, returns fraction 0..1
+  /* v18.24 can an eye at A see B? Any wall-like box (taller than 1.3 m, camera flag or not) between them blocks; used for name tags */
+  sees(ax, ay, az, bx, by, bz) { const L = Math.hypot(bx - ax, bz - az), steps = Math.max(2, Math.ceil(L / (this.HC * 0.5))); const seen = this._seeSet || (this._seeSet = new Set()); seen.clear();
+    for (let i = 0; i <= steps; i++) { const x = ax + (bx - ax) * i / steps, z = az + (bz - az) * i / steps;
+      for (const c of this.near(x, z)) { if (!c.on || c.t !== 'b' || seen.has(c) || c.y1 - c.y0 < 1.3) continue; seen.add(c);
+        const dx0 = ax - c.x, dz0 = az - c.z, dx1 = bx - c.x, dz1 = bz - c.z; const o = [dx0 * c.ca - dz0 * c.sa, ay, dx0 * c.sa + dz0 * c.ca], e = [dx1 * c.ca - dz1 * c.sa, by, dx1 * c.sa + dz1 * c.ca];
+        const d = [e[0] - o[0], e[1] - o[1], e[2] - o[2]], mn = [-c.hw, c.y0, -c.hd], mx = [c.hw, c.y1, c.hd]; let t0 = 0, t1 = 1, ok = true;
+        for (let k = 0; k < 3; k++) { if (Math.abs(d[k]) < 1e-9) { if (o[k] < mn[k] || o[k] > mx[k]) { ok = false; break; } } else { let u = (mn[k] - o[k]) / d[k], v = (mx[k] - o[k]) / d[k]; if (u > v) [u, v] = [v, u]; t0 = Math.max(t0, u); t1 = Math.min(t1, v); if (t0 > t1) { ok = false; break; } } }
+        if (ok && t0 > 0.02 && t0 < 0.98) return false; } }
+    return true; }
   ray(ax, ay, az, bx, by, bz) {
     let best = 1; const seen = new Set(); const steps = 6;
     for (let i = 0; i <= steps; i++) {
