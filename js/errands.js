@@ -60,5 +60,8 @@ const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, ar
     const p = P(), c = s.q.riding ? { x: p.x, z: p.z, f: p.face } : s.q.cartAt, W = Game.W();
     if (c && s.q.chariotOk) [[-0.36, -1.3], [0.36, -1.35], [0, -1.95]].forEach(([lx, lz], i) => { const x = c.x + Math.cos(c.f) * lx + Math.sin(c.f) * lz, z = c.z - Math.sin(c.f) * lx + Math.cos(c.f) * lz; G.m4trs(SM[i], x, W.heightAt(c.x, c.z) + 0.68, z, c.f + i, 0, 0, 1, 1, 1); list.push({ mesh: sack, m: SM[i], outline: true }); });
     const d = drop(s.q.dlJob.v); if (d) { G.m4trs(FM, d[0], W.heightAt(d[0], d[1]), d[1], performance.now() / 3000 % 6.28 * 0 + 0.6, 0, Math.sin(performance.now() / 400) * 0.03, 1, 1, 1); list.push({ mesh: flag, m: FM, outline: true }); } } catch (e) { console.error('errands dyn', e); } };
+/* v18.30 taking another request while a delivery is running does not quietly swap the goal: the wagon job stays the goal */
+{ const ac0 = G.Life.accept; G.Life.accept = function (id) { const s = S(), j = s && s.q && s.q.dlJob, r = ac0.apply(this, arguments);
+    if (j && j.id !== id && s.side && s.side.act && s.side.act[j.id]) { s.side.track = j.id; s.side.goal = 'side'; G.UI.quest && G.UI.quest(); setTimeout(() => G.UI.toast('배달 중이라 목표는 그대로예요 · 왼쪽 위 부탁 줄을 눌러 바꿀 수 있어요'), 1600); } return r; }; }
 G.Errands = { drop, job };
 })(window.G);

@@ -925,6 +925,27 @@ function animal(sp, o) {
     g.sph(0.24, 9, 7, { at: [0, 2.05, -0.05], s: [0.85, 0.9, 1.1], c: shade(hide, 0.04), b: 0, j: 0.02 }); // the hump rises in one rounded mound
     for (const s of [1, -1]) { g.sph(0.04, 5, 4, { at: [0.1 * s, 2.56, 1.15], s: [0.6, 1.3, 0.6], c: shade(hide, -0.12), b: 1 }); g.sph(0.07, 6, 4, { at: [0.12 * s, 1.55, 0.05], s: [0.3, 1, 2.2], c: shade(hide, -0.06), b: 0 }); }
     g.cyl(0.02, 0.05, 0.5, 5, { at: [0, 1.58, -0.72], rx: 0.25, c: shade(hide, -0.1), b: 6 }); g.sph(0.05, 5, 4, { at: [0, 1.34, -0.78], s: [1, 1.6, 1], c: shade(hide, -0.3), b: 6 });
+  } else if (sp === 'horse' && o.royal) {
+    /* v18.31 the vizier's white chariot horses: a rounded barrel with chest and rump, a long arched neck, a shaped head (skull, tapered
+       muzzle, soft nose, ears, eyes), a cream mane and flowing tail, tapered legs with gilded hooves — and royal tack: a gold bridle,
+       a gold breast strap, a lapis caparison with gold trim and a sun disc, and a slim red-and-gold plume */
+    const W = 0xf4efe6, W2 = 0xe6dfd2, MANE = 0xf2e2b8, GOLD = 0xe2b440, GOLDH = 0xf6d878, LAP = 0x2c4f9a, RED = 0xb8402e, H = def[1], B0 = def[0][3];
+    g.sph(0.36, 14, 10, { at: [0, B0, 0], s: [0.78, 0.86, 1.45], c: W, b: 0, j: 0.02 });
+    g.sph(0.3, 12, 9, { at: [0, B0 + 0.03, 0.34], s: [0.88, 1.0, 0.9], c: W, b: 0, j: 0.02 }); g.sph(0.31, 12, 9, { at: [0, B0 + 0.05, -0.36], s: [0.95, 0.95, 0.95], c: W, b: 0, j: 0.02 });
+    g.cyl(0.17, 0.1, 0.64, 10, { at: [0, H[3] - 0.1, H[4] - 0.14], rx: 0.6, c: W, b: 1 });
+    const ax = [0, Math.cos(1.95), Math.sin(1.95)], hc = [0, H[3] + 0.18, H[4] + 0.06], at = k => [hc[0] + ax[0] * k, hc[1] + ax[1] * k, hc[2] + ax[2] * k];
+    g.sph(0.14, 10, 8, { at: hc, s: [0.82, 1, 1.12], c: W, b: 1 }); g.cyl(0.11, 0.072, 0.36, 10, { at: at(0.17), rx: 1.95, c: W, b: 1 }); g.sph(0.072, 9, 7, { at: at(0.34), s: [1, 0.85, 1.1], c: 0x9a8e86, b: 1 });
+    for (const sx of [1, -1]) { g.sph(0.022, 6, 5, { at: [0.085 * sx, hc[1] + 0.04, hc[2] + 0.06], c: 0x1a1412, b: 1, j: 0 }); g.cyl(0.032, 0.004, 0.13, 6, { at: [0.05 * sx, hc[1] + 0.16, hc[2] - 0.05], rz: -0.18 * sx, rx: -0.15, c: W, b: 1 });
+      g.box(0.012, 0.03, 0.3, { at: [0.072 * sx, hc[1] - 0.04, hc[2] + 0.14], rx: -0.36, c: GOLD, b: 1, j: 0 }); g.sph(0.024, 6, 5, { at: [0.08 * sx, hc[1] - 0.05, hc[2] + 0.03], c: GOLDH, b: 1, j: 0 }); }
+    g.box(0.15, 0.03, 0.03, { at: at(0.24), rx: 1.95, c: GOLD, b: 1, j: 0 }); g.box(0.2, 0.025, 0.03, { at: [0, hc[1] + 0.1, hc[2] + 0.02], c: GOLD, b: 1, j: 0 });
+    for (let i = 0; i < 9; i++) { const u = i / 8, y = H[3] + 0.28 - u * 0.5, z = H[4] - 0.04 - u * 0.5; g.box(0.05, 0.14 - u * 0.03, 0.09, { at: [0, y, z], rx: 0.6, c: i % 3 === 1 ? 0xe8d2a0 : MANE, b: u < 0.5 ? 1 : 0, j: 0.04 }); }
+    g.box(0.06, 0.1, 0.06, { at: [0, hc[1] + 0.13, hc[2] + 0.1], rx: 0.8, c: MANE, b: 1 });
+    g.cyl(0.004, 0.026, 0.2, 6, { at: [0, hc[1] + 0.3, hc[2] - 0.06], rx: -0.2, c: RED, b: 1 }); g.cyl(0.03, 0.03, 0.05, 8, { at: [0, hc[1] + 0.2, hc[2] - 0.04], c: GOLDH, b: 1, j: 0 });
+    legs2(g, def, def[2][3], 0.1, 0.052, W2, 0xc89a3a); for (let i = 2; i <= 5; i++) { const q = def[i]; g.sph(0.13, 9, 7, { at: [q[2] * 1.2, q[3] - 0.08, q[4]], s: [0.75, 1.35, 1.05], c: W, b: i, j: 0.02 }); } /* (muscled upper legs) */
+    g.cyl(0.11, 0.04, 0.82, 9, { at: [0, def[6][3] - 0.36, def[6][4] - 0.12], rx: -0.28, c: MANE, b: 6, j: 0.03 }); g.cyl(0.07, 0.03, 0.6, 7, { at: [0.03, def[6][3] - 0.3, def[6][4] - 0.08], rx: -0.2, c: 0xe8d2a0, b: 6 });
+    g.box(0.5, 0.03, 0.62, { at: [0, B0 + 0.31, -0.04], c: LAP, b: 0, j: 0 }); for (const sx of [1, -1]) { g.box(0.025, 0.2, 0.6, { at: [0.27 * sx, B0 + 0.22, -0.04], rz: 0.35 * sx, c: LAP, b: 0, j: 0 }); g.box(0.03, 0.03, 0.64, { at: [0.305 * sx, B0 + 0.125, -0.04], rz: 0.35 * sx, c: GOLD, b: 0, j: 0 });
+      g.cyl(0.05, 0.05, 0.012, 12, { at: [0.29 * sx, B0 + 0.22, -0.04], rz: Math.PI / 2 + 0.35 * sx, c: GOLDH, b: 0, j: 0 }); }
+    g.box(0.7, 0.04, 0.05, { at: [0, B0 + 0.31, 0.37], c: GOLD, b: 0, j: 0 }); g.box(0.62, 0.05, 0.05, { at: [0, B0 - 0.02, 0.5], rx: 0.4, c: GOLD, b: 0, j: 0 });
   } else if (sp === 'donkey' || sp === 'horse') {
     const hide = o.hide || (sp === 'horse' ? 0xeee6d8 : 0x8a8078), big = sp === 'horse' ? 1.25 : 1;
     g.sph(0.32 * big, 12, 8, { at: [0, def[0][3], 0], s: [0.8, 0.85, 1.55], c: hide, b: 0, j: 0.03 });

@@ -1037,7 +1037,7 @@ function updateCamera(dt, snap) {
   if (aw > 0.02 && !live && CAM.aimAt) { const a = CAM.aimAt, hd = Math.max(2, Math.hypot(a.x - P.x, a.z - P.z)), want = clamp(Math.atan2(P.y + AC.piv - a.y, hd) + 0.05, -0.3, 0.55);
     CAM.pitch += (want - CAM.pitch) * Math.min(1, dt * 3.5 * aw); }
   const k = snap ? 1 : 1 - Math.exp(-dt * (sh ? 16 : 12)), kv = snap ? 1 : 1 - Math.exp(-dt * 8);
-  const rideUp = P.ride && G.Ride ? G.Ride.spec(P.ride).camUp : 0; CAM.rideK = lerp(CAM.rideK || 0, rideUp, snap ? 1 : 1 - Math.exp(-dt * 3));
+  const rideUp = P.ride && G.Ride ? G.Ride.spec(P.ride).camUp : S.q && S.q.riding && S.q.chariotOk ? 0.7 : 0; /* v18.30 over the canopy on the wagon, so you see Joseph and the horses */ CAM.rideK = lerp(CAM.rideK || 0, rideUp, snap ? 1 : 1 - Math.exp(-dt * 3));
   CAM.tx = lerp(CAM.tx, P.x, k); CAM.tz = lerp(CAM.tz, P.z, k); CAM.ty = lerp(CAM.ty, P.y + lerp(C.piv, AC.piv, aw2) + CAM.rideK, kv);
   const run = P.sprint && P.spd > 5.8 ? 1 : 0;
   /* indoors: under a roof the boom stays below the ceiling, the view levels out and comes in a little, so the people in

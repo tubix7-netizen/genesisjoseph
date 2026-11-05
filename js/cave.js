@@ -32,7 +32,7 @@ const BRAZ = [[2.6, 2.6], [-2.5, 40.5], [-11.6, 21.6]];
 const KIIN = [-2, 47.4];
 // ------------------------------------------------------------------ building it (at world build)
 let STAGE = null; const COLS = [];
-function buildCave(W) { const g = new G.GB(141), C = o => { const c = W.addCol(Object.assign({ on: false, y0: CY - 1, y1: CY + 7, cam: true }, o)); COLS.push(c); return c; };
+function buildCave(W) { const g = new G.GB(141), C = o => { const c = W.addCol(Object.assign({ on: false, y0: CY - 1, y1: CY + 7, cam: true, stage: true }, o)); COLS.push(c); return c; };
   let sd = 77; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
   const ROCK = [0x4a3c30, 0x56463a, 0x3e3228, 0x5e4c3c, 0x463a30];
   const wallAt = (x, z, nx, nz) => { const tx = -nz, tz = nx, a = Math.atan2(-tz, tx), h = 4.6 + rn() * 2.2, px = x + nx * 0.7, pz = z + nz * 0.7;
@@ -78,7 +78,8 @@ function buildMouth(W) { const x0 = MOUTH.x - 4.6, z0 = MOUTH.z, y0 = W.heightAt
     g.box(3.6, 2.2, 6.6, { m: M, at: [-1.6, 4.2, 0], c: ROCK[1], j: 0.1 }); g.box(1.2, 2.7, 2.6, { m: M, at: [0.2, 1.35, 0], c: 0x0a0806, j: 0 }); /* the dark opening */
     g.box(5, 5, 9, { m: M, at: [-3.4, 1.5, 0], c: ROCK[0], j: 0.1 }); }, x0, z0, { y: y0 - 0.3, col: null });
   W.addCol({ x: x0 - 1.8, z: z0, w: 6, d: 9.5, y0: y0 - 2, y1: y0 + 6, cam: true }); }
-const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); try { buildMouth(W); STAGE = buildCave(W); } catch (e) { console.error('cave build', e); } };
+const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); STAGE = null; COLS.length = 0; try { buildMouth(W); } catch (e) { console.error('cave build', e); } }; /* v18.30 the inside is built on the first visit (less to build, and less memory, at load) */
+const ensure = () => { if (!STAGE && Game.W()) try { STAGE = buildCave(Game.W()); } catch (e) { console.error('cave build', e); } };
 /* a fire by the mouth to light torches at */
 EP.stations.push({ id: 'fCave', type: 'fire', x: MOUTH.x + 3.2, z: MOUTH.z + 3.4, r: 2.6, on: s => free(s) });
 for (const [i, [x, z]] of BRAZ.entries()) EP.stations.push({ id: 'fCv' + i, type: 'fire', x: CX + x, z: CZ + z, r: 2.2, on: s => inCave() });
@@ -149,7 +150,7 @@ Game.CTX.push(function (s) { if (!free(s) || Game.cineOn) return null; const p =
   return out.length ? out : null; });
 /* the floor of the cave; the walls are colliders (on only while inside) */
 const fl0 = EP.floor; EP.floor = function (x, z, s) { if (inCave()) { const lx = x - CX, lz = z - CZ; if (lx > -24 && lx < 34 && lz > -12 && lz < 60) return CY; } return fl0 ? fl0.apply(this, arguments) : null; };
-let modeOn = null; function sync(force) { const on = inCave(); if (on === modeOn && !force) return; modeOn = on; for (const c of COLS) c.on = on; EP.noGrass = on || !!(G.Byblos && G.Byblos.inBy && G.Byblos.inBy()); if (on && G.Weather && G.Weather.set) G.Weather.set('clear', 1); }
+let modeOn = null; function sync(force) { const on = inCave(); if (on) ensure(); if (on === modeOn && !force) return; modeOn = on; for (const c of COLS) c.on = on; EP.noGrass = on || !!(G.Byblos && G.Byblos.inBy && G.Byblos.inBy()); if (on && G.Weather && G.Weather.set) G.Weather.set('clear', 1); }
 const EMPTY = [];
 /* light: the torch, the braziers, the sky window (by day), the mirror (once it is made) */
 function lightAt(s) { const p = P(), lx = p.x - CX, lz = p.z - CZ, h = s.time % 24, day = h > 6 && h < 18.5; let L = Game.hand() === 'torch' && G.Chem && G.Chem.torchT > 0 ? 1 : 0;

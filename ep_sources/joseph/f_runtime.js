@@ -226,7 +226,7 @@ function skinned(list, S, G, t) {
   if (S.q.riding && S.q.chariotOk) { const P = G.P, f = P.face, CT = GG.Cart, hv = CT && CT.hv ? Math.abs(CT.hv()) : P.spd, ex = CT && CT.sx ? CT.sx() : 0; HR.ph += hv * 0.016 * 1.6; /* v18.25b the horses run at their own pace, a little ahead of the wagon when the traces are taut */
     HR.rigs.forEach((rig, i) => { const s = i ? 1 : -1, hx = P.x + Math.sin(f) * (2.6 + ex) + Math.cos(f) * s * 0.55, hz = P.z + Math.cos(f) * (2.6 + ex) - Math.sin(f) * s * 0.55;
       animAnimal(rig, { speed: hv * 0.55, phase: HR.ph + i * 0.4, graze: false }, t); rig.update(m4trs(HR['M' + i] || (HR['M' + i] = m4()), hx, hAt(hx, hz), hz, f));
-      list.push({ mesh: G.animalMesh('horse', 'plain', { saddle: 0xe2b440 }), bones: rig.bones, outline: true }); }); }
+      list.push({ mesh: G.animalMesh('horse', 'plain', { royal: 1 }), bones: rig.bones, outline: true }); }); }
 }
 // light: the moonlight shaft in Joseph's cell, the dream glows
 let shaftMesh = null;

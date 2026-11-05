@@ -622,7 +622,7 @@ UI.buildMap = function () {
     if (W.water && W.h[k] < W.water.level) { r = 0.25; g = 0.55; b = 0.62; } const sh = 0.85 + (W.nx[k] * 0.3 - W.nz[k] * 0.3);
     const o = (j * N + i) * 4; img.data[o] = Math.min(255, r * 255 * sh); img.data[o + 1] = Math.min(255, g * 255 * sh); img.data[o + 2] = Math.min(255, b * 255 * sh); img.data[o + 3] = 255; }
   x.putImageData(img, 0, 0); x.fillStyle = 'rgba(70,50,35,.9)';
-  for (const col of W.cols) if (col.t === 'b' && col.cam) { const sx = (col.x + W.half) / W.size * N, sz = (col.z + W.half) / W.size * N; x.save(); x.translate(sx, sz); x.rotate(-col.a || 0); x.fillRect(-col.hw / W.size * N, -col.hd / W.size * N, col.w / W.size * N, col.d / W.size * N); x.restore(); }
+  for (const col of W.cols) if (col.t === 'b' && col.cam && !col.stage) { const sx = (col.x + W.half) / W.size * N, sz = (col.z + W.half) / W.size * N; x.save(); x.translate(sx, sz); x.rotate(-col.a || 0); x.fillRect(-col.hw / W.size * N, -col.hd / W.size * N, col.w / W.size * N, col.d / W.size * N); x.restore(); }
   mapImg = c;
 };
 function drawMap(tg) {
@@ -634,8 +634,9 @@ function drawMap(tg) {
   // npcs dots
   for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.vis || n.d.animal) continue; const dx = (n.x - P.x) * k, dz = (n.z - P.z) * k; if (Math.hypot(dx, dz) > R - 6) continue; mm.fillStyle = '#f4e8cc'; mm.beginPath(); mm.arc(R + dx, R + dz, 3, 0, 7); mm.fill(); }
   // v12: the way to the goal is drawn on the map (dashed route + pulsing ring), instead of a light pillar in the world
+  const navOn = G.Nav && G.Nav.draw(mm, (x, z) => [R + (x - P.x) * k, R + (z - P.z) * k], 4); /* v18.30 on the wagon: the road it can take, in yellow */
   if (tg) { const t = performance.now() / 1000; let dx0 = (tg.x - P.x) * k, dz0 = (tg.z - P.z) * k; const d0 = Math.hypot(dx0, dz0);
-    mm.save(); mm.setLineDash([7, 6]); mm.lineDashOffset = -t * 18; mm.strokeStyle = tg.side ? 'rgba(120,200,255,.9)' : 'rgba(255,214,90,.9)'; mm.lineWidth = 3.5; mm.beginPath(); mm.moveTo(R, R); const cl = Math.min(1, (R - 12) / (d0 || 1)); mm.lineTo(R + dx0 * cl, R + dz0 * cl); mm.stroke(); mm.restore();
+    if (!navOn) { mm.save(); mm.setLineDash([7, 6]); mm.lineDashOffset = -t * 18; mm.strokeStyle = tg.side ? 'rgba(120,200,255,.9)' : 'rgba(255,214,90,.9)'; mm.lineWidth = 3.5; mm.beginPath(); mm.moveTo(R, R); const cl = Math.min(1, (R - 12) / (d0 || 1)); mm.lineTo(R + dx0 * cl, R + dz0 * cl); mm.stroke(); mm.restore(); }
     if (d0 <= R - 12) { const pr = 10 + 5 * (0.5 + 0.5 * Math.sin(t * 4)); mm.strokeStyle = tg.side ? 'rgba(120,200,255,.75)' : 'rgba(255,214,90,.75)'; mm.lineWidth = 3; mm.beginPath(); mm.arc(R + dx0, R + dz0, pr, 0, 7); mm.stroke(); } }
   if (tg) { let dx = (tg.x - P.x) * k, dz = (tg.z - P.z) * k; const d = Math.hypot(dx, dz); if (d > R - 12) { dx *= (R - 12) / d; dz *= (R - 12) / d; } mm.fillStyle = tg.side ? '#7cc8ff' : '#ffd24a'; mm.strokeStyle = tg.side ? '#10283a' : '#3a2a10'; mm.lineWidth = 2; mm.beginPath(); mm.moveTo(R + dx, R + dz - 9); mm.lineTo(R + dx + 7, R + dz); mm.lineTo(R + dx, R + dz + 9); mm.lineTo(R + dx - 7, R + dz); mm.closePath(); mm.fill(); mm.stroke(); }
   const fa = Math.atan2(-Math.cos(Game.CAM.yaw), -Math.sin(Game.CAM.yaw)); mm.fillStyle = 'rgba(255,255,255,.18)'; mm.beginPath(); mm.moveTo(R, R); mm.arc(R, R, 44, fa - 0.55, fa + 0.55); mm.closePath(); mm.fill();
@@ -651,7 +652,7 @@ function buildBig() {
     if (W.water && h < W.water.level) { const d = Math.min(1, (W.water.level - h) / 1.5); r = 0.3 - d * 0.1; g = 0.6 - d * 0.12; b = 0.66 - d * 0.06; }
     const sh = 0.82 + (W.nx[k] * 0.45 - W.nz[k] * 0.45) + Math.min(0.12, h * 0.004); const o = (j * N + i) * 4; img.data[o] = Math.min(255, r * 255 * sh); img.data[o + 1] = Math.min(255, g * 255 * sh); img.data[o + 2] = Math.min(255, b * 255 * sh); img.data[o + 3] = 255; }
   x.putImageData(img, 0, 0); x.fillStyle = 'rgba(70,50,35,.92)';
-  for (const col of W.cols) if (col.t === 'b' && col.cam) { const sx = (col.x + W.half) / W.size * N, sz = (col.z + W.half) / W.size * N; x.save(); x.translate(sx, sz); x.rotate(-col.a || 0); x.fillRect(-col.hw / W.size * N, -col.hd / W.size * N, col.w / W.size * N, col.d / W.size * N); x.restore(); }
+  for (const col of W.cols) if (col.t === 'b' && col.cam && !col.stage) { const sx = (col.x + W.half) / W.size * N, sz = (col.z + W.half) / W.size * N; x.save(); x.translate(sx, sz); x.rotate(-col.a || 0); x.fillRect(-col.hw / W.size * N, -col.hd / W.size * N, col.w / W.size * N, col.d / W.size * N); x.restore(); }
   bigImg = c;
 }
 UI.bigMap = function () {
@@ -694,6 +695,7 @@ function drawBig() {
   for (const b of S.bld || []) { c.fillStyle = '#a0623a'; c.strokeStyle = '#f4e8cc'; c.lineWidth = 1.5; c.fillRect(sx(b.x) - 4, sz(b.z) - 4, 8, 8); c.strokeRect(sx(b.x) - 4, sz(b.z) - 4, 8, 8); }
   if (G.Ride) for (const m of G.Ride.list) if (m !== P.ride) { c.fillStyle = '#e8d8b8'; c.beginPath(); c.arc(sx(m.x), sz(m.z), 4, 0, 7); c.fill(); c.strokeStyle = '#5a3a24'; c.stroke(); }
   for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.vis || n.d.animal || n.d.noTag || !G.Life || !G.Life.mark(id)) continue; c.fillStyle = G.Life.mark(id) === '?' ? '#9be0ff' : '#ffd24a'; c.font = '800 13px sans-serif'; c.fillText(G.Life.mark(id), sx(n.x), sz(n.z)); }
+  if (G.Nav) G.Nav.draw(c, (x, z) => [sx(x), sz(z)], 4);
   const tg = Game.curTarget; if (tg) { const x = sx(tg.x), y = sz(tg.z); c.fillStyle = tg.wp ? '#ff7a6a' : tg.side ? '#7cc8ff' : '#ffd24a'; c.strokeStyle = '#3a2a10'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y - 9); c.lineTo(x + 7, y); c.lineTo(x, y + 9); c.lineTo(x - 7, y); c.closePath(); c.fill(); c.stroke(); }
   if (S.wp && !(tg && tg.wp)) { c.fillStyle = '#ff7a6a'; c.beginPath(); c.arc(sx(S.wp.x), sz(S.wp.z), 5, 0, 7); c.fill(); }
   // hero

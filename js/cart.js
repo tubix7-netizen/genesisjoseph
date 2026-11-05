@@ -112,7 +112,7 @@ function dismount(quiet) { const s = S(), p = P(); if (!s.q.riding) return; D.v 
 Ct.mount = mount; Ct.dismount = dismount;
 // the left button: 「수레 부르기」 (no 「타기/내리기」 there any more — that is A at the cart)
 const e = (EP.extra || []).find(x => x.id === 'chariot');
-if (e) { const on0 = e.on; e.on = (s, g) => (on0 ? on0(s, g) : true) && !s.q.riding; e.label = () => '수레 부르기'; e.click = () => Ct.call(); }
+if (e) { const on0 = e.on; e.on = (s, g) => (on0 ? on0(s, g) : true) && !s.q.riding && !(G.Caves && G.Caves.inside()) && !(G.Cave && G.Cave.inside()) && !(G.Byblos && G.Byblos.inBy && G.Byblos.inBy()); /* (not underground or overseas) */ e.label = () => '수레 부르기'; e.click = () => Ct.call(); }
 Ct.call = function () { const s = S(), p = P(), W = Game.W(); if (s.q.riding || drive) return;
   const t = Ct.town(p.x, p.z); if (t) { pop('여기선 못 불러요', `${t} 안이에요 · 마을 밖으로 나가서 불러요`, 'donkey'); return; }
   const c = s.q.cartAt, wet = (x, z) => W.water && hAt(x, z) < W.water.level - 0.25, open = (x, z) => !wet(x, z) && !Ct.town(x, z) && W.ray(x, hAt(x, z) + 1, z, p.x, p.y + 1, p.z) > 0.97;
@@ -269,7 +269,7 @@ let wheelMs = null;
 const sk0 = EP.skinned; EP.skinned = function (list, s, g, t) { if (sk0) sk0.apply(this, arguments); const c = s.q.cartAt; if (s.q.riding || !c || !s.q.chariotOk || Math.hypot(c.x - P().x, c.z - P().z) > 70) return;
   if (!HR.rigs) HR.rigs = [new G.Rig(G.AB.horse), new G.Rig(G.AB.horse)]; if (!drive) HR.ph += 0.01;
   HR.rigs.forEach((rig, i) => { const [hx, hz] = horsePos(c, i); G.animAnimal(rig, { speed: drive ? HR.spd * 0.55 : 0, phase: HR.ph + i * 0.4, graze: !drive && (s.flags.horseEat || 0) > Date.now() }, t); rig.update(G.m4trs(HM[i], hx, hAt(hx, hz), hz, c.f));
-    list.push({ mesh: Game.animalMesh('horse', 'plain', { saddle: 0xe2b440 }) /* a matched pair of white horses */, bones: rig.bones, outline: true }); }); };
+    list.push({ mesh: Game.animalMesh('horse', 'plain', { royal: 1 }) /* a matched pair of white horses */, bones: rig.bones, outline: true }); }); };
 const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, arguments); if (!s) return; const c = cartPos(); if (!c || !s.q.chariotOk || Math.hypot(c.x - P().x, c.z - P().z) > 70) return;
   if (!cartMesh) cartMesh = G.R.mesh(wagon());
   const y0 = hAt(c.x, c.z), rid = s.q.riding; G.m4trs(CM, c.x, y0, c.z, c.f, rid ? D.pitch : 0, 0, 1, 1, 1); list.push({ mesh: cartMesh, m: CM, outline: true });

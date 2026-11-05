@@ -82,7 +82,7 @@ const ceilAt = (c, x, z) => { let best = 4.6, bd = 1e9; for (const k in c.CH) { 
 const STG = {};
 function build(W, c) { const g = new G.GB(160 + c.id.length), { x: X, z: Z, y: Y } = c.st, COL = []; let sd = 31 + c.id.length * 7; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
   const ROCK = c.id === 'jump' ? [0x5a5048, 0x645a50, 0x4e463e, 0x6a5e52] : c.id === 'echo' ? [0x3e4648, 0x46504e, 0x36403e, 0x4e5654] : [0x4a3c30, 0x56463a, 0x3e3228, 0x5e4c3c];
-  const C = o => COL.push(W.addCol(Object.assign({ on: false, y0: Y - 1, y1: Y + 30, cam: true }, o)));
+  const C = o => COL.push(W.addCol(Object.assign({ on: false, y0: Y - 1, y1: Y + 30, cam: true, stage: true }, o)));
   const wall = (x, z, nx, nz) => { const a = Math.atan2(nz, nx) * -1 + 0, tx = -nz, tz = nx, ry = Math.atan2(-tz, tx), H = ceilAt(c, x, z) + 0.6, px = x + nx * 0.7, pz = z + nz * 0.7;
     for (let y0 = 0; y0 < H; y0 += 5.2) { const h = Math.min(5.6, H - y0 + 0.4) + rn() * 0.8; g.box(1.9 + rn() * 0.5, h, 1.5 + rn() * 0.4, { at: [X + px, Y + y0 + h / 2 - 0.3, Z + pz], ry: ry + (rn() - 0.5) * 0.3, rz: (rn() - 0.5) * 0.1, c: ROCK[Math.floor(rn() * ROCK.length)], j: 0.12 }); }
     C({ x: X + px, z: Z + pz, w: 1.9, d: 1.6, a: ry }); };
@@ -109,7 +109,8 @@ function buildMouth(W, c) { const { x, z, f } = c.mouth, y = W.heightAt(x, z), R
     g.box(6.6, 2.2, 3.6, { m: M, at: [0, 4.1, -1.8], c: ROCK[1], j: 0.1 }); g.box(1.3, 2.7, 1.0, { m: M, at: [0, 1.35, -0.6], c: 0x0a0806, j: 0 }); g.box(9, 5.5, 5, { m: M, at: [0, 1.6, -4.2], c: ROCK[0], j: 0.1 });
     g.cyl(0.05, 0.05, 1.6, 6, { m: M, at: [1.9, 0.8, 0.6], c: 0x5a3a20 }); g.box(0.5, 0.06, 0.2, { m: M, at: [1.9, 1.5, 0.6], c: 0x5a3a20 }); for (let k = 0; k < 3; k++) g.cyl(0.04, 0.04, 0.7, 5, { m: M, at: [1.75 + k * 0.15, 1.6, 0.6], c: 0x8a6a40 }); }, x - fx * 0.0, z - fz * 0.0, { y: y - 0.3, ry: f, col: null });
   W.addCol({ x: x - fx * 3.4, z: z - fz * 3.4, w: 9.5, d: 5.5, a: f, y0: y - 2, y1: y + 6, cam: true }); }
-const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); for (const c of CAVES) try { buildMouth(W, c); build(W, c); } catch (e) { console.error('caves build', c.id, e); } };
+const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); for (const k in STG) delete STG[k]; for (const c of CAVES) try { buildMouth(W, c); } catch (e) { console.error('caves build', c.id, e); } }; /* v18.30 insides are built on the first visit */
+const ensure = c => { if (c && !STG[c.id] && Game.W()) try { build(Game.W(), c); } catch (e) { console.error('caves build', c.id, e); } };
 for (const c of CAVES) { (EP.places = EP.places || []).push({ n: c.n, x: c.mouth.x, z: c.mouth.z, when: s => c.when(s) });
   EP.stations.push({ id: 'fM_' + c.id, type: 'fire', x: c.mouth.x + Math.sin(c.mouth.f) * 3 + Math.cos(c.mouth.f) * 2.6, z: c.mouth.z + Math.cos(c.mouth.f) * 3 - Math.sin(c.mouth.f) * 2.6, r: 2.4, on: s => c.when(s) });
   (c.braz || []).forEach(([x, z], i) => EP.stations.push({ id: 'fB_' + c.id + i, type: 'fire', x: c.st.x + x, z: c.st.z + z, r: 2.2, on: s => !!(cur() === c) })); }
@@ -139,7 +140,7 @@ function readNote() { const s = S(), met = !!(s.q && s.q.kMet); G.UI.say([{ n: '
 // ------------------------------------------------------------------ the floor (and the pillars of the jump course)
 const fl0 = EP.floor; EP.floor = function (x, z, s) { const c = cur(); if (c) { const lx = x - c.st.x, lz = z - c.st.z; if (lx > -30 && lx < 30 && lz > -12 && lz < 50) { let f = c.st.y;
       if (c.jump) for (const [px, pz, sz, h] of PILL) if (Math.abs(lx - px) < sz / 2 && Math.abs(lz - pz) < sz / 2) f = Math.max(f, c.st.y + h); return f; } } return fl0 ? fl0.apply(this, arguments) : null; };
-let modeOn = null; function sync(force) { const c = cur(), id = c ? c.id : null; if (id === modeOn && !force) return; modeOn = id; for (const k in STG) for (const col of STG[k].COL) col.on = k === id;
+let modeOn = null; function sync(force) { const c = cur(), id = c ? c.id : null; ensure(c); if (id === modeOn && !force) return; modeOn = id; for (const k in STG) for (const col of STG[k].COL) col.on = k === id;
   EP.noGrass = !!id || !!(G.Cave && G.Cave.inside && G.Cave.inside()) || !!(G.Byblos && G.Byblos.inBy && G.Byblos.inBy()); if (id && G.Weather && G.Weather.set) G.Weather.set('clear', 1); }
 // ------------------------------------------------------------------ light and drawing
 let LGT = 0;
@@ -163,6 +164,8 @@ const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, ar
   if (STG[c.id].moss) list.push({ mesh: STG[c.id].moss, m: MOSSM, emis: [0.25, 0.6, 0.3] });
   const L = c.loot; if (L && !L.note && !s.flags['cvLoot_' + c.id]) { let lp = L.at, ly = c.st.y; if (L.top) { const T = PILL[PILL.length - 1]; lp = [T[0] - 0.7, T[1]]; ly = c.st.y + T[3]; } G.m4trs(PM, c.st.x + lp[0], ly, c.st.z + lp[1], t * 0.3, 0, 0, 1, 1, 1); list.push({ mesh: pot, m: PM, outline: true, emis: [0.18 + Math.sin(t * 3) * 0.08, 0.12, 0.02] }); } };
 const sk0 = EP.skinned; EP.skinned = function (list, s, g, t) { if (sk0) sk0.apply(this, arguments); try { Sc.drawSkinned(list, typeof t === 'number' ? t : performance.now() / 1000); } catch (e) { } };
+/* v18.30 the night chill of the desert does not reach down into a cave */
+const ar0 = EP.aridAt; EP.aridAt = function () { return anyIn() ? 0 : ar0 ? ar0.apply(this, arguments) : 0; };
 /* underground, the beasts of the map far below must not find Joseph: none spawn, and those close by go away */
 let zonesWrapped = false; const anyIn = () => !!cur() || !!(G.Cave && G.Cave.inside && G.Cave.inside());
 function calm() { if (!zonesWrapped && EP.wildZones) { zonesWrapped = true; for (const z of EP.wildZones) { const on0 = z.on; z.on = function () { return !anyIn() && (on0 ? on0.apply(this, arguments) : true); }; } }

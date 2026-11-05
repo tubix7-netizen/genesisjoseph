@@ -226,10 +226,15 @@ function pick() { const s = S(), p = P(), hr = s.time % 24; if (hr < 6 || hr > 2
   const ads = list.filter(n => !n.act && !n.sit); if (ads.length) { const a = rnd(ads); let best = null, bd = 16; for (const o of list) { const d = dist(a, o); if (o !== a && d > 3 && d < bd && !(isKid(a) && !isKid(o))) { bd = d; best = o; } }
     if (best) { const L = pickTalk(a, best); if (L) visit(a, best, 0, (x, y) => say(x, y, L, r => { release(r.a, true); release(r.b); })); } } }
 
+/* v18.30 in a crowded street people step aside for Joseph instead of standing in his way */
+function makeWay(dt) { const p = P(); if (p.spd < 0.6 || (S().q && S().q.riding)) return; const fx = Math.sin(p.face), fz = Math.cos(p.face);
+  for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.vis || !n.d.folk || n.walk || n.talking || n.pass || n.sit || n.d.animal) continue; const dx = n.x - p.x, dz = n.z - p.z, d = Math.hypot(dx, dz); if (d > 1.4 || d < 0.01) continue;
+    const ahead = (dx * fx + dz * fz) / d; if (ahead < 0.3) continue; const side = dx * fz - dz * fx >= 0 ? 1 : -1, nx = n.x + fz * side * dt * 1.8, nz = n.z - fx * side * dt * 1.8; if (Game.solidAt(nx, nz, 0.3)) continue;
+    n.x = nx; n.z = nz; if (n.col) { n.col.x = nx; n.col.z = nz; } if (!n._mw || n._mw < performance.now()) { n._mw = performance.now() + 9000; if (Math.random() < 0.3) G.Life.bubble(id, rnd(['아, 지나가세요!', '어이쿠, 실례!', '먼저 가세요~']), 1.6); } } }
 ST.on = () => true;
 ST.tick = function (dt) { const s = S(); if (!s || Game.mode !== 'play') return;
   if (Game.cineOn || (G.Cine && G.Cine.on)) { if (runs.length + games.length + visits.length + helps.length) ST.clear(); return; }
-  try { tickVisits(dt); tickRuns(dt); tickGames(dt); tickHelps(dt); if ((pickT -= dt) <= 0) { pickT = 3.5 + Math.random() * 4; if (!G.UI.busy() && Game.SET.chatty !== 'off') pick(); } } catch (e) { console.error('street', e); } };
+  try { makeWay(dt); tickVisits(dt); tickRuns(dt); tickGames(dt); tickHelps(dt); if ((pickT -= dt) <= 0) { pickT = 3.5 + Math.random() * 4; if (!G.UI.busy() && Game.SET.chatty !== 'off') pick(); } } catch (e) { console.error('street', e); } };
 ST.clear = function () { for (const r of runs) { release(r.a, true); release(r.b, true); } for (const g of games) { release(g.a, true); release(g.b, true); } for (const v of visits) { release(v.n, true); release(v.o); } for (const e of helps) { release(e.w); release(e.h, true); }
   runs.length = games.length = visits.length = helps.length = 0; };
 ST.state = () => ({ runs: runs.length, games: games.length, visits: visits.length, helps: helps.length });
