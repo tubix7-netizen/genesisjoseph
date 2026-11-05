@@ -199,9 +199,10 @@ canvas.addEventListener('wheel', e => { Game.CAM.zoom = Math.max(0.6, Math.min(1
 let toastT = 0;
 // v16.1 조작 모드: 모바일(터치) / 데스크탑(키보드·마우스) / 자동. On touch, keyboard hints like "(키보드: WASD)" are taken out of
 // every popup; on desktop the on-screen sticks and buttons are hidden and a key legend is shown instead.
-UI.isDesk = () => { const m = Game.SET.input || 'auto'; return m === 'desk' || (m === 'auto' && !matchMedia('(pointer:coarse)').matches); };
+UI.isDesk = () => { const m = Game.SET.input || 'auto'; return m === 'desk' || (m === 'auto' && !matchMedia('(pointer:coarse)').matches && !/[?&]coarse=1\b/.test(location.search)); }; /* v18.29 ?coarse=1 is the phone layout: no keyboard legend */
 const KEYRX = /(?:키보드|Shift|스페이스|WASD|방향키|Space|Enter|Tab|Esc|Ctrl|마우스|[A-Z] ?키|\b[A-Z]\b(?= ?(?:키|로|를|·|\))))/;
-UI.txt = s => { if (!s) return s; if (UI.isDesk()) return String(s).replace(/(^|[^A-Za-z])A 버튼/g, '$1E 키').replace(/(^|[^A-Za-z])A(를|로|만|!)/g, '$1E$2'); s = String(s); // v16.9: A = the action button (the keyboard's E)
+UI.txt = s => { if (!s) return s; if (UI.isDesk()) return String(s).replace(/(^|[^A-Za-z])A\s?키/g, '$1E 키').replace(/(^|[^A-Za-z])B\s?키/g, '$1F 키').replace(/(^|[^A-Za-z])A 버튼/g, '$1E 키').replace(/(^|[^A-Za-z])A(를|로|만|!)/g, '$1E$2'); s = String(s); // v16.9: A = the action button (the keyboard's E)
+  s = s.replace(/(^|[^A-Za-z])([AB])\s?키/g, '$1$2 버튼'); /* v18.29 on a phone they are buttons, not keys */
   s = s.replace(/\s*\(([^()]*)\)/g, (m, inner) => KEYRX.test(inner) || /^\s*[A-Z][a-z]{0,5}\s*$/.test(inner) ? '' : m); s = s.replace(/\s*·\s*키보드[^·]*/g, ''); s = s.replace(/\s*키보드\s*:[^·)]*/g, ''); return s.trim(); };
 UI.applyMode = () => { const d = UI.isDesk(); const pk = $('promptK'); if (pk) pk.textContent = d ? 'E' : 'A'; document.body.classList.toggle('desk', d); let lg = $('keyLegend'); if (d && !lg) { lg = document.createElement('div'); lg.id = 'keyLegend'; document.body.appendChild(lg); }
   if (lg) lg.innerHTML = 'WASD 이동 · 마우스 끌기 시점 · <b>E</b> 행동 · <b>Space</b> 점프 · <b>Shift</b> 달리기 · <b>C</b> 앉기 · <b>F</b> 공격 · <b>V</b> 조준 · <b>M</b> 지도 · <b>Tab</b> 가방'; };
@@ -704,7 +705,7 @@ function drawBig() {
 let tagEls = {}, hudT = 0, mapT = 0;
 UI.frame = function (dt) {
   const R = G.R, P = Game.P, S = Game.S();
-  if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('show'); }
+  if (toastT > 0) { toastT -= dt * (busyFlags.dialog || busyFlags.narr ? 5 : 1); /* v18.29 a toast makes way for a conversation or a story card */ if (toastT <= 0) $('toast').classList.remove('show'); }
   document.body.classList.toggle('busy', UI.busy());
   hudT -= dt; if (hudT <= 0) { hudT = 0.5; UI.hud(); }
   // action button

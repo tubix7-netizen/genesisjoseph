@@ -15,11 +15,16 @@ L.bubble = function (who, text, dur) {
   bubbles.push({ who, el, t: dur || Math.min(5.5, 2.2 + text.length * 0.07) });
 };
 function drawBubbles(dt) {
-  const R = G.R, UI = G.UI;
+  const R = G.R, UI = G.UI, placed = [], qe = bubbles.length ? $('questBox') : null, qb = qe && !qe.hidden && qe.offsetParent ? qe.getBoundingClientRect() : null;
   for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; b.t -= dt; const n = typeof b.who === 'string' ? Game.ENT.npcs[b.who] : b.who;
     if (b.t <= 0 || !n || (n.vis === false) || UI.busy()) { b.el.remove(); bubbles.splice(i, 1); continue; }
     const s = R.project(n.x, n.y + 2.55 * (n.scale || 1), n.z, UI.W, UI.H); if (!s || Math.hypot(n.x - Game.P.x, n.z - Game.P.z) > 30) { b.el.hidden = true; continue; }
-    b.el.hidden = false; b.el.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; b.el.style.opacity = Math.min(1, b.t * 2); }
+    b.el.hidden = false; if (!b.w) { const r = b.el.getBoundingClientRect(); if (r.width) { b.w = r.width; b.h = r.height; } }
+    /* v18.29 kept on screen, off the quest list, and stacked instead of piled on top of each other */
+    let x = s[0], y = s[1]; const w = b.w || 120, h = b.h || 30; x = Math.max(w / 2 + 6, Math.min(UI.W - w / 2 - 6, x)); y = Math.max(h + 4, y);
+    for (let k = 0; k < 3; k++) { const hit = placed.find(q => Math.abs(q[0] - x) < (q[2] + w) / 2 && Math.abs(q[1] - y) < (q[3] + h) / 2 + 2); if (!hit) break; y = hit[1] - hit[3] - 4; }
+    placed.push([x, y, w, h]); let op = Math.min(1, b.t * 2); if (qb && x + w / 2 > qb.left && x - w / 2 < qb.right && y > qb.top && y - h < qb.bottom) op *= 0.12;
+    b.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%) scale(var(--uik,1))`; b.el.style.opacity = op; }
 }
 L.clearBubbles = () => { bubbles.forEach(b => b.el.remove()); bubbles.length = 0; };
 

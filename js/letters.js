@@ -40,7 +40,7 @@ function giveGift(g) { if (!g) return ''; const [k, n] = g; if (k === '$') { Gam
 function file(L, quiet) { const b = box(), got = giveGift(L.gift); b.list.unshift({ from: L.from, text: L.text, day: L.day, gift: got, kind: L.kind, read: !quiet }); if (b.list.length > 40) b.list.length = 40; return got; }
 let runner = null; let tick = 0;
 const kidLook = () => { for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (n.d.folk && n.d.folk.age === 'kid' && n.d.look) return n.d.look; } return undefined; };
-const away = () => (G.Cave && G.Cave.inside && G.Cave.inside()) || (G.Byblos && G.Byblos.inBy && G.Byblos.inBy());
+const away = () => (G.Cave && G.Cave.inside && G.Cave.inside()) || (G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Byblos && G.Byblos.inBy && G.Byblos.inBy());
 function dispatch(L) { const p = P(), W = Game.W(); let x = p.x, z = p.z;
   for (const da of [Math.PI, 2.4, -2.4, 1.6, -1.6]) { const a = p.face + da, tx = p.x + Math.sin(a) * 13, tz = p.z + Math.cos(a) * 13; if (!Game.solidAt(tx, tz, 0.5) && !(W.water && W.heightAt(tx, tz) < W.water.level - 0.3)) { x = tx; z = tz; break; } }
   if (x === p.x) { const got = file(L, true); pop('편지가 왔어요', `${L.from}${got ? ' · ' + got : ''} · 메뉴 → 편지`, 'scroll'); return; }

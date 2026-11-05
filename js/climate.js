@@ -23,7 +23,7 @@ C.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(); if (!S 
   const calm = Game.cineOn || (G.Cine && G.Cine.on) || G.UI.modal() || (Game.EP().calmSurv && Game.EP().calmSurv(S)); const H = S.hero; if (!H) return;
   // carts and mounts stay out of the water
   const wl = W.water ? W.water.level : -99, gh = W.heightAt(P.x, P.z);
-  if ((P.ride || (S.q && S.q.riding)) && gh < wl + 0.15) { if (C.lastDry) { P.x = C.lastDry[0]; P.z = C.lastDry[1]; P.vx = P.vz = 0; } say('cart', P.ride ? '탈것은 물에 들어갈 수 없어요' : '수레는 물에 들어갈 수 없어요', 4000); }
+  if ((P.ride && gh < wl + 0.15) || (S.q && S.q.riding && gh < wl - 0.6)) { /* v18.28 the chariot fords the shallow crossings (나루); only deep water stops it */ if (C.lastDry) { P.x = C.lastDry[0]; P.z = C.lastDry[1]; P.vx = P.vz = 0; } say('cart', P.ride ? '탈것은 물에 들어갈 수 없어요' : '수레는 물에 들어갈 수 없어요', 4000); }
   else if (gh > wl + 0.3) C.lastDry = [P.x, P.z];
   if (calm) return;
   const Sv = G.Surv, hs = Sv ? Sv.heatAt(P.x, P.z) : { heat: 0, roof: 0 }, roof = hs.roof > 0.3, fire = hs.heat > 6, rainy = G.Weather && G.Weather.rainy(), inWater = P.swim || gh < wl;

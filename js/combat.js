@@ -212,7 +212,7 @@ C.pickTarget = function () {
 // =================================================================== PLAYER COMBAT
 C.attack = function () {
   const P = Game.P, S = Game.S(), h = S.hero; if (P.atk && P.atk.g.kind === 'melee' && P.atk.t > P.atk.dur * 0.4 && (P.atk.combo || 0) < 2) { P.atkQ = true; return; } /* v18.12i a press near the end of a swing is remembered and starts the next hit at once */ if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act) return;
-  const k = C.armedK(); if (!k) { const any = C.hasWeapon() || Game.tool('staff'); G.UI.toast(Game.handLock() ? '지금은 손에 아무것도 들 수 없어요' : any ? '빈손으로는 공격할 수 없어요 · 왼쪽 손 단추로 지팡이나 무기를 들어요' : '무기가 없어요. 지팡이를 만들거나 메뉴 → 장비에서 만들어요'); return; } /* v18.14 only with a staff or weapon in hand */
+  const k = C.armedK(); if (!k) { const any = C.hasWeapon() || Game.tool('staff'); G.UI.toast(Game.handLock() ? '지금은 손에 아무것도 들 수 없어요' : Game.hand() === 'torch' ? '횃불을 들고 있어요 · 싸우려면 왼쪽 손 단추로 지팡이를 들어요' : any ? '빈손으로는 공격할 수 없어요 · 왼쪽 손 단추로 지팡이나 무기를 들어요' : '무기가 없어요. 지팡이를 만들거나 메뉴 → 장비에서 만들어요'); return; } /* v18.14 only with a staff or weapon in hand */
   const g = GEAR[k];
   if (g.kind === 'ranged') { if (!(g.ammo === 'stone' && G.Stones ? G.Stones.has() : Game.have(g.ammo))) { G.UI.toast(g.ammo === 'stone' ? '물매에 쓸 돌이 없어요 (돌무더기에서 주워요)' : '화살이 없어요 (제작에서 만들어요)'); return; } }
   if (P.stam < 3) return; P.stam -= g.kind === 'ranged' ? 3 : 5; P.stamT = 0;

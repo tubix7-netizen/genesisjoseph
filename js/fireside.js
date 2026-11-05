@@ -111,7 +111,7 @@ function cook() { const r = ring; if (!r) return; const f = r.f; stand(true); G.
   const iv = setInterval(() => { const el = $('cookUI'); if (++n > 600) { clearInterval(iv); return; } if ((el && !el.hidden) || calm()) return; clearInterval(iv); if (Math.hypot(Game.P.x - f.x, Game.P.z - f.z) < 4) F.sit(f, true); }, 300); }
 function stand(quiet) { const P = Game.P, r = ring; ring = null; P.emote = null; Game.noDlgCam = false; if (Game.cineCam && !(G.Cine && G.Cine.on)) Game.cineCam = null; if (!r) return;
   for (const id of r.ids) { const n = npc(id); if (!n) continue; n.emote = null; n.sit = false; n.talking = false; }
-  if (!quiet) G.UI.toast('불기운이 5분 동안 추위를 막아 줘요'); }
+  if (!quiet) G.UI.toast((G.Surv && G.Surv.cold > 0) || isNight(Game.S()) || (G.Climate && G.Climate.wet > 0.2) ? '불기운이 5분 동안 추위를 막아 줘요' : '불가에서 잠시 쉬었어요'); }
 
 // the action by the fire
 Game.CTX.push(function (S) { const P = Game.P, C = G.Climate; if (ring || P.ride || P.swim || P.act || Game.cineOn) return null; const E = Game.EP(); if (!E || E !== EPJ()) return null;

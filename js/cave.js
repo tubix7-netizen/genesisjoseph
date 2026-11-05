@@ -137,7 +137,7 @@ const lt0 = G.Life.talk; G.Life.talk = function (id) { const s = S(); if (id ===
   if (id === 'cvBoy' && s.q.kMet && !(s.side && s.side.act && s.side.act.k_find)) { G.UI.say([{ n: '목동 아이 메리', t: rnd(['그 할아버지가 저한테도 반짝이는 돌 보여 주셨어요!', '오늘도 펑 소리 났어요. 이번엔 웃음소리도 들렸어요!', '횃불 꺼지면 화로에서 다시 붙이세요!']) }], () => { const n = Game.npc('cvBoy'); if (n) n.talking = false; }); return true; }
   return lt0.apply(this, arguments); };
 // ------------------------------------------------------------------ in and out
-function go(inside) { const s = S(), p = P(); if (s.q && s.q.riding) { pop('수레에서 먼저 내려요', '', 'house'); return; } if ((p.follow || []).length && inside) { pop('혼자 들어가요', '함께 가는 사람은 입구에서 기다려요', 'house'); }
+function go(inside) { const s = S(), p = P(); for (const k in seenS) delete seenS[k]; if (s.q && s.q.riding) { pop('수레에서 먼저 내려요', '', 'house'); return; } if ((p.follow || []).length && inside) { pop('혼자 들어가요', '함께 가는 사람은 입구에서 기다려요', 'house'); }
   G.UI.fade(() => { s.flags.cave = inside ? 1 : 0; sync(true);
     if (inside) { Game.teleport(CX + EXIT[0], CZ + EXIT[1] + 1.2, 0); p.y = p.airTop = CY; } else Game.teleport(MOUTH.x + 1.2, MOUTH.z, Math.PI / 2);
     sfx('step', { surf: 'stone' }); }, () => { if (inside) { const lit = Game.hand() === 'torch' && G.Chem && G.Chem.torchT > 0; if (!(G.UI.help && G.UI.help('cave', '서쪽 바위산 동굴', lit ? '횃불 빛만큼만 보여요 · 꺼지면 화로에서 다시 붙여요 · 맨 안쪽에 누군가 있어요' : '너무 어두워요! 입구 모닥불에서 횃불을 붙여 와요')) && !lit) pop('너무 어두워요', '횃불을 붙여 들고 오세요', 'star'); } }); }
@@ -156,13 +156,13 @@ function lightAt(s) { const p = P(), lx = p.x - CX, lz = p.z - CZ, h = s.time % 
   for (const [x, z] of BRAZ) L = Math.max(L, 1.1 - Math.hypot(lx - x, lz - z) / 9); if (day) L = Math.max(L, 1.2 - Math.hypot(lx - SKY[0], lz - SKY[1]) / 7);
   if (s.flags.kMirror) L = Math.max(L, 1.15 - Math.hypot(lx - CH.F[0], lz - CH.F[1]) / 11); if (Math.hypot(lx - EXIT[0], lz - EXIT[1]) < 6) L = Math.max(L, 0.8 - Math.hypot(lx - EXIT[0], lz - EXIT[1]) / 8); return Math.max(0, Math.min(1.1, L)); }
 let LGT = 0;
-const md0 = EP.mood; EP.mood = function (s, g) { if (inCave()) { const k = LGT; return { mod(e) { const w = [0.36, 0.26, 0.16].map(v => v * k + 0.035), d = 0.04 + k * 0.03;
+const md0 = EP.mood; EP.mood = function (s, g) { if (inCave()) { const k = LGT * (G.Scare ? G.Scare.darkK() : 1); return { mod(e) { const w = [0.36, 0.26, 0.16].map(v => v * k + 0.035), d = 0.04 + k * 0.03;
       e.skyTop = [0.01, 0.01, 0.012]; e.skyHor = [0.02, 0.015, 0.012]; e.fogCol = [0.025, 0.018, 0.012]; e.sunCol = [0.2 * k + 0.02, 0.14 * k + 0.02, 0.08 * k + 0.02]; e.skyAmb = w; e.gndAmb = w.map(v => v * 0.55); e.fogDen = 1 / (4.5 + k * 12); e.cloudCol = [0, 0, 0]; e.night = 1; e.sunDir = [0.3, 0.9, 0.2]; } }; }
   return md0 ? md0.apply(this, arguments) : null; };
-const mu0 = EP.music; EP.music = function (s) { if (inCave()) { const p = P(); return Math.hypot(p.x - CX - CH.F[0], p.z - CZ - CH.F[1]) < 12 ? 'j_hope' : 'j_night'; } return mu0 ? mu0.apply(this, arguments) : undefined; };
+const mu0 = EP.music; EP.music = function (s) { if (inCave()) { const p = P(); return 'j_dread'; } return mu0 ? mu0.apply(this, arguments) : undefined; };
 const q0 = EP.quiet; EP.quiet = function (s) { return inCave() || (q0 ? q0.apply(this, arguments) : false); };
 /* drawing: the cave instead of Egypt while inside; glowing stones, flames, daylight in the sky window */
-let glow = null, fire = null, shaft = null, mouthLight = null, gadget = null; const GM = [], FM = [G.m4(), G.m4(), G.m4()], SM = G.m4(), XM = G.m4(), KM = [G.m4(), G.m4(), G.m4()];
+let potM = null, glow = null, fire = null, shaft = null, mouthLight = null, gadget = null; const GM = [], FM = [G.m4(), G.m4(), G.m4()], SM = G.m4(), XM = G.m4(), KM = [G.m4(), G.m4(), G.m4()];
 function meshes() { const a = new G.GB(142); for (let i = 0; i < 5; i++) { const ang = i / 5 * 6.28; a.cyl(0.02, 0.11, 0.42 + (i % 3) * 0.14, 5, { at: [Math.cos(ang) * 0.12, 0.2, Math.sin(ang) * 0.12], rz: Math.cos(ang) * 0.35, rx: Math.sin(ang) * 0.35, c: 0x9ae8ff }); } glow = G.R.mesh(a);
   const f = new G.GB(143); f.sph(0.22, 8, 6, { at: [0, 0.1, 0], c: 0xffa030 }); f.cyl(0.03, 0.17, 0.45, 6, { at: [0, 0.32, 0], c: 0xffd070 }); fire = G.R.mesh(f);
   const sh = new G.GB(144); sh.cyl(1.9, 1.5, 6.2, 14, { at: [0, 3.1, 0], c: 0xfff4d0 }); shaft = G.R.mesh(sh);
@@ -179,9 +179,15 @@ const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, ar
   const h = s.time % 24; if (h > 6 && h < 18.5) { G.m4trs(SM, CX + SKY[0], CY, CZ + SKY[1], 0, 0, 0, 1, 1, 1); list.push({ mesh: shaft, m: SM, emis: [0.55, 0.5, 0.38], tint: [0.4, 0.4, 0.4] }); }
   else { G.m4trs(SM, CX + SKY[0], CY, CZ + SKY[1], 0, 0, 0, 0.6, 1, 0.6); list.push({ mesh: shaft, m: SM, emis: [0.08, 0.1, 0.2], tint: [0.2, 0.2, 0.25] }); }
   G.m4trs(XM, CX + EXIT[0], CY, CZ + EXIT[1] - 1.7, 0, 0, 0, 1.6, 1, 1); list.push({ mesh: mouthLight, m: XM, emis: h > 6 && h < 18.5 ? [1.1, 1.0, 0.8] : [0.12, 0.14, 0.22] });
+  if (!s.flags.cvLoot_sage && G.Caves) { const pm = KM[1]; G.m4trs(pm, CX + POT[0], CY, CZ + POT[1], 0.4, 0, 0.2, 0.9, 0.9, 0.9); if (!potM) { const q = new G.GB(147); q.cyl(0.3, 0.2, 0.55, 10, { at: [0, 0.28, 0], c: 0x9a6a40 }); q.cyl(0.18, 0.28, 0.12, 10, { at: [0, 0.6, 0], c: 0x8a5a38 }); potM = G.R.mesh(q); } list.push({ mesh: potM, m: pm, outline: true, emis: [0.12, 0.08, 0.02] }); }
   if (s.flags.kClock || s.flags.kMirror || s.flags.kStar) { G.m4trs(KM[0], CX + CH.F[0] + 3.4, CY, CZ + CH.F[1] + 1.2, 0, 0, 0, 1, 1, 1); list.push({ mesh: gadget, m: KM[0], outline: true, emis: s.flags.kMirror ? [0.25, 0.15, 0.05] : null }); } };
 // ------------------------------------------------------------------ every frame
 let batT = 0, dripT = 0;
+/* v18.27 frights on the way (once per visit) and a forgotten jar in the deep dead end */
+const SCARES = [{ at: [1.2, 8.5], r: 2, k: 'bats' }, { at: [-12, 25.5], r: 3, k: 'splash', look: POOL }, { at: [16.6, 36.6], r: 1.8, k: 'eyes', look: [24, 44] }, { at: [6.2, 23], r: 1.6, k: 'gust' }]; const seenS = {};
+const POT = [23.4, 39.8];
+Game.CTX.push(function (s) { if (!inCave() || s.flags.cvLoot_sage) return null; const p = P(), d = Math.hypot(p.x - CX - POT[0], p.z - CZ - POT[1]); if (d > 1.7) return null;
+  return [{ d: d - 0.4, label: '깨진 항아리 뒤지기', x: CX + POT[0], z: CZ + POT[1], yAbs: CY + 1, key: 'cvPotSage', anim: 'pick', dur: 1.2, fn: () => { s.flags.cvLoot_sage = 1; Game.silver(20); Game.give('dates', 3, true); sfx('quest'); pop('깨진 항아리 속에서', '옛 상인의 은 20 · 말라 버린… 아니, 아직 먹을 만한 대추야자 3', 'coin'); } }]; });
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s || !s.flags) return r; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
   try { sync(); if (s.flags.kLetterDay && s.day >= s.flags.kLetterDay && G.Letters) { s.flags.kLetterDay = 0; G.Letters.send(KN, '요셉에게,\n자네 덕분에 내 물시계가 신전에까지 소문이 났다네. 생명의 집에서 다시 와 달라는군! …불은 조심하라는 조건으로.\n별 지도대로 소프데트가 떴네. 곧 강물이 불 걸세. 하늘을 지으신 분이 정하신 때를 우리는 그저 재어 볼 뿐이지.\n언제든 동굴에 들르게. 차는 없지만 펑 소리는 많다네. — 네브세니', ['$', 10], 'kiin'); }
     if (!inCave()) { if (s.flags.cave) s.flags.cave = 0; return r; }
@@ -191,6 +197,7 @@ const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(thi
     if (G.Chem && G.Chem.torchT > 0) G.Chem.torchT += d * 0.6; /* (it burns slower in the still air) */
     if (Game.CAM) Game.CAM.zoom = (Game.CAM.zoom || 1) + (0.72 - (Game.CAM.zoom || 1)) * Math.min(1, d * 3);
     const a = s.side && s.side.act && s.side.act.k_star, h = s.time % 24; if (a && !s.q.kStar && (h >= 20 || h < 4.5) && Math.hypot(p.x - CX - SKY[0], p.z - CZ - SKY[1]) < 1.8) { s.q.kStar = 1; sfx('insight'); pop('별을 보았어요', '천장 구멍 너머로 밝은 별 하나가 반짝여요 · 네브세니에게 알려요', 'star'); G.UI.quest && G.UI.quest(); }
+    if (G.Scare && !G.UI.busy()) { const lx = p.x - CX, lz = p.z - CZ; SCARES.forEach((sc, i) => { if (seenS[i] || Math.hypot(lx - sc.at[0], lz - sc.at[1]) > sc.r) return; seenS[i] = 1; G.Scare.trigger(sc.k, sc.look ? [CX + sc.look[0], CZ + sc.look[1]] : null); }); }
     if ((batT -= d) <= 0) { batT = 6 + Math.random() * 10; if (G.FX) G.FX.burst(p.x + (Math.random() - 0.5) * 6, CY + 4.5, p.z + 3 + Math.random() * 3, 3, { c: [0.08, 0.06, 0.06], sp: 2.5, up: 0.2, size: 0.18, a: 0.9, g: 0, life: 1.2 }); sfx('whoosh', { vol: 0.15, pitch: 1.8 }); }
     if ((dripT -= d) <= 0) { dripT = 1.5 + Math.random() * 3; sfx('splash', { vol: 0.06, pitch: 2.2 + Math.random() }); }
     if (G.Weather && G.Weather.kind && G.Weather.kind(s) !== 'clear' && G.Weather.set) G.Weather.set('clear', 1); } catch (e) { console.error('cave', e); } return r; };

@@ -135,7 +135,7 @@ let cool = 0, bKey = '';
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s) return r; const dd = typeof dt === 'number' && dt < 1 ? dt : 1 / 60; cool -= dd;
   try { driveTick(dd); cartPeople(); cartSolid(); } catch (er) { console.error('cart', er); }
   document.body.classList.toggle('riding', !!s.q.riding); driveLabels();
-  try { driveTick2(dd); } catch (er) { console.error('cart drive', er); }
+  try { driveTick2(dd); Ct.helpTick && Ct.helpTick(dd); } catch (er) { console.error('cart drive', er); }
   if (s.q.riding && cool <= 0 && !(G.Cine && G.Cine.on)) { const t = Ct.town(P().x, P().z); if (t) { cool = 2; dismount(true); pop('수레에서 내렸어요', `${t} 안에서는 걸어요`, 'donkey'); } }
   { const b = Ct.bCtx(), k = b ? b.k + b.label : ''; if (k !== bKey) { bKey = k; G.UI.hud(); } } /* B follows where you stand at once (the HUD only refreshes twice a second) */
   return r; };
@@ -219,6 +219,8 @@ Ct.bCtx = function () { const s = S(), p = P(); if (!s || Game.mode !== 'play' |
 Ct.feedCtx = () => null; /* (v18.23's B 「먹이 주기」 is A now) */
 Game.CTX.push(function (s) { const p = P(); if (p.act || Game.cineOn || s.q.riding) return null; const c = parked(); if (!c) return null; const out = [];
   const r = rearD(); if (r !== null && r < 1.9) { const [rx, rz] = rearOf(c); out.push({ d: r - 0.4, label: '수레 타기', x: rx, z: rz, y: 1.2, noMagnet: true, key: 'cartOn', use: mount }); }
+  else if (!drive) { const [fx, fz] = fwd(c.f), dx = p.x - c.x, dz = p.z - c.z, lz = dx * fx + dz * fz, lx = dx * fz - dz * fx; /* v18.29 beside the wagon too, not only behind it */
+    if (lz > -TAIL - 0.3 && lz < 0.9 && Math.abs(lx) < 2.3) out.push({ d: Math.abs(lx) - 0.9, label: '수레 타기', x: c.x, z: c.z, y: 1.4, noMagnet: true, key: 'cartOn', use: mount }); }
   const h = nearHorse(); if (h !== null) { const [hx, hz] = horsePos(c, 0); out.push({ d: h - 0.6, label: '먹이 주기', x: hx, z: hz, y: 1.8, noMagnet: true, key: 'horseFeed', use: feed }); }
   return out.length ? out : null; });
 if (G.Combat) { const atk0 = G.Combat.attack; G.Combat.attack = function () { const b = Ct.bCtx(); if (b) { b.fn(); return; } return atk0.apply(this, arguments); }; }
@@ -278,4 +280,7 @@ const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, ar
     for (const L of LOAD) { if (!L.b) continue; const [lx, lz] = SL[i % 4], f = c.f, x = c.x + Math.cos(f) * lx + Math.sin(f) * lz, z = c.z - Math.sin(f) * lx + Math.cos(f) * lz;
       G.m4trs(LM[i % 4], x, hAt(c.x, c.z) + BED_Y - 0.04 + L.b.K.r * 0.9, z, f + i, 0, 0); list.push({ mesh: G.Phys.meshOf(L.b.k), m: LM[i % 4], outline: true }); i++; } } };
 /* v18.25 (the 앉기 button is 「정지 / 후진」 on the wagon now — there is still no crouching there) */
+/* v18.28 no big help card in the middle of the screen while the wagon is rolling: it waits until you have stopped for a moment */
+const HQ = []; let stillT = 0; { const h0 = G.UI.help; if (h0) { G.UI.help = function (k, t, l) { if (driving() && Math.abs(D.v) > 0.4) { if (!HQ.some(q => q[0] === k)) HQ.push([k, t, l]); return true; } return h0.apply(this, arguments); };
+  Ct.helpTick = dt => { if (!HQ.length) return; if (driving() && Math.abs(D.v) > 0.2 || G.UI.busy()) { stillT = 0; return; } if ((stillT += dt) > 1.2) { stillT = 0; const q = HQ.shift(); h0.apply(G.UI, q); } }; } }
 })(window.G);

@@ -114,7 +114,7 @@ function color(x, z, h, ny) {
 }
 // named places
 const SPOTS = {
-  hebron: [176, 152], jacobTent: [170, 147], josephTent: [183, 157], bedHeb: [184.57, 157.69], log: [181.1, 84], restOak: [186, 32], restBed: [184, 34.5],
+  hebron: [176, 152], jacobTent: [170, 147], josephTent: [183, 157], bedHeb: [184.21, 158.61], log: [181.1, 84], restOak: [186, 32], restBed: [184, 34.5],
   shechem: [188, -12], clue1: [178, -6], clue2: [197, -21], clue3: [186, -31], manSpot: [196, -36], dothanView: [169, -100], dothanCamp: [160, -148],
   caravanStart: [200, -154], caravanNight: [60, -28], egyptGate: [26, 86], market: [-8, 118], block: [-10, 114],
   pGate: [-28, 71], pHouse: [-28, 42], quarters: [-45, 53], kitchen: [-12, 45], well: [-38, 61], pool: [-18, 58], store: [-12, 64], loom: [-44, 64], quern: [-14, 49],
@@ -234,12 +234,13 @@ function build(W, Game) {
   P('tent', 168, 146, { ry: 0.25, s: 1.3, args: [0x3a302c], col: { w: 7.4, d: 4.8, h: 2.5, cam: true, a: 0.25 } });     // 야곱의 장막
   /* 요셉과 베냐민의 장막 (v16.9): you can walk in under the roof — the back and the sides are walls, the front is open — and
      Joseph's sleeping mat lies inside, so the story starts with him asleep under goat hair, not out on the bare ground */
-  P('tent', 184, 158, { ry: -0.5, args: [0x4a3e38], col: null });
-  { const ca = Math.cos(-0.5), sa = Math.sin(-0.5), at = (lx, lz) => [184 + ca * lx + sa * lz, 158 - sa * lx + ca * lz];
-    for (const [lx, lz, w, d] of [[0, -1.72, 5.7, 0.3], [2.78, 0, 0.3, 3.5], [-2.78, 0, 0.3, 3.5]]) { const [x, z] = at(lx, lz); W.addCol({ x, z, w, d, a: -0.5, h: 2.2, cam: true }); }
-    if (W.addRoof) W.addRoof({ x: 184, z: 158, w: 5.6, d: 3.6, a: -0.5, y: W.heightAt(184, 158) + 1.9 });
+  /* v18.28 the open front now faces Jacob's tent (the way the story sends you first) */
+  P('tent', 184, 158, { ry: -2.24, args: [0x4a3e38], col: null });
+  { const ca = Math.cos(-2.24), sa = Math.sin(-2.24), at = (lx, lz) => [184 + ca * lx + sa * lz, 158 - sa * lx + ca * lz];
+    for (const [lx, lz, w, d] of [[0, -1.72, 5.7, 0.3], [2.78, 0, 0.3, 3.5], [-2.78, 0, 0.3, 3.5]]) { const [x, z] = at(lx, lz); W.addCol({ x, z, w, d, a: -2.24, h: 2.2, cam: true }); }
+    if (W.addRoof) W.addRoof({ x: 184, z: 158, w: 5.6, d: 3.6, a: -2.24, y: W.heightAt(184, 158) + 1.9 });
     const [mx, mz] = at(0.35, -0.55); P((g, M) => { g.box(1.95, 0.05, 0.95, { m: M, at: [0, 0.03, 0], c: (x, y, z) => Math.abs(z) > 0.36 || Math.abs(x) > 0.86 ? 0x8a3a2a : Math.floor((x + 1) * 5) % 2 ? 0xc8b08a : 0xb89a70 });
-      g.box(1.7, 0.06, 0.6, { m: M, at: [0.05, 0.07, -0.05], c: 0x6a5a4a, j: 0.04 }); g.sph(0.2, 8, 6, { m: M, at: [0.78, 0.12, 0], s: [1, 0.45, 1.2], c: 0xd8c8a8 }); }, mx, mz, { ry: -0.5, col: null }); }
+      g.box(1.7, 0.06, 0.6, { m: M, at: [0.05, 0.07, -0.05], c: 0x6a5a4a, j: 0.04 }); g.sph(0.2, 8, 6, { m: M, at: [0.78, 0.12, 0], s: [1, 0.45, 1.2], c: 0xd8c8a8 }); }, mx, mz, { ry: -2.24, col: null }); }
   P('tent', 163, 162, { ry: 0.9, args: [0x5a4636], col: { w: 5.8, d: 3.8, h: 2.2, cam: true, a: 0.9 } });
   P('tent', 189, 141, { ry: -1.1, args: [0x3e342e], col: { w: 5.8, d: 3.8, h: 2.2, cam: true, a: -1.1 } });
   P('campfire', 176, 153, { col: { r: 0.8, h: 0.5 } }); P('sacks', 179, 147); P('pots', 188.3, 157.3, { ry: -0.5 }); // v18.13 the camp's pots stand together beside Joseph's tent, not in the middle

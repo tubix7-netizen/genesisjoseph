@@ -114,7 +114,7 @@ function color(x, z, h, ny) {
 }
 // named places
 const SPOTS = {
-  hebron: [176, 152], jacobTent: [170, 147], josephTent: [183, 157], bedHeb: [184.57, 157.69], log: [181.1, 84], restOak: [186, 32], restBed: [184, 34.5],
+  hebron: [176, 152], jacobTent: [170, 147], josephTent: [183, 157], bedHeb: [184.21, 158.61], log: [181.1, 84], restOak: [186, 32], restBed: [184, 34.5],
   shechem: [188, -12], clue1: [178, -6], clue2: [197, -21], clue3: [186, -31], manSpot: [196, -36], dothanView: [169, -100], dothanCamp: [160, -148],
   caravanStart: [200, -154], caravanNight: [60, -28], egyptGate: [26, 86], market: [-8, 118], block: [-10, 114],
   pGate: [-28, 71], pHouse: [-28, 42], quarters: [-45, 53], kitchen: [-12, 45], well: [-38, 61], pool: [-18, 58], store: [-12, 64], loom: [-44, 64], quern: [-14, 49],

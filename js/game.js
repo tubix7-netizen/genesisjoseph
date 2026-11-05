@@ -743,6 +743,8 @@ function resolveContext() {
   if (S.q && S.q.riding) for (let i = cands.length - 1; i >= 0; i--) if (!cands[i].npc && !cands[i].rideOk) cands.splice(i, 1); /* v18.21 from the chariot you can talk, but not pick things up */
   // between two things at about the same distance, take the one in front of the hero (up to 0.5 m of preference)
   for (const c of cands) if (c.x !== undefined && !c.tile) { const dd = Math.hypot(c.x - P.x, c.z - P.z); if (dd > 0.3) c.d += (1 - ((c.x - P.x) * fx + (c.z - P.z) * fz) / dd) * 0.25; }
+  /* v18.28 what A does first: a person > the thing the moment needs > lifting a loose thing > sleeping */
+  for (const c of cands) { if (c.npc) c.d -= 0.45; else if (c.key === 'lift') c.d += 0.5; else if (c.label === '잠자기') c.d += 1.2; }
   cands.sort((a, b) => a.d - b.d);
   return cands[0] || null;
 }
