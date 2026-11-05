@@ -15,7 +15,7 @@ const S = () => Game.S(), P = () => Game.P;
 const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967296; };
 const ord = () => Game.stepOrder(), after = k => { const o = ord(), s = S(); return !!s && o.indexOf(s.step) >= o.indexOf(k); };
 const egypt = () => after('c1_market') && P().x < 60;
-const season = () => Math.floor(((S().day || 1) - 1) / 10) % 3;
+const season = () => (G.Nile && G.Nile.season ? ({ akhet: 0, peret: 1, shemu: 2 })[G.Nile.season(S()).k] : Math.floor(((S().day || 1) - 1) / 10) % 3); /* v18.34 same calendar as nile.js */
 
 // ------------------------------------------------------------------ new jobs
 const R = AI.ROUT;
@@ -84,7 +84,7 @@ function talkTick(dt) { tT -= dt; if (tT > 0) return; tT = 5 + Math.random() * 5
     if (Math.hypot(a.x - b.x, a.z - b.z) > 3.6) continue; cool[k] = now + 90;
     const pool = talkPool(), L = pool[Math.floor(Math.random() * pool.length)];
     if (!a.walk) a.face = Math.atan2(b.x - a.x, b.z - a.z); if (!b.walk) b.face = Math.atan2(a.x - b.x, a.z - b.z);
-    G.Life.bubble(a.id, L[0], 2.6); setTimeout(() => G.Life.bubble(b.id, L[1], 2.8), 1500); return; } }
+    G.Life.bubble(a.id, L[0], 2.6); setTimeout(() => G.Life.bubble(b.id, L[1], 2.8), (G.Life.readT ? G.Life.readT(L[0]) * 0.9 : 1.5) * 1000); return; } }
 // ------------------------------------------------------------------ travellers on Egypt's roads too
 if (EP.strangers) { const st = EP.strangers, w0 = st.when; Object.assign(st, { max: 3, when: s => egypt() || (w0 ? w0(s) : false),
   weights: s => egypt() ? { traveler: 1.8, waterwoman: 1.2, elder: 0.5, caravan: 0.5, beggar: after('c6_open') ? 1.1 : 0.15, hunter: 0.25, shepherd: 0.35, wounded: 0.2 } : {} });

@@ -846,6 +846,11 @@ AB.dove = scaleAB(AB.partridge, 0.85); AB.dove.bird = true;
 AB.goose = [['body', -1, 0, 0.42, 0], ['head', 0, 0, 0.5, 0.2], ['lFL', 0, 0.14, 0.46, 0], ['lFR', 0, -0.14, 0.46, 0], ['lBL', 0, 0.06, 0.24, 0.01], ['lBR', 0, -0.06, 0.24, 0.01], ['tail', 0, 0, 0.46, -0.24]]; AB.goose.bird = true;
 AB.ostrich = [['body', -1, 0, 1.3, 0], ['head', 0, 0, 1.5, 0.36], ['lFL', 0, 0.32, 1.36, 0], ['lFR', 0, -0.32, 1.36, 0], ['lBL', 0, 0.13, 1.08, 0.02], ['lBR', 0, -0.13, 1.08, 0.02], ['tail', 0, 0, 1.4, -0.5]]; AB.ostrich.bird = true;
 AB.oryx = scaleAB(AB.gazelle, 1.15); AB.wgoat = AB.goat;
+/* v18.34 more animals: 자칼 · 여우 · 악어 · 하마 · 따오기 (wild) and 고양이 (the town cats of Egypt) */
+AB.jackal = scaleAB(AB.wolf, 0.82); AB.fox = scaleAB(AB.wolf, 0.62); AB.cat = scaleAB(AB.wolf, 0.42);
+AB.croc = [['body', -1, 0, 0.26, 0], ['head', 0, 0, 0.26, 0.95], ['lFL', 0, 0.28, 0.2, 0.5], ['lFR', 0, -0.28, 0.2, 0.5], ['lBL', 0, 0.3, 0.2, -0.45], ['lBR', 0, -0.3, 0.2, -0.45], ['tail', 0, 0, 0.26, -0.85]];
+AB.hippo = [['body', -1, 0, 1.0, 0], ['head', 0, 0, 1.0, 1.05], ['lFL', 0, 0.42, 0.55, 0.62], ['lFR', 0, -0.42, 0.55, 0.62], ['lBL', 0, 0.42, 0.55, -0.62], ['lBR', 0, -0.42, 0.55, -0.62], ['tail', 0, 0, 1.05, -1.1]];
+AB.ibis = [['body', -1, 0, 0.62, 0], ['head', 0, 0, 0.9, 0.16], ['lFL', 0, 0.16, 0.66, 0], ['lFR', 0, -0.16, 0.66, 0], ['lBL', 0, 0.05, 0.4, 0.01], ['lBR', 0, -0.05, 0.4, 0.01], ['tail', 0, 0, 0.64, -0.24]]; AB.ibis.bird = true;
 /* v16.9 legs grow up INTO the body with a shoulder/haunch muscle at the top (skinned to the leg), so a swinging leg never shows
    a gap between its top and the belly — the "floating limbs" look. */
 function legTop(g, b, i, r, col) { const front = i < 4; g.sph(r * 1.9, 8, 6, { at: [b[2] * 0.85, b[3] + r * 1.7, b[4] + (front ? 0.015 : -0.03)], s: [0.8, 1.7, front ? 1.05 : 1.25], c: col, b: i, j: 0.02 }); }
@@ -866,7 +871,7 @@ function camelLegs(g, def, hide) { // v12: thick thigh → knobbly knee → slim
 function legs(g, def, h, r, col, hoof) {
   for (let i = 2; i <= 5; i++) { const b = def[i], ext = r * 3; g.cyl(r * 0.8, r * 1.3, h + ext, 7, { at: [b[2], b[3] - h / 2 + ext / 2, b[4]], c: col, b: i, j: 0 }); legTop(g, b, i, r, col);
     g.sph(r * 1.05, 6, 4, { at: [b[2], b[3] - h * 0.48, b[4] + (i < 4 ? 0.006 : -0.01)], c: col, b: i, j: 0 }); /* knee / hock */
-    g.cyl(r * 0.9, r * 0.95, 0.06, 6, { at: [b[2], b[3] - h + 0.03, b[4]], c: hoof || 0x2a2220, b: i, j: 0 }); }
+    { const hh = Math.min(0.06, h * 0.15); g.cyl(r * 0.9, r * 0.95, hh, 6, { at: [b[2], b[3] - h + hh / 2, b[4]], c: hoof || 0x2a2220, b: i, j: 0 }); } } /* v18.34 a paw, not a boot, on the small animals */
 }
 function patternFn(pat, base, dark, r) {
   if (pat === 'streaked') return (x, y, z) => (Math.floor((z + 2) * 9) % 2 ? dark : base);
@@ -946,6 +951,23 @@ function animal(sp, o) {
     g.box(0.5, 0.03, 0.62, { at: [0, B0 + 0.31, -0.04], c: LAP, b: 0, j: 0 }); for (const sx of [1, -1]) { g.box(0.025, 0.2, 0.6, { at: [0.27 * sx, B0 + 0.22, -0.04], rz: 0.35 * sx, c: LAP, b: 0, j: 0 }); g.box(0.03, 0.03, 0.64, { at: [0.305 * sx, B0 + 0.125, -0.04], rz: 0.35 * sx, c: GOLD, b: 0, j: 0 });
       g.cyl(0.05, 0.05, 0.012, 12, { at: [0.29 * sx, B0 + 0.22, -0.04], rz: Math.PI / 2 + 0.35 * sx, c: GOLDH, b: 0, j: 0 }); }
     g.box(0.7, 0.04, 0.05, { at: [0, B0 + 0.31, 0.37], c: GOLD, b: 0, j: 0 }); g.box(0.62, 0.05, 0.05, { at: [0, B0 - 0.02, 0.5], rx: 0.4, c: GOLD, b: 0, j: 0 });
+  } else if ((sp === 'donkey' || sp === 'horse') && !o.oldModel) {
+    /* v18.32 every horse and donkey gets the shaped body of the chariot horses (no royal tack): rounded barrel, arched neck, a real head
+       (donkeys: long ears, pale muzzle, short brush mane, tufted tail), tapered legs with dark hooves; packs and saddles still fit */
+    const D = sp === 'donkey', k = D ? 0.8 : 1, hide = o.hide || (D ? 0x8a8078 : 0xd8c8b0), dk = shade(hide, -0.18), MANE = D ? shade(hide, -0.3) : (o.mane || shade(hide, -0.35)), H = def[1], B0 = def[0][3];
+    g.sph(0.36 * k, 14, 10, { at: [0, B0, 0], s: [0.8, 0.86, 1.42], c: hide, b: 0, j: 0.03 });
+    g.sph(0.3 * k, 12, 9, { at: [0, B0 + 0.03 * k, 0.34 * k], s: [0.88, 1.0, 0.9], c: hide, b: 0, j: 0.03 }); g.sph(0.31 * k, 12, 9, { at: [0, B0 + 0.05 * k, -0.36 * k], s: [0.95, 0.95, 0.95], c: hide, b: 0, j: 0.03 });
+    g.cyl(0.17 * k, 0.1 * k, 0.6 * k, 10, { at: [0, H[3] - 0.1 * k, H[4] - 0.13 * k], rx: D ? 0.85 : 0.6, c: hide, b: 1 });
+    const ax = [0, Math.cos(1.95), Math.sin(1.95)], hc = [0, H[3] + 0.17 * k, H[4] + 0.06 * k], at = q => [0, hc[1] + ax[1] * q * k, hc[2] + ax[2] * q * k];
+    g.sph(0.14 * k, 10, 8, { at: hc, s: [0.82, 1, 1.12], c: hide, b: 1 }); g.cyl(0.11 * k, 0.074 * k, 0.36 * k, 10, { at: at(0.17), rx: 1.95, c: hide, b: 1 }); g.sph(0.074 * k, 9, 7, { at: at(0.34), s: [1, 0.85, 1.1], c: D ? 0xd8d0c4 : shade(hide, -0.3), b: 1 });
+    for (const sx of [1, -1]) { g.sph(0.022 * k, 6, 5, { at: [0.085 * k * sx, hc[1] + 0.04 * k, hc[2] + 0.06 * k], c: 0x1a1412, b: 1, j: 0 });
+      g.cyl(0.034 * k, 0.006, D ? 0.28 : 0.13, 6, { at: [0.055 * k * sx, hc[1] + (D ? 0.24 : 0.16) * k, hc[2] - 0.05 * k], rz: -(D ? 0.3 : 0.18) * sx, rx: -0.15, c: hide, b: 1 }); }
+    for (let i = 0; i < (D ? 7 : 9); i++) { const u = i / (D ? 6 : 8), y = H[3] + (0.28 - u * 0.5) * k, z = H[4] + (-0.04 - u * 0.5) * k; g.box(D ? 0.035 : 0.05, (D ? 0.08 : 0.14 - u * 0.03) * k, 0.09 * k, { at: [0, y, z], rx: 0.6, c: MANE, b: u < 0.5 ? 1 : 0, j: 0.04 }); }
+    legs2(g, def, def[2][3], 0.1 * k, 0.052 * k, hide, 0x2a2220); for (let i = 2; i <= 5; i++) { const q = def[i]; g.sph(0.13 * k, 9, 7, { at: [q[2] * 1.2, q[3] - 0.08 * k, q[4]], s: [0.75, 1.35, 1.05], c: hide, b: i, j: 0.02 }); }
+    if (D) { g.cyl(0.025, 0.035, 0.5, 6, { at: [0, def[6][3] - 0.24, def[6][4] - 0.06], rx: -0.2, c: hide, b: 6 }); g.sph(0.06, 7, 6, { at: [0, def[6][3] - 0.5, def[6][4] - 0.12], s: [0.8, 1.4, 0.8], c: MANE, b: 6 }); }
+    else g.cyl(0.1, 0.04, 0.78, 9, { at: [0, def[6][3] - 0.34, def[6][4] - 0.12], rx: -0.28, c: MANE, b: 6, j: 0.03 });
+    if (o.pack) { g.box(0.62 * k, 0.32 * k, 0.4 * k, { at: [0, B0 + 0.2 * k, 0], c: o.pack, b: 0 }); for (const sx of [1, -1]) g.box(0.12 * k, 0.3 * k, 0.36 * k, { at: [0.33 * k * sx, B0 + 0.05 * k, 0], c: shade(o.pack, -0.12), b: 0 }); }
+    if (o.saddle) { g.box(0.5 * k, 0.05, 0.5 * k, { at: [0, B0 + 0.31 * k, -0.02], c: o.saddle, b: 0, j: 0 }); for (const sx of [1, -1]) g.box(0.03, 0.26 * k, 0.46 * k, { at: [0.27 * k * sx, B0 + 0.2 * k, -0.02], rz: 0.35 * sx, c: shade(o.saddle, -0.15), b: 0, j: 0 }); }
   } else if (sp === 'donkey' || sp === 'horse') {
     const hide = o.hide || (sp === 'horse' ? 0xeee6d8 : 0x8a8078), big = sp === 'horse' ? 1.25 : 1;
     g.sph(0.32 * big, 12, 8, { at: [0, def[0][3], 0], s: [0.8, 0.85, 1.55], c: hide, b: 0, j: 0.03 });
@@ -1062,6 +1084,41 @@ function animal(sp, o) {
     for (const s of [1, -1]) { g.sph(0.02, 5, 4, { at: [0.07 * s, 1.21, 0.93], c: 0xd8b040, b: 1, j: 0 }); g.sph(0.045, 6, 4, { at: [0.12 * s, 1.32, 0.76], s: [1, 1, 0.5], c: tawny, b: 1 }); }
     legs2(g, def, 0.7, 0.07, 0.055, tawny, belly);
     g.tube(y => [0.022, 0.022, 0, 0], 0, 0.8, 5, 4, { at: [0, 0.4, -0.75], rx: 0.5, c: tawny, b: 6 }); g.sph(0.06, 6, 5, { at: [0, 0.32, -0.95], c: mane, b: 6 });
+  } else if (sp === 'jackal' || sp === 'fox' || sp === 'cat') { /* v18.34 the wolf's frame, slimmer, with big ears; the cat is the little striped mau of the Egyptian houses */
+    const k = sp === 'jackal' ? 0.82 : sp === 'fox' ? 0.62 : 0.42, hide = o.hide || (sp === 'jackal' ? 0xb08a58 : sp === 'fox' ? 0xc8682a : 0xb8a078), belly = sp === 'fox' ? 0xf2e8d8 : sp === 'cat' ? 0xe8dcc0 : 0xd8c4a0, dark = sp === 'jackal' ? 0x3a3028 : sp === 'fox' ? 0x2a1e18 : 0x5a4a38;
+    const Y = y => y * k, fn = sp === 'cat' ? (x, y, z) => (Math.floor((z / k + 2) * 7) % 2 ? hide : shade(hide, -0.22)) : sp === 'jackal' ? (x, y) => (y > Y(0.66) ? shade(hide, -0.3) : hide) : hide;
+    g.sph(1, 10, 8, { at: [0, Y(0.58), 0], s: [0.2 * k, 0.21 * k, 0.4 * k].map((v, i) => v * (sp === 'cat' ? [1, 1, 0.95][i] : 1)), c: fn, b: 0, j: 0.03 });
+    g.sph(1, 8, 6, { at: [0, Y(0.5), Y(0.08)], s: [0.13 * k, 0.09 * k, 0.28 * k], c: belly, b: 0 });
+    g.cyl(0.08 * k, 0.12 * k, 0.26 * k, 8, { at: [0, Y(0.66), Y(0.33)], rx: 0.9, c: hide, b: 1 });
+    g.sph(1, 9, 7, { at: [0, Y(0.73), Y(0.43)], s: [0.11 * k, 0.1 * k, 0.11 * k], c: hide, b: 1 });
+    if (sp !== 'cat') g.cyl(0.02 * k, 0.06 * k, 0.2 * k, 6, { at: [0, Y(0.69), Y(0.57)], rx: PI / 2, c: sp === 'fox' ? belly : shade(hide, -0.1), b: 1 }); else g.sph(1, 6, 5, { at: [0, Y(0.7), Y(0.52)], s: [0.06 * k, 0.05 * k, 0.05 * k], c: belly, b: 1 });
+    g.sph(0.016 * k / 0.62, 5, 4, { at: [0, Y(0.7), Y(sp === 'cat' ? 0.565 : 0.67)], c: 0x1a1210, b: 1, j: 0 });
+    for (const sd of [1, -1]) { g.cyl(0.0, (sp === 'cat' ? 0.06 : 0.055) * k, (sp === 'cat' ? 0.13 : 0.17) * k, 4, { at: [0.065 * k * sd, Y(0.88), Y(0.4)], rz: -0.18 * sd, c: hide, b: 1 }); g.sph(0.022 * k / 0.62, 5, 4, { at: [0.05 * k * sd, Y(0.77), Y(0.52)], c: sp === 'cat' ? 0x9ac040 : 0xd8a030, b: 1, j: 0 }); }
+    legs(g, def, Y(0.42), 0.032 * k, hide, dark);
+    seg(g, [0, Y(0.62), Y(-0.3)], sp === 'cat' ? [0, Y(0.95), Y(-0.6)] : [0, Y(0.36), Y(-0.8)], (sp === 'fox' ? 0.08 : sp === 'cat' ? 0.03 : 0.05) * k / 0.62 * 0.62, 0.02 * k, { c: sp === 'fox' ? (x, y, z) => (z < Y(-0.68) ? 0xf6f2ea : hide) : sp === 'jackal' ? dark : hide, b: 6, nu: 6, nv: 3, curve: 0.1 });
+    if (o.collar) g.cyl(0.07 * k / 0.42 * 0.42, 0.08 * k, 0.03, 8, { at: [0, Y(0.68), Y(0.36)], rx: 0.9, c: o.collar, b: 1, j: 0 });
+  } else if (sp === 'croc') { /* the Nile crocodile: a long low armoured body, splayed legs, a long snout and a heavy tail */
+    const hide = 0x4a5a34, dark = 0x2e3a22, belly = 0xb8b080, ridge = (x, y, z) => (Math.floor((z + 3) * 6) % 2 ? hide : dark);
+    g.sph(1, 12, 6, { at: [0, 0.26, 0], s: [0.34, 0.16, 0.8], c: ridge, b: 0, j: 0.05 }); g.sph(1, 8, 5, { at: [0, 0.18, 0], s: [0.3, 0.07, 0.7], c: belly, b: 0 });
+    for (let i = 0; i < 7; i++) g.box(0.06, 0.06, 0.1, { at: [0, 0.42 - Math.abs(i - 3) * 0.006, -0.55 + i * 0.18], c: dark, b: 0, j: 0.03 });
+    g.sph(1, 10, 6, { at: [0, 0.26, 0.85], s: [0.2, 0.12, 0.22], c: hide, b: 1 }); g.box(0.2, 0.09, 0.62, { at: [0, 0.22, 1.25], taper: 0.55, c: hide, b: 1, j: 0.04 }); g.box(0.18, 0.04, 0.6, { at: [0, 0.16, 1.24], taper: 0.55, c: belly, b: 1 });
+    for (const sd of [1, -1]) { g.sph(0.045, 6, 4, { at: [0.09 * sd, 0.36, 0.95], c: 0x9aa040, b: 1, j: 0 }); for (let i = 0; i < 5; i++) g.cyl(0, 0.014, 0.04, 3, { at: [0.085 * sd, 0.17, 1.05 + i * 0.1], rx: PI, c: 0xe8e0c8, b: 1, j: 0 }); }
+    for (let i = 2; i <= 5; i++) { const b = def[i]; g.cyl(0.05, 0.065, 0.24, 6, { at: [b[2] * 1.15, 0.12, b[4]], rz: b[2] > 0 ? 0.7 : -0.7, c: hide, b: i }); g.sph(0.07, 6, 4, { at: [b[2] * 1.4, 0.03, b[4] + 0.04], s: [1.2, 0.4, 1.3], c: dark, b: i }); }
+    seg(g, [0, 0.26, -0.7], [0, 0.16, -1.9], 0.2, 0.03, { c: ridge, b: 6, nu: 8, nv: 5, curve: 0.04 });
+  } else if (sp === 'hippo') { /* the river horse: a great barrel, a broad muzzle, little ears and short pillar legs */
+    const hide = 0x6a5a5e, pink = 0xb88a84, dark = 0x4a3e42;
+    g.sph(1, 14, 10, { at: [0, 1.0, 0], s: [0.78, 0.72, 1.25], c: hide, b: 0, j: 0.03 }); g.sph(1, 10, 7, { at: [0, 0.78, 0.1], s: [0.62, 0.38, 1.0], c: pink, b: 0 });
+    g.sph(1, 12, 9, { at: [0, 1.08, 1.02], s: [0.5, 0.42, 0.42], c: hide, b: 1 }); g.sph(1, 12, 8, { at: [0, 0.92, 1.38], s: [0.48, 0.32, 0.32], c: hide, b: 1 }); g.sph(1, 8, 6, { at: [0, 0.82, 1.48], s: [0.4, 0.16, 0.22], c: pink, b: 1 });
+    for (const sd of [1, -1]) { g.sph(0.06, 6, 4, { at: [0.16 * sd, 1.3, 1.14], c: 0x1a1210, b: 1, j: 0 }); g.sph(0.07, 6, 4, { at: [0.24 * sd, 1.42, 0.96], s: [1, 1.2, 0.6], c: dark, b: 1 }); g.sph(0.05, 6, 4, { at: [0.12 * sd, 1.07, 1.66], c: dark, b: 1 }); g.cyl(0.0, 0.035, 0.14, 4, { at: [0.2 * sd, 0.76, 1.52], c: 0xeae2c8, b: 1, j: 0 }); }
+    legs(g, def, 0.55, 0.12, hide, dark);
+    g.tube(y => [0.05, 0.03, 0, 0], 0, 0.3, 5, 3, { at: [0, 0.8, -1.2], rx: 0.4, c: hide, b: 6 });
+  } else if (sp === 'ibis') { /* the sacred ibis: white body, black bare head and neck, a long down-curved bill, black plumes at the tail */
+    const wh = 0xf2eee4, bk = 0x1e1a18;
+    g.sph(1, 10, 8, { at: [0, 0.66, 0], s: [0.13, 0.13, 0.22], c: wh, b: 0, j: 0.02 }); g.sph(1, 8, 6, { at: [0, 0.66, -0.22], s: [0.1, 0.08, 0.12], c: bk, b: 0 });
+    seg(g, [0, 0.72, 0.12], [0, 0.95, 0.2], 0.035, 0.03, { c: bk, b: 1, nu: 6, nv: 3, curve: -0.03 }); g.sph(0.045, 7, 5, { at: [0, 0.97, 0.2], c: bk, b: 1 });
+    for (let i = 0; i < 5; i++) { const a = i / 4; g.cyl(0.012 - a * 0.006, 0.014 - a * 0.006, 0.06, 4, { at: [0, 0.96 - a * a * 0.14, 0.25 + a * 0.2], rx: PI / 2 + 0.25 + a * 0.9, c: bk, b: 1 }); }
+    for (const sd of [1, -1]) g.sph(1, 6, 4, { at: [0.11 * sd, 0.67, -0.02], s: [0.03, 0.09, 0.2], c: wh, b: sd > 0 ? 2 : 3 });
+    for (let i = 4; i <= 5; i++) { const b = def[i]; g.cyl(0.009, 0.011, 0.56, 4, { at: [b[2], 0.28, b[4]], c: bk, b: i }); }
   }
   return { gb: g, def };
 }
@@ -1092,7 +1149,11 @@ function prop(kind) {
     case 'spear': g.cyl(0.02, 0.022, 2.1, 6, { at: [0, -0.55, 0.03], c: 0x8a6440 }); g.cyl(0, 0.035, 0.26, 5, { at: [0, -1.72, 0.03], rx: PI, c: 0xb8b0a0 }); break;
     case 'sling': g.cyl(0.006, 0.006, 0.55, 3, { at: [0.01, -0.3, 0.02], c: 0x8a6a48 }); g.cyl(0.006, 0.006, 0.55, 3, { at: [-0.01, -0.3, 0.02], c: 0x8a6a48 }); g.sph(0.045, 6, 4, { at: [0, -0.58, 0.02], s: [1, 0.6, 1], c: 0x6a4a30 }); break;
     case 'bow': for (let i = 0; i < 8; i++) { const a0 = -0.9 + i * 0.225, a1 = a0 + 0.225; g.cyl(0.014, 0.014, 0.17, 5, { at: [0, 0.02 - Math.cos((a0 + a1) / 2) * 0.12 + 0.12, Math.sin((a0 + a1) / 2) * 0.62], rx: -(a0 + a1) / 2 + PI / 2, c: 0x6a4428 }); } g.cyl(0.003, 0.003, 1.1, 3, { at: [0, 0.14, 0], rx: PI / 2, c: 0xe8e0d0 }); break;
-    case 'fishrod': g.cyl(0.012, 0.022, 2.3, 5, { at: [0, -1.05, 0.02], c: 0x9a7a4a }); g.cyl(0.002, 0.002, 1.6, 3, { at: [0, -2.15, 0.02 + 0.0], rz: 0.0, rx: 0.5, c: 0xf0f0f0 }); break;
+    case 'fishrod': { /* v18.34 a 1.7 m reed rod that bends forward toward its tip (it was a 2.3 m straight pole), a short line and a bone hook */
+      let y = 0.08, z = 0.02; const SEG = [[0.38, 0.022, 0.0], [0.34, 0.018, 0.07], [0.3, 0.014, 0.17], [0.26, 0.011, 0.3], [0.22, 0.008, 0.46]];
+      for (const [L, rr, a] of SEG) { const dy = -Math.cos(a) * L, dz = -Math.sin(a) * L; g.cyl(rr * 0.8, rr, L, 5, { at: [0, y + dy / 2, z + dz / 2], rx: a, c: 0x9a7a4a }); y += dy; z += dz; }
+      g.cyl(0.026, 0.026, 0.12, 6, { at: [0, 0.02, 0.02], c: 0x5a4028 }); /* the cord grip */
+      { const a = 1.5, L = 0.32; g.cyl(0.0025, 0.0025, L, 3, { at: [0, y - Math.cos(a) * L / 2, z - Math.sin(a) * L / 2], rx: a, c: 0xf0f0f0 }); g.sph(0.014, 4, 3, { at: [0, y - Math.cos(a) * L, z - Math.sin(a) * L], c: 0xe8dcc0 }); } break; }
     case 'hoe': g.cyl(0.02, 0.024, 1.3, 6, { at: [0, 0.1, 0.03], c: 0x8a6440 }); g.box(0.06, 0.04, 0.22, { at: [0, 0.74, 0.13], c: 0x6e6a64 }); break;
     case 'sickle': g.cyl(0.02, 0.022, 0.18, 6, { at: [0, -0.02, 0.02], c: 0x7a5232 }); for (let i = 0; i < 6; i++) { const a = i / 6 * 2.2; g.box(0.015, 0.06, 0.05, { at: [0, 0.08 + Math.sin(a) * 0.12, 0.02 + (1 - Math.cos(a)) * 0.12], rx: a, c: 0xb8b2a8, j: 0 }); } break; /* v18.23 the blade rises from the top of the grip and curves forward (it hung upside down) */
     case 'axe': g.cyl(0.02, 0.024, 0.7, 6, { at: [0, 0.15, 0.03], c: 0x8a6440 }); g.box(0.04, 0.16, 0.16, { at: [0, 0.45, 0.11], c: 0x8a8680 }); break;
@@ -1216,22 +1277,33 @@ env.reeds = function (g, M, r) {
 env.flowers = function (g, M, r, col) {
   for (let i = 0; i < 6; i++) { const x = (r() - 0.5) * 1.4, z = (r() - 0.5) * 1.4; g.cyl(0.008, 0.01, 0.25, 3, { m: M, at: [x, 0.12, z], c: 0x5f8a3a, sw: 0.5 }); g.sph(0.05, 5, 3, { m: M, at: [x, 0.26, z], s: [1, 0.5, 1], c: col || [0xd8343a, 0xf0e0f0, 0xe8c040][i % 3], j: 0, sw: 0.6 }); }
 };
-env.tent = function (g, M, r, col) { // bedouin goat-hair tent, ~6 x 4
+env.tent = function (g, M, r, col) { // bedouin goat-hair tent, ~6 x 4 (v18.34 raised 0.45 m: Joseph's head went through the roof)
   const c = col || 0x3e3532;
-  for (const [x, z, h] of [[-2.6, -1.6, 1.6], [2.6, -1.6, 1.6], [-2.6, 1.6, 1.4], [2.6, 1.6, 1.4], [0, 0, 2.3], [-1.4, 1.8, 1.5], [1.4, 1.8, 1.5]]) g.cyl(0.05, 0.06, h, 5, { m: M, at: [x, h / 2, z], c: 0x7a5a3a });
-  g.box(5.6, 0.12, 3.6, { m: M, at: [0, 1.95, 0], rx: 0.05, c, j: 0.05 });
-  g.box(5.6, 1.7, 0.08, { m: M, at: [0, 1.0, -1.7], rx: 0.18, c, j: 0.05 });
-  for (const s of [1, -1]) g.box(0.08, 1.6, 3.4, { m: M, at: [2.75 * s, 1.0, 0], rz: 0.15 * s, c, j: 0.05 });
-  g.box(5.4, 0.1, 0.1, { m: M, at: [0, 1.9, 1.85], c: (x) => (Math.floor((x + 3) * 2) % 2 ? 0xd8c090 : 0x9a3a2a) });
+  for (const [x, z, h] of [[-2.6, -1.6, 2.45], [2.6, -1.6, 2.45], [-2.6, 1.6, 2.28], [2.6, 1.6, 2.28], [0, 0, 2.4], [-1.4, 1.8, 2.27], [1.4, 1.8, 2.27]]) g.cyl(0.05, 0.06, h, 5, { m: M, at: [x, h / 2, z], c: 0x7a5a3a });
+  g.box(5.6, 0.12, 3.6, { m: M, at: [0, 2.4, 0], rx: 0.05, c, j: 0.05 });
+  g.box(5.6, 2.5, 0.08, { m: M, at: [0, 1.25, -1.7], rx: 0.18, c, j: 0.05 });
+  for (const s of [1, -1]) g.box(0.08, 2.45, 3.4, { m: M, at: [2.75 * s, 1.22, 0], rz: 0.15 * s, c, j: 0.05 });
+  g.box(5.4, 0.1, 0.1, { m: M, at: [0, 2.35, 1.85], c: (x) => (Math.floor((x + 3) * 2) % 2 ? 0xd8c090 : 0x9a3a2a) });
   g.box(3.2, 0.04, 2.2, { m: M, at: [0, 0.03, 0], c: (x, y, z) => (Math.floor((x + 2) * 3) % 3 === 0 ? 0xb3472e : 0xc89a5a), j: 0 });
   g.sph(0.25, 8, 6, { m: M, at: [-1.6, 0.25, -0.8], c: 0xb5673a }); g.box(0.6, 0.3, 0.6, { m: M, at: [1.5, 0.15, -0.9], c: 0x8a6a40 });
 };
+/* v18.33 a real door instead of a dark slab: a deep doorway, a stone lintel and jambs, a plank door with two battens, a bronze ring,
+   a worn threshold step (faces +z, its front at z0) */
+function doorway(g, M, x, z0, col) { const WD = col || 0x7a5232, WD2 = shade(WD, -0.12), ST = 0xd8c8a8;
+  g.box(1.22, 2.02, 0.1, { m: M, at: [x, 1.01, z0 - 0.02], c: 0x1e140c, j: 0 });
+  for (let i = 0; i < 4; i++) g.box(0.255, 1.86, 0.05, { m: M, at: [x - 0.39 + i * 0.26, 0.95, z0 + 0.035], c: i % 2 ? WD : WD2, j: 0.03 });
+  for (const y of [0.42, 1.5]) g.box(1.06, 0.1, 0.04, { m: M, at: [x, y, z0 + 0.075], c: shade(WD, -0.25), j: 0 });
+  g.cyl(0.055, 0.055, 0.02, 10, { m: M, at: [x + 0.32, 1.0, z0 + 0.1], rx: Math.PI / 2, c: 0xb8863a, j: 0 }); g.cyl(0.02, 0.02, 0.05, 6, { m: M, at: [x + 0.32, 1.0, z0 + 0.08], rx: Math.PI / 2, c: 0x8a6028, j: 0 });
+  g.box(1.62, 0.2, 0.26, { m: M, at: [x, 2.1, z0 + 0.06], c: ST, j: 0.03 }); for (const sx of [1, -1]) g.box(0.16, 2.0, 0.2, { m: M, at: [x + sx * 0.7, 1.0, z0 + 0.04], c: shade(ST, -0.06), j: 0.03 });
+  g.box(1.5, 0.1, 0.36, { m: M, at: [x, 0.05, z0 + 0.16], c: shade(ST, -0.1), j: 0.04 }); }
+env.doorway = doorway;
 env.house = function (g, M, r, o) { // flat-roof stone/mudbrick house w x d
   o = o || {}; const w = o.w || 6, d = o.d || 5, h = o.h || 3, c = o.c || 0xcfb48c;
   g.box(w, h, d, { m: M, at: [0, h / 2, 0], c, j: 0.03 });
+  g.box(w + 0.24, 2.6, d + 0.24, { m: M, at: [0, -1.22, 0], c: mixHex(c, 0x5a4a3a, 0.35), j: 0.04 }); /* v18.34 a footing of packed stone that goes down into the ground: on a slope the low side shows a plinth instead of a gap under the house */
   g.box(w + 0.3, 0.25, d + 0.3, { m: M, at: [0, h + 0.1, 0], c: mixHex(c, 0x6a5040, 0.3), j: 0.03 });
   for (let i = -2; i <= 2; i++) g.cyl(0.07, 0.07, 0.6, 5, { m: M, at: [i * w / 5.5, h - 0.15, d / 2 + 0.25], rx: PI / 2, c: 0x7a5a3a });
-  g.box(1.1, 1.9, 0.08, { m: M, at: [o.doorX || 0, 0.95, d / 2 + 0.02], c: 0x4a3222, j: 0 });
+  doorway(g, M, o.doorX || 0, d / 2, o.doorC);
   g.box(0.6, 0.45, 0.08, { m: M, at: [-w / 3.2, 2.0, d / 2 + 0.02], c: 0x2a2018, j: 0 });
   if (h > 3.6) { for (const x of [-w / 3.2, w / 4]) g.box(0.55, 0.4, 0.08, { m: M, at: [x, h - 1.05, d / 2 + 0.02], c: 0x2a2018, j: 0 }); g.box(w + 0.32, 0.4, 0.12, { m: M, at: [0, h + 0.4, d / 2 + 0.1], c: mixHex(c, 0xffffff, 0.1), j: 0.03 }); // upper windows + parapet
     for (let i = 0; i < 3; i++) g.box(0.12, 0.12, 0.5, { m: M, at: [-w / 2 + 0.6 + i * 0.4, 0.8 + i * 0.05, d / 2 + 0.3], c: 0x7a5a3a }); }
@@ -1265,9 +1337,12 @@ env.fence = function (g, M, r, len) {
   for (let i = 0; i <= n; i++) g.cyl(0.06, 0.07, 1.1, 5, { m: M, at: [-len / 2 + i * len / n, 0.55, 0], c: 0x7a5a3a });
   for (const y of [0.45, 0.9]) g.box(len, 0.07, 0.05, { m: M, at: [0, y, 0], c: 0x8a6a48 });
 };
-env.campfire = function (g, M, r) {
-  for (let i = 0; i < 8; i++) { const a = i / 8 * PI * 2; g.sph(0.17, 5, 4, { m: M, at: [Math.cos(a) * 0.55, 0.08, Math.sin(a) * 0.55], c: 0x8a8278, flat: true }); }
-  for (let i = 0; i < 3; i++) g.cyl(0.06, 0.07, 0.8, 5, { m: M, at: [0, 0.12, 0], ry: i * 1.05, rz: PI / 2, c: 0x4a3222 });
+env.campfire = function (g, M, r) { /* v18.34 a fire you believe in: a ring of stones, a bed of ash, a teepee of sticks and glowing embers */
+  for (let i = 0; i < 9; i++) { const a = i / 9 * PI * 2; g.sph(0.17, 5, 4, { m: M, at: [Math.cos(a) * 0.55, 0.08, Math.sin(a) * 0.55], s: [1, 0.75, 1.1], ry: a, c: [0x8a8278, 0x7a7268, 0x9a9286][i % 3], flat: true }); }
+  g.cyl(0.46, 0.5, 0.05, 10, { m: M, at: [0, 0.025, 0], c: 0x3a3430, j: 0.05 });
+  for (let i = 0; i < 3; i++) g.cyl(0.055, 0.065, 0.85, 5, { m: M, at: [0, 0.1, 0], ry: i * 1.05, rz: PI / 2, c: 0x4a3222 });
+  for (let i = 0; i < 5; i++) { const a = i / 5 * PI * 2 + 0.3; g.cyl(0.035, 0.05, 0.62, 5, { m: M, at: [Math.cos(a) * 0.14, 0.3, Math.sin(a) * 0.14], ry: -a, rz: 0.42, c: i % 2 ? 0x5a3c26 : 0x3e2a1a }); }
+  for (let i = 0; i < 6; i++) g.sph(0.06 + (i % 2) * 0.02, 5, 4, { m: M, at: [Math.cos(i * 2.4) * 0.18, 0.07, Math.sin(i * 2.4) * 0.18], c: i % 2 ? 0xff7a2a : 0xd8461a, j: 0 });
 };
 env.pillar = function (g, M) { g.box(0.6, 1.5, 0.45, { m: M, at: [0, 0.75, 0], c: 0xb8ac98, taper: 0.85, j: 0.06 }); };
 env.altar = function (g, M, r) { for (let k = 0; k < 3; k++) for (let i = 0; i < 6; i++) { const a = i / 6 * PI * 2 + k; g.sph(0.35, 5, 4, { m: M, at: [Math.cos(a) * 0.55, 0.25 + k * 0.33, Math.sin(a) * 0.55], c: 0xb0a490, flat: true, j: 0.08 }); } };

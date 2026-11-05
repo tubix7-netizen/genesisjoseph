@@ -214,7 +214,7 @@ spot('host', HOUSE[0] - 4.5, HOUSE[1] + 4.5, () => `만찬 손님 맞기 · ${GU
 
 // =================================================================== 7 나일 강 계절
 const SEASONS = [['아케트 · 범람', '나일 강이 불어 밭을 덮어요. 갈대밭에 거위가 많아지고, 들짐승은 높은 곳으로 올라가요.', [6, 2]], ['페레트 · 씨뿌림', '물이 빠진 검은 흙에 씨를 뿌려요. 들에 짐승이 많아져요.', [4, 3]], ['셰무 · 거둠', '곡식을 거두는 뜨거운 철이에요. 거위는 떠나고, 사막에 타조와 오릭스가 많아져요.', [1, 5]]];
-X.season = () => Math.floor(((S().day || 1) - 1) / 10) % 3;
+X.season = () => (G.Nile && G.Nile.season ? ({ akhet: 0, peret: 1, shemu: 2 })[G.Nile.season(S()).k] : Math.floor(((S().day || 1) - 1) / 10) % 3); /* v18.34 one calendar: the Nile's (nile.js) — the 10-day seasons disagreed with the clock */
 function seasonTick() { if (!egypt()) return; const s = X.season(), z = EP.wildZones || [], m = z.find(q => q.id === 'eMarsh'), d = z.find(q => q.id === 'eDesert');
   if (m) m.max = SEASONS[s][2][0]; if (d) d.max = SEASONS[s][2][1];
   const f = F(); if (f.season !== s) { f.season = s; card('나일 강의 계절', SEASONS[s][0], SEASONS[s][1], 'sun'); }

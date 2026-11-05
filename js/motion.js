@@ -543,6 +543,10 @@ function animHuman(rig, st, t) {
     fidgets(rig, st, t, dt, A); convo(rig, st, t, A);
   } else if (st.sit && !st.ride) seatedLife(rig, st, t);
   if (st.emo || rig.ew) acting(rig, st, t, dt, hold); else rig.emF = null;
+  /* v18.34 a lit torch is held up: the right arm raised forward, the elbow bent so the fist is above the shoulder (the walk's arm swing is mostly taken out) */
+  rig.tk = lerp(rig.tk || 0, st.torch && !st.act && !hold ? 1 : 0, Math.min(1, dt * 7));
+  if (rig.tk > 0.01) { const k = rig.tk, o = B.uArmR * 3, f = B.fArmR * 3; rig.rot[o] = lerp(rig.rot[o], -1.32, k); rig.rot[o + 1] = lerp(rig.rot[o + 1], 0.1, k); rig.rot[o + 2] = lerp(rig.rot[o + 2], 0.16, k);
+    rig.rot[f] = lerp(rig.rot[f], -0.95, k); rig.rot[f + 1] = lerp(rig.rot[f + 1], 0, k); rig.rot[f + 2] = lerp(rig.rot[f + 2], 0, k); }
   const choreo = postureChoreo(rig, st, t); // v16.9 lie ↔ stand goes through a kneel (target pose)
   if (M.timing) { const t0 = performance.now(); inertialize(rig, st, t, choreo); M.iStats.ms += performance.now() - t0; M.iStats.n++; } else inertialize(rig, st, t, choreo); // v16.9 one inertializer for every change (replaces inertia())
   if (rig.rc && rig.rc.on) reactStep(rig, dt, false); // v18.1 P8 hit reaction (after the inertializer)

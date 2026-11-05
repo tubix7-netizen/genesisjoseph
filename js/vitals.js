@@ -40,14 +40,14 @@ function safeHere() { const P = Game.P, S = Game.S(), H = hero();
 // ------------------------------------------------------------------ falls
 let wasGround = true;
 /* a fall is measured from the highest point of a real airborne stretch; teleports and story warps reset it (P.airTop) */
-function falls(P) {
+function falls(P, dt) { dt = dt > 0 && dt < 0.2 ? dt : 1 / 60;
   if (Game.cineOn || P.climb || P.ride || P.swim || P.downed) { P.airTop = P.y; wasGround = true; return; }
   if (!P.grounded) P.airTop = Math.max(P.airTop === undefined ? P.y : P.airTop, P.y);
   else { if (!wasGround) { const drop = (P.airTop === undefined ? P.y : P.airTop) - P.y;
       if (drop > 3.2) { const H = hero(); if (H) { const dmg = Math.round(Math.pow(drop - 3.2, 1.35) * 7 + 4); V.hurt(dmg, '높은 곳에서 떨어졌어요');
         P.vx *= 0.2; P.vz *= 0.2; P.landT = 0.55; Game.CAM.shake = Math.min(1.2, 0.4 + drop * 0.06); } } }
     P.airTop = P.y; }
-  wasGround = P.grounded; if (P.landT > 0) P.landT -= 1 / 60;
+  wasGround = P.grounded; if (P.landT > 0) P.landT -= dt; /* v18.34 seconds, not frames (phones run at 30) */
 }
 V.hurt = function (dmg, why) {
   const H = hero(), P = Game.P; if (!H || P.downed) return; H.hp = Math.max(0, H.hp - dmg); if (G.Combat) G.Combat.lastHurt = G.Combat.tAll || 0;
@@ -58,7 +58,7 @@ V.hurt = function (dmg, why) {
 
 // ------------------------------------------------------------------ 빈사 · collapse and wake at the last safe place
 V.down = function (why) {
-  const P = Game.P, S = Game.S(); if (P.downed) return; P.downed = true; V.downT = 0; P.sprint = false; P.act = null; P.vx = P.vz = 0;
+  const P = Game.P, S = Game.S(); if (P.downed) return; P.downed = true; V.downT = 0; P.sprint = false; P.act = null; P.vx = P.vz = 0; P.atk = null; P.atkQ = false; P.dodgeT = 0; P.lungeT = 0; /* v18.34 no swinging from the ground */
   if (G.Fish && G.Fish.cancel) G.Fish.cancel(); if (G.Combat) { G.Combat.cancelFish && G.Combat.cancelFish(); G.Combat.busy = true; }
   P.emote = null; sfx('thud'); Game.haptic && Game.haptic('thud');
   G.UI.toast('요셉이 쓰러졌어요… 눈앞이 흐려져요');
@@ -92,7 +92,7 @@ V.noiseNow = function () {
 let ckT = 0, tipT = 0;
 V.update = function (dt, S) {
   const P = Game.P, H = S.hero; if (!H) return;
-  falls(P);
+  falls(P, dt);
   // stamina: hard work costs breath; the core caps the refill
   const cap = V.stamCap(); V.cap = cap;
   if (!P.ride && !P.downed) {

@@ -22,7 +22,8 @@ C.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(); if (!S 
   if ((coverT -= dt) <= 0) { coverT = 0.2; if (G.Surv && G.Surv.coverTick) G.Surv.coverTick(); } // v18.9 shelter overhead
   const calm = Game.cineOn || (G.Cine && G.Cine.on) || G.UI.modal() || (Game.EP().calmSurv && Game.EP().calmSurv(S)); const H = S.hero; if (!H) return;
   // carts and mounts stay out of the water
-  const wl = W.water ? W.water.level : -99, gh = W.heightAt(P.x, P.z);
+  const E_ = Game.EP(), wO_ = E_ && E_.waterAt ? E_.waterAt(P.x, P.z, S) : null, fl_ = E_ && E_.floor ? E_.floor(P.x, P.z, S) : null; /* v18.34 a floor (Byblos, a cave, a room) or a sea of its own, not the map far below */
+  const wl = wO_ ? wO_.level : W.water ? W.water.level : -99, gh = wO_ ? wO_.bed : Math.max(W.heightAt(P.x, P.z), fl_ != null ? fl_ : -1e9);
   if ((P.ride && gh < wl + 0.15) || (S.q && S.q.riding && gh < wl - 0.6)) { /* v18.28 the chariot fords the shallow crossings (나루); only deep water stops it */ if (C.lastDry) { P.x = C.lastDry[0]; P.z = C.lastDry[1]; P.vx = P.vz = 0; } say('cart', P.ride ? '탈것은 물에 들어갈 수 없어요' : '수레는 물에 들어갈 수 없어요', 4000); }
   else if (gh > wl + 0.3) C.lastDry = [P.x, P.z];
   if (calm) return;
@@ -34,14 +35,15 @@ C.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(); if (!S 
   if (rainy && !roof && !C.umb && C.wet > 0.2 && Game.tool('umbrella')) say('umb', '비가 와요 · 「우산」을 펴면 젖지 않아요');
   // cold
   C.warmT = Math.max(0, C.warmT - dt); const night = (Game.env && Game.env.night) || 0, arid = Game.EP().aridAt ? Game.EP().aridAt(P.x, P.z) : 0;
-  const coldNow = C.warmT <= 0 && !fire && (C.wet > 0.55 || (night > 0.7 && arid > 0.6 && !roof));
+  const coldNow = C.warmT <= 0 && !fire && (C.wet > 0.55 || (night > 0.7 && arid > 0.6 && !roof && !P.town && !(G.Surv && G.Surv.insul && G.Surv.insul(S) >= 0.45))); /* v18.34 not in the middle of a town, nor in a fur cloak */
   if (coldNow && !C.cold) say('cold', C.wet > 0.55 ? '몸이 젖어 추워요 · 체력과 기력이 조금씩 줄어요 (모닥불 · 따뜻한 음식)' : '광야의 밤이 추워요 · 모닥불 곁이나 지붕 아래로 가요');
   C.cold = coldNow;
   if (C.cold) { H.hp = Math.max(Math.min(H.hp, H.hpMax * 0.25), H.hp - dt * 0.45); P.stam = Math.max(Math.min(P.stam, (H.stamMax || 100) * 0.3), P.stam - dt * 2.2); G.Combat && (G.Combat.hpDirty = 1);
     C.shT = (C.shT || 0) - dt; if (C.shT <= 0) { C.shT = 2.5; P.emote = P.emote || null; G.FX.burst(P.x, P.y + 1.6, P.z, 2, { c: [0.85, 0.9, 1], sp: 0.2, up: 0.3, size: 0.08, a: 0.5, g: -0.2, life: 0.9 }); } }
   // heat: Egyptian midday sun in the open
   const h = S.time % 24, egypt = P.x < 112, sunny = !rainy && (!G.Weather || G.Weather.cur.cloud < 0.6);
-  let hot = egypt && sunny && h > 10.5 && h < 16.5 && !roof && !inWater ? 1 : 0;
+  const under = (G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside()) || (G.Homes && G.Homes.inside && G.Homes.inside()) || (G.Egypt2 && G.Egypt2.inTent && G.Egypt2.inTent()); /* v18.34 no midday sun in a cave, a house or a tent */
+  let hot = egypt && sunny && h > 10.5 && h < 16.5 && !roof && !inWater && !under ? 1 : 0;
   C.coolT = Math.max(0, (C.coolT || 0) - dt); // v16.9 a cool dish or drink keeps the heat off for a while
   if (hot) { if (C.coolT > 0) hot *= 0.25; if (LIGHT.test(S.outfit || '')) hot *= 0.45; if (C.umb) hot *= 0.5; if (C.wet > 0.3) hot *= 0.6; }
   C.hot += (hot - C.hot) * Math.min(1, dt * 0.5); if (C.hot > 0.5) say('hot', '해가 뜨거워요 · 쉽게 지쳐요 (그늘 · 우산 · 겉옷 벗기)', 60000);

@@ -8,10 +8,10 @@
 (function (G) {
 const Game = G.Game, $ = id => document.getElementById(id), sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const SL = G.Sling = { on: null };
-const isSling = () => { const S = Game.S(), h = S && S.hero; return h && h.mode === 'ranged' && h.ranged === 'sling' && (!G.Combat.armedK || G.Combat.armedK() === 'sling') && !(G.Phys && G.Phys.held); }; /* (holding a jar or a melon: the button throws it instead) */ /* v18.14 the sling must be in hand */
+const isSling = () => { const S = Game.S(), h = S && S.hero; return h && h.mode === 'ranged' && h.ranged === 'sling' && (!G.Combat.armedK || G.Combat.armedK() === 'sling') && !(G.Phys && G.Phys.held) && !(G.Cart && G.Cart.bCtx && G.Cart.bCtx()) && !(G.Homes && G.Homes.lockCtx && G.Homes.lockCtx()) && !Game.P.downed && !Game.P.climb; }; /* v18.34 B shows 「내리기」/「문단속」… and now does it (the sling took the press) */ /* (holding a jar or a melon: the button throws it instead) */ /* v18.14 the sling must be in hand */
 const target = () => { const t = G.Lock && G.Lock.target; return t && !t.K && t.st !== 'dead' && t.st !== 'gone' ? t : null; };
 const RANGE = () => { const g = G.Combat.GEAR.sling, h = Game.S().hero; return g.range + (h.sk ? h.sk.aim * 2 : 0); };
-SL.start = function () { if (SL.on || G.UI.busy() || Game.cineOn) return;
+SL.start = function () { if (SL.on || G.UI.busy() || Game.cineOn || Game.P.atk) return;
   const t = target(); if (!t) { G.UI.toast('물매는 먼저 「조준」으로 짐승을 겨눠야 쏠 수 있어요'); return; }
   if (!(G.Stones ? G.Stones.has() : Game.have('stone'))) { G.UI.toast('물매에 쓸 돌이 없어요 (돌무더기에서 주워요)'); return; }
   const focus = G.Focus ? G.Focus.aimOn() : false; if (G.Focus && G.Focus.aim && !focus) G.UI.toast('정신력이 모자라서 집중이 꺼져 있어요'); /* v16.7 집중 조준 slows the world while the sling spins */ SL.on = { t: 0, x: 0.5, focus, ph: Math.random() * 6 };
@@ -22,7 +22,7 @@ SL.release = function () { const s = SL.on; if (!s) return; SL.on = null; if (G.
   let mul = 1, crit = false, miss = false, head = false, msg = '';
   if (far) { miss = true; msg = '너무 멀어요 · 돌이 닿지 않아요'; } else if (off < 0.075 * k) { mul = 2.6; crit = true; head = true; msg = '머리 명중! · 짐승이 잠시 기절했어요'; } else if (off < 0.19 * k) { mul = 1; msg = ''; } else if (off < 0.32 * k) { mul = 0.5; msg = '살짝 스쳤어요'; } else { miss = true; msg = '빗나갔어요'; } // v16.9 a wider bar: the centre is a head shot (big damage + a short stun)
   if (s.focus) { const S = Game.S(); if (!S.flags.tipFocus) { S.flags.tipFocus = 1; G.UI.toast('집중했어요 · 시간이 느려지는 동안 맞히는 칸이 넓어져요'); } }
-  const was = P.atk; G.Combat.attack(); if (P.atk && P.atk !== was) Object.assign(P.atk, { mul, crit, miss, short: far, head }); if (msg) setTimeout(() => G.UI.toast(msg), 250); };
+  const was = P.atk; G.Combat.attack(); if (P.atk && P.atk !== was) { Object.assign(P.atk, { mul, crit, miss, short: far, head }); if (msg) setTimeout(() => G.UI.toast(msg), 250); } else G.UI.toast('물매를 다시 돌릴 준비가 덜 됐어요'); }; /* v18.34 no 「머리 명중!」 when no stone flew */
 SL.update = function (dt) { const s = SL.on, bar = $('slingBar'); if (!s) return; const t = target();
   if (!t || G.UI.busy() || Game.cineOn || !isSling()) { SL.on = null; bar.hidden = true; Game.P.emote = null; return; }
   s.t += dt; s.x = 0.5 + 0.5 * Math.sin(s.ph + s.t * 4.1); const P = Game.P; P.face = Math.atan2(t.x - P.x, t.z - P.z); if (P.emote) P.emote.t = s.t;

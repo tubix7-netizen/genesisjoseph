@@ -110,8 +110,8 @@ function build(W, Game) {
   /* v18.28 the open front now faces Jacob's tent (the way the story sends you first) */
   P('tent', 184, 158, { ry: -2.24, args: [0x4a3e38], col: null });
   { const ca = Math.cos(-2.24), sa = Math.sin(-2.24), at = (lx, lz) => [184 + ca * lx + sa * lz, 158 - sa * lx + ca * lz];
-    for (const [lx, lz, w, d] of [[0, -1.72, 5.7, 0.3], [2.78, 0, 0.3, 3.5], [-2.78, 0, 0.3, 3.5]]) { const [x, z] = at(lx, lz); W.addCol({ x, z, w, d, a: -2.24, h: 2.2, cam: true }); }
-    if (W.addRoof) W.addRoof({ x: 184, z: 158, w: 5.6, d: 3.6, a: -2.24, y: W.heightAt(184, 158) + 1.9 });
+    for (const [lx, lz, w, d] of [[0, -1.72, 5.7, 0.3], [2.78, 0, 0.3, 3.5], [-2.78, 0, 0.3, 3.5]]) { const [x, z] = at(lx, lz); W.addCol({ x, z, w, d, a: -2.24, h: 2.6, cam: true }); }
+    if (W.addRoof) W.addRoof({ x: 184, z: 158, w: 5.6, d: 3.6, a: -2.24, y: W.heightAt(184, 158) + 2.35 });
     const [mx, mz] = at(0.35, -0.55); P((g, M) => { g.box(1.95, 0.05, 0.95, { m: M, at: [0, 0.03, 0], c: (x, y, z) => Math.abs(z) > 0.36 || Math.abs(x) > 0.86 ? 0x8a3a2a : Math.floor((x + 1) * 5) % 2 ? 0xc8b08a : 0xb89a70 });
       g.box(1.7, 0.06, 0.6, { m: M, at: [0.05, 0.07, -0.05], c: 0x6a5a4a, j: 0.04 }); g.sph(0.2, 8, 6, { m: M, at: [0.78, 0.12, 0], s: [1, 0.45, 1.2], c: 0xd8c8a8 }); }, mx, mz, { ry: -2.24, col: null }); }
   P('tent', 163, 162, { ry: 0.9, args: [0x5a4636], col: { w: 5.8, d: 3.8, h: 2.2, cam: true, a: 0.9 } });

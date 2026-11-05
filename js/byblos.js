@@ -121,14 +121,17 @@ function buildStage(W) { const R = G.R, g = new G.GB(77), cols = [], C = (o) => 
   for (const [x, z, rb, h] of MT) { const y0 = BY - 14, top = y0 + h; g.cyl(2.5, rb, h, 14, { at: [X + x, y0 + h / 2, Z + z], c: 0x6e7a5e, j: 0.08 }); const cf = 0.24, rc = 2.5 + (rb - 2.5) * cf; g.cyl(0.6, rc * 1.04, h * cf, 14, { at: [X + x, top - h * cf / 2 + 0.05, Z + z], c: 0xf2f2ee, j: 0.02 });
     for (let k = 0; k < 14; k++) { const a = rng() * Math.PI * 2, d = rb * (0.55 + rng() * 0.4), tx = x + Math.cos(a) * d, tz = z + Math.sin(a) * d; if (tz < 34) continue; const ty = Math.max(BY - 0.6, y0 + h * (1 - d / rb)); cedarTree(g, X + tx, ty - 0.4, Z + tz, 1.2 + rng() * 0.6); } }
   // edges you cannot walk off: the sea, the quay, the mountains
-  for (const [x, z, w, d] of [[-32, -28.7, 32, 0.6], [18, -28.7, 60, 0.6], [-16.4, -36, 0.6, 16], [-11.6, -36, 0.6, 16], [-14, -44.4, 5.4, 0.6], [-48.4, 1, 0.6, 60], [48.4, 1, 0.6, 60], [0, 30.6, 98, 0.6]]) C({ x: X + x, z: Z + z, w, d, y0: BY - 2, y1: BY + 4 });
+  for (const [x, z, w, d] of [[-62, -60, 0.6, 64], [62, -60, 0.6, 64], [0, -92, 124, 0.6], /* v18.34 the sea is open for swimming out to a line of buoys; these are the far edges */ [-16.4, -36, 0.6, 16], [-11.6, -36, 0.6, 16], [-14, -44.4, 5.4, 0.6], [-48.4, 1, 0.6, 60], [48.4, 1, 0.6, 60], [0, 30.6, 98, 0.6]]) C({ x: X + x, z: Z + z, w, d, y0: BY - 2, y1: BY + 4 });
   const statics = [R.mesh(g)]; statics[0].outline = true;
   // the sea: the shared water shader at a higher level, out to the horizon
   const d = [], st = 12, n = 50; for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const x0 = X - st * n / 2 + i * st, z0 = Z - st * n / 2 + j * st, x1 = x0 + st, z1 = z0 + st; const v = (x, z) => d.push(x, SEA, z, 0, 1, 0, 1, 1, 1, 0, 0); v(x0, z1); v(x1, z1); v(x1, z0); v(x0, z1); v(x1, z0); v(x0, z0); }
   const w0 = W.water || {}; const sea = { mesh: R.mesh(new Float32Array(d)), level: SEA, map: w0.map, heightTex: w0.heightTex, shallow: [0.16, 0.5, 0.6], deep: [0.03, 0.18, 0.34] };
   return { statics, sea }; }
+/* v18.34 the sea off the shelf: swim in it (the shelf edge is a step you climb out over) */
+const beach = lz => BY + 0.02 - (-28.8 - lz) / 5.6 * 3.2; /* the shore slopes into the water over 5.6 m (you could not climb back out over a 2.5 m step) */
+EP.waterAt = function (x, z, s) { if (!inBy()) return null; const lx = x - BX, lz = z - BZ; if (lz < -28.8 && lz > -92 && Math.abs(lx) < 62 && !(lx > -16.6 && lx < -11.4 && lz > -44.6)) return { level: SEA, bed: lz > -34.4 ? beach(lz) : SEA - 2.6 - Math.min(3, (-28.8 - lz) * 0.08) }; return null; };
 // the floor: the Byblos stage while you are there; the Nile quay's deck otherwise
-const fl0 = EP.floor; EP.floor = function (x, z, s) { if (inBy()) { const lx = x - BX, lz = z - BZ; if ((lx > -48.5 && lx < 48.5 && lz > -28.8 && lz < 30.8) || (lx > -16.6 && lx < -11.4 && lz > -44.6 && lz <= -28.8)) return BY; }
+const fl0 = EP.floor; EP.floor = function (x, z, s) { if (inBy()) { const lx = x - BX, lz = z - BZ; if ((lx > -48.5 && lx < 48.5 && lz > -28.8 && lz < 30.8) || (lx > -16.6 && lx < -11.4 && lz > -44.6 && lz <= -28.8)) return BY; if (Math.abs(lx) < 48.5 && lz <= -28.8 && lz > -34.4) return beach(lz); /* v18.34 */ }
   else { const q = EP._quay; if (q && x > q.x0 && x < q.x1 && z > q.z0 && z < q.z1) return q.y; } return fl0 ? fl0.apply(this, arguments) : null; };
 // while overseas: draw Byblos instead of Egypt, and keep the wild things of the real map away
 const EMPTY = [];

@@ -28,7 +28,7 @@ const ROLE = { fisher: ['오늘 새벽에 큰 고기를 잡았어요! 제일 좋
   weaver: ['베를 짜다 남은 실이에요. 쓸 데가 있으실 거예요.'], washer: ['세마포를 눈처럼 하얗게 빨아 두었어요.'], merchant: ['장사가 잘 돼서 조금 나눠요. 거절하지 마세요!'], trader: ['먼 길에서 구한 대추야자예요.'],
   brickmaker: ['곳간 벽돌을 다 찍었어요! 우리 벽돌이 곡식을 지켜 줄 거예요.'], porter: ['짐 나를 일이 있으면 언제든 부르세요!'], elder: ['늙은이가 아는 들풀 약초예요. 몸이 고단할 때 달여 드세요.'],
   water: ['우물물이 참 맑아졌어요. 들르시면 시원한 물 한 바가지 드릴게요.'], child: ['그림을 그렸어요! (도기 조각에 수레 탄 총리님과 말 두 마리가 그려져 있어요)', '제가 제일 아끼는 반짝이는 돌이에요. 비밀이에요!'] };
-const GIFT = { fisher: ['fish', 1], baker: ['bread', 2], farmer: ['onion', 2], potter: ['clay', 3], weaver: ['thread', 2], washer: ['linen', 1], merchant: ['$', 8], trader: ['dates', 2], brickmaker: ['brick', 2], porter: ['bread', 1], elder: ['herb', 1], water: ['cucumber', 2], child: ['flower', 1] };
+const GIFT = { fisher: ['carp', 1], baker: ['bread', 2], farmer: ['onion', 2], potter: ['clay', 3], weaver: ['thread', 2], washer: ['linen', 1], merchant: ['$', 8], trader: ['dates', 2], brickmaker: ['brick', 2], porter: ['bread', 1], elder: ['herb', 1], water: ['cucumber', 2], child: ['flower', 1] };
 const CLOSE = ['평안을 빌며,', '늘 고마운 마음으로,', '다음에 또 만나요!', '건강하세요.'];
 const roleOf = n => (n.d.folk && n.d.folk.role) || (/어부/.test(n.name) ? 'fisher' : /빵/.test(n.name) ? 'baker' : /농부/.test(n.name) ? 'farmer' : /아이|소년|소녀/.test(n.name) ? 'child' : /노인|장로/.test(n.name) ? 'elder' : '');
 function compose(n, lv, s) { const t = title(s), r = roleOf(n), fill = x => x.replace(/\{t\}/g, t);

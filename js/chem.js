@@ -23,13 +23,16 @@ function protectedAt(x, z) { // nothing burns near camps, story spots, or buildi
   const EP = Game.EP(), W = Game.W(); if (!EP || !W) return true;
   for (const st of EP.stations || []) if (Math.hypot(st.x - x, st.z - z) < 3) return true;
   for (const sp of Game.ENT.specials || []) if (Math.hypot(sp.x - x, sp.z - z) < 3) return true;
-  for (const c of W.near(x, z)) { if (c.t === 'b') { const dx = x - c.x, dz = z - c.z, lx = dx * c.ca - dz * c.sa, lz = dx * c.sa + dz * c.ca; if (Math.abs(lx) < c.hw + 2 && Math.abs(lz) < c.hd + 2) return true; } }
+  if (EP.floor && EP.floor(x, z, Game.S()) != null) return true; /* v18.34 built floors (rooms, caves, paving) */
+  for (const c of W.near(x, z)) { if (c.t === 'c' && c.on && Math.hypot(x - c.x, z - c.z) < c.r + 0.6) return true; if (c.t === 'b') { const dx = x - c.x, dz = z - c.z, lx = dx * c.ca - dz * c.sa, lz = dx * c.sa + dz * c.ca; if (Math.abs(lx) < c.hw + 2 && Math.abs(lz) < c.hd + 2) return true; } }
   return false;
 }
 function fuelAt(x, z) {
   const EP = Game.EP(), W = Game.W(); if (!W || protectedAt(x, z)) return 0;
   if (EP.waterDist && EP.waterDist(x, z) < 1.2) return 0; const arid = EP.aridAt ? EP.aridAt(x, z) : 0.3;
-  if (arid > 0.85) return 0.12; // bare sand
+  if (arid > 0.85) return 0; // bare sand and desert stone: nothing to burn (v18.34: it used to catch like dry grass)
+  if (W.surfAt && W.surfAt(x, z) !== 'grass') return 0; /* v18.34 only where grass really grows (the ground texture's grass density): sand and rock never burn */
+  if (EP.roadD && EP.roadD(x, z) < 2.2) return 0; // a beaten road
   const h = W.heightAt(x, z), s = Math.max(Math.abs(W.heightAt(x + 1, z) - h), Math.abs(W.heightAt(x, z + 1) - h)); // steep rock does not burn
   return (0.35 + 0.65 * (1 - arid)) * (s > 0.9 ? 0.3 : 1);
 }
@@ -84,7 +87,7 @@ function effects(dt) {
   sndT -= dt; if (near && sndT <= 0) { sndT = 1.3; sfx('fire', { vol: Math.min(0.6, 0.12 + near / 60) }); }
   // the hero in the fire: a little burn, never lethal
   const i = Ec >= 0 && Ez >= 0 && Ec < N && Ez < N ? idx(Ec, Ez) : -1; hurtT -= dt;
-  if (i >= 0 && fire[i] > 0.5 && hurtT <= 0 && !P.downed && !Game.cineOn) { hurtT = 0.7; const H = Game.S().hero; if (H && H.hp > H.hpMax * 0.2 && G.Vitals && G.Vitals.hurt) G.Vitals.hurt(Math.min(3, Math.max(0, H.hp - H.hpMax * 0.2)), '불에 데었어요'); }
+  if (i >= 0 && fire[i] > 0.5 && hurtT <= 0 && !P.downed && !Game.cineOn && Math.abs(P.y - Game.W().heightAt(P.x, P.z)) < 1.5) { /* v18.34 not when standing high above the burning ground (a cave stage, a roof) */ hurtT = 0.7; const H = Game.S().hero; if (H && H.hp > H.hpMax * 0.2 && G.Vitals && G.Vitals.hurt) G.Vitals.hurt(Math.min(3, Math.max(0, H.hp - H.hpMax * 0.2)), '불에 데었어요'); }
 }
 
 // a hunting beast is scared (and combat.js turns it to flee) by a lit torch within 5 m of the hero, or by fire within two cells of it
@@ -114,8 +117,11 @@ function hero(dt) {
   const was = Ch.wetHero; let w = was;
   if (P.swim) w = 1; else if ((Wx.rain || 0) > 0.15 && roof < 0.2) w += (Wx.rain || 0) * 0.02 * dt * 5; else w -= (0.012 + (heatN > 5 ? 0.09 : 0) + (Ch.torchT > 0 ? 0.04 : 0) + (Game.hour() > 8 && Game.hour() < 17 ? 0.01 : 0)) * dt;
   Ch.wetHero = clamp(w, 0, 1); if (was < 0.5 && Ch.wetHero >= 0.5) G.UI.toast('옷이 젖었어요 · 추위가 더 매서워요'); else if (was >= 0.5 && Ch.wetHero < 0.12) G.UI.toast('옷이 말랐어요');
+  /* v18.34 a torch put away (another thing in the hand, empty hands, the bag) is snuffed out — its flame used to stay over Joseph's head */
+  if (Ch.torchT > 0 && Game.hand() !== 'torch' && !Game.cineOn) { Ch.torchT = 0; G.UI.toast('횃불을 내려놓아 불이 꺼졌어요'); }
+  if (P.swim && Ch.torchT > 0) { Ch.torchT = 0; G.UI.toast('물에 들어가 횃불이 꺼졌어요'); }
   if (Ch.torchT > 0) { Ch.torchT -= dt * (1 + ((Wx.rain || 0) > 0.4 ? 1.5 : 0)); if (Ch.torchT <= 0) { Ch.torchT = 0; G.UI.toast('횃불이 꺼졌어요'); }
-    const W = Game.W(), m = P.rig && P.rig.world && G.HBI ? P.rig.world[G.HBI.handR] : null, x = m ? m[12] : P.x, y = m ? m[13] + 0.5 : P.y + 1.5, z = m ? m[14] : P.z;
+    const tip = P.torchTip; if (!tip) return; const x = tip[0], y = tip[1], z = tip[2]; /* the flame rides the torch's head (not a point above the hand); none while the torch is not drawn (a cutscene, riding) */
     if (Math.random() < dt * 40) FX.burst(x, y, z, 1, { c: Math.random() < 0.5 ? [1, 0.55, 0.15] : [1, 0.85, 0.35], sp: 0.2, up: 1.4, g: -1.2, life: 0.45, size: 0.2, spread: 0.08, h: 0.3 }); }
 }
 
@@ -125,7 +131,9 @@ Game.RECIPES.push({ id: 'torch', n: '횃불', tool: 'torch', in: { branch: 1, re
 Game.CTX.push(function (S, g) {
   if (!Ch.on || !Ch.ready || Game.hand() !== 'torch') return null; const P = Game.P, out = [];
   if (Ch.torchT <= 0) { for (const st of (Game.EP().stations || [])) { if (st.type !== 'fire') continue; if (st.on && !st.on(S, Game)) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d < (st.r || 2.4) + 0.6) out.push({ d: -3 /* v18.28 before 「모닥불가에 앉기」 */, label: '횃불에 불 붙이기', x: st.x, z: st.z, y: 1.2, key: 'chem:light', reach: 0.8, use: () => { Ch.torchT = 150; sfx('fire', { vol: 0.7 }); G.UI.toast('횃불이 타올라요 · 약 2분 동안'); } }); } }
-  else if (!(G.Cave && G.Cave.inside && G.Cave.inside())) { const px = P.x + Math.sin(P.face) * 1.5, pz = P.z + Math.cos(P.face) * 1.5; out.push({ d: 1.1, label: '불 붙이기', x: px, z: pz, y: 0.4, key: 'chem:ignite', reach: 0.8, use: () => { const n = Ch.ignite(px, pz, 1); sfx('fire', { vol: 0.8 }); G.UI.toast(n ? '풀에 불이 붙었어요 · 바람과 불길을 조심하세요!' : '여기는 불이 붙지 않아요 (젖었거나 탈 것이 없어요)'); } }); }
+  else if (!(G.Cave && G.Cave.inside && G.Cave.inside()) && !(G.Caves && G.Caves.inside && G.Caves.inside()) && !(G.Homes && G.Homes.inside && G.Homes.inside()) && performance.now() > (Ch.ignCd || 0)) { const px = P.x + Math.sin(P.face) * 1.5, pz = P.z + Math.cos(P.face) * 1.5, c = Ch.at(px, pz);
+    /* v18.34 offered only when the ground in front can really burn (dry grass, not sand, stone, a floor, a road, wet ground or ash) */
+    if (!c || c.fuel < 0.05 || c.fire > 0 || c.ash || c.wet > 0.45) return out; out.push({ d: 1.1, label: '불 붙이기', x: px, z: pz, y: 0.4, key: 'chem:ignite', reach: 0.8, use: () => { const n = Ch.ignite(px, pz, 1); Ch.ignCd = performance.now() + 2500; sfx('fire', { vol: 0.8 }); G.UI.toast(n ? '풀에 불이 붙었어요 · 바람과 불길을 조심하세요!' : '여기는 불이 붙지 않아요 (젖었거나 탈 것이 없어요)'); } }); }
   return out;
 });
 

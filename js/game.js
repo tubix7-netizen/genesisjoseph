@@ -744,8 +744,10 @@ function resolveContext() {
   // between two things at about the same distance, take the one in front of the hero (up to 0.5 m of preference)
   for (const c of cands) if (c.x !== undefined && !c.tile) { const dd = Math.hypot(c.x - P.x, c.z - P.z); if (dd > 0.3) c.d += (1 - ((c.x - P.x) * fx + (c.z - P.z) * fz) / dd) * 0.25; }
   /* v18.28 what A does first: a person > the thing the moment needs > lifting a loose thing > sleeping */
-  for (const c of cands) { if (c.npc) c.d -= 0.45; else if (c.key === 'lift') c.d += 0.5; else if (c.label === '잠자기') c.d += 1.2; }
+  for (const c of cands) { if (c.npc) c.d -= 0.45; else if (c.key === 'lift') c.d += 0.5; else if (c.label === '잠자기') c.d += 1.2; if (c.disabled) c.d += 1.5; /* v18.34 a greyed-out 「오늘은 했어요」 no longer hides a live action */ }
   cands.sort((a, b) => a.d - b.d);
+  /* v18.34 a little stickiness: the prompt already shown keeps the A button unless the other is clearly nearer (they flickered while turning) */
+  const pv = ctx && cands.find(c => c.key && c.key === ctx.key); if (pv && pv !== cands[0] && !pv.disabled && pv.d - cands[0].d < 0.2) return pv;
   return cands[0] || null;
 }
 function stationAction(st) {
@@ -786,7 +788,7 @@ function magnetFor(a) {
   if (P.y > W.heightAt(P.x, P.z) + 0.9) return false; /* v18.12j standing up high (a roof): never glide toward the target, that walked Joseph off the edge */
   const d = Math.hypot(a.x - P.x, a.z - P.z), stop = MAG_STOP(a), want = Math.atan2(a.x - P.x, a.z - P.z);
   if (d <= stop + 0.15 && Math.abs(angDiff(P.face, want)) < 0.5) return false; // already there and facing it
-  P.magnet = { a, x: a.x, z: a.z, stop, t: 0 }; return true;
+  P.magnet = { a, x: a.x, z: a.z, stop, t: 0, held: Math.hypot(INPUT.mx, INPUT.my) > 0.5 }; return true; /* v18.34 held: the stick was already down when A was pressed */
 }
 function magnetUpdate(dt) {
   const m = P.magnet; if (!m) return false; m.t += dt;
@@ -822,20 +824,21 @@ Game.townAt = townAt;
 function updatePlayer(dt) {
   if (G.Climb) { G.Climb.frame(dt); if (P.climb) { G.Climb.update(dt); if (G.Acts) G.Acts.update(dt); return; } }
   const busy = G.UI.busy(); if (P.magnet && (busy || (G.Cine && G.Cine.on))) P.magnet = null;
-  if (P.magnet && Math.hypot(INPUT.mx, INPUT.my) > 0.5) P.magnet = null; // the player steers away: cancel
+  if (P.magnet) { const sm = Math.hypot(INPUT.mx, INPUT.my); if (P.magnet.held) { if (sm < 0.3) P.magnet.held = false; } else if (sm > 0.5) P.magnet = null; } /* the player steers away: cancel (v18.34 only a new push: A pressed while walking no longer does nothing) */
   if (P.magnet && magnetUpdate(dt)) { const g1 = W.heightAt(P.x, P.z); if (P.grounded) P.y = Math.max(g1, EP.floor ? (EP.floor(P.x, P.z, S) ?? g1) : g1); return; }
   let mx = INPUT.mx + ((INPUT.keys.KeyD ? 1 : 0) - (INPUT.keys.KeyA ? 1 : 0)), my = INPUT.my + ((INPUT.keys.KeyS ? 1 : 0) - (INPUT.keys.KeyW ? 1 : 0));
   let mag = Math.min(1, Math.hypot(mx, my)); if (busy || P.act || P.lock || P.downed || P.landT > 0.25) mag = 0;
   if (G.Lock && G.Lock.aim && !busy && G.Lock.steer(mx, my, dt)) mag = 0; // aiming a throw: the stick moves the landing mark
   if (P.emote && mag > 0.15 && !(G.Acts && G.Acts.walkable(P.emote.k))) G.Acts.stop(); if (P.emote && G.Acts && G.Acts.locks(P.emote.k)) mag = 0;
   mag = mag < 0.1 ? 0 : Math.pow((mag - 0.1) / 0.9, 1.15);
-  const g0 = W.heightAt(P.x, P.z), wl = W.water ? W.water.level : -99; P.swim = g0 < wl - 0.75;
-  if (mag === 0 || P.exhausted || P.swim) P.sprint = P.sprint && mag > 0 && !P.exhausted && !P.swim;
+  const wO = EP.waterAt ? EP.waterAt(P.x, P.z, S) : null; /* v18.34 a sea of its own (Byblos) */
+  const g0 = wO ? wO.bed : W.heightAt(P.x, P.z), wl = wO ? wO.level : W.water ? W.water.level : -99; P.swim = g0 < wl - 0.75;
+  if (mag === 0 || P.exhausted) P.sprint = P.sprint && mag > 0 && !P.exhausted; /* v18.34 달리기 in deep water = a fast crawl stroke */
   townTick(dt); if (P.chaseT > 0) P.chaseT -= dt; const XS = G.Extras, town = P.town && !P.ride && !(S.q && S.q.riding) && !(P.chaseT > 0) && S.step !== 'c2_flee' && !(S.q && S.q.flee) && !(XS && ((XS.hide && XS.hide.on) || (XS.herd && XS.herd.on))); /* v18.24 inside a village: 달리기 is only a brisk walk, and it costs no breath */
   let target = 0;
   const RD = P.ride && G.Ride ? G.Ride.spec(P.ride) : null; if (RD && P.swim) G.Ride.dismount(false, '물이 깊어 내렸어요');
   if (mag > 0 && RD) { target = mag < 0.6 ? lerp(1.2, RD.walk * 0.62, mag / 0.6) : lerp(RD.walk * 0.62, RD.walk, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45 && !P.ride.tired) target = RD.run; if (g0 < wl) target *= 0.6; }
-  else if (mag > 0) { target = town ? (mag < 0.6 ? lerp(0.9, 2.1, mag / 0.6) : lerp(2.1, 3.0, (mag - 0.6) / 0.4)) : mag < 0.6 ? lerp(1.0, 2.6, mag / 0.6) : lerp(2.6, 4.8, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45) target = town ? 3.9 : 7.6; /* (in a village the legs keep a walking stride: the run blend starts at 3 m/s) */ if (P.limp) target *= 0.72; if (P.atk) target *= 0.3; if (P.swim) target = Math.min(target, 2.2); else if (g0 < wl) target *= 0.7; if (P.exhausted) target = Math.min(target, 2.0); if (P.crouch) target = Math.min(target, P.swim ? target : 1.75); }
+  else if (mag > 0) { target = town ? (mag < 0.6 ? lerp(0.9, 2.1, mag / 0.6) : lerp(2.1, 3.0, (mag - 0.6) / 0.4)) : mag < 0.6 ? lerp(1.0, 2.6, mag / 0.6) : lerp(2.6, 4.8, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45) target = town ? 3.9 : 7.6; /* (in a village the legs keep a walking stride: the run blend starts at 3 m/s) */ if (P.limp) target *= 0.72; if (P.atk) target *= 0.3; if (P.swim) target = P.sprint && mag > 0.45 ? 4.4 : Math.min(target, 2.4); else if (g0 < wl) target *= 0.7; if (P.exhausted) target = Math.min(target, 2.0); if (P.crouch) target = Math.min(target, P.swim ? target : 1.75); }
   if (G.Surv && target > 0) target *= G.Surv.mul;
   if (EP.speedMul && target > 0) target *= EP.speedMul(S, P, mag);
   const yaw = CAM.yaw; const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
@@ -872,7 +875,7 @@ function updatePlayer(dt) {
   }
   for (const n of P.follow) { } // followers don't block
   if (G.Climb && P.hit) G.Climb.tryGrab(P, dt, mag, dx, dz); else P.grabT = 0;
-  const h = W.half - 6; P.x = clamp(P.x, -h, h); P.z = clamp(P.z, -h, h);
+  const h = W.half - 6; if (!(EP.waterAt && EP.waterAt(P.x, P.z, S))) { P.x = clamp(P.x, -h, h); P.z = clamp(P.z, -h, h); } /* v18.34 a sea of its own (Byblos) reaches past the map's edge */
   if (EP.bounds) EP.bounds(P, S);
   // vertical
   let gnd = W.heightAt(P.x, P.z); if (EP.floor) { const f2 = EP.floor(P.x, P.z, S); if (f2 !== null && f2 > gnd - 0.3) gnd = Math.max(gnd, f2); }
@@ -1061,8 +1064,9 @@ function updateCamera(dt, snap) {
     for (let it = 0; it < 6 && dist > 0.8 && W.inRoof(px + dx * dist, pz + dz * dist, py + dy * dist, roof); it++) dist = Math.max(0.8, dist * 0.72); }
   if (snap || CAM.cDist === undefined) CAM.cDist = dist; else CAM.cDist = lerp(CAM.cDist, dist, 1 - Math.exp(-dt * (dist < CAM.cDist ? 22 : 3.5)));
   let ex2 = px + dx * CAM.cDist, ey2 = py + dy * CAM.cDist, ez2 = pz + dz * CAM.cDist;
-  for (let i = 1; i <= 3; i++) { const tt = i / 3; const gx = lerp(px, ex2, tt), gz = lerp(pz, ez2, tt), gy = lerp(py, ey2, tt); const gh = W.heightAt(gx, gz) + 0.35; if (gy < gh) { ey2 += (gh - gy) * (1 / tt); } }
-  const gh = W.heightAt(ex2, ez2) + 0.4; if (ey2 < gh) ey2 = gh;
+  const gAt = (x, z) => { const h = W.heightAt(x, z); if (!EP.floor) return h; const f = EP.floor(x, z, S); return f != null && f > h ? f : h; }; /* v18.34 floors (caves, rooms, the stage) count as ground for the camera too: it sank under the cave floor */
+  for (let i = 1; i <= 3; i++) { const tt = i / 3; const gx = lerp(px, ex2, tt), gz = lerp(pz, ez2, tt), gy = lerp(py, ey2, tt); const gh = gAt(gx, gz) + 0.35; if (gy < gh) { ey2 += (gh - gy) * (1 / tt); } }
+  const gh = gAt(ex2, ez2) + 0.4; if (ey2 < gh) ey2 = gh;
   CAM.gy = snap || CAM.gy === undefined ? ey2 - (py + dy * CAM.cDist) : lerp(CAM.gy, ey2 - (py + dy * CAM.cDist), 1 - Math.exp(-dt * 12));
   CAM.x = ex2; CAM.y = py + dy * CAM.cDist + CAM.gy; CAM.z = ez2;
   if (CAM.shake > 0) { CAM.shake = Math.max(0, CAM.shake - dt * 2.2); const a = CAM.shake * CAM.shake * 0.22; CAM.x += (Math.random() - 0.5) * a; CAM.y += (Math.random() - 0.5) * a; CAM.z += (Math.random() - 0.5) * a; }
@@ -1247,12 +1251,13 @@ function render(dt) {
   pst.gnd = P.grounded && !P.swim && !(EP.floor && EP.floor(P.x, P.z, S) !== null) ? G.Motion.groundFn(P) : null; pst.listen = !pst.talk && !!spk; pst.swim = P.swim;
   if (!pst.act && P.emote) { pst.act = P.emote.k; pst.actT = P.emote.dur ? Math.min(1, P.emote.t / P.emote.dur) : (P.emote.t % 2) / 2; }
   P.phase += G.stepRate(P.spd) * dt;
-  if (P.atkPose) { pst.act = P.atkPose; pst.actT = 0.5; } else if (P.atk) { pst.act = P.atk.anim; pst.actT = P.atk.t / P.atk.dur; } else if (P.dodgeT > 0) { pst.act = 'dodge'; pst.actT = 1 - P.dodgeT / 0.45; } pst.hurt = P.tintT > 0;
+  if (P.atkPose) { pst.act = P.atkPose; pst.actT = 0.5; } else if (P.atk) { pst.act = P.atk.anim; pst.actT = P.atk.t / P.atk.dur; } else if (P.dodgeT > 0) { pst.act = 'dodge'; pst.actT = 1 - P.dodgeT / (P.dodgeDur || 0.45); } pst.hurt = P.tintT > 0;
   if (pst.staff && pst.act && !(G.Acts && G.Acts.walkable(pst.act))) pst.staff = false; // kneeling, praying, bowing… the staff is set aside
-  pst.crouch = !!P.crouch && !P.ride && !P.swim; if (G.Phys && G.Phys.held && !pst.carry) pst.carry = 'head'; // a lifted jar is held up on the head with both hands pst.landT = P.landT > 0 ? P.landT : 0;
+  pst.crouch = !!P.crouch && !P.ride && !P.swim; if (G.Phys && G.Phys.held && !pst.carry) pst.carry = 'head'; /* a lifted jar is held up on the head with both hands */ pst.landT = P.landT > 0 ? P.landT : 0;
   { const em = G.Cine && G.Cine.emoOf ? G.Cine.emoOf(EP.hero) : null; // v16.8 acting: the line's feeling, or out of breath / cold in play
     const mo = !em && G.Mood ? G.Mood.hero(dt) : null; // v17.7 P4: fear / weary from the game itself (js/mood.js)
     pst.emo = em ? em[0] : mo ? mo[0] : !Game.cineOn && (P.exhausted || (P.stam !== undefined && P.stam < 12)) && P.spd < 0.5 && !P.act && !P.swim && !P.climb && !P.ride ? 'tired' : !Game.cineOn && pst.shiver > 0.35 && P.spd < 0.5 && !P.act ? 'cold' : null; pst.emoK = em ? em[1] : mo ? mo[1] : 1; }
+  pst.torch = hand() === 'torch' && !!G.Chem && G.Chem.torchT > 0 && !P.carry && !P.ride && !P.swim && !P.climb && !P.sleeping; /* v18.34 held up while it burns */
   if (EP.pose) EP.pose(pst, S, Game);
   if (P.downed) { pst.act = 'fallen'; pst.actT = 1; pst.speed = 0; }
   if (P.climb) { pst.act = 'climb'; pst.actT = ((P.climbPh || 0) / (PI * 2)) % 1; pst.speed = 0; pst.air = false; pst.gnd = null; pst.staff = false; }
@@ -1272,13 +1277,19 @@ function render(dt) {
     if (hk === 'staff') m4trs(P.propD.m, hm[12] + bx, hm[13], hm[14] + bz, P.face, 0.05 + sw * 0.18, 0.06, 1, clamp((hm[13] - gy) / 0.95, 0.75, 1.3), 1); // upright, its foot on the ground, swung forward every second step
     else if (hk === 'hoe') m4trs(P.propD.m, hm[12] + bx, gy + 0.56, hm[14] + bz, P.face, 0.04 + sw * 0.14, 0.05); // leaned on like a staff, blade up
     else if (hk === 'jar' || hk === 'bigjar') m4trs(P.propD.m, hm[12], hm[13] - 0.4, hm[14], P.face, sw * 0.08); // hanging from the fist by its neck
+    else if (hk === 'fishrod') m4trs(P.propD.m, hm[12] + bx, hm[13] + 0.02, hm[14] + bz, P.face, PI + 0.28 + sw * 0.06); /* v18.34 carried up and leaning forward, the tip bowing ahead */
+    else if (hk === 'torch') m4trs(P.propD.m, hm[12] + bx, hm[13] - 0.04, hm[14] + bz, P.face, -(pst.torch ? 0.14 : 0.2) + sw * 0.05); /* v18.34 upright in the fist, the head up (it hung upside down) */
     else m4trs(P.propD.m, hm[12], hm[13] + 0.02, hm[14], P.face, PI - 0.12 + sw * 0.1); // sickle, axe, hammer: held by the handle, head down
   }
+  { const m = hp === 'torch' && P.propD ? P.propD.m : null; P.torchTip = m ? [m[4] * 0.62 + m[8] * 0.03 + m[12], m[5] * 0.62 + m[9] * 0.03 + m[13], m[6] * 0.62 + m[10] * 0.03 + m[14]] : null; } /* v18.34 where the flame sits */
   if (G.Hearth && Game.mode === 'play') G.Hearth.dyn(scene.dyn);
   if (G.Phys) G.Phys.dyn(scene.dyn); if (G.Loot) G.Loot.dyn(scene.dyn); if (G.Climate) G.Climate.dyn(scene.dyn);
   if (P.carry && Game.mode === 'play') scene.dyn.push({ mesh: propMesh(P.carry), m: P.carryArms ? P.rig.world[HBI.handR] : m4mul(P.carryM || (P.carryM = m4()), P.rig.world[HBI.head], m4trs(TMP2, 0, 0.36, 0)), outline: true });
-  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || !n.near) continue; const d = Math.hypot(n.x - CAM.x, n.z - CAM.z); if (d > 85 || (d < 1.0 && Game.mode === 'play')) continue; const sk = n.sk || (n.sk = { bones: n.rig.bones, bs: [0, 0, 0, 1.8] }); sk.mesh = npcMesh(n, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : 1)); sk.outline = d < 40 && !n.d.emis; sk.emis = n.d.emis; sk.tint = n.tint || n.d.tint; sk.bs[0] = n.x; sk.bs[1] = n.y + 1; sk.bs[2] = n.z; sk.bs[3] = 1.8 * (n.scale || 1); scene.skinned.push(sk); if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); }
-  for (const a of ENT.animals) { if (!a.near) continue; const d = Math.hypot(a.x - CAM.x, a.z - CAM.z); if (d > 65 || d < 0.9) continue; const sk = a.sk || (a.sk = { mesh: a.mesh, bones: a.rig.bones, bs: [0, 0, 0, 1.6] }); sk.outline = d < 30; sk.bs[0] = a.x; sk.bs[1] = a.y + 0.7; sk.bs[2] = a.z; scene.skinned.push(sk); }
+  /* v18.33 phones: people are drawn out to 62 m (not 85), the ink outline only within 24 m, and in a big crowd the ones past 40 m are left out */
+  let crowd = 0; if (COARSE) for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (n.vis && n.near && Math.hypot(n.x - CAM.x, n.z - CAM.z) < 62) crowd++; }
+  const ND = COARSE ? (crowd > 55 ? 40 : 62) : 85, OD = COARSE ? 24 : 40;
+  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || !n.near) continue; const d = Math.hypot(n.x - CAM.x, n.z - CAM.z); if ((d > ND && !n.follow && !(Game.curTarget && Game.curTarget.npc === id)) || (d < 1.0 && Game.mode === 'play')) continue; const sk = n.sk || (n.sk = { bones: n.rig.bones, bs: [0, 0, 0, 1.8] }); sk.mesh = npcMesh(n, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : 1)); sk.outline = d < OD && !n.d.emis; sk.emis = n.d.emis; sk.tint = n.tint || n.d.tint; sk.bs[0] = n.x; sk.bs[1] = n.y + 1; sk.bs[2] = n.z; sk.bs[3] = 1.8 * (n.scale || 1); scene.skinned.push(sk); if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); }
+  for (const a of ENT.animals) { if (!a.near) continue; const d = Math.hypot(a.x - CAM.x, a.z - CAM.z); if (d > (COARSE ? 50 : 65) || d < 0.9) continue; const sk = a.sk || (a.sk = { mesh: a.mesh, bones: a.rig.bones, bs: [0, 0, 0, 1.6] }); sk.outline = d < (COARSE ? 20 : 30); sk.bs[0] = a.x; sk.bs[1] = a.y + 0.7; sk.bs[2] = a.z; scene.skinned.push(sk); }
   if (EP.skinned) EP.skinned(scene.skinned, S, Game, tAll);
   if (G.Ride) G.Ride.skinned(scene.skinned, tAll); if (G.NpcAI) G.NpcAI.skinned(scene.skinned, tAll);
   // grass

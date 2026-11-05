@@ -339,7 +339,7 @@ G.EP.joseph = {
   spec: { size: SIZE, cell: 2, seed: 37, height, color, water: { level: -0.35, shallow: [0.36, 0.62, 0.56], deep: [0.14, 0.32, 0.36] } },
   build, npcs, pens, fields, sites, specials, shops, stations, spots: SPOTS, steps, talk, chatter, envx: ENVX, quests: QUESTS,
   outfits: Object.assign({ default: LOOK.josephCoat }, ...['josephCoat', 'josephPlain', 'josephSlave', 'josephServant', 'josephSteward', 'josephFled', 'josephPrisoner', 'josephFettered', 'josephShaved', 'josephVizier'].map(k => ({ [k]: LOOK[k] })), { prisoner: LOOK.josephPrisoner }, WARD_LOOKS),
-  start: { step: 'p_wake', x: SPOTS.bedHeb[0], z: SPOTS.bedHeb[1], face: -2.07, time: 6.4, silver: 0, inv: {}, tools: {}, outfit: 'josephCoat' },
+  start: { step: 'p_wake', x: 183.06, z: 157.25, face: -2.07, /* v18.32 up and standing just inside the tent's open front (room for the camera behind him) */ time: 6.4, silver: 0, inv: {}, tools: {}, outfit: 'josephCoat' },
   recipes: ['bread', 'bbread', 'linen', 'brick', 'grain', 'grainW', 'hay', 'torch'],
   showStaff: false, rain: 0.02, sleepFrom: 17, titleCam: { x: 176, z: 152, r: 32, h: 9, ty: 1.5 }, titleTime: 17.6, titleMusic: 'j_theme', timeScale: 1,
   openWardrobe, wardOk: S => !before(S, 'c5_patrol'),

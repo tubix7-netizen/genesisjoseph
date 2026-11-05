@@ -35,12 +35,26 @@ const FOLK = [
 for (const f of FOLK) if (f.look) AI.addFolk(EP, V, f);
 (EP.places = EP.places || []).push({ n: '피라미드 일꾼 마을', x: CX, z: CZ, k: 'town', when: S2 => after('c2_arrive') });
 if (G.VillageTalk) G.VillageTalk.any.push(['돌 하나가 소 열 마리 무게래요.', '그래도 다 같이 끌면 움직여요!'], ['피라미드는 옛 왕들의 무덤이래요.', '수백 년 전에 지었다지요.']);
+const TENTS = [[CX - 2, CZ + 20, 0.3], [CX + 5, CZ + 21.5, -0.2], [CX - 9, CZ + 19, 0.6]];
+const inTent = (p) => { for (const [x, z, ry] of TENTS) { const dx = p.x - x, dz = p.z - z, lx = dx * Math.cos(ry) - dz * Math.sin(ry), lz = dx * Math.sin(ry) + dz * Math.cos(ry); if (Math.abs(lx) < 2.6 && lz > -1.6 && lz < 2.0) return [x, z, ry, lx, lz]; } return null; };
+G.Egypt2 = { inTent: () => inTent(Game.P) };
+Game.CTX.push(function (s) { const p = Game.P; if (!after('c2_arrive') || p.ride || p.swim || p.act || Game.cineOn || (s.q && s.q.riding)) return null; const t = inTent(p); if (!t) return null;
+  const [x, z, ry] = t, h = s.time % 24, night = h >= 20.5 || h < 5.5, out = [], mx = x - Math.sin(ry) * 0.0, mz = z;
+  if (night && G.UI.sleepAsk) out.push({ d: 0.2, label: '일꾼 천막에서 잠자기', x: mx, z: mz, y: 0.6, key: 'pyTentSleep', noMagnet: true, use: () => G.UI.sleepAsk() });
+  const rest = s.flags.pyTent || -99, abs = s.day * 24 + h;
+  out.push(abs - rest < 3 ? { d: 0.5, label: '천막 그늘 · 방금 쉬었어요', disabled: true, x: mx, z: mz, y: 0.6, key: 'pyTent' } : { d: 0.5, label: '천막 그늘에서 쉬기', x: mx, z: mz, y: 0.6, key: 'pyTent', noMagnet: true, use: () => G.UI.fade(() => { s.flags.pyTent = abs + 1; s.time += 1; const H = s.hero; p.stam = (G.Vitals && G.Vitals.cap) || (H && H.stamMax) || 140; p.exhausted = false; if (G.Climate) { G.Climate.hot = 0; G.Climate.wet = Math.max(0, (G.Climate.wet || 0) - 0.3); } if (H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 6); },
+    () => { const first = !s.flags.pyTentSeen; s.flags.pyTentSeen = 1; G.UI.toast(first ? '철 따라 온 일꾼들의 천막 · 나일 강이 넘쳐 밭이 잠기는 넉 달 동안, 농부들이 피라미드 일을 하러 와서 이렇게 지내요' : '염소털 그늘 아래 한숨 돌렸어요 · 기력이 다 차고 더위가 가셨어요'); }) });
+  return out; });
 // ------------------------------------------------------------------ the buildings and the quarry
-const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); try { const E = Object.assign({}, G.env || {}, EP.envx || {}), put = (fn, x, z, o) => E[fn] && W.place(E[fn], x, z, o || {});
+const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); try { const E = Object.assign({}, G.env || {}, EP.envx || {}), put = (fn, x, z, o) => E[fn] && W.place(E[fn], x, z, Object.assign({ kind: fn }, o || {})); /* v18.34 kind: ovens, querns and jars are solid like everywhere else (you walked through them) */
   homes.forEach(([x, z, , ry]) => W.place('egHouse', x, z, { ry, args: [{ w: 4.6, d: 3.8, h: 3.4 }], col: { w: 4.6, d: 3.8, h: 3.9, a: ry, cam: true } }));
   put('well', CX, CZ, { col: { r: 1.7, h: 1 } });
   for (const [fn, x, z, ry] of [['oven', CX + 5.5, CZ - 7.5, 0], ['oven', CX + 7.6, CZ - 6.2, 0.6], ['quern', CX + 4.2, CZ - 4.8, 0], ['jars', CX - 3.6, CZ + 4.4, 0.3], ['baskets', CX + 3.4, CZ + 4.2, 0], ['bales', CX - 6.4, CZ - 3, 0.4]]) put(fn, x, z, { ry });
-  for (const [x, z, ry] of [[CX - 2, CZ + 20, 0.3], [CX + 5, CZ + 21.5, -0.2], [CX - 9, CZ + 19, 0.6]]) put('tent', x, z, { ry }); // seasonal workers (the flood months, when the fields are under water)
+  /* seasonal workers' tents (the flood months, when the fields are under water). v18.34: you can walk in under the roof (back and sides
+     are walls, the front is open), the rain and the sun stay out, and inside you may rest on the mat, drink, or sleep at night */
+  for (const [x, z, ry] of TENTS) { put('tent', x, z, { ry, col: null }); const ca = Math.cos(ry), sa = Math.sin(ry), at = (lx, lz) => [x + ca * lx + sa * lz, z - sa * lx + ca * lz];
+    for (const [lx, lz, w, d] of [[0, -1.72, 5.7, 0.3], [2.78, 0, 0.3, 3.5], [-2.78, 0, 0.3, 3.5]]) { const [cx, cz] = at(lx, lz); W.addCol({ x: cx, z: cz, w, d, a: ry, h: 2.6, cam: true }); }
+    if (W.addRoof) W.addRoof({ x, z, w: 5.6, d: 3.6, a: ry, y: W.heightAt(x, z) + 2.35, k: 'tent' }); }
   // quarry: dressed blocks, a sledge with a block, a chiselled rock face
   W.place((g, M) => { for (let i = 0; i < 9; i++) { const x = (i % 3) * 1.35, z = Math.floor(i / 3) * 1.25; g.box(1.2, 0.9, 1.1, { m: M, at: [x, 0.45, z], c: 0xd8c49a, j: 0.04 }); if (i < 4) g.box(1.2, 0.9, 1.1, { m: M, at: [0.6 + (i % 2) * 1.35, 1.35, 0.6 + Math.floor(i / 2) * 1.25], c: 0xd0bc90, j: 0.04 }); } }, QX + 4, QZ + 2, { ry: 0.2, col: { w: 4.4, d: 4, h: 2 } });
   W.place((g, M) => { for (const s of [-1, 1]) g.box(0.16, 0.18, 3.2, { m: M, at: [s * 0.6, 0.09, 0], c: 0x7a5a3a }); for (let i = 0; i < 4; i++) g.box(1.4, 0.08, 0.16, { m: M, at: [0, 0.2, -1.2 + i * 0.8], c: 0x6a4a30 }); g.box(1.2, 1.0, 1.6, { m: M, at: [0, 0.74, 0], c: 0xd8c49a }); g.cyl(0.03, 0.03, 4.2, 4, { m: M, at: [0.35, 0.3, 3.4], rx: Math.PI / 2 - 0.08, c: 0xc8a878 }); g.cyl(0.03, 0.03, 4.2, 4, { m: M, at: [-0.35, 0.3, 3.4], rx: Math.PI / 2 - 0.08, c: 0xc8a878 }); }, QX - 3, QZ + 6, { ry: 0.6, col: { w: 1.6, d: 3.4, h: 1.4 } });

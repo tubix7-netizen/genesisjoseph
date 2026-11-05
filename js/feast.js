@@ -62,7 +62,7 @@ const ate = () => { const s = S(); return (s.flags.feastAte || -1) === s.day; };
 Game.CTX.push(function (s) { const p = P(); if (Game.cineOn || p.act || (s.q && s.q.riding)) return null; const f = today(s); if (!f) return null; const v = (EP.villages || []).find(x => x.id === f.v); if (!v || !isOn(s, v)) return null;
   const [cx, cz] = spotOf(v), d = Math.hypot(p.x - cx, p.z - cz); if (d > 4.2) return null; const out = [];
   if (!ate() && d < 2.6) out.push({ d: d - 0.6, label: '잔치 음식 먹기', x: cx, z: cz, y: 1.1, key: 'feastEat', use: () => eat(s, v, f) });
-  else out.push({ d: d - 0.3, label: '함께 춤추기', x: cx, z: cz, y: 1.1, key: 'feastDance', noTag: true, use: () => { if (G.Acts) G.Acts.play('dance'); sfx('blip', { pitch: 1.2 }); } });
+  else out.push({ d: d - 0.3, label: '함께 춤추기', x: cx, z: cz, y: 1.1, key: 'feastDance', noTag: true, use: () => danceGame(s, v, f) });
   return out; });
 function eat(s, v, f) { s.flags.feastAte = s.day; const H = s.hero, p = P(); if (H) { H.hp = Math.min(H.hpMax || 100, (H.hp || 0) + 30); H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 15); } p.stam = Math.max(p.stam, (G.Vitals && G.Vitals.cap) || 100);
   if (G.Surv && G.Surv.eat) try { G.Surv.eat(40); } catch (e) { }
@@ -70,6 +70,30 @@ function eat(s, v, f) { s.flags.feastAte = s.day; const H = s.hero, p = P(); if 
   if (G.Acts) G.Acts.play('eat'); sfx('pickup', { pitch: 1.1 }); const R = REASON[f.why];
   pop('잔치 음식을 함께 먹었어요', `${R.n} · 체력·기력·정신력이 찼어요 · ${v.n} 사람들과 조금 더 친해졌어요`, 'heart');
   if (f.why === 'wedding') s.flags.wedDone = s.day; }
+// ------------------------------------------------------------------ v18.32 the dance: tap with the drum
+/* a ring closes on the circle with each drum beat; tap the screen (or A) when it meets the circle. 12 beats; the better the steps,
+   the louder the village cheers (and the closer they feel to Joseph — once per feast) */
+let DG = null;
+{ const css = document.createElement('style'); css.textContent = `#danceUI{position:fixed;inset:0;z-index:240;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:22vh;pointer-events:auto;touch-action:none}
+#danceUI .dz{position:relative;width:120px;height:120px}#danceUI .dc{position:absolute;inset:30px;border-radius:50%;border:4px solid #ffd24a;box-shadow:0 0 14px rgba(255,210,74,.6);background:rgba(20,14,6,.35)}
+#danceUI .dr{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;border:3px solid #fff4d0;opacity:.9}
+#danceUI .dt{margin-top:10px;font:700 18px/1.2 var(--serif,serif);color:#ffe9a8;text-shadow:0 2px 6px #000;min-height:24px}#danceUI .ds{font-size:12px;color:#f4e8cc;opacity:.85;text-shadow:0 1px 4px #000}`; document.head.appendChild(css); }
+function danceGame(s, v, f) { if (DG) return; const el = document.createElement('div'); el.id = 'danceUI'; el.innerHTML = '<div class="dz"><div class="dc"></div><div class="dr"></div></div><div class="dt">북소리에 맞춰 화면을 톡!</div><div class="ds">0 / 12</div>'; document.body.appendChild(el);
+  if (G.Acts) G.Acts.play('dance'); G.UI.setBusy && G.UI.setBusy('dance', true);
+  DG = { el, v, f, beat: 0, t: -1.2, per: 0.75, hits: 0, perfect: 0, judged: -1, done: false };
+  const hit = e => { if (e) { e.preventDefault(); e.stopPropagation(); } const g = DG; if (!g || g.done || g.judged === g.beat) return; const ph = g.t - g.beat * g.per, err = Math.abs(ph); g.judged = g.beat;
+    const txt = el.querySelector('.dt'); if (err < 0.09) { g.hits++; g.perfect++; txt.textContent = '완벽해요!'; sfx('hit', { pitch: 1.6, vol: 0.5 }); } else if (err < 0.2) { g.hits++; txt.textContent = '좋아요!'; sfx('blip', { pitch: 1.3 }); } else { txt.textContent = '앗, 박자가…'; sfx('fail', { vol: 0.3 }); } };
+  el.addEventListener('pointerdown', hit); DG.hit = hit; }
+Fe.danceTap = () => DG && DG.hit && DG.hit();
+function danceTick(dt) { const g = DG; if (!g) return; g.t += dt; const per = g.per, el = g.el, ring = el.querySelector('.dr');
+  if (g.t >= 0) { const b = Math.round(g.t / per); if (b !== g.beat && g.t > g.beat * per + per * 0.5) { if (g.judged !== g.beat && g.beat >= 0 && g.beat < 12 && g.t > 0.3) el.querySelector('.dt').textContent = '…'; g.beat = Math.min(12, b); if (g.beat < 12) sfx('step', { surf: 'wood', vol: 0.9, pitch: 0.55 }); } }
+  const ph = ((g.t % per) + per) % per, k = 1 - ph / per, sc = 0.9 + k * 1.6; ring.style.transform = `scale(${sc})`; ring.style.opacity = g.t < 0 ? 0.3 : 0.95;
+  el.querySelector('.ds').textContent = `${g.hits} / 12`;
+  if (g.t > 12 * per + 0.4 && !g.done) { g.done = true; const s = S(), good = g.hits >= 8, first = (s.flags.danceDay || -1) !== s.day;
+    el.querySelector('.dt').textContent = good ? (g.perfect >= 8 ? '온 마을이 환호해요!' : '잘 췄어요!') : '다음엔 더 잘할 수 있어요!';
+    if (good && first) { s.flags.danceDay = s.day; if (G.Bond) for (const fo of g.v.folk) if (Game.ENT.npcs[fo.id]) G.Bond.add(fo.id, g.perfect >= 8 ? 3 : 2, 'dance'); const H = s.hero; if (H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 12); }
+    for (const fo of g.v.folk.slice(0, 8)) { const n = Game.ENT.npcs[fo.id]; if (n && n.vis && !n.walk) n.emote = { k: good ? 'cheer' : 'clap', t: 0, dur: 2.2, amb: true }; }
+    setTimeout(() => { el.remove(); DG = null; G.UI.setBusy && G.UI.setBusy('dance', false); if (G.Acts) G.Acts.stop(); pop(good ? '함께 춤을 췄어요!' : '함께 춤을 췄어요', good && first ? `${g.hits}/12 박자 · 정신력 +12 · 마을 사람들과 더 친해졌어요` : `${g.hits}/12 박자`, 'heart'); }, 1500); } }
 // ------------------------------------------------------------------ decorations: tables, food, braziers and cloth on posts
 let mesh = null, flame = null; const M0 = G.m4(), MF = [G.m4(), G.m4(), G.m4(), G.m4()];
 function build() { const g = new G.GB(91), W = 0x8a6a48, CL = [0xc83a2a, 0x2c5a9a, 0xe8c048, 0x3a8a4a];
@@ -88,7 +112,7 @@ const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, ar
     const fl = 1 + Math.sin(performance.now() / 90) * 0.12; [[-5, -4], [5, -4], [-5, 4], [5, 4]].forEach(([x, z], i) => { G.m4trs(MF[i], cx + x, y + 2.78, cz + z, 0, 0, 0, fl, fl * (1 + i * 0.03), fl); list.push({ mesh: flame, m: MF[i], emis: [1.4, 0.7, 0.2] }); }); } catch (e) { console.error('feast dyn', e); } };
 // tables are solid while laid out (Joseph walks round them)
 const up0 = EP.update; let tT = 0, chk = 0; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s) return r; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
-  try { if ((chk -= d) <= 0) { chk = 3; notice(s); } const f = today(s); const v = f && (EP.villages || []).find(x => x.id === f.v);
+  try { danceTick(d); if ((chk -= d) <= 0) { chk = 3; notice(s); } const f = today(s); const v = f && (EP.villages || []).find(x => x.id === f.v);
     if (v && isOn(s, v)) { const [cx, cz] = spotOf(v), p = P(), dx = p.x - cx, dz = p.z - cz;
       for (const sx of [-1, 1]) { const lx = dx - sx * 1.6, r = 0.35; if (Math.abs(lx) < 1.5 + r && Math.abs(dz) < 0.45 + r) { const px = 1.5 + r - Math.abs(lx), pz = 0.45 + r - Math.abs(dz); if (px < pz) p.x += Math.sign(lx || 1) * px; else p.z += Math.sign(dz || 1) * pz; } }
       if (Math.hypot(dx, dz) < 30 && (tT -= d) <= 0) { tT = 4 + Math.random() * 4; const ids = v.folk.map(fo => Game.ENT.npcs[fo.id]).filter(n => n && n.vis && !n.walk && !n.talking && !n._chat && Math.hypot(n.x - cx, n.z - cz) < 8);

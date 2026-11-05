@@ -90,6 +90,10 @@ function famHome(v, i) { if (v.mine || !ownerOf(v, i)) return null; const k = ho
 function ownerNear(v, i, d) { if (v.mine) return { home: true, me: true }; const f0 = ownerNearReal(v, i, d); if (f0) return f0; const fm = famHome(v, i); return fm ? { home: true, fam: fm } : null; }
 function ownerNearReal(v, i, d) { const ow = ownerOf(v, i), n = ow && Game.ENT.npcs[ow.id]; if (!n || !n.vis && !n.schedHidden) return null; const hm = v.homes[i];
   if (n.schedHidden && Math.hypot(n.x - hm[0], n.z - hm[1]) < 3) return { n, home: true }; if (n.vis && !n.schedHidden && Math.hypot(n.x - d.x, n.z - d.z) < 9) return { n, home: false }; return null; }
+/* v18.34 at night (9 pm – 6 am) nobody opens the door to a visitor, not even for the vizier: you may knock, but you stay outside */
+const isNightH = () => { const h = S().time % 24; return h >= 21 || h < 6; };
+Ho.night = isNightH;
+function knockNight(who) { sfx('thud', { vol: 0.45, pitch: 1.4 }); setTimeout(() => sfx('thud', { vol: 0.45, pitch: 1.5 }), 200); setTimeout(() => pop('밤이 깊었어요', `${who === '빈집' ? '' : who + ' 식구들이 잠들었어요 · '}남의 집엔 날이 밝으면 찾아가요`, 'house'), 450); }
 function knock() { sfx('thud', { vol: 0.6, pitch: 1.4 }); setTimeout(() => sfx('thud', { vol: 0.6, pitch: 1.5 }), 180); setTimeout(() => pop('아무도 없어요', '주인이 없을 땐 들어가지 않아요', 'house'), 450); }
 function nearDoor() { const s = S(), p = P(); let best = null, bd = 1e9; for (const v of allV()) { if (v.when && !v.when(s)) continue; if (Math.hypot(v.x - p.x, v.z - p.z) > v.r + 12) continue;
     v.homes.forEach((hm, i) => { const d = doorOf(v, i); if (!d) return; const dd = Math.hypot(d.fx - p.x, d.fz - p.z); if (dd < bd) { bd = dd; best = [v, i, d]; } }); }
@@ -97,6 +101,7 @@ function nearDoor() { const s = S(), p = P(); let best = null, bd = 1e9; for (co
 Ho.door = (v, i) => doorOf(v, i); // (for checking)
 Ho.setDoor = (k, d) => { DOORS[k] = d; }; /* v18.24 city.js knows the exact painted door of the houses it registers */
 Ho.enter = function (v, i) { const s = S(), p = P(), t = typeOf(v, i), ow = ownerOf(v, i), d = doorOf(v, i);
+  if (!v.mine && isNightH()) { knockNight(whoOf(v, i)); return; }
   if (d && !ownerNear(v, i, d)) { knock(); return; }
   G.UI.fade(() => { s.flags.inHouse = { v: v.id, i, t, x: d ? d.fx : p.x, z: d ? d.fz : p.z, f: d ? d.a : p.face + Math.PI, ow: ow ? ow.name : null, age: ow ? ow.age : null, L: Ho.layoutOf ? Ho.layoutOf(v, i) : 'plain' };
     Game.teleport(IX, IZ - RD / 2 + 1.9, 0); p.y = IY; sfx('door', { vol: 0.5 }); }, () => {
@@ -107,7 +112,7 @@ Ho.enter = function (v, i) { const s = S(), p = P(), t = typeOf(v, i), ow = owne
     else if (ow) setTimeout(() => G.UI.say([{ n: ow.name, t: GREET[g][Math.floor(Math.random() * 2)].replace('{you}', '총리님') }], () => { }), 900); }); };
 const jo = w => { const c = w.charCodeAt(w.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '은' : '는'; };
 Ho.leave = function () { const h = cur(); if (!h) return; if (h.lockReq) { Ho.lockUp(); return; } // asked to lock up: the little scene plays on the way out
-  G.UI.fade(() => { S().flags.inHouse = null; Game.teleport(h.x, h.z, h.f); sfx('door', { vol: 0.5, pitch: 0.9 }); }, () => { }); };
+  G.UI.fade(() => { S().flags.inHouse = null; Game.teleport(h.x, h.z, h.f); if (Game.CAM) { Game.CAM.yaw = h.f + Math.PI; Game.CAM.cDist = undefined; } sfx('door', { vol: 0.5, pitch: 0.9 }); }, () => { }); };
 Ho.inside = () => !!cur();
 /* 문단속 — a little scene: Joseph steps out, pulls the door shut, slides the outer bar across (click), tests it once, and the
    family's thanks follow. The camera watches from the side of the doorway. */
@@ -133,6 +138,7 @@ Game.CTX.push(function (s) { const p = P(); if (p.ride || p.swim || p.act || p.c
   const h = cur();
   if (!h) { // outside: the nearest house door
     const nd = nearDoor(); if (!nd) return null; const [v, i, d, bd] = nd, who = whoOf(v, i);
+    if (!v.mine && isNightH()) return [{ d: bd - 0.6, label: `문 두드리기 · ${who} (밤)`, x: d.fx, z: d.fz, y: 1.3, noMagnet: true, use: () => knockNight(who), key: 'hDoor' }];
     if (!ownerNear(v, i, d)) return [{ d: bd - 0.6, label: `문 두드리기 · ${who}`, x: d.fx, z: d.fz, y: 1.3, noMagnet: true, use: knock, key: 'hDoor' }];
     return [{ d: bd - 0.6, label: `들어가기 · ${who}`, x: d.fx, z: d.fz, y: 1.3, use: () => Ho.enter(v, i), key: 'house', noMagnet: true }]; }
   // inside
@@ -156,9 +162,13 @@ const dyn0 = EP.dyn; EP.dyn = function (list) { if (dyn0) dyn0.apply(this, argum
   if (!h || Math.hypot(p.x - IX, p.z - IZ) > 40) return;
   G.m4trs(MX, IX, IY, IZ, 0, 0, 0, 1, 1, 1); list.push({ mesh: Ho.roomMesh ? Ho.roomMesh(h, room) : mk('hRoom', room), m: MX, outline: true }); if (Ho.decoMesh) { const dm = Ho.decoMesh(h); if (dm) list.push({ mesh: dm, m: MX, outline: true }); } list.push({ mesh: mk('hT_' + h.t, TYPE[h.t].model), m: MX, outline: true }); };
 /* inside: the camera looks down over the open-topped walls instead of hiding behind them */
-const cam0 = EP.camera; EP.camera = function (s, g, dt) { const h = cur(), p = P(); if (h && Math.hypot(p.x - IX, p.z - IZ) < 12 && !Game.cineCam) { const C = Game.CAM, yw = C.yaw || 0;
-    const cl = (v, c, h) => Math.max(c - h, Math.min(c + h, v)); /* v18.23 kept above the inside of the room, so the walls never hide Joseph */
-    return { x: cl(p.x + Math.sin(yw) * 2.6, IX, RW / 2 - 0.5), y: IY + 6.6, z: cl(p.z + Math.cos(yw) * 2.6, IZ, RD / 2 - 0.5), lx: p.x, ly: IY + 0.9, lz: p.z, fov: 1 }; } return cam0 ? cam0.apply(this, arguments) : null; };
+/* v18.34 inside: one steady view from just inside the doorway, up near the top of the wall, looking into the room (it used to follow the outside camera's angle and,
+   clamped to the room, swung round to the far side as Joseph neared the door). Forward on the stick = into the room. */
+const cam0 = EP.camera; EP.camera = function (s, g, dt) { const h = cur(), p = P(); if (h && Math.hypot(p.x - IX, p.z - IZ) < 12 && !Game.cineCam) {
+    const k = 1 - Math.exp(-(dt || 1 / 60) * 6), C = Game.CAM, wx = IX + (p.x - IX) * 0.55, wz = IZ - RD / 2 + 0.3 + Math.max(0, p.z - (IZ - RD / 2 + 2.6)) * 0.3;
+    const RC = Ho._rc || (Ho._rc = { x: wx, z: wz, lx: p.x, lz: p.z }); if (Ho._rcT !== h) { Ho._rcT = h; Object.assign(RC, { x: wx, z: wz, lx: p.x, lz: p.z }); }
+    RC.x += (wx - RC.x) * k; RC.z += (wz - RC.z) * k; RC.lx += (p.x - RC.lx) * k * 1.4; RC.lz += (p.z - RC.lz) * k * 1.4;
+    return { x: RC.x, y: IY + 4.7, z: RC.z, lx: RC.lx, ly: IY + 0.9, lz: RC.lz + 0.9, fov: 1.05, yaw: Math.atan2(RC.x - RC.lx, RC.z - (RC.lz + 0.9)) }; } /* v18.34 yaw = the real view direction, so up on the stick is up on the screen */ return cam0 ? cam0.apply(this, arguments) : null; };
 // a safety net: inside the room but no house remembered (an old save) → the door still works; far from the room → you are outside
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s) return r;
   if (s.flags.inHouse && Math.hypot(P().x - IX, P().z - IZ) > 30) s.flags.inHouse = null;
@@ -168,6 +178,10 @@ const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(thi
    the attack button reads 「문단속」 and plays a short scene (Ho.lockUp); leaving the plain way still reminds you to lock it. */
 let ownT = 0;
 function ownerWatch(s) { const h = cur(), p = P();
+  if (h && h.t !== 'mine' && !h.nightOut && isNightH() && !G.UI.busy() && !Game.cineOn) { h.nightOut = 1;
+    if (h.lockReq) { G.UI.say([{ n: '', t: '(어느새 밤이 깊었다. 식구들이 돌아오기 전에 문단속을 하고 나가야지.)' }], () => setTimeout(() => Ho.lockUp(), 60)); return; } /* v18.34 the owner is out: no one to say good night */
+    const v = allV().find(q => q.id === h.v), d = v && doorOf(v, h.i), real = v && d && ownerNearReal(v, h.i, d), nm = real ? h.ow : h.ow ? h.ow.split(' ').pop() + '네 식구' : '집주인';
+    G.UI.say([{ n: nm, t: '어느새 밤이 깊었네요, 총리님. 저희도 이제 잠자리에 들어야겠어요.' }, { n: nm, t: '오늘 와 주셔서 고마웠어요. 조심히 들어가세요!' }], () => { h.lockReq = 0; Ho.leave(); }); return; }
   if (h && h.ow && !h.asked) { const v = allV().find(q => q.id === h.v), d = v && doorOf(v, h.i); if (!v || !d) return;
     if (ownerNear(v, h.i, d)) return; if (G.UI.busy() || Game.cineOn) return; h.asked = 1; h.lockReq = 1;
     G.UI.say([{ n: h.ow, t: '총리님, 저는 잠깐 일 보러 나가 봐야 해요. 편히 계시다 가세요!' }, { n: h.ow, t: '나가실 때 문단속만 부탁드려요!' }],

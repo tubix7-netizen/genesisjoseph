@@ -362,7 +362,7 @@ let ctT = 6; const chatQ = { run: null };
 function villageChatter(dt, S) {
   const P = Game.P;
   if (chatQ.run) { const r = chatQ.run; r.t -= dt; if (r.t <= 0) { if (r.i >= r.lines.length) { chatQ.run = null; return; } const [w, txt] = r.lines[r.i]; const id = w === 0 ? r.a.id : r.b.id; const n = w === 0 ? r.a : r.b, o = w === 0 ? r.b : r.a;
-    G.Life.bubble(id, txt.replace('야곱', hero(S)), 3.4); if (!n.walk) n.face = Math.atan2(o.x - n.x, o.z - n.z); r.i++; r.t = 3.3; } return; }
+    const tx = txt.replace('야곱', hero(S)), rt = G.Life.readT ? G.Life.readT(tx) : 3.4; G.Life.bubble(id, tx, rt); if (!n.walk) n.face = Math.atan2(o.x - n.x, o.z - n.z); r.i++; r.t = rt * 0.9 + 0.3; } return; }
   ctT -= dt; if (ctT > 0) return; ctT = 8 + Math.random() * 9; if (G.UI.busy() || Game.cineOn) return; if (G.Street && G.Street.on()) return; /* v18.25 the street scenes (street.js) speak for the villagers now */
   const list = Object.values(Game.ENT.npcs).filter(n => n.vis && n.near && n.d.folk && !n.talking && !n.walk && !n.schedHidden && Math.hypot(n.x - P.x, n.z - P.z) < 24);
   const pairs = []; for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) if (Math.hypot(list[i].x - list[j].x, list[i].z - list[j].z) < 5) pairs.push([list[i], list[j]]);
@@ -391,7 +391,7 @@ function approach(dt, S) {
   if (!pool.length) return; const n = rnd(pool); ap.cool[n.id] = now + 5 + Math.random() * 5;
   const rm = remarks(S, n), fr = friend(n.id), f = n.d.folk; const kinds = [['hello', 3], ['news', 2], ['gift', fr >= 3 ? 2 : 0.6], ['req', Object.keys(dq(S)).length < 2 ? 1.6 : 0], ['remark', rm.length ? 2.6 : 0], ['kid', f.age === 'kid' ? 4 : 0]];
   let tot = 0; for (const k of kinds) tot += k[1]; let r = Math.random() * tot, kind = 'hello'; for (const k of kinds) { r -= k[1]; if (r <= 0) { kind = k[0]; break; } }
-  ap.cur = { id: n.id, kind, t: 18, rt: 0 }; n.sit = false; n.act = null; n.wander = null; G.Life.bubble(n.id, f.age === 'kid' ? rnd(['형아!', '아저씨!', '야곱 아저씨!']) : rnd([`${hero(S)}!`, `여보게, ${hero(S)}!`, '잠깐만요!']), 2.4); sfx('blip', { vol: 0.6, pitch: 1.3 });
+  ap.cur = { id: n.id, kind, t: 18, rt: 0 }; n.sit = false; n.act = null; n.wander = null; G.Life.bubble(n.id, f.age === 'kid' ? rnd(['형아!', '아저씨!', `${hero(S).split(' ')[0]} 아저씨!`]) : rnd([`${hero(S)}!`, `여보게, ${hero(S)}!`, '잠깐만요!']), 2.4); sfx('blip', { vol: 0.6, pitch: 1.3 });
 }
 function visit(n, kind, S) {
   const f = n.d.folk, fin = () => { endTalk(n)(); n.schedSlot = -1; }, nm = hero(S);
@@ -404,7 +404,7 @@ function visit(n, kind, S) {
     if (rm[0] === 'ride' && Game.feat('ride2')) lines.push({ n: n.name, t: '아이들이 태워 달라고 조를 거요. 하하!' });
     say(lines, fin); return; }
   if (kind === 'kid') { const P = Game.P; const lines = P.ride && Game.feat('ride2') ? [{ n: n.name, t: '나귀 태워 주세요! 딱 한 번만요, 네?' }, { n: '', t: '(가까이 가서 「태우기」를 누르면 뒤에 태울 수 있어요)' }]
-      : [{ n: n.name, t: rnd(['같이 놀아요! 내가 술래 할게요!', '이거 봐요! 예쁜 돌 주웠어요!', '아저씨는 어디서 왔어요? 하란? 거기 멀어요?', '우리 엄마가 아저씨 착한 사람이래요!']) }];
+      : [{ n: n.name, t: rnd(['같이 놀아요! 내가 술래 할게요!', '이거 봐요! 예쁜 돌 주웠어요!', '아저씨는 어디서 왔어요? 가나안? 거기 멀어요?', '우리 엄마가 아저씨 착한 사람이래요!']) }];
     if (Game.have('flower') || Game.have('fig') || Game.have('honey')) lines.push({ n: nm, t: '(무언가 줄까?)', choices: [{ t: '선물 주기', then: () => setTimeout(() => giftChoice(n, fin), 30) }, { t: '머리를 쓰다듬어 준다', reply: '착하지. 엄마 말씀 잘 들어라.', then: () => addFriend(n, 0.6, true) }] });
     say(lines, () => { if (!G.UI.busy()) fin(); }); return; }
   if (kind === 'news') { say([{ n: n.name, t: `${nm}, 그 소식 들었소?` }, { n: n.name, t: rumor(S, n) }], fin); return; }

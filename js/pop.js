@@ -7,7 +7,7 @@
 (function (G) {
 const UI = G.UI, Game = G.Game, sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const css = document.createElement('style'); css.textContent = `
-#popBox{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:240;pointer-events:none;display:flex;flex-direction:column;align-items:center}
+#popBox{position:fixed;left:50%;top:15%;transform:translateX(-50%);z-index:240;pointer-events:none;display:flex;flex-direction:column;align-items:center}
 .popC{display:flex;align-items:center;gap:12px;min-width:200px;max-width:min(86vw,360px);padding:12px 18px 12px 14px;border-radius:18px;color:#fff6dc;
   background:linear-gradient(135deg,rgba(60,40,12,.94),rgba(24,18,40,.94));border:1.5px solid #f0c860;box-shadow:0 0 0 3px rgba(240,200,96,.18),0 10px 30px rgba(0,0,0,.45),0 0 26px rgba(255,210,110,.45);
   animation:popIn .42s cubic-bezier(.2,1.6,.4,1) both;position:relative;overflow:hidden}

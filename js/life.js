@@ -10,15 +10,18 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 // =================================================================== SPEECH BUBBLES
 const bubbles = [];
-L.bubble = function (who, text, dur) {
+/* v18.34 time to read a line: about 7 Korean letters a second plus a moment to find the bubble (lines vanished before they could be read) */
+L.readT = text => Math.min(9, 2.0 + String(text || '').length * 0.14);
+L.bubble = function (who, text, dur) { dur = Math.max(dur || 0, L.readT(text));
   const el = document.createElement('div'); el.className = 'bub'; el.textContent = text; el.hidden = true; /* v18.21 shown only once placed over the speaker (it flashed in the top-left corner) */ $('bubbles').appendChild(el);
-  bubbles.push({ who, el, t: dur || Math.min(5.5, 2.2 + text.length * 0.07) });
+  for (const b of bubbles) if (b.who === who && b.t > 0.4) b.t = 0.4; /* one bubble per speaker: the old one makes way */
+  bubbles.push({ who, el, t: dur });
 };
 function drawBubbles(dt) {
   const R = G.R, UI = G.UI, placed = [], qe = bubbles.length ? $('questBox') : null, qb = qe && !qe.hidden && qe.offsetParent ? qe.getBoundingClientRect() : null;
   for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; b.t -= dt; const n = typeof b.who === 'string' ? Game.ENT.npcs[b.who] : b.who;
     if (b.t <= 0 || !n || (n.vis === false) || UI.busy()) { b.el.remove(); bubbles.splice(i, 1); continue; }
-    const s = R.project(n.x, n.y + 2.55 * (n.scale || 1), n.z, UI.W, UI.H); if (!s || Math.hypot(n.x - Game.P.x, n.z - Game.P.z) > 30) { b.el.hidden = true; continue; }
+    const s = R.project(n.x, n.y + (n.bubY || 2.55) * (n.scale || 1), n.z, UI.W, UI.H); /* (v18.34 bubY: a cat's bubble sits over the cat) */ if (!s || Math.hypot(n.x - Game.P.x, n.z - Game.P.z) > 30) { b.el.hidden = true; continue; }
     b.el.hidden = false; if (!b.w) { const r = b.el.getBoundingClientRect(); if (r.width) { b.w = r.width; b.h = r.height; } }
     /* v18.29 kept on screen, off the quest list, and stacked instead of piled on top of each other */
     let x = s[0], y = s[1]; const w = b.w || 120, h = b.h || 30; x = Math.max(w / 2 + 6, Math.min(UI.W - w / 2 - 6, x)); y = Math.max(h + 4, y);

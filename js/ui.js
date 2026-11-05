@@ -8,7 +8,7 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v; // v17.0 (new minigames)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let busyFlags = { dialog: false, narr: false, panel: false, mg: false, fade: false, rot: false };
 UI.busy = () => { for (const k in busyFlags) if (busyFlags[k]) return true; return false; };
-UI.setBusy = (k, v) => { busyFlags[k] = !!v; };
+UI.setBusy = (k, v) => { busyFlags[k] = !!v; }; UI._bf = busyFlags; /* (for testing) */
 UI.lastTalk = 0;
 UI.modal = UI.busy;
 UI.overlayOn = () => busyFlags.panel || busyFlags.narr; // v18.11 a menu / narration card covers the world (phones draw it at 15 fps meanwhile)
@@ -144,7 +144,7 @@ const btnA = $('btnA');
 btnA.addEventListener('pointerdown', e => { e.preventDefault(); Game.INPUT.actHeld = true; if (mgHold) { mgHold(true); return; } Game.pressAction(); });
 const relA = () => { Game.INPUT.actHeld = false; if (mgHold) mgHold(false); };
 btnA.addEventListener('pointerup', relA); btnA.addEventListener('pointercancel', relA); btnA.addEventListener('pointerleave', relA);
-$('btnJump').addEventListener('pointerdown', e => { e.preventDefault(); if (G.Combat && G.Combat.inCombat && G.Combat.dodge()) return; Game.jump(); });
+$('btnJump').addEventListener('pointerdown', e => { e.preventDefault(); const C = G.Combat; if (C && C.inCombat) { if (!C.dodge()) { if (Game.P.atk) Game.P.dodgeQ = 1; else if (!Game.P.ride && !Game.P.climb) G.UI.toast('기력이 모자라요 · 구르기'); } return; } Game.jump(); }); /* v18.34 「구르기」 is never a hop: during a swing it waits for the swing to end */
 for (const t of ['pointerup', 'pointercancel', 'pointerleave']) $('btnJump').addEventListener(t, () => Game.jumpRelease()); // hold for a full jump, tap for a hop
 $('btnAtk').addEventListener('pointerdown', e => { e.preventDefault(); G.Combat && G.Combat.attack(); });
 $('wpnBtn').onclick = () => G.Combat && G.Combat.toggleMode();
@@ -163,7 +163,7 @@ addEventListener('keydown', e => {
   Game.INPUT.keys[e.code] = true;
   if (Game.mode !== 'play') return;
   if (e.code === 'KeyE' || e.code === 'Enter') { e.preventDefault(); if (!e.repeat) { Game.INPUT.actHeld = true; if (mgHold) mgHold(true); else Game.pressAction(); } }
-  else if (e.code === 'Space') { e.preventDefault(); if (busyFlags.narr) nextCard(); else if (busyFlags.dialog) UI.advance(); else if (!busyFlags.panel) Game.jump(); }
+  else if (e.code === 'Space') { e.preventDefault(); if (e.repeat) return; if (busyFlags.narr) nextCard(); else if (busyFlags.dialog) UI.advance(); else if (!busyFlags.panel) Game.jump(); }
   else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') Game.P.sprint = true;
   else if (e.code === 'Tab' || e.code === 'KeyI') { e.preventDefault(); if (busyFlags.panel) { if (!panelLock) UI.closePanel(); } else if (!UI.busy()) UI.menu('bag'); }
   else if (e.code === 'Escape') { if (busyFlags.panel) { if (!panelLock) UI.closePanel(); } else if (!UI.busy()) UI.menu('journal'); }
@@ -187,7 +187,7 @@ addEventListener('blur', () => { for (const k in Game.INPUT.keys) Game.INPUT.key
 { const stop = e => e.preventDefault();
   for (const n of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(n, stop, { passive: false });
   document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
-  let lastTap = 0; document.addEventListener('touchend', e => { const t = Date.now(); if (t - lastTap < 350) e.preventDefault(); lastTap = t; }, { passive: false });
+  let lastTap = 0; document.addEventListener('touchend', e => { const t = Date.now(); if (t - lastTap < 350 && !(e.target && e.target.closest && e.target.closest('button'))) e.preventDefault(); lastTap = t; /* v18.34 never swallow a button tap */ }, { passive: false });
   document.addEventListener('dblclick', stop, { passive: false });
   const vp = document.querySelector('meta[name=viewport]'); let fixing = false;
   const unzoom = () => { if (fixing || !window.visualViewport || visualViewport.scale <= 1.02 || !vp) return; fixing = true; const c = vp.content; vp.content = 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover'; scrollTo(0, 0); setTimeout(() => { vp.content = c; fixing = false; UI.resize(); }, 120); };
@@ -569,8 +569,8 @@ UI.hud = function () {
   const ck = ic + S.day + fmtTime(S.time); if ($('clock').dataset.k !== ck) { $('clock').dataset.k = ck; $('clock').innerHTML = icon(ic, ic === 'sun' ? '#f7d070' : ic === 'moon' ? '#cfd8f0' : ic === 'dust' ? '#e0b070' : '#d8e0ec') + `${UI.dayLabel(S.day)} · ${fmtTime(S.time)}`; $('clock').title = `${S.day}일째` + (G.Weather ? ' · ' + G.Weather.name(S) : ''); }
   if (G.Surv) { const sv = G.Surv.get(), gf = $('gFood'), gw = $('gWarm'); gf.hidden = !Game.feat('surv'); gw.hidden = !Game.feat('warm');
     if (!gf.hidden) { gf.querySelector('i').style.width = sv.food + '%'; gf.classList.toggle('low', sv.food < 28); }
-    if (!gw.hidden) { gw.querySelector('i').style.width = sv.warm + '%'; gw.classList.toggle('low', sv.warm < 35); gw.classList.toggle('hot', !!G.Surv.src && G.Surv.heat > G.Surv.cold); } }
-  const rb = $('rideBtn'); if (rb && G.Ride) { const P = Game.P, own = G.Ride.list.length > 0; rb.hidden = !own || !Game.feat('ride'); const lab = P.ride ? '내리기' : '부르기'; if (rb.dataset.l !== lab) { rb.dataset.l = lab; rb.innerHTML = icon('donkey', '#e8d8b8') + lab; } }
+    if (!gw.hidden) { gw.querySelector('i').style.width = sv.warm + '%'; gw.classList.toggle('low', sv.warm < 35); gw.classList.toggle('warmHot', !!G.Surv.src && G.Surv.heat > G.Surv.cold); /* v18.34 '.hot' is the hotbar's class: the gauge jumped down onto it */ } }
+  const rb = $('rideBtn'); if (rb && G.Ride) { const P = Game.P, own = G.Ride.list.length > 0; rb.hidden = !own || !Game.feat('ride') || !!(G.Caves && G.Caves.inside && G.Caves.inside()) || !!(G.Cave && G.Cave.inside && G.Cave.inside()); const lab = P.ride ? '내리기' : '부르기'; if (rb.dataset.l !== lab) { rb.dataset.l = lab; rb.innerHTML = icon('donkey', '#e8d8b8') + lab; } }
   $('silverPill').innerHTML = icon('coin', '#e8c870') + `은 ${S.silver}`;
   const seed = Game.curSeed();
   $('seedBtn').innerHTML = seed ? itemIcon(seed) + `${esc(Game.ITEMS[seed].n.replace(' 씨앗', ''))} ×${S.inv[seed]}` : icon('seed', '#8a8070') + '씨앗 없음';
@@ -712,9 +712,10 @@ UI.frame = function (dt) {
   hudT -= dt; if (hudT <= 0) { hudT = 0.5; UI.hud(); }
   // action button
   const c = Game.ctx(); const lab = busyFlags.dialog || busyFlags.narr ? '다음' : c ? c.label : '행동';
-  if ($('btnAL').textContent !== lab) $('btnAL').textContent = lab;
+  const labS = lab.split(' · ')[0].replace(/\s*\([^()]*\)/g, ''); /* v18.34 the round A button gets the verb; the whole line stays on the floating prompt */
+  if ($('btnAL').textContent !== labS) { $('btnAL').textContent = labS; btnA.classList.toggle('long', labS.length > 6); }
   btnA.classList.toggle('off', !c && !busyFlags.dialog); btnA.classList.toggle('on', !!c && !c.disabled && !UI.busy());
-  $('btnRun').classList.toggle('on', P.sprint); $('btnJump').hidden = P.swim;
+  $('btnRun').classList.toggle('on', P.sprint || !!(G.Cart && G.Cart.feeding && G.Cart.feeding())); $('btnJump').hidden = P.swim;
   const C = G.Combat, inC = C && C.inCombat; const jl = (G.Cart && G.Cart.jumpLabel && G.Cart.jumpLabel()) || (inC ? '구르기' : '점프'); /* v18.25 on the wagon: 짐칸 / 태우기 */ if ($('btnJump').textContent !== jl) $('btnJump').textContent = jl;
   if (C && C.fish) { const f = C.fish, l2 = f.st === 'bite' ? '챔질!' : f.st === 'reel' ? '당기기' : '거두기'; if ($('btnAL').textContent !== l2) $('btnAL').textContent = l2; btnA.classList.toggle('on', f.st === 'bite'); btnA.classList.remove('off'); }
   if (G.Cine && G.Cine.on) $('btnAL').textContent = '다음';

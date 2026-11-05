@@ -63,11 +63,11 @@ Game.CTX.push(function (S, G2) { const P = Game.P, W = Game.W(); if (!W || P.cli
 
 // ------------------------------------------------------------------ per frame while climbing (replaces walking)
 Cl.update = function (dt) {
-  const P = Game.P, k = P.climb, c = k.c, IN = Game.INPUT, W = Game.W(), V = G.Vitals; k.t += dt;
+  const P = Game.P, k = P.climb, c = k.c, IN = Game.INPUT, W = Game.W(), V = G.Vitals; k.t += dt; P.jumpBuf = Math.max(0, (P.jumpBuf || 0) - dt); /* v18.34 a jump pressed on the ladder does not fire later */
   if (Game.cineOn || P.downed) { Cl.release(P, 0); return; }
   if (k.mantle > 0) { // hauling over the top
     k.mantle += dt / 0.5; const e = clamp(k.mantle, 0, 1), ee = e * e * (3 - 2 * e); P.y = lerp(k.m0[1], k.m1[1], Math.min(1, ee * 1.6)); P.x = lerp(k.m0[0], k.m1[0], ee); P.z = lerp(k.m0[2], k.m1[2], ee);
-    if (k.mantle >= 1) { P.climb = null; P.grounded = true; P.vy = 0; P.climbCool = 0.4; P.onTop = true; } return; }
+    if (k.mantle >= 1) { P.climb = null; P.grounded = true; P.vy = 0; P.climbCool = 0.4; P.onTop = true; P.jumpBuf = 0; } return; }
   let up = -(IN.my + ((IN.keys.KeyS ? 1 : 0) - (IN.keys.KeyW ? 1 : 0))), side = IN.mx + ((IN.keys.KeyD ? 1 : 0) - (IN.keys.KeyA ? 1 : 0));
   if (Math.abs(up) < 0.2) up = 0; if (Math.abs(side) < 0.25 || k.ladder) side = 0; up = clamp(up, -1, 1); side = clamp(side, -1, 1);
   const tired = P.stam < 1, moving = up || side;

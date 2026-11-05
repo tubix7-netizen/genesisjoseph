@@ -31,14 +31,16 @@ const CRYD = [[4.8, 17.6], [-1.8, 13.2], [5.6, 12.4], [12.6, 33.2], [-16.8, 25.6
 const BRAZ = [[2.6, 2.6], [-2.5, 40.5], [-11.6, 21.6]];
 const KIIN = [-2, 47.4];
 // ------------------------------------------------------------------ building it (at world build)
-let STAGE = null; const COLS = [];
+let STAGE = null, CROOF = null; const COLS = [];
 function buildCave(W) { const g = new G.GB(141), C = o => { const c = W.addCol(Object.assign({ on: false, y0: CY - 1, y1: CY + 7, cam: true, stage: true }, o)); COLS.push(c); return c; };
   let sd = 77; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
   const ROCK = [0x4a3c30, 0x56463a, 0x3e3228, 0x5e4c3c, 0x463a30];
   const wallAt = (x, z, nx, nz) => { const tx = -nz, tz = nx, a = Math.atan2(-tz, tx), h = 4.6 + rn() * 2.2, px = x + nx * 0.7, pz = z + nz * 0.7;
     g.box(1.9 + rn() * 0.5, h, 1.5 + rn() * 0.4, { at: [CX + px, CY + h / 2 - 0.3, CZ + pz], ry: a + (rn() - 0.5) * 0.3, rz: (rn() - 0.5) * 0.12, c: ROCK[Math.floor(rn() * ROCK.length)], j: 0.12 });
     if (rn() < 0.5) g.box(1.0 + rn() * 0.6, 0.6 + rn() * 0.7, 0.9, { at: [CX + x + nx * 0.15, CY + 0.25, CZ + z + nz * 0.15], ry: a + rn(), c: ROCK[Math.floor(rn() * 5)], j: 0.15 });
-    C({ x: CX + px, z: CZ + pz, w: 1.9, d: 1.6, a }); };
+    let hw = 0.95; const cr = Math.cos(a), sr = Math.sin(a), inX = px - nx * 0.8, inZ = pz - nz * 0.8; /* v18.34 trimmed where it pokes into a passage (tunnel mouths) */
+    for (let k = 0; k < 6 && hw > 0.3; k++) { const ex = cr * hw, ez = -sr * hw; if (walk(inX + ex, inZ + ez, 0.2) || walk(inX - ex, inZ - ez, 0.2)) hw -= 0.13; else break; }
+    C({ x: CX + px, z: CZ + pz, w: hw * 2, d: 1.6, a }); };
   for (const k in CH) { const [cx, cz, r] = CH[k], n = Math.ceil(2 * Math.PI * r / 1.25);
     for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, nx = Math.cos(a), nz = Math.sin(a), x = cx + nx * r, z = cz + nz * r; if (walk(x - nx * 0.05 + nx * 0.6, z - nz * 0.05 + nz * 0.6, 0.15)) continue; wallAt(x, z, nx, nz); } }
   for (const [a, b, w] of TU) { const A = CH[a], B = CH[b], dx = B[0] - A[0], dz = B[1] - A[1], L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, n = Math.ceil(L / 1.25);
@@ -70,7 +72,9 @@ function buildCave(W) { const g = new G.GB(141), C = o => { const c = W.addCol(O
   C({ x: CX + F[0] - 6.3, z: CZ + F[1] + 3.5, w: 0.6, d: 3.4, a: -0.5 });
   T(2.6, 1.8, 0.08, F[0] + 1.2, 1.9, F[1] + 7.2, 0x1a2244); for (let i = 0; i < 24; i++) T(0.06, 0.06, 0.02, F[0] + 0.0 + (i * 37 % 23) / 10, 1.1 + (i * 17 % 15) / 10, F[1] + 7.14, 0xfff0b0, { j: 0 });
   T(3.6, 0.04, 2.6, F[0] - 0.4, 0.03, F[1] + 1.4, 0x8a3a2a, { j: 0 }); /* a woven mat */
-  const statics = [G.R.mesh(g)]; statics[0].outline = true; return { statics }; }
+  const statics = [G.R.mesh(g)]; statics[0].outline = true;
+  if (W.addRoof) { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const k in CH) { const [cx, cz, r] = CH[k]; x0 = Math.min(x0, cx - r); x1 = Math.max(x1, cx + r); z0 = Math.min(z0, cz - r); z1 = Math.max(z1, cz + r); } CROOF = W.addRoof({ x: CX + (x0 + x1) / 2, z: CZ + (z0 + z1) / 2, w: x1 - x0 + 2, d: z1 - z0 + 2, y: CY + 4.6, on: inCave(), k: 'cave' }); } /* v18.34 the camera stays under the ceiling */
+  return { statics }; }
 /* the mouth in the hillside (part of the real map) */
 function buildMouth(W) { const x0 = MOUTH.x - 4.6, z0 = MOUTH.z, y0 = W.heightAt(x0, z0), ROCK = [0x8a7258, 0x9a8264, 0x7a6450];
   W.place((g, M) => { let sd = 11; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
@@ -78,7 +82,7 @@ function buildMouth(W) { const x0 = MOUTH.x - 4.6, z0 = MOUTH.z, y0 = W.heightAt
     g.box(3.6, 2.2, 6.6, { m: M, at: [-1.6, 4.2, 0], c: ROCK[1], j: 0.1 }); g.box(1.2, 2.7, 2.6, { m: M, at: [0.2, 1.35, 0], c: 0x0a0806, j: 0 }); /* the dark opening */
     g.box(5, 5, 9, { m: M, at: [-3.4, 1.5, 0], c: ROCK[0], j: 0.1 }); }, x0, z0, { y: y0 - 0.3, col: null });
   W.addCol({ x: x0 - 1.8, z: z0, w: 6, d: 9.5, y0: y0 - 2, y1: y0 + 6, cam: true }); }
-const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); STAGE = null; COLS.length = 0; try { buildMouth(W); } catch (e) { console.error('cave build', e); } }; /* v18.30 the inside is built on the first visit (less to build, and less memory, at load) */
+const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); STAGE = null; COLS.length = 0; try { buildMouth(W); W.place('campfire', MOUTH.x + 3.2, MOUTH.z + 3.4, { kind: 'campfire', col: { r: 0.75, h: 0.5 } }); /* v18.34 the fire by the mouth has stones and sticks under it */ } catch (e) { console.error('cave build', e); } }; /* v18.30 the inside is built on the first visit (less to build, and less memory, at load) */
 const ensure = () => { if (!STAGE && Game.W()) try { STAGE = buildCave(Game.W()); } catch (e) { console.error('cave build', e); } };
 /* a fire by the mouth to light torches at */
 EP.stations.push({ id: 'fCave', type: 'fire', x: MOUTH.x + 3.2, z: MOUTH.z + 3.4, r: 2.6, on: s => free(s) });
@@ -140,7 +144,7 @@ const lt0 = G.Life.talk; G.Life.talk = function (id) { const s = S(); if (id ===
 // ------------------------------------------------------------------ in and out
 function go(inside) { const s = S(), p = P(); for (const k in seenS) delete seenS[k]; if (s.q && s.q.riding) { pop('수레에서 먼저 내려요', '', 'house'); return; } if ((p.follow || []).length && inside) { pop('혼자 들어가요', '함께 가는 사람은 입구에서 기다려요', 'house'); }
   G.UI.fade(() => { s.flags.cave = inside ? 1 : 0; sync(true);
-    if (inside) { Game.teleport(CX + EXIT[0], CZ + EXIT[1] + 1.2, 0); p.y = p.airTop = CY; } else Game.teleport(MOUTH.x + 1.2, MOUTH.z, Math.PI / 2);
+    if (inside) { if (G.Vitals && G.Vitals.mark) G.Vitals.mark('cave'); Game.teleport(CX + EXIT[0], CZ + EXIT[1] + 1.2, 0); p.y = p.airTop = CY; Game.snapCam && Game.snapCam(); } else Game.teleport(MOUTH.x + 1.2, MOUTH.z, Math.PI / 2);
     sfx('step', { surf: 'stone' }); }, () => { if (inside) { const lit = Game.hand() === 'torch' && G.Chem && G.Chem.torchT > 0; if (!(G.UI.help && G.UI.help('cave', '서쪽 바위산 동굴', lit ? '횃불 빛만큼만 보여요 · 꺼지면 화로에서 다시 붙여요 · 맨 안쪽에 누군가 있어요' : '너무 어두워요! 입구 모닥불에서 횃불을 붙여 와요')) && !lit) pop('너무 어두워요', '횃불을 붙여 들고 오세요', 'star'); } }); }
 Game.CTX.push(function (s) { if (!free(s) || Game.cineOn) return null; const p = P();
   if (!inCave()) { const d = Math.hypot(p.x - MOUTH.x, p.z - MOUTH.z); return d < 2.4 ? [{ d: d - 0.5, label: '동굴로 들어가기', x: MOUTH.x - 2.6, z: MOUTH.z, y: 1.6, key: 'caveIn', use: () => go(true) }] : null; }
@@ -150,7 +154,7 @@ Game.CTX.push(function (s) { if (!free(s) || Game.cineOn) return null; const p =
   return out.length ? out : null; });
 /* the floor of the cave; the walls are colliders (on only while inside) */
 const fl0 = EP.floor; EP.floor = function (x, z, s) { if (inCave()) { const lx = x - CX, lz = z - CZ; if (lx > -24 && lx < 34 && lz > -12 && lz < 60) return CY; } return fl0 ? fl0.apply(this, arguments) : null; };
-let modeOn = null; function sync(force) { const on = inCave(); if (on) ensure(); if (on === modeOn && !force) return; modeOn = on; for (const c of COLS) c.on = on; EP.noGrass = on || !!(G.Byblos && G.Byblos.inBy && G.Byblos.inBy()); if (on && G.Weather && G.Weather.set) G.Weather.set('clear', 1); }
+let modeOn = null; function sync(force) { const on = inCave(); if (on) ensure(); if (on === modeOn && !force) return; modeOn = on; for (const c of COLS) c.on = on; if (CROOF) CROOF.on = on; { const mm = document.getElementById('mapwrap'); if (mm) mm.style.visibility = on || (G.Caves && G.Caves.inside && G.Caves.inside()) ? 'hidden' : ''; } /* v18.34 */ EP.noGrass = on || !!(G.Byblos && G.Byblos.inBy && G.Byblos.inBy()); if (on && G.Weather && G.Weather.set) G.Weather.set('clear', 1); }
 const EMPTY = [];
 /* light: the torch, the braziers, the sky window (by day), the mirror (once it is made) */
 function lightAt(s) { const p = P(), lx = p.x - CX, lz = p.z - CZ, h = s.time % 24, day = h > 6 && h < 18.5; let L = Game.hand() === 'torch' && G.Chem && G.Chem.torchT > 0 ? 1 : 0;
@@ -188,7 +192,7 @@ let batT = 0, dripT = 0;
 const SCARES = [{ at: [1.2, 8.5], r: 2, k: 'bats' }, { at: [-12, 25.5], r: 3, k: 'splash', look: POOL }, { at: [16.6, 36.6], r: 1.8, k: 'eyes', look: [24, 44] }, { at: [6.2, 23], r: 1.6, k: 'gust' }]; const seenS = {};
 const POT = [23.4, 39.8];
 Game.CTX.push(function (s) { if (!inCave() || s.flags.cvLoot_sage) return null; const p = P(), d = Math.hypot(p.x - CX - POT[0], p.z - CZ - POT[1]); if (d > 1.7) return null;
-  return [{ d: d - 0.4, label: '깨진 항아리 뒤지기', x: CX + POT[0], z: CZ + POT[1], yAbs: CY + 1, key: 'cvPotSage', anim: 'pick', dur: 1.2, fn: () => { s.flags.cvLoot_sage = 1; Game.silver(20); Game.give('dates', 3, true); sfx('quest'); pop('깨진 항아리 속에서', '옛 상인의 은 20 · 말라 버린… 아니, 아직 먹을 만한 대추야자 3', 'coin'); } }]; });
+  return [{ d: d - 0.4, label: '깨진 항아리 뒤지기', x: CX + POT[0], z: CZ + POT[1], yAbs: CY + 1, key: 'cvPotSage', anim: 'pick', dur: 1.2, fn: () => { s.flags.cvLoot_sage = 1; Game.silver(20); Game.give('dates', 3, true); sfx('quest'); pop('깨진 항아리 속에서', '옛 상인의 은 20 · 말라 버린… 아니, 아직 먹을 만한 대추야자 3', 'coin'); if (G.Caves_piece) G.Caves_piece('sage'); } }]; });
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s || !s.flags) return r; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
   try { sync(); if (s.flags.kLetterDay && s.day >= s.flags.kLetterDay && G.Letters) { s.flags.kLetterDay = 0; G.Letters.send(KN, '요셉에게,\n자네 덕분에 내 물시계가 신전에까지 소문이 났다네. 생명의 집에서 다시 와 달라는군! …불은 조심하라는 조건으로.\n별 지도대로 소프데트가 떴네. 곧 강물이 불 걸세. 하늘을 지으신 분이 정하신 때를 우리는 그저 재어 볼 뿐이지.\n언제든 동굴에 들르게. 차는 없지만 펑 소리는 많다네. — 네브세니', ['$', 10], 'kiin'); }
     if (!inCave()) { if (s.flags.cave) s.flags.cave = 0; return r; }
@@ -202,7 +206,7 @@ const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(thi
     if ((batT -= d) <= 0) { batT = 6 + Math.random() * 10; if (G.FX) G.FX.burst(p.x + (Math.random() - 0.5) * 6, CY + 4.5, p.z + 3 + Math.random() * 3, 3, { c: [0.08, 0.06, 0.06], sp: 2.5, up: 0.2, size: 0.18, a: 0.9, g: 0, life: 1.2 }); sfx('whoosh', { vol: 0.15, pitch: 1.8 }); }
     if ((dripT -= d) <= 0) { dripT = 1.5 + Math.random() * 3; sfx('splash', { vol: 0.06, pitch: 2.2 + Math.random() }); }
     if (G.Weather && G.Weather.kind && G.Weather.kind(s) !== 'clear' && G.Weather.set) G.Weather.set('clear', 1); } catch (e) { console.error('cave', e); } return r; };
-const ol0 = EP.onLoad; EP.onLoad = function () { const r = ol0 ? ol0.apply(this, arguments) : undefined; try { sync(true); const s = S(); if (s && s.flags.cave) { const p = P(); p.y = CY; } } catch (e) { } return r; };
+const ol0 = EP.onLoad; EP.onLoad = function () { const r = ol0 ? ol0.apply(this, arguments) : undefined; try { sync(true); const s = S(); if (s && s.flags.cave) { const p = P(); p.y = CY; Game.snapCam && Game.snapCam(); if (Game.hand() === 'torch' && G.Chem) G.Chem.torchT = Math.max(G.Chem.torchT, 90); } } catch (e) { } return r; };
 /* torches: Joseph gets one from the boy; the camera light-weights itself in narrow tunnels */
 Cv.go = go; Cv.stage = () => ({ x: CX, z: CZ, y: CY }); Cv.mouth = MOUTH;
 })(window.G);

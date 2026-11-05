@@ -54,13 +54,18 @@ const DREAMS = [
     heart: '아버지의 하나님이 요셉의 하나님이 되셨어요. 꿈은 대를 이어 이어지는 약속이었어요.' },
 ];
 const seen = () => { const s = S(); return (s.flags.dreamsSeen = s.flags.dreamsSeen || {}); };
-function render(body) { const sn = seen(); let open = 0;
-  const cards = DREAMS.map(d => { const o = d.open(); if (o) { open++; sn[d.id] = 1; }
-    return o ? `<div class="dreamC"><div class="dArt">${d.art}</div><div class="dTx"><b>${esc(d.t)}</b><i>${esc(d.ref)}</i><p>${esc(d.dream)}</p><p class="dM"><span>풀이</span>${esc(d.mean)}</p><p class="dH">${esc(d.heart)}</p></div></div>`
-      : `<div class="dreamC lock"><div class="dArt"><svg viewBox="0 0 320 180"><rect width="320" height="180" fill="#1a1a24"/><text x="160" y="100" fill="#5a5a6a" font-size="40" text-anchor="middle">?</text></svg></div><div class="dTx"><b>아직 꾸지 않은 꿈</b><p>이야기가 이어지면 이 그림이 열려요.</p></div></div>`; }).join('');
-  body.innerHTML = `<div class="sec">꿈 앨범 · ${open}/${DREAMS.length}</div><div class="dreamL">${cards}</div>`; }
+/* v18.33 a grid of pictures; tap one to open it, 「목록으로」 to go back (no long scrolling) */
+let sel = null;
+function render(body, re) { const sn = seen(); const open = DREAMS.filter(d => d.open()); open.forEach(d => sn[d.id] = 1);
+  const d = sel && DREAMS.find(x => x.id === sel && x.open());
+  if (d) { body.innerHTML = `<div class="dreamV"><button class="sbtn dBack">◀ 목록으로</button><div class="dArt">${d.art}</div><b>${esc(d.t)}</b><i>${esc(d.ref)}</i><p>${esc(d.dream)}</p><p class="dM"><span>풀이</span>${esc(d.mean)}</p><p class="dH">${esc(d.heart)}</p></div>`;
+    body.querySelector('.dBack').onclick = () => { sel = null; re ? re() : render(body); }; return; }
+  body.innerHTML = `<div class="sec">꿈 앨범 · ${open.length}/${DREAMS.length} · 그림을 눌러 보세요</div><div class="dreamG">${DREAMS.map(x => x.open() ? `<button class="dCard" data-d="${x.id}"><div class="dArt">${x.art}</div><b>${esc(x.t)}</b></button>` : `<div class="dCard lock"><div class="dArt"><svg viewBox="0 0 320 180"><rect width="320" height="180" fill="#1a1a24"/><text x="160" y="110" fill="#5a5a6a" font-size="56" text-anchor="middle">?</text></svg></div><b>아직 꾸지 않은 꿈</b></div>`).join('')}</div>`;
+  body.querySelectorAll('.dCard[data-d]').forEach(b => b.onclick = () => { sel = b.dataset.d; G.Audio && G.Audio.sfx('page', { vol: 0.6 }); re ? re() : render(body); }); }
 (G.UI.extraTabs = G.UI.extraTabs || []).push({ k: 'dreams', n: '꿈 앨범', render });
-{ const css = document.createElement('style'); css.textContent = `.dreamL{display:flex;flex-direction:column;gap:12px}.dreamC{display:flex;gap:10px;background:var(--panel2);border:1px solid rgba(229,181,82,.22);border-radius:12px;padding:8px;flex-wrap:wrap}
+{ const css = document.createElement('style'); css.textContent = `.dreamG{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}.dCard{display:flex;flex-direction:column;gap:5px;padding:6px;border-radius:12px;background:var(--panel2);border:1px solid rgba(229,181,82,.22);color:inherit;font:inherit;text-align:center;cursor:pointer}.dCard svg{width:100%;height:auto;border-radius:8px;display:block}.dCard b{font-size:12.5px;color:var(--gold)}.dCard.lock{opacity:.55;cursor:default}.dCard.lock b{color:inherit}
+.dreamV{display:flex;flex-direction:column;gap:6px}.dreamV .dBack{align-self:flex-start}.dreamV svg{width:100%;max-width:420px;height:auto;border-radius:10px;display:block;margin:0 auto}.dreamV b{font-size:16px;color:var(--gold)}.dreamV i{font-size:11px;opacity:.7}.dreamV p{margin:2px 0;font-size:13px;line-height:1.55}.dreamV .dM span{display:inline-block;background:rgba(229,181,82,.2);border-radius:6px;padding:0 6px;margin-right:6px;font-size:11px}.dreamV .dH{opacity:.85;font-style:italic}
+.dreamL{display:flex;flex-direction:column;gap:12px}.dreamC{display:flex;gap:10px;background:var(--panel2);border:1px solid rgba(229,181,82,.22);border-radius:12px;padding:8px;flex-wrap:wrap}
 .dreamC .dArt{flex:1 1 220px;max-width:340px}.dreamC .dArt svg{width:100%;height:auto;border-radius:8px;display:block}.dreamC .dTx{flex:1 1 200px;min-width:0}.dreamC b{font-size:15px;color:var(--gold)}.dreamC i{display:block;font-size:11px;opacity:.7;margin:2px 0 6px}
 .dreamC p{margin:4px 0;font-size:12.5px;line-height:1.5}.dreamC .dM span{display:inline-block;background:rgba(229,181,82,.2);border-radius:6px;padding:0 6px;margin-right:6px;font-size:11px}.dreamC .dH{opacity:.85;font-style:italic}.dreamC.lock{opacity:.6}`; document.head.appendChild(css); }
 /* a dream newly opened: tell once */

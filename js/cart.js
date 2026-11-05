@@ -48,18 +48,20 @@ function tapGo() { const s = S(), gap = now() - D.last; D.last = now(); D.idle =
   const cap = D.tired ? WALKP : MAXV, base = D.pend !== null ? D.pend : D.thr; let nt = base; if (base < WALKP) nt = WALKP; else if (gap < 0.8) nt = base + (gap < 0.45 ? 1.9 : 1.3);
   D.pend = Math.min(nt, cap); D.whipT = 0.001; /* the pace changes when the reins land on the horses' backs, not before */ sfx('whoosh', { pitch: 1.5 + Math.random() * 0.2, vol: 0.5 }); if (D.tired && gap < 0.8) G.UI.toast('말이 지쳤어요 · 먹이를 주거나 천천히 쉬게 해요');
   if (D.thr >= 9 && !s.flags.cartFast) { s.flags.cartFast = 1; help('cartFast', '힘차게 달려요', '빨리 달릴수록 말이 금방 지쳐요 · 요셉 옆의 금색 고리가 말의 기력이에요'); } G.UI.hud(); }
-function brakeDown() { D.brake = Math.abs(D.v) < 0.3 ? 'rev' : 'stop'; D.holdT = 0; D.pend = null; if (D.brake === 'stop') { D.thr = 0; sfx('step', { surf: 'stone', vol: 0.4, pitch: 0.6 }); } G.UI.hud(); }
+function brakeDown() { if (AUTO.on) autoOff('자동 이동을 껐어요'); D.brake = Math.abs(D.v) < 0.3 ? 'rev' : 'stop'; D.holdT = 0; D.pend = null; if (D.brake === 'stop') { D.thr = 0; sfx('step', { surf: 'stone', vol: 0.4, pitch: 0.6 }); } G.UI.hud(); }
 function brakeUp() { D.brake = null; G.UI.hud(); }
-function driveTick2(dt) { const s = S(), riding = s.q.riding && s.q.chariotOk;
+function driveTick2(dt) { const s = S(), riding = s.q.riding && s.q.chariotOk; if (!riding && AUTO.on) AUTO.on = false; autoTick(dt); syncAuto();
   let st = s.q.horseSt === undefined ? 100 : s.q.horseSt; if (s.q.horseBuffT > 0) s.q.horseBuffT = Math.max(0, s.q.horseBuffT - dt);
   if (!riding) { D.v = D.hv = D.sx = D.ca = 0; D.thr = 0; D.pend = null; D.lock = false; D.brake = null; s.q.horseSt = Math.min(100, st + dt * 8); if (s.q.horseSt > 35) D.tired = false; return; }
   if (D.whipT > 0) { D.whipT += dt / 0.6; if (D.pend !== null && D.whipT >= 0.42) { D.thr = D.pend; D.pend = null; D.idle = 0; if (D.thr > D.hv + 0.4) D.hv += 0.35; sfx('hit', { pitch: 1.9, vol: 0.35 }); } if (D.whipT >= 1) D.whipT = 0; }
   if (D.feedT > 0) { D.feedT -= dt; if (D.feedT <= 0) { D.feedT = 0; feedDone(D.feedK); } }
-  D.idle += dt; if (D.idle > 2.2) D.thr = Math.max(0, D.thr - dt * (D.thr > WALKP ? 1.1 : 0.45)); /* no taps: the horses ease off and stop */
+  /* v18.34 hold 「전진」 and the horses keep the pace you tapped up to; let go and they ease off (a second's grace between taps) */
+  D.held = !!((Game.INPUT && Game.INPUT.actHeld) || D.kHeld) && driving(); if (D.held && !D.brake && !G.UI.busy()) D.idle = 0;
+  D.idle += dt; if (D.idle > (D.held ? 99 : 0.9)) D.thr = Math.max(0, D.thr - dt * (D.thr > WALKP ? 1.6 : 0.7)); /* not held, no taps: the horses ease off and stop */
   if (G.UI.busy()) D.thr = Math.max(0, D.thr - dt * 3);
   if (D.brake) { D.holdT += dt; D.thr = 0; }
   const stF = 0.35 + 0.65 * Math.min(1, st / 40), want = D.brake === 'rev' ? -1.9 : D.thr;
-  const aUp = (D.hv < WALKP ? 2.3 : 1.75) * stF, aDn = D.brake === 'stop' ? 3 + 6.5 * Math.min(1, D.holdT / 0.9) : 1.1;
+  const aUp = (D.hv < WALKP ? 2.3 : 1.75) * stF, aDn = D.brake === 'stop' ? 6.5 + 8 * Math.min(1, D.holdT / 0.5) : D.held ? 1.1 : 1.6; /* v18.34 「정지」 bites at once */
   D.lock = D.brake === 'stop' && D.holdT > 0.3 && D.v > 1.2; /* a hard pull: the wheels stop turning and slide */
   const n = 4, h = dt / n; let caS = 0;
   for (let i = 0; i < n; i++) { const ha = Math.max(-aDn, Math.min(aUp, (want - D.hv) * 2.6)), T = 18 * D.sx + 4.5 * (D.hv - D.v); /* trace tension (per unit of wagon mass) */
@@ -74,22 +76,52 @@ function driveTick2(dt) { const s = S(), riding = s.q.riding && s.q.chariotOk;
   st = Math.max(0, Math.min(100, st)); s.q.horseSt = st;
   if (st <= 0 && !D.tired) { D.tired = true; D.thr = Math.min(D.thr, WALKP); pop('말이 지쳤어요', '천천히 가며 쉬게 하거나 먹이를 주어요', 'donkey'); } if (D.tired && st > 35) D.tired = false;
   if (D.tired) { D.thr = Math.min(D.thr, WALKP); if (D.pend !== null) D.pend = Math.min(D.pend, WALKP); }
-  const p = P(); p.sprint = false; }
+  const p = P(); p.sprint = false;
+  /* the camera settles in behind the wagon when you are not looking round */
+  const C = Game.CAM; if (C && Math.abs(D.v) > 0.8 && (C.lookT === undefined || C.lookT > 0.6)) C.yaw += Game.angDiff(C.yaw, p.face + Math.PI) * Math.min(1, dt * 2.2); }
 /* called by the movement code while on the wagon: the stick turns the horses (slowly, slower the faster they go), the reins give the speed */
-Ct.steer = function (dt, mag, dx, dz) { const p = P(), v = D.v, av = Math.abs(v);
-  if (mag > 0) { let want = Math.atan2(dx, dz); if (v < -0.1) want += Math.PI; const df = Game.angDiff ? Game.angDiff(p.face, want) : Math.atan2(Math.sin(want - p.face), Math.cos(want - p.face));
-    const mt = Math.max(0.7, Math.min(1.9, 1.9 - av * 0.11)) * dt * (0.25 + 0.75 * Math.min(1, av / 1.2)); p.face += Math.max(-mt, Math.min(mt, df));
-    if (av > 4 && Math.abs(df) > 0.9) D.v -= Math.sign(v) * dt * 2.2 * Math.min(1, (Math.abs(df) - 0.9) / 1.2); }
+/* v18.33 the left stick is a steering wheel: only left/right counts (up/down does nothing); the horses swing round slower the faster they run,
+   and backing up turns the other way, like a real wagon. Auto-drive (AUTO) steers along the yellow road on the map by itself. */
+const AUTO = { on: false, why: '' };
+Ct.steer = function (dt, mag, dx, dz) { const p = P(), IN = Game.INPUT, v = D.v, av = Math.abs(v);
+  let wx = (IN.mx || 0) + ((IN.keys.KeyD ? 1 : 0) - (IN.keys.KeyA ? 1 : 0)); wx = Math.max(-1, Math.min(1, wx)); if (Math.abs(wx) < 0.12) wx = 0;
+  if (AUTO.on) { if (Math.abs(wx) > 0.55) autoOff('직접 운전해요 · 자동 이동을 껐어요'); else wx = autoWheel(); }
+  if (wx) { const rate = Math.max(0.7, Math.min(1.9, 1.9 - av * 0.11)) * (0.25 + 0.75 * Math.min(1, av / 1.2)); p.face -= wx * rate * dt * (v < -0.05 ? -1 : 1);
+    if (av > 4 && Math.abs(wx) > 0.7) D.v -= Math.sign(v) * dt * 1.2 * (Math.abs(wx) - 0.7) / 0.3; }
   return [Math.sin(p.face) * D.v, Math.cos(p.face) * D.v]; };
-Ct.jumpLabel = () => driving() ? (paxCand() ? '태우기' : '짐칸') : null; Ct.speed = () => D.v; Ct.hv = () => D.hv; Ct.sx = () => D.sx;
+/* auto-drive: aim at a point ~7 m along the road, keep an easy pace the horses can hold, ease off near the end */
+function autoWheel() { const p = P(), path = G.Nav && G.Nav.path(); if (!path || path.length < 2) return 0; let tgt = path[path.length - 1];
+  for (let i = 1; i < path.length; i++) { if (Math.hypot(path[i][0] - p.x, path[i][1] - p.z) > 7) { tgt = path[i]; break; } }
+  const want = Math.atan2(tgt[0] - p.x, tgt[1] - p.z), df = Game.angDiff(p.face, want); return Math.max(-1, Math.min(1, -df * 1.6)); }
+function autoTick(dt) { if (!AUTO.on) return; const s = S(), p = P(), path = G.Nav && G.Nav.path(); const no = autoBlock(s); if (no) { autoOff(no); return; }
+  if (!path || path.length < 2) { AUTO.wait = (AUTO.wait || 0) + dt; if (AUTO.wait > 3) autoOff('갈 길을 찾지 못했어요'); D.thr = Math.max(0, D.thr - dt); return; } AUTO.wait = 0;
+  const end = path[path.length - 1], left = Math.hypot(end[0] - p.x, end[1] - p.z), st = s.q.horseSt === undefined ? 100 : s.q.horseSt;
+  if (left < 7) { D.thr = 0; if (Math.abs(D.v) < 0.4) autoOff('다 왔어요!'); return; }
+  const pace = left < 22 ? WALKP : D.tired || st < 35 ? WALKP : st < 60 ? 6 : 7.5; D.thr += (pace - D.thr) * Math.min(1, dt * 1.5); D.idle = 0; D.brake = null; }
+function autoBlock(s) { if (s.q.dlJob) return '배달 시간을 잴 때는 자동 이동을 쓸 수 없어요'; if (s.flags && s.flags.race) return '경주 중에는 자동 이동을 쓸 수 없어요'; return ''; }
+function autoOff(why) { AUTO.on = false; D.thr = Math.min(D.thr, WALKP); if (why) G.UI.toast(why); syncAuto(); }
+Ct.autoToggle = function () { const s = S(); if (!driving()) return; if (AUTO.on) { autoOff('자동 이동을 껐어요'); return; } const no = autoBlock(s); if (no) { G.UI.toast(no); return; }
+  if (!(G.Nav && G.Nav.path())) { G.UI.toast('갈 곳이 없어요 · 목표나 지도 표시가 있어야 해요'); return; } AUTO.on = true; sfx('blip', { pitch: 1.2 }); G.UI.toast('자동 이동 · 노란 길을 따라 가요 (왼쪽 스틱을 크게 움직이면 꺼져요)'); syncAuto(); };
+Ct.auto = () => AUTO.on;
+/* the button: under the distance badge, only on the wagon */
+const ab = document.createElement('button'); ab.id = 'autoBtn'; ab.className = 'cbtn'; ab.innerHTML = '<span>자동 이동</span>'; ab.hidden = true;
+{ const css = document.createElement('style'); css.textContent = '#autoBtn{position:fixed;right:var(--gr,12px);top:calc(var(--gt,12px) + var(--mw,100px) + 112px);width:auto;height:34px;padding:0 12px;border-radius:17px;font-size:12px;z-index:12}#autoBtn.on{background:var(--gold);color:var(--ink)}#autoBtn.off{opacity:.5}@media (min-aspect-ratio:1/1){#autoBtn{top:calc(var(--gt,12px) + var(--mw,100px) + 64px)}}'; document.head.appendChild(css); }
+setTimeout(() => (document.getElementById('hud') || document.body).appendChild(ab), 0);
+ab.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); Ct.autoToggle(); });
+function syncAuto() { const show = driving() && !G.UI.busy(); if (ab.hidden === show) ab.hidden = !show; ab.classList.toggle('on', AUTO.on); const s = S(); ab.classList.toggle('off', !AUTO.on && (!!(s && autoBlock(s)) || !(G.Nav && G.Nav.path()))); }
+Ct.jumpLabel = () => driving() ? (paxCand() ? '태우기' : '짐칸') : null; Ct.feeding = () => driving() && D.feedT > 0; /* v18.34 ui.js asks these (the label was written twice a frame) */
+Ct.speed = () => D.v; Ct.hv = () => D.hv; Ct.sx = () => D.sx;
 /* the horses' stamina ring (shown in place of Joseph's while he drives) */
 Ct.ring = () => { const s = S(); if (!s || !driving()) return null; const st = s.q.horseSt === undefined ? 100 : s.q.horseSt; return { f: st / 100, tired: D.tired, buff: s.q.horseBuffT > 0 }; };
 /* the buttons while driving: 달리기 → 먹이 주기, 점프 → 짐칸(태우기), 앉기 → 정지/후진 */
 const BTN = { btnRun: () => feedRide(), btnJump: () => jumpBtn(), btnCrouch: () => brakeDown() };
 addEventListener('pointerdown', e => { if (!driving() || G.UI.busy() || !e.target.closest) return; const b = e.target.closest('#btnRun,#btnJump,#btnCrouch'); if (!b) return;
-  e.stopPropagation(); e.preventDefault(); BTN[b.id](); }, true);
+  e.stopPropagation(); e.preventDefault(); if (b.id === 'btnCrouch') D.brakeId = e.pointerId; BTN[b.id](); }, true);
 for (const t of ['pointerup', 'pointercancel']) addEventListener(t, e => { if (D.brake && e.target.closest && e.target.closest('#btnCrouch')) brakeUp(); if (driving() && e.target.closest && e.target.closest('#btnJump,#btnRun,#btnCrouch')) e.stopPropagation(); }, true);
-addEventListener('pointerup', () => { if (D.brake) brakeUp(); }); /* (finger slid off the button) */
+addEventListener('pointerup', e => { if (D.brake && (D.brakeId === undefined || e.pointerId === D.brakeId)) brakeUp(); }); /* (finger slid off the button; v18.34 only that finger — lifting the steering thumb no longer lets go of the brake) */
+addEventListener('pointercancel', e => { if (D.brake && e.pointerId === D.brakeId) brakeUp(); });
+/* v18.34 the 전진 button held down: the A button's own held flag (ui.js Game.INPUT.actHeld, cleared on up/cancel/leave), or the E key */
+addEventListener('keydown', e => { if (e.code === 'KeyE') D.kHeld = true; }, true); addEventListener('keyup', e => { if (e.code === 'KeyE') D.kHeld = false; }, true); addEventListener('blur', () => { D.kHeld = false; });
 addEventListener('keydown', e => { if (!driving() || G.UI.busy() || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return; const c = e.code;
   if (c === 'ShiftLeft' || c === 'ShiftRight') { e.stopPropagation(); if (!e.repeat) feedRide(); }
   else if (c === 'Space') { e.stopPropagation(); e.preventDefault(); if (!e.repeat) jumpBtn(); }
@@ -97,16 +129,16 @@ addEventListener('keydown', e => { if (!driving() || G.UI.busy() || (e.target &&
 addEventListener('keyup', e => { if (D.brake && (e.code === 'KeyC' || e.code === 'ControlLeft')) brakeUp(); if (driving() && /Shift/.test(e.code)) e.stopPropagation(); }, true);
 const LBL = { btnRun: '달리기', btnJump: null, btnCrouch: '앉기' }; let lblOn = false;
 function driveLabels() { const on = driving(), set = (id, t) => { const b = document.getElementById(id); if (b && b.textContent !== t) b.textContent = t; };
-  if (on) { lblOn = true; set('btnRun', D.feedT > 0 ? '먹이는 중' : '먹이 주기'); set('btnJump', paxCand() ? '태우기' : '짐칸');
+  if (on) { lblOn = true; set('btnRun', D.feedT > 0 ? '먹이는 중' : '먹이 주기'); 
     set('btnCrouch', D.brake === 'rev' || (Math.abs(D.v) < 0.3 && !D.brake) || D.v < -0.1 ? '후진' : '정지');
     const r = document.getElementById('btnRun'); if (r) r.classList.toggle('on', D.feedT > 0); const c = document.getElementById('btnCrouch'); if (c) c.classList.toggle('on', !!D.brake); }
   else if (lblOn) { lblOn = false; set('btnRun', '달리기'); set('btnCrouch', '앉기'); const c = document.getElementById('btnCrouch'); if (c) c.classList.remove('on'); } }
 
 // ------------------------------------------------------------------ getting on and off
-function mount() { const s = S(), c = s.q.cartAt; if (!c || drive) return; const t = Ct.town(c.x, c.z); if (t) { pop('여기선 못 타요', `${t} 안이에요 · 넓은 곳에서 타요`, 'donkey'); return; }
+function mount() { const s = S(), c = s.q.cartAt; if (!c || drive) return; if (G.Stable && G.Stable.mode() === 'horse') { pop('지금은 말로 다녀요', '마구간지기 케티에게 「수레로 다니기」를 말해요', 'donkey'); return; } const t = Ct.town(c.x, c.z); if (t) { pop('여기선 못 타요', `${t} 안이에요 · 넓은 곳에서 타요`, 'donkey'); return; }
   Game.teleport(c.x, c.z, c.f); s.q.riding = 1; s.q.rode = 1; sfx('whoosh'); Game.checkStep(); Game.snapCam && Game.snapCam();
   D.v = D.hv = D.sx = 0; D.thr = 0; D.pend = null; D.brake = null; D.whipT = 0; if (s.q.horseSt === undefined) s.q.horseSt = 100;
-  if (!help('cartDrive', '수레 몰기', 'A키 전진 — 연달아 누를수록 빨라져요 · 안 누르면 천천히 서요 · 「정지」 꾹 누르면 급정거, 멈춘 뒤엔 「후진」 · B키 내리기 · 달리기 버튼 먹이 주기 · 점프 버튼 짐칸')) pop('수레에 탔어요', 'A키를 연달아 누르면 점점 빨라져요', 'donkey'); G.UI.hud(); }
+  if (!help('cartDrive', '수레 몰기', '왼쪽 스틱 좌우 = 핸들 · A키 전진 — 톡톡 누를수록 빨라지고, 꾹 누르고 있으면 그 속도로 가요 · 떼면 천천히 서요 · 「정지」 꾹 누르면 급정거, 멈춘 뒤엔 「후진」 · B키 내리기 · 달리기 버튼 먹이 주기 · 점프 버튼 짐칸')) pop('수레에 탔어요', 'A키를 연달아 누르면 점점 빨라져요', 'donkey'); G.UI.hud(); }
 function dismount(quiet) { const s = S(), p = P(); if (!s.q.riding) return; D.v = 0; D.thr = 0; D.brake = null; D.feedT = 0; s.q.cartAt = { x: p.x, z: p.z, f: p.face }; s.q.riding = 0;
   const [rx, rz] = rearOf(s.q.cartAt), [fx, fz] = fwd(p.face); Game.teleport(rx - fx * 0.5, rz - fz * 0.5, p.face); sfx('step'); Game.snapCam && Game.snapCam(); if (!quiet) pop('수레에서 내렸어요', '수레는 여기 서 있어요', 'donkey'); G.UI.hud(); }
 Ct.mount = mount; Ct.dismount = dismount;

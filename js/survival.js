@@ -60,7 +60,7 @@ Sv.update = function (dt, S) {
   if (warm) {
     const env = Game.env || { night: 0, cloud: 0.3 }, Wx = G.Weather, arid = EP.aridAt ? EP.aridAt(P.x, P.z) : 0.3, W = Game.W();
     let cold = env.night * (8 + arid * 11) + (Wx ? Wx.chill() * 0.85 : 0) + clamp((P.y - 8) / 20, 0, 1) * 6;
-    const wl = W.water ? W.water.level : -99, gh = W.heightAt(P.x, P.z); if (P.swim) cold += 26; else if (gh < wl) cold += 7;
+    const E_ = Game.EP(), wO_ = E_ && E_.waterAt ? E_.waterAt(P.x, P.z, S) : null, fl_ = E_ && E_.floor ? E_.floor(P.x, P.z, S) : null, wl = wO_ ? wO_.level : W.water ? W.water.level : -99, gh = wO_ ? wO_.bed : Math.max(W.heightAt(P.x, P.z), fl_ != null ? fl_ : -1e9); if (P.swim) cold += 26; /* v18.34 floors and seas of their own */ else if (gh < wl) cold += 7;
     let heat = env.night < 0.35 && !(Wx && Wx.rainy()) ? 9 * (1 - env.night) * (1 - (env.cloud || 0) * 0.5) : 0;
     const hs = Sv.heatAt(P.x, P.z); heat += hs.heat + hs.roof * 14; cold *= (1 - hs.roof * 0.8) * (1 - Sv.insul(S)); if (P.ride) heat += 1.5;
     Sv.cold = cold; Sv.heat = heat; Sv.src = hs.heat > 4 ? hs.src : hs.roof > 0.3 ? hs.src : '';

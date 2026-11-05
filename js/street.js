@@ -139,8 +139,8 @@ function tickRuns(dt) { const s = S();
     r.a._chatFace = Math.atan2(r.b.x - r.a.x, r.b.z - r.a.z); if (r.kind !== 'work') r.b._chatFace = Math.atan2(r.a.x - r.b.x, r.a.z - r.b.z);
     if ((r.t -= dt) > 0) continue;
     if (r.i >= r.lines.length) { runs.splice(k, 1); if (r.then) r.then(r); else { release(r.a, r.moveA); release(r.b, r.moveB); } continue; }
-    const [w, txt, g] = r.lines[r.i++], n = w ? r.b : r.a, t = fill(txt, n, w ? r.a : r.b, s), d = Math.min(5, 2.3 + t.length * 0.06);
-    G.Life.bubble(n.id, t, d); if (g && g !== 'gather') gest(n, g, Math.min(2.6, d)); r.t = d + 0.35; } }
+    const [w, txt, g] = r.lines[r.i++], n = w ? r.b : r.a, t = fill(txt, n, w ? r.a : r.b, s), d = G.Life.readT ? G.Life.readT(t) : Math.min(5, 2.3 + t.length * 0.06);
+    G.Life.bubble(n.id, t, d); if (g && g !== 'gather') gest(n, g, Math.min(2.6, d)); r.t = d * 0.9 + 0.3; } }
 
 // ------------------------------------------------------------------ the kids' games: tag and races
 const games = [];

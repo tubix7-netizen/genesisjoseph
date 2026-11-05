@@ -5,7 +5,7 @@
 const SOLID = { oak: k => ({ r: 0.5 * k, h: 4 }), olive: k => ({ r: 0.35 * k, h: 3 }), fig: k => ({ r: 0.35 * k, h: 3 }), acacia: k => ({ r: 0.3 * k, h: 3 }), tamarisk: k => ({ r: 0.35 * k, h: 3 }),
   datePalm: k => ({ r: 0.32 * k, h: 5 }), palm: k => ({ r: 0.32 * k, h: 5 }), opuntia: k => ({ r: 0.5 * k, h: 1.2 }), retama: k => ({ r: 0.45 * k, h: 1.2 }), bush: k => ({ r: 0.45 * k, h: 1 }),
   rock: k => ({ r: 1.0 * k, h: 1.2 }), outcrop: k => ({ r: 1.7 * k, h: 2 }), rockField: k => ({ r: 1.1 * k, h: 1 }), cliff: k => ({ r: 3.4 * k, h: 5 }), honeyRock: k => ({ r: 0.9 * k, h: 1 }),
-  tent: (k, o) => ({ w: 5.6 * k, d: 3.6 * k, h: 2.2, cam: true, a: o.ry || 0 }), well: k => ({ r: 1.5 * k, h: 1 }), trough: (k, o) => ({ w: 2.2 * k, d: 0.8 * k, h: 0.6, a: o.ry || 0 }),
+  tent: (k, o) => ({ w: 5.6 * k, d: 3.6 * k, h: 2.6, cam: true, a: o.ry || 0 }), well: k => ({ r: 1.5 * k, h: 1 }), trough: (k, o) => ({ w: 2.2 * k, d: 0.8 * k, h: 0.6, a: o.ry || 0 }),
   pillar: k => ({ r: 0.45 * k, h: 1.6 }), altar: k => ({ r: 0.9 * k, h: 1.1 }), column: k => ({ r: 0.8 * k, h: 6 }), obelisk: k => ({ r: 0.8 * k, h: 8 }), sacks: k => ({ r: 0.6 * k, h: 0.8 }), pots: k => ({ r: 0.5 * k, h: 0.8 }),
   pyramid: (k, o) => { const sz = ((o.args && o.args[0]) || 20) * k; return { w: sz * 1.38, d: sz * 1.38, h: sz * 1.2, cam: true, a: (o.ry || 0) + Math.PI / 4 * 0 }; }, stallM: (k, o) => ({ w: 2.4 * k, d: 2 * k, h: 2.2, a: o.ry || 0 }),
   booth: k => ({ r: 1.2 * k, h: 2.2 }), dovecote: k => ({ r: 1.1 * k, h: 3.5 }), shaduf: k => ({ r: 0.4 * k, h: 2.5 }), oven: k => ({ r: 0.8 * k, h: 1.2 }), quern: (k, o) => ({ w: 1 * k, d: 0.6 * k, h: 0.5, a: o.ry || 0 }),

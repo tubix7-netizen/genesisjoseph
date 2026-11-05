@@ -31,7 +31,7 @@ Rd.gaitStep = function (q, spc, v, dt) { // q keeps .gi (current gait); returns 
   return { rate, gw, amp: q.amp, name: g[0] }; };
 const S0 = () => Game.S();
 const mounts = S => S.mounts || (S.mounts = []);
-const meshOf = (sp, m) => Game.animalMesh(sp, 'plain', { saddle: (m && m.saddle) || MT[sp].saddle });
+const meshOf = (sp, m) => Game.animalMesh(sp, 'plain', Object.assign({ saddle: (m && m.saddle) || MT[sp].saddle }, m && m.hide ? { hide: m.hide, mane: m.mane } : {})); /* v18.33 bought horses keep their coat colour */
 Rd.mine = () => Rd.list;
 
 // ------------------------------------------------------------------ lifecycle
@@ -70,13 +70,13 @@ Rd.mount = function (r) {
 };
 Rd.dismount = function (quiet, why) {
   const P = Game.P, r = P.ride; if (!r) return; const W = Game.W();
-  P.ride = null; const a = P.face + PI / 2; let x = r.x + Math.sin(a) * 1.15, z = r.z + Math.cos(a) * 1.15; const q = { x, z }; W.collide(q, 0.38); P.x = q.x; P.z = q.z; P.y = W.heightAt(P.x, P.z);
+  P.ride = null; P.sprint = false; /* v18.34 */ const a = P.face + PI / 2; let x = r.x + Math.sin(a) * 1.15, z = r.z + Math.cos(a) * 1.15; const q = { x, z }; W.collide(q, 0.38); P.x = q.x; P.z = q.z; P.y = W.heightAt(P.x, P.z);
   r.col.x = r.x; r.col.z = r.z; r.col.on = true; r.m.x = r.x; r.m.z = r.z; r.m.face = r.face; r.tx = null; r.wait = 3;
   for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (n.pass === r) dropPass(n, r); }
   if (why) G.UI.toast(why); else if (!quiet) sfx('hoof', { pitch: 1.1, vol: 0.5 }); G.UI.hud();
 };
 // whistle: the nearest own mount trots to you (from far away it is brought along by a servant — it just appears nearby)
-Rd.call = function () {
+Rd.call = function () { if ((G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside())) { G.UI.toast('동굴 안에서는 부를 수 없어요'); return; } /* v18.34 */
   const P = Game.P; if (P.ride) return; let best = null, bd = 1e9;
   for (const r of Rd.list) { const d = Math.hypot(r.x - P.x, r.z - P.z); if (d < bd) { bd = d; best = r; } }
   if (!best) return; sfx('whistle');

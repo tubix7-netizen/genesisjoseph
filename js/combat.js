@@ -166,7 +166,7 @@ C.update = function (dt, t) {
         if (dist < (d.big ? 2.8 : 2.3)) { a.st = 'windup'; a.t = d.big ? 0.65 : 0.5; speed = 0; }
         if (!a.roared && d.snd) { a.roared = 1; sfx(d.snd, { x: a.x, z: a.z }); } }
       else if (d.beh === 'defend' && (a.angry || dist < 3.2) && dist < 6) { wantFace = Math.atan2(P.x - a.x, P.z - a.z); if (dist < 2.6) { a.st = 'windup'; a.t = 0.55; } else speed = d.speed * 0.6; a.angry = a.angry && dist < 10; }
-      else if ((d.beh === 'flee' || d.beh === 'fly' || d.beh === 'defend') && (al >= 1 || a.st === 'flee' || dist < 1.8)) {
+      else if ((d.beh === 'flee' || d.beh === 'fly' || d.beh === 'defend' || (hostile && a.st === 'flee')) && (al >= 1 || a.st === 'flee' || dist < 1.8)) { /* v18.34 wolves and lions really back off from fire */
         if (a.st !== 'flee') { a.st = 'flee'; a.t = 4 + Math.random() * 2; C.panic(a); if (d.beh === 'fly') { a.fly = 1; sfx('flap', { x: a.x, z: a.z }); } else sfx(d.snd || 'hoof', { x: a.x, z: a.z, vol: 0.5, pitch: 1.3 }); }
         wantFace = Math.atan2(a.x - P.x, a.z - P.z) + Math.sin(t * 2 + a.home[0]) * 0.4; speed = d.speed; if (a.t <= 0 && dist > Math.max(fleeD * 2.2, 30)) { a.st = 'idle'; a.fly = 0; a.alert = 0.55; a.home = [a.x, a.z]; } }
       else if (al > 0.35 && !hostile) { // heard or glimpsed something: freeze, head up, stare toward the sound; one more step and it bolts
@@ -177,10 +177,10 @@ C.update = function (dt, t) {
         if (a.st === 'wander') { const dx = a.tx - a.x, dz = a.tz - a.z, dd = Math.hypot(dx, dz); if (dd < 0.5 || a.t <= 0) { a.st = 'idle'; a.t = 2 + Math.random() * 5; } else { wantFace = Math.atan2(dx, dz); speed = d.speed * 0.18; } } }
       a.face += angDiff(a.face, wantFace) * Math.min(1, dt * (a.st === 'flee' ? 6 : 4));
       if (speed) { const nx = a.x + Math.sin(a.face) * speed * dt, nz = a.z + Math.cos(a.face) * speed * dt; const wl = W.water ? W.water.level : -99;
-        if (W.heightAt(nx, nz) > wl + 0.05 || a.fly) { W.move(a, nx - a.x, nz - a.z, d.big ? 0.8 : 0.4); } else a.face += 1.2; }
+        if (W.heightAt(nx, nz) > wl + 0.05 || a.fly || (d.water && W.heightAt(nx, nz) > wl - 3.5)) { W.move(a, nx - a.x, nz - a.z, d.big ? 0.8 : 0.4); } else a.face += 1.2; }
       const hlim = W.half - 8; a.x = clamp(a.x, -hlim, hlim); a.z = clamp(a.z, -hlim, hlim);
     }
-    a.y = W.heightAt(a.x, a.z); a.fy = lerp(a.fy, a.fly ? 3.2 + Math.sin(t * 3 + a.home[1]) * 0.5 : 0, Math.min(1, dt * 3));
+    a.y = W.heightAt(a.x, a.z); if (d.water && W.water && a.y < W.water.level - d.water) a.y = W.water.level - d.water; /* v18.34 crocodiles and hippos swim with their backs at the surface */ a.fy = lerp(a.fy, a.fly ? 3.2 + Math.sin(t * 3 + a.home[1]) * 0.5 : 0, Math.min(1, dt * 3));
     a.speed = speed; a.phase += speed * dt * (a.sp === 'hare' ? 5 : 3.2);
     animAnimal(a.rig, { speed, phase: a.phase, gallop: speed > 3, graze: a.st === 'idle' && (a.alert || 0) < 0.25 && Math.sin(t * 0.5 + a.home[0]) > 0, dead: a.st === 'dead', atk: a.st === 'windup' ? 1 : a.st === 'attack' ? 2 : 0, fly: a.fly, seed: a.home[0] }, t);
     a.rig.update(m4trs(a.M || (a.M = m4()), a.x, a.y + a.fy, a.z, a.face, 0, 0, a.scale, a.scale, a.scale));
@@ -194,7 +194,7 @@ C.update = function (dt, t) {
   // player regen out of combat
   if (!threat && !(G.Climate && G.Climate.cold) && h.hp < h.hpMax && (C.lastHurt || 0) + 6 < t) { h.hp = Math.min(h.hpMax, h.hp + dt * 1.2); C.hpDirty = 1; }
   // attack timing
-  if (P.atk) { P.atk.t += dt; if (!P.atk.fired && P.atk.t >= P.atk.hit) { P.atk.fired = true; fireAttack(P.atk); } if (P.atk.t >= P.atk.dur) { P.lastAtk = { k: P.atk.k, combo: P.atk.combo || 0, end: C.tAll || 0 }; P.atk = null; if (P.atkQ) { P.atkQ = false; C.attack(); } } } else P.atkQ = false;
+  if (P.atk) { P.atk.t += dt; if (!P.atk.fired && P.atk.t >= P.atk.hit) { P.atk.fired = true; fireAttack(P.atk); } if (P.atk.t >= P.atk.dur) { P.lastAtk = { k: P.atk.k, combo: P.atk.combo || 0, end: C.tAll || 0 }; P.atk = null; if (P.dodgeQ) { P.dodgeQ = 0; P.atkQ = false; C.dodge(); } /* v18.34 a roll pressed mid-swing comes right after it */ if (P.atkQ) { P.atkQ = false; C.attack(); } } } else P.atkQ = false;
   C.tAll = t;
   updateProjectiles(dt);
   if (C.fish) fishUpdate(dt, t);
@@ -211,7 +211,7 @@ C.pickTarget = function () {
 
 // =================================================================== PLAYER COMBAT
 C.attack = function () {
-  const P = Game.P, S = Game.S(), h = S.hero; if (P.atk && P.atk.g.kind === 'melee' && P.atk.t > P.atk.dur * 0.4 && (P.atk.combo || 0) < 2) { P.atkQ = true; return; } /* v18.12i a press near the end of a swing is remembered and starts the next hit at once */ if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act) return;
+  const P = Game.P, S = Game.S(), h = S.hero; if (P.atk && P.atk.g.kind === 'melee' && P.atk.t > P.atk.dur * 0.4 && (P.atk.combo || 0) < 2) { P.atkQ = true; return; } /* v18.12i a press near the end of a swing is remembered and starts the next hit at once */ if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act || P.downed || P.climb) return;
   const k = C.armedK(); if (!k) { const any = C.hasWeapon() || Game.tool('staff'); G.UI.toast(Game.handLock() ? '지금은 손에 아무것도 들 수 없어요' : Game.hand() === 'torch' ? '횃불을 들고 있어요 · 싸우려면 왼쪽 손 단추로 지팡이를 들어요' : any ? '빈손으로는 공격할 수 없어요 · 왼쪽 손 단추로 지팡이나 무기를 들어요' : '무기가 없어요. 지팡이를 만들거나 메뉴 → 장비에서 만들어요'); return; } /* v18.14 only with a staff or weapon in hand */
   const g = GEAR[k];
   if (g.kind === 'ranged') { if (!(g.ammo === 'stone' && G.Stones ? G.Stones.has() : Game.have(g.ammo))) { G.UI.toast(g.ammo === 'stone' ? '물매에 쓸 돌이 없어요 (돌무더기에서 주워요)' : '화살이 없어요 (제작에서 만들어요)'); return; } }
@@ -256,7 +256,7 @@ function damage(a, dmg, crit, kx, kz) {
   Game.CAM.shake = Math.max(Game.CAM.shake || 0, crit ? 0.6 : 0.35); C.hitStop = crit ? 0.07 : 0.045;
   if (a.hp <= 0) { kill(a); return; }
   if (G.Motion && a.rig) G.Motion.react(a.rig, kx, kz, a.face, Math.min(1.4, 0.4 + dmg / (a.hpMax || 20) * 2.5 + (crit ? 0.3 : 0))); // v18.1 P8
-  if (a.st !== 'attack') { a.st = 'hurt'; a.t = 0.28; a.kb[0] = kx * (a.d.big ? 2 : 6); a.kb[1] = kz * (a.d.big ? 2 : 6); }
+  if (a.st !== 'attack' && !(a.d.big && a.st === 'windup')) { a.st = 'hurt'; /* v18.34 a bear or lion is not stun-locked out of its windup */ a.t = 0.28; a.kb[0] = kx * (a.d.big ? 2 : 6); a.kb[1] = kz * (a.d.big ? 2 : 6); }
   if (a.fly) a.fly = 0;
 }
 function kill(a) {
@@ -280,8 +280,8 @@ C.faint = function () {
     G.UI.toast(lost ? `쓰러졌다가 장막에서 깨어났다… (은 ${lost}을 잃었다)` : '쓰러졌다가 장막에서 깨어났다…'); }, () => { C.busy = false; });
 };
 C.dodge = function () {
-  const P = Game.P, h = C.hero(); if (P.dodgeT > 0 || P.atk || G.UI.busy()) return false; const cost = Math.round(18 * (1 - h.sk.agi * 0.15)); if (P.stam < cost) return false;
-  P.stam -= cost; P.stamT = 0; P.dodgeT = 0.42 + h.sk.agi * 0.03; P.dodgeDir = null; sfx('dodge'); return true;
+  const P = Game.P, h = C.hero(); if (P.dodgeT > 0 || P.atk || G.UI.busy() || P.ride || P.climb || P.downed || P.act || P.lock || (Game.S().q && Game.S().q.riding)) return false; /* v18.34 no rolling on a donkey, a ladder or the floor */ const cost = Math.round(18 * (1 - h.sk.agi * 0.15)); if (P.stam < cost) return false;
+  P.stam -= cost; P.stamT = 0; P.dodgeT = P.dodgeDur = 0.42 + h.sk.agi * 0.03; P.dodgeDir = null; sfx('dodge'); return true;
 };
 C.toggleMode = function () { const h = C.hero(); if (!h.ranged) { G.UI.toast('물매나 활이 있어야 바꿀 수 있어요'); return; } h.mode = h.mode === 'ranged' ? 'melee' : 'ranged'; G.UI.toast(h.mode === 'ranged' ? `원거리 · ${GEAR[h.ranged].n}` : `근접 · ${GEAR[h.weapon || 'staff'].n}`); sfx('click'); G.UI.hud(); };
 C.heldProp = function () { const P = Game.P, h = C.hero(); if (!h) return null; if (P.atk) return P.atk.g.prop; if (C.inCombat || (C.calmT || 0) < 4) { const k = C.armedK(); return k ? GEAR[k].prop : null; } return null; };
