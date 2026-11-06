@@ -33,11 +33,11 @@ function cinDepart(S, G, next) { const [gx, gz] = G7GRAN, gh = hAt(gx, gz);
   cine([
     { fn: () => { hide(['simeon']); BRO.filter(id => id !== 'simeon').forEach((id, i) => walkTo(id, gx + 30 + i, gz + 40, 1.6)); }, cam: [gx + 6, gh + 3, gz + 6], look: [gx + 14, gh + 1, gz + 18], dur: 7, music: 'j_mourn',
       t: '그들이 곡식을 나귀에 싣고 그 곳을 떠났더라. 한 사람이 여관에서 나귀에게 먹이를 주려고 자루를 풀고 본즉 그 돈이 자루 아귀에 있는지라.', ref: '창세기 42:26–27' },
-    { fn: () => { S.q.heb2 = 1; place('jacob', G7HEB[0], G7HEB[1] + 2.6, 0); npcSet('jacob', { look: LOOK.jacobMourn }); }, cam: [G7HEB[0] + 3.4, hAt(G7HEB[0], G7HEB[1]) + 1.6, G7HEB[1] + 6.4], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.3, G7HEB[1] + 2.6], dur: 8,
-      n: '야곱', t: '너희가 나에게 내 자식들을 잃게 하도다. 요셉도 없어졌고 시므온도 없어졌거늘 베냐민을 또 빼앗아 가고자 하니… 내 아들은 너희와 함께 내려가지 못하리니.', ref: '창세기 42:36, 38', e: 'weary' },
+    { fn: () => { S.q.heb2 = 1; place('jacob', G7HEB[0], G7HEB[1] + 2.6, 0); npcSet('jacob', { look: LOOK.jacobMourn }); place('reuben', G7HEB[0] - 1.2, G7HEB[1] + 4.6, Math.PI, { vis: true }); /* v18.34 Reuben is there to speak */ }, cam: [G7HEB[0] + 3.4, hAt(G7HEB[0], G7HEB[1]) + 1.6, G7HEB[1] + 6.4], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.3, G7HEB[1] + 2.6], dur: 8,
+      n: '야곱', t: '너희가 나에게 내 자식들을 잃게 하도다. 요셉도 없어졌고 시므온도 없어졌거늘 베냐민을 또 빼앗아 가고자 하니, 이는 다 나를 해롭게 함이로다.', ref: '창세기 42:36', e: 'weary' },
     /* v18.34 Reuben's pledge (42:37), so Judah's later pledge (43:9) reads against it: words offered vs. himself offered */
-    { cam: [G7HEB[0] - 2.2, hAt(G7HEB[0], G7HEB[1]) + 1.5, G7HEB[1] + 5.6], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.3, G7HEB[1] + 2.6], dur: 7, n: '르우벤', t: '내가 그를 아버지께 데리고 돌아오지 아니하거든 내 두 아들을 죽이소서. 그를 내 손에 맡기소서.', ref: '창세기 42:37' },
-    { cam: [G7HEB[0] + 1.6, hAt(G7HEB[0], G7HEB[1]) + 1.6, G7HEB[1] + 4.6], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.4, G7HEB[1] + 2.6], dur: 6, n: '야곱', t: '…손자를 죽여서 무엇이 내게 위로가 되겠느냐. 그의 형은 죽었고 그만 남았거늘.', ref: '창세기 42:38', e: 'sad' },
+    { cam: [G7HEB[0] + 0.6, hAt(G7HEB[0], G7HEB[1]) + 1.55, G7HEB[1] + 3.2], look: [G7HEB[0] - 1.2, hAt(G7HEB[0], G7HEB[1]) + 1.5, G7HEB[1] + 4.6], dur: 7, n: '르우벤', t: '내가 그를 아버지께 데리고 돌아오지 아니하거든 내 두 아들을 죽이소서. 그를 내 손에 맡기소서.', ref: '창세기 42:37' },
+    { cam: [G7HEB[0] + 1.6, hAt(G7HEB[0], G7HEB[1]) + 1.6, G7HEB[1] + 4.6], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.4, G7HEB[1] + 2.6], dur: 6, n: '야곱', t: '내 아들은 너희와 함께 내려가지 못하리니, 그의 형은 죽었고 그만 남았음이라.', ref: '창세기 42:38', e: 'sad' },
   ], () => { S.q.heb2 = 0; S.q.broShow = 0; npcSet('jacob', { look: LOOK.jacob }); BRO.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); next && next(); });
 }
 function cinJudahPledge(S, G, next) { const hh = hAt(G7HEB[0], G7HEB[1]);
@@ -94,11 +94,11 @@ function cinIAmJoseph(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 
     { fn: () => BRO11.forEach(id => { const n = G.npc(id); if (n) n.act = 'kneelRest'; }), cam: [hx - 3, hh + 1.8, hz + 1], look: [hx - 1, hh + 1, hz + 4.5], dur: 6, t: '형들이 그 앞에서 놀라서 대답하지 못하더라.', ref: '창세기 45:3' },
     { cam: [hx + 1.4, hh + 1.6, hz + 1.6], look: [hx, hh + 1.6, hz], dur: 9, n: '요셉', t: '나는 당신들의 아우 요셉이니 당신들이 애굽에 판 자라. 당신들이 나를 이 곳에 팔았다고 해서 근심하지 마소서. 한탄하지 마소서. 하나님이 생명을 구원하시려고 나를 당신들보다 먼저 보내셨나이다.', ref: '창세기 45:4–5', e: 'cry' },
     { cam: [hx - 1.2, hh + 1.6, hz + 1.8], look: [hx, hh + 1.6, hz], dur: 9, n: '요셉', t: '그런즉 나를 이리로 보낸 이는 당신들이 아니요 하나님이시라. 하나님이 나를 바로에게 아버지로 삼으시고 그 온 집의 주로 삼으시며 애굽 온 땅의 통치자로 삼으셨나이다.', ref: '창세기 45:8', e: 'tender' },
-    { fn: () => { const b = G.npc('benjamin2'); if (b) { b.act = null; G.npcTo('benjamin2', hx + 0.5, hz + 0.9, Math.PI, false); b.emote = { k: 'weep', t: 0, dur: 9, amb: true }; } }, cam: [hx + 2.6, hh + 1.5, hz + 0.4], look: [hx + 0.2, hh + 1.4, hz + 0.5], dur: 8,
+    { fn: () => { const b = G.npc('benjamin2'); if (b) { b.act = null; G.npcTo('benjamin2', hx + 0.5, hz + 0.9, Math.PI, false); b.emote = { k: 'weep', t: 0, dur: 22, amb: true }; } }, cam: [hx + 2.6, hh + 1.5, hz + 0.4], look: [hx + 0.2, hh + 1.4, hz + 0.5], dur: 8,
       t: '자기 아우 베냐민의 목을 안고 우니 베냐민도 요셉의 목을 안고 우니라. 요셉이 또 형들과 입맞추며 안고 우니 형들이 그제서야 요셉과 말하니라.', ref: '창세기 45:14–15' },
     /* v18.34 the promise made at Hebron (p_provision: 「형, 꼭 빨리 와야 해. 약속!」) is answered at last */
-    { cam: [hx + 1.9, hh + 1.45, hz + 1.5], look: [hx + 0.3, hh + 1.45, hz + 0.6], dur: 5.5, n: '베냐민', t: '형… 금방 온다고 약속했잖아. 스무 해가 넘게 기다렸어.', e: 'cry' },
-    { cam: [hx + 0.9, hh + 1.55, hz + 1.9], look: [hx + 0.3, hh + 1.5, hz + 0.6], dur: 6, n: '요셉', t: '늦어서 미안해, 베냐민. 이제 별 이야기, 날마다 해 줄게. 하나님이 우리 약속을 잊지 않으셨어.', e: 'cry' },
+    { cam: [hx + 1.5, hh + 1.5, hz - 0.9], look: [hx + 0.5, hh + 1.5, hz + 0.9], dur: 5.5, n: '베냐민', t: '형… 금방 온다고 약속했잖아. 스무 해가 넘게 기다렸어.', e: 'cry' },
+    { cam: [hx + 2.3, hh + 1.55, hz + 0.2], look: [hx + 0.2, hh + 1.5, hz + 0.45], dur: 6, n: '요셉', t: '늦어서 미안해, 베냐민. 오늘 밤엔 별 이야기 해 줄게. 이제는 날마다. 하나님이 우리 약속을 잊지 않으셨어.', e: 'cry' },
   ], () => { cpose(null); BRO11.forEach(id => { const n = G.npc(id); if (n) { n.act = null; n.emote = null; } }); next && next(); });
 }
 function cinSendOff(S, G, next) { const cx = 34, cz = -30, ch = hAt(cx, cz), hh = hAt(G7HEB[0], G7HEB[1]);

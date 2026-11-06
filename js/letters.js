@@ -11,6 +11,7 @@ const Game = G.Game, EP = G.EP && G.EP.joseph; if (!EP || !G.UI) return;
 const S = () => Game.S(), P = () => Game.P, rnd = a => a[Math.floor(Math.random() * a.length)], sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const pop = (t, s, i) => G.UI.pop ? G.UI.pop(t, s, i) : G.UI.toast(s ? t + ' · ' + s : t);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const jj = w => { const c = w.charCodeAt(w.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28; }; /* v18.34 받침 */
 const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' || st[0] === 'g' ? 7 : (+st[1] || 2); } /* v18.34 g1–g8 are chapters 7–8 (they read as chapter 1) */;
 const Lt = G.Letters = {};
 const box = () => { const s = S(); return (s.letters = s.letters || { list: [], cool: {}, last: -1, wait: [] }); };
@@ -60,7 +61,7 @@ function runTick(dt) { const r = runner; if (!r) return; const p = P(), n = Game
 function morning(s) { const b = box(); if (b.last === s.day) return; const h = s.time % 24; if (h < 6.5 || h > 18) return; b.last = s.day;
   /* a feast tonight: a friend in that village invites Joseph */
   const fe = G.Feast && G.Feast.today && G.Feast.today(); if (fe && G.Bond) { const v = (EP.villages || []).find(x => x.id === fe.v); const fr = v && v.folk.map(f => Game.ENT.npcs[f.id]).filter(n => n && G.Bond.level(n.id).i >= 1).sort((a, c) => G.Bond.get(c.id).p - G.Bond.get(a.id).p)[0];
-    if (fr) { const R = G.Feast.reasons[fe.why]; Lt.send(fr.name, `${title(s)}께,\n오늘 저녁 우리 ${v.n}에서 ${R.n}가 열려요. ${R.d}예요.\n꼭 오셔서 함께 먹고 기뻐해 주세요! — ${fr.name}`, null, 'invite'); return; } }
+    if (fr) { const R = G.Feast.reasons[fe.why]; Lt.send(fr.name, `${title(s)}께,\n오늘 저녁 우리 ${v.n}에서 ${R.n}${jj(R.n) ? '이' : '가'} 열려요. ${R.d.replace(/!$/, '')}${jj(R.d.replace(/!$/, '')) ? '이에요' : '예요'}.\n꼭 오셔서 함께 먹고 기뻐해 주세요! — ${fr.name}`, null, 'invite'); return; } }
   if (!G.Bond || Math.random() > 0.55) return; const pool = [];
   for (const id in (s.bond || {})) { const n = Game.ENT.npcs[id]; if (!n || n.d.animal || n.d.noBond) continue; const lv = G.Bond.level(id).i; if (lv < 1 || (b.cool[id] || -9) > s.day - 3) continue; for (let i = 0; i < lv; i++) pool.push([n, lv]); }
   if (!pool.length) return; const [n, lv] = rnd(pool); b.cool[n.id] = s.day; const c = compose(n, lv, s); Lt.send(n.name, c.text, c.gift, 'letter'); }

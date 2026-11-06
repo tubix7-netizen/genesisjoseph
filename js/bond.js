@@ -40,7 +40,7 @@ B.rewardOf = function (id, lv) { const N = Game.ENT.npcs[id]; if (fam(id)) retur
 function reward(id, lv) { const N = Game.ENT.npcs[id], r = B.rewardOf(id, lv), S = Game.S(), H = S.hero; if (!r) return; const nm = N ? N.name : id;
   if (r.food) { const T = Game.EP().lootTables, tab = (T && (N && N.x > 110 ? T.canaan : T.egypt)) || [['bread', 1, 1]]; const t = rnd(tab); Game.give(t[0], r.food, true); G.UI.gain && G.UI.gain(t[0], r.food); }
   if (r.k && Game.ITEMS[r.k]) { Game.give(r.k, r.n || 1, true); G.UI.gain && G.UI.gain(r.k, r.n || 1); }
-  if (r.silver) Game.silver(r.silver); if (r.insight && Game.insight) Game.insight(r.insight, `${nm}와의 정`);
+  if (r.silver) Game.silver(r.silver); if (r.insight && Game.insight) Game.insight(r.insight, `${nm}${(c => c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '과' : '와')(nm.charCodeAt(nm.length - 1))}의 정`);
   if (r.mind && H) { H.mindMax = (H.mindMax || 100) + r.mind; H.mind = H.mindMax; } if (r.stam && H) H.stamMax = (H.stamMax || 100) + r.stam; if (r.hp && H) { H.hpMax += r.hp; H.hp = H.hpMax; }
   if (r.ward) { const w = S.flags.ward = S.flags.ward || { own: { josephVizier: 1, josephShaved: 1 }, sel: null }; w.own[r.ward] = 1; }
   G.UI.toast(`${nm}의 선물 · ${r.d}`); G.UI.hud && G.UI.hud(); }
@@ -54,7 +54,7 @@ const STORY = [
 B.talk = function (n, lines, done) { const id = n.id || Object.keys(Game.ENT.npcs).find(k => Game.ENT.npcs[k] === n); n.id = id; const S = Game.S(), b = B.get(id), F = fam(id), first = b.day !== S.day;
   if (first) { b.day = S.day; setTimeout(() => B.add(id, F ? 3 : 2, '오늘 이야기'), 50); }
   const ls = (lines && lines.length ? lines : G.Greet ? G.Greet.lines(n) : [{ n: n.name, t: '평안하시오.' }]).map(l => typeof l === 'string' ? { n: n.name, t: l } : l);
-  const ch = [{ t: '안부 묻기', then: () => setTimeout(() => G.UI.say([{ n: n.name, t: F ? rnd(F.talk(S, B.level(id).i)) : (G.Persona && G.Persona.story(n, B.level(id).i)) || rnd(STORY[B.level(id).i]) }], () => B.talk(n, [{ n: n.name, t: '또 무슨 이야기를 할까요?' }], done)), 30) },
+  const ch = [{ t: '안부 묻기', then: () => setTimeout(() => G.UI.say([{ n: n.name, t: F ? pk(F.talk(S, B.level(id).i)) : (G.Persona && G.Persona.story(n, B.level(id).i)) || rnd(STORY[B.level(id).i]) }], () => B.talk(n, [{ n: n.name, t: '또 무슨 이야기를 할까요?' }], done)), 30) },
     { t: '선물 주기', then: () => setTimeout(() => B.giftPick(n, done), 30) }];
   if (F && F.meal && b.meal !== S.day) ch.push({ t: '함께 식사하기', then: () => setTimeout(() => B.meal(n, done), 30) });
   if (F && F.walk) ch.push({ t: n.follow ? '여기서 기다려 줘요' : '같이 걸어요', then: () => { n.follow = !n.follow; G.UI.toast(n.follow ? `${n.name}이(가) 함께 걸어요` : `${n.name}이(가) 여기서 기다려요`); done && done(); } });
@@ -69,10 +69,12 @@ B.giftPick = function (n, done) { const S = Game.S(), id = n.id, b = B.get(id), 
   G.UI.say([{ n: '요셉', t: '무엇을 줄까?', choices: ks.map(k => ({ t: `${I[k].n} (${S.inv[k]})`, then: () => { Game.take(k, 1); b.gift = S.day; G.Deeds && G.Deeds.rec('share', n); const like = likes(n).includes(k), sto = ['stone', 'branch', 'clay', 'straw', 'reed'].includes(k);
       setTimeout(() => G.UI.say([{ n: n.name, t: like ? rnd(['어머, 이거 정말 좋아하는 거예요! 고마워요!', '어떻게 알았소? 내가 이걸 제일 좋아하는데!', '와아! 최고예요!']) : sto ? rnd(['…이걸 왜 주시오? 허허.', '음… 고마워요. (어리둥절)']) : rnd(['고마워요. 잘 쓸게요.', '정성이 고맙구려.']) }], () => { B.add(id, like ? 6 : sto ? 0 : 2, '선물'); done && done(); }), 30); } })).concat([{ t: '그만두기', then: () => done && done() }]) }], null); };
 // family time
+/* v18.34 no talk of the children before they are born (c5_manasseh / c5_ephraim) */
+const kidOK = t => { const q = (Game.S() && Game.S().q) || {}; return q.born2 ? true : q.born1 ? !/에브라임/.test(t) : !/아이|므낫세|에브라임/.test(t); }, pk = a => { const f = (a || []).filter(kidOK); return rnd(f.length ? f : a); };
 B.meal = function (n, done) { const S = Game.S(), P = Game.P, b = B.get(n.id); b.meal = S.day; const F = fam(n.id);
   G.UI.fade(() => { P.emote = { k: 'sitg', t: 0, dur: 1e4 }; /* v18.34 on the floor mat, not on an invisible chair */ const H = S.hero; if (H) H.hp = H.hpMax; P.stam = (H && H.stamMax) || 100; if (G.Vitals && G.Vitals.mindGain) G.Vitals.mindGain(25); if (S.surv) S.surv.food = 100; }, () => {
-    G.UI.say([{ n: '', t: rnd(['식탁에 따뜻한 빵과 렌틸 죽, 대추야자가 차려졌습니다.', '아이들이 앞다투어 오늘 있었던 일을 이야기했습니다.', '나일 강에서 잡은 생선이 구수하게 익었습니다.']) },
-      { n: n.name, t: rnd(F.mealTalk) }, { n: '요셉', t: rnd(['하나님, 이 식탁을 주셔서 감사합니다.', '고마워요. 오늘도 덕분에 힘이 나요.', '(아이들의 웃음소리를 들으며 미소 짓는다)']) }],
+    G.UI.say([{ n: '', t: pk(['식탁에 따뜻한 빵과 렌틸 죽, 대추야자가 차려졌습니다.', '아이들이 앞다투어 오늘 있었던 일을 이야기했습니다.', '나일 강에서 잡은 생선이 구수하게 익었습니다.']) },
+      { n: n.name, t: pk(F.mealTalk) }, { n: '요셉', t: pk(['하나님, 이 식탁을 주셔서 감사합니다.', '고마워요. 오늘도 덕분에 힘이 나요.', '(아이들의 웃음소리를 들으며 미소 짓는다)']) }],
       () => { P.emote = null; B.add(n.id, 5, '함께한 식사'); for (const k in Game.EP().family) if (k !== n.id && Game.ENT.npcs[k] && Game.ENT.npcs[k].vis) B.add(k, 2); G.UI.toast('체력·기력·정신력이 가득 찼어요'); done && done(); }); }); };
 B.play = function (n, done) { const S = Game.S(), P = Game.P, b = B.get(n.id); b.play = S.day; const F = fam(n.id), game = rnd(F.games);
   n.emote = { k: game.k, t: 0, dur: 5 }; P.emote = { k: game.me, t: 0, dur: 5 }; sfx('cheer');

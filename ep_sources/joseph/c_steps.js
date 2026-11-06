@@ -186,7 +186,7 @@ const steps = {
   c5_year1: { ch: 6, obj: '풍년 1년 · 곳간 짓기', list: S => [{ t: '벽돌 굽는 우니에게 벽돌 받기', ok: qd(S, 'bricks') }, { t: '성읍 곳간 짓기', ok: !!S.built.granA }, { t: '서쪽 마을 곳간 짓기', ok: !!S.built.granB }, { t: '남쪽 마을 곳간 짓기', ok: !!S.built.granC }],
     target: S => !qd(S, 'bricks') ? 'npc:brick' : !S.built.granA ? 'site:granA' : !S.built.granB ? 'site:granB' : !S.built.granC ? 'site:granC' : null, check: S => S.built.granA && S.built.granB && S.built.granC,
     talk: { brick(S, G) { if (S.q.bricks) return false; say([N('brick', '총리님! 가마마다 벽돌이 산더미입니다. 진흙에 짚을 섞어 볕에 말린 튼튼한 벽돌이지요.'), N('brick', '곳간 셋에 쓸 만큼 수레에 실어 두었습니다. 터에 가서 「짓기」만 하시면 일꾼들이 쌓을 겁니다.')], () => { G.give('brick', 72); G.give('wood', 24); tick(S, 'bricks'); }); } },
-    done(S, G, next) { narr([{ kick: '풍년 1년', title: '곳간 셋', t: '성읍과 서쪽 마을과 남쪽 마을에 곳간이 섰습니다. 그해 가을, 수레마다 곡식이 넘치도록 실려 들어왔습니다.', ref: '창세기 41:48' }], next); }, next: 'c5_manasseh' },
+    done(S, G, next) { narr([{ kick: '풍년 1년', title: '곳간 셋', t: '성읍과 서쪽 마을과 남쪽 마을에 곳간이 섰습니다. 그해 거둘 때에, 수레마다 곡식이 넘치도록 실려 들어왔습니다.', ref: '창세기 41:48' }], next); }, next: 'c5_manasseh' },
   c5_manasseh: { ch: 6, obj: '총리의 집으로 · 아스낫이 기다린다', target: 'npc:asenath', talk: { asenath(S, G) { birthScene(S, G, 'manasseh'); } } },
   c5_year2: { ch: 6, obj: '풍년 2년 · 왕실 밭과 곳간', list: S => [{ t: `왕실 밭의 밀 거두기 (${Math.min(12, S.q.wheat || 0)}/12)`, ok: (S.q.wheat || 0) >= 12 }, { t: '서기관에게 곳간 기록 듣기', ok: qd(S, 'record') }],
     enter(S, G, re) { if (!re) { if (!G.tool('sickle')) G.giveTool('sickle'); narr([{ kick: '풍년 2년', title: '왕실 밭', t: '바로의 궁 북쪽 왕실 밭에 밀이 누렇게 익었습니다. 총리가 몸소 낫을 들자 일꾼들이 놀라워했습니다.', ref: '' }]); } },

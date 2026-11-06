@@ -35,15 +35,15 @@ const NEB = ['눈금이 열여섯 자에 닿으면 풍년이오. 열두 자면 �
 const NEBF = ['요즘 눈금을 보면 가슴이 철렁하오. 총리께서 곳간을 지어 두지 않았다면…', '흉년에도 나는 날마다 눈금을 적소. 언젠가 다시 물이 차오르는 날을 첫 번째로 보려고.'];
 function addKeeper(W) { if (!NM.ok || !EP.npcs) return; for (let i = EP.npcs.length - 1; i >= 0; i--) if (EP.npcs[i].id === 'nmNeb') EP.npcs.splice(i, 1); const L = vl('ct_mer') || vl('ct_pot');
   const x = NM.x + Math.cos(NM.f) * 1.9 - Math.sin(NM.f) * 1.2, z = NM.z - Math.sin(NM.f) * 1.9 - Math.cos(NM.f) * 1.2; /* v18.34 behind his seat, not in it */
-  EP.npcs.push({ id: 'nmNeb', name: '수위 서기 네브', look: Object.assign({}, L || {}, { skin: 0x9a6a40, top: 0xece2c8, age: 'old', beard: 'short', hair: 0xd8d0c0 }), x, z, face: NM.f + Math.PI, talkR: 2.4, noBond: true, show: s => after('c5_patrol'), persona: '나일 강 수위를 평생 재 온 늙은 서기. 숫자에 엄격하지만 강 이야기만 나오면 눈이 반짝인다.' }); }
+  EP.npcs.push({ id: 'nmNeb', name: '수위 서기 하피', look: Object.assign({}, L || {}, { skin: 0x9a6a40, top: 0xece2c8, age: 'old', beard: 'short', hair: 0xd8d0c0 }), x, z, face: NM.f + Math.PI, talkR: 2.4, noBond: true, show: s => after('c5_patrol'), persona: '나일 강 수위를 평생 재 온 늙은 서기. 숫자에 엄격하지만 강 이야기만 나오면 눈이 반짝인다.' }); }
 if (G.Life && G.Life.talk) { const t0 = G.Life.talk; G.Life.talk = function (id) { if (id !== 'nmNeb') return t0.apply(this, arguments); const n = Game.ENT.npcs[id]; if (n) n.talking = true;
   const s = S(), log = s.flags.nmLog || {}, met = s.flags.nebMet; s.flags.nebMet = 1; let t;
-  if (!met) t = '처음 뵙소, 총리님. 나는 이 계단을 마흔 해 지켜 온 수위 서기 네브요. 강물이 얼마나 불었는지 날마다 이 눈금에 적지요.';
-  else if (s.step === 'j_end' || s.step === 'g8_pharaoh') t = '총리님! 어제 눈금이 한 자 올랐소! 마른 해가 끝나 가는 게요. 내가 제일 먼저 봤소!';
+  if (!met) t = '처음 뵙소, 총리님. 나는 이 계단을 마흔 해 지켜 온 수위 서기 하피요. 강물이 얼마나 불었는지 날마다 이 눈금에 적지요.';
+  else if (s.step === 'j_end') t = '총리님! 어제 눈금이 한 자 올랐소! 마른 해가 끝나 가는 게요. 내가 제일 먼저 봤소!';
   else if (s.flags.nmCard) t = rnd(['허허, 이제 총리께서 나보다 강을 더 잘 읽으시오.', '세 계절 눈금을 다 적으셨으니, 우리 서기들 사이에서 소문이 났소.']);
   else if (Object.keys(log).length) { const left = ['akhet', 'peret', 'shemu'].filter(k => !log[k]).map(k => ({ akhet: '범람기', peret: '씨 뿌림', shemu: '거둠' })[k]); t = left.length ? `${Object.keys(log).length === 1 ? '첫 눈금을' : '눈금을'} 적으셨구려. 이제 ${left.join('·')} 철만 남았소.` : rnd(NEB); }
   else t = rnd(famine() ? NEBF.concat(NEB.slice(3)) : NEB);
-  G.UI.say([{ n: '수위 서기 네브', t }], () => { if (n) n.talking = false; }); return true; }; } /* v18.34 return true: otherwise the default 「평안하시오.」 replaced his line */
+  G.UI.say([{ n: '수위 서기 하피', t }], () => { if (n) n.talking = false; }); return true; }; } /* v18.34 return true: otherwise the default 「평안하시오.」 replaced his line */
 // ------------------------------------------------------------------ reading the level
 const LEVEL = () => { const s = S(), z = G.Nile ? G.Nile.season(s) : { k: 'peret', n: '' }, off = G.Nile && G.Nile.offset ? G.Nile.offset() : 0; const cub = Math.round(14 + off * 6 + (z.k === 'akhet' ? 1 : z.k === 'shemu' ? -2 : 0)); return { z, cub: famine() ? Math.min(cub, 11) : cub }; };
 const WORD = (c, k) => !famine() && k && k !== 'akhet' ? (k === 'shemu' ? '물이 빠지는 거둠 철이에요 · 이맘때는 낮은 게 당연해요' : '물이 빠져 씨를 뿌리는 철이에요 · 범람기 눈금이 한 해를 정해요') : c >= 18 ? '너무 많이 불었어요 · 둑을 살펴야 해요' : c >= 15 ? '알맞게 불었어요 · 풍년이 들겠어요' : c >= 13 ? '조금 모자라요 · 물길을 잘 대야 해요' : '물이 거의 불지 않았어요 · 흉년의 눈금이에요';
@@ -70,7 +70,7 @@ function startCount() { if (CT.on) return; ui(); const s = S(); CT.on = true; G.
   const tick = () => { if (done) return; const t = performance.now() - t0, w = W(); for (const q of sacks) { const x = w + 20 - (t - q.at + w / 2 / speed) * speed; q.x = x; q.el.style.left = (x - 18) + 'px'; if (!q.got && x < w / 2 - 34 && !q.miss) { q.miss = true; miss++; q.el.style.opacity = 0.35; } }
     if (sacks.every(q => q.got || q.miss)) return end(); requestAnimationFrame(tick); };
   const tap = e => { e.preventDefault(); e.stopPropagation(); const w = W(); let best = null, bd = 1e9; for (const q of sacks) { if (q.got || q.miss) continue; const d = Math.abs(q.x - w / 2); if (d < bd) { bd = d; best = q; } }
-    if (best && bd < 30) { best.got = true; hit++; best.el.style.background = '#e8c048'; tal.textContent += hit % 5 === 0 ? '卌 ' : '|'; sfx('click', { pitch: 1.2 + hit * 0.04 }); } else { wrong++; sfx('thud', { vol: 0.4, pitch: 1.6 }); if (best && bd < 90) { best.miss = true; miss++; best.el.style.opacity = 0.35; } } }; /* v18.34 a wrong tap loses the nearest sack (tapping wildly used to win every day) */
+    if (best && bd < 30) { best.got = true; hit++; best.el.style.background = '#e8c048'; if (hit % 5 === 0) tal.textContent = tal.textContent.slice(0, -4) + '卌 '; else tal.textContent += '|'; /* v18.34 the fifth stroke crosses the four */ sfx('click', { pitch: 1.2 + hit * 0.04 }); } else { wrong++; sfx('thud', { vol: 0.4, pitch: 1.6 }); if (best && bd < 90) { best.miss = true; miss++; best.el.style.opacity = 0.35; } } }; /* v18.34 a wrong tap loses the nearest sack (tapping wildly used to win every day) */
   el.addEventListener('pointerdown', tap);
   function end() { done = true; setTimeout(() => { el.remove(); CT.on = false; G.UI.setBusy('count', false); s.flags.ctDay = s.day; const perfect = hit === N && wrong <= 1;
     if (hit >= 7) { Game.silver && Game.silver(perfect ? 6 : 4); if (perfect) s.flags.ctPerfect = (s.flags.ctPerfect || 0) + 1; pop(perfect ? '한 자루도 안 놓쳤어요!' : '잘 셌어요', `${hit} / ${N} 자루 · 은 ${perfect ? 6 : 4}`, 'star'); }

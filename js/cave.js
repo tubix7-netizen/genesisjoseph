@@ -196,7 +196,7 @@ Game.CTX.push(function (s) { if (!inCave() || s.flags.cvLoot_sage) return null; 
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s || !s.flags) return r; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
   try { sync(); if (s.flags.kLetterDay && s.day >= s.flags.kLetterDay && G.Letters) { s.flags.kLetterDay = 0; G.Letters.send(KN, '요셉에게,\n자네 덕분에 내 물시계가 신전에까지 소문이 났다네. 생명의 집에서 다시 와 달라는군! …불은 조심하라는 조건으로.\n별 지도대로 소프데트가 떴네. 곧 강물이 불 걸세. 하늘을 지으신 분이 정하신 때를 우리는 그저 재어 볼 뿐이지.\n언제든 동굴에 들르게. 차는 없지만 펑 소리는 많다네. — 네브세니', ['$', 10], 'kiin'); }
     if (!inCave()) { if (s.flags.cave) s.flags.cave = 0; return r; }
-    const p = P(); if (Math.hypot(p.x - CX, p.z - CZ) > 80) { s.flags.cave = 0; return r; } /* carried away by something: you are outside again */
+    const p = P(); if (Math.hypot(p.x - CX, p.z - CZ) > 80) { s.flags.cave = 0; if (s.flags.cvWait) { s.flags.cvWait.forEach(id => Game.npcFollow(id, true)); s.flags.cvWait = null; } return r; } /* carried away by something: you are outside again */
     if (p.y < CY - 3) { p.y = CY; p.vy = 0; }
     LGT += (lightAt(s) - LGT) * Math.min(1, d * 3);
     if (G.Chem && G.Chem.torchT > 0) G.Chem.torchT += d * 0.6; /* (it burns slower in the still air) */

@@ -675,7 +675,7 @@ function locoPose(rig, st, t) { // returns true when a full-body hold pose (slee
   const ph = st.phase || 0, s = Math.sin(ph), c = Math.cos(ph);
   if (st.sleep) { rig.off[1] = -0.72; rig.set(B.pelvis, -PI / 2, 0, 0); rig.set(B.uArmL, 0, 0, 0.2); rig.set(B.uArmR, 0, 0, -0.2); rig.set(B.head, -0.2, 0, 0.2); return true; }
   if (st.kneel) {
-    rig.off[1] = -0.42; rig.set(B.thighL, -0.15, 0, 0); rig.set(B.thighR, -0.15, 0, 0); rig.set(B.shinL, 1.55, 0, 0); rig.set(B.shinR, 1.55, 0, 0);
+    rig.off[1] = -0.42; rig.set(B.thighL, -0.15, 0, 0); rig.set(B.thighR, -0.15, 0, 0); rig.set(B.shinL, 1.7, 0, 0); rig.set(B.shinR, 1.7, 0, 0); /* v18.34 1.55 → 1.7: the knees no longer sink */
     rig.set(B.chest, 0.25, 0, 0); rig.set(B.head, 0.35, 0, 0); rig.set(B.uArmL, -0.6, 0, -0.3); rig.set(B.uArmR, -0.6, 0, 0.3); rig.set(B.fArmL, -1.2, 0, 0); rig.set(B.fArmR, -1.2, 0, 0); return true;
   }
   if (st.ride) { // astride a donkey or camel: knees out, reins in hand (a passenger holds on to the rider), the body
@@ -785,7 +785,7 @@ function actPose(rig, st, t) {
   }
   if (a === 'push') { rig.set(B.chest, 0.55, 0, 0); rig.set(B.uArmL, -1.45, 0, -0.1); rig.set(B.uArmR, -1.45, 0, 0.1); rig.set(B.fArmL, -0.2, 0, 0); rig.set(B.fArmR, -0.2, 0, 0); rig.set(B.thighL, -0.7 + Math.sin(t * 6) * 0.2, 0, 0); rig.set(B.thighR, 0.4 - Math.sin(t * 6) * 0.2, 0, 0); rig.set(B.shinL, 0.6, 0, 0); rig.off[1] = -0.08; }
   if (a === 'wrestle') { const k = Math.sin(t * 3) * 0.15; rig.set(B.chest, 0.45 + k, k, 0); rig.set(B.uArmL, -1.3, 0, -0.5); rig.set(B.uArmR, -1.3, 0, 0.5); rig.set(B.fArmL, -1.0, 0, 0); rig.set(B.fArmR, -1.0, 0, 0); rig.set(B.thighL, -0.6, 0, 0.2); rig.set(B.thighR, 0.3, 0, -0.2); rig.set(B.shinL, 0.7, 0, 0); rig.set(B.shinR, 0.3, 0, 0); rig.off[1] = -0.12; }
-  if (a === 'pray') { rig.off[1] = -0.42; rig.set(B.thighL, -0.15, 0, 0); rig.set(B.thighR, -0.15, 0, 0); rig.set(B.shinL, 1.55, 0, 0); rig.set(B.shinR, 1.55, 0, 0); rig.set(B.chest, 0.1, 0, 0); rig.set(B.head, -0.35, 0, 0); rig.set(B.uArmL, -2.2, 0, -0.5); rig.set(B.uArmR, -2.2, 0, 0.5); rig.set(B.fArmL, -0.4, 0, 0); rig.set(B.fArmR, -0.4, 0, 0); }
+  if (a === 'pray') { rig.off[1] = -0.42; rig.set(B.thighL, -0.15, 0, 0); rig.set(B.thighR, -0.15, 0, 0); rig.set(B.shinL, 1.7, 0, 0); rig.set(B.shinR, 1.7, 0, 0); rig.set(B.chest, 0.1, 0, 0); rig.set(B.head, -0.35, 0, 0); rig.set(B.uArmL, -2.2, 0, -0.5); rig.set(B.uArmR, -2.2, 0, 0.5); rig.set(B.fArmL, -0.4, 0, 0); rig.set(B.fArmR, -0.4, 0, 0); }
   if (a === 'wave') { rig.set(B.uArmR, -2.6, 0, 0.3); rig.set(B.fArmR, -0.4 + Math.sin(t * 10) * 0.3, 0, 0); }
   if (a === 'bow') { const k = Math.sin(Math.min(1, p) * PI); rig.set(B.chest, 0.9 * k, 0, 0); rig.set(B.head, 0.3 * k, 0, 0); rig.set(B.uArmL, 0.2 * k, 0, 0.1); rig.set(B.uArmR, 0.2 * k, 0, -0.1); }
   if (a === 'hug') { rig.set(B.uArmL, -1.3, 0, -0.9); rig.set(B.uArmR, -1.3, 0, 0.9); rig.set(B.fArmL, -1.2, 0, 0); rig.set(B.fArmR, -1.2, 0, 0); rig.set(B.head, 0.1, 0.3, 0); }

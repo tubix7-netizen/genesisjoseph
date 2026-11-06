@@ -14,11 +14,12 @@ const egypt = s => after('c5_patrol'), egyptAny = s => after('c2_arrive');
 const canaan = s => { const o = ord(), i = o.indexOf(s.step); return i >= o.indexOf('p_road') && i <= o.indexOf('p_approach'); };
 
 // ------------------------------------------------------------------ the wild ones
+Object.assign(Game.ITEMS, { hippoTusk: { n: '하마 엄니', cat: 'hunt', p: 30, ic: 'horn', c: '#f0e8d8' }, crocTooth: { n: '악어 이빨', cat: 'hunt', p: 14, ic: 'horn', c: '#f4f0e6' } }); /* v18.34 their own trophies */
 Object.assign(C.WILD, {
   jackal: { n: '자칼', hp: 22, speed: 7.8, flee: 11, beh: 'flee', loot: { hide: 1, fang: 1, bone: 1 }, xp: 6, snd: 'growl' },
   fox: { n: '여우', hp: 12, speed: 8.2, flee: 10, beh: 'flee', loot: { hide: 1, bone: 1 }, xp: 4 },
-  croc: { n: '나일 악어', hp: 90, speed: 4.6, aggro: 6, beh: 'charge', dmg: 18, loot: { meat: 3, hide: 2, fang: 2, bone: 1 }, xp: 28, snd: 'growl', sight: 14, water: 0.33 },
-  hippo: { n: '하마', hp: 180, speed: 5.4, aggro: 7, beh: 'charge', dmg: 24, loot: { meat: 6, hide: 2, tusk: 2, bone: 2 }, xp: 45, snd: 'grunt', big: 1, water: 1.2 },
+  croc: { n: '나일 악어', hp: 90, speed: 4.6, aggro: 6, beh: 'charge', dmg: 18, loot: { meat: 3, hide: 2, crocTooth: 2, bone: 1 }, xp: 28, snd: 'growl', sight: 14, water: 0.33 },
+  hippo: { n: '하마', hp: 180, speed: 5.4, aggro: 7, beh: 'charge', dmg: 24, loot: { meat: 6, hide: 2, hippoTusk: 2, bone: 2 }, xp: 45, snd: 'grunt', big: 1, water: 1.2 },
   ibis: { n: '따오기', hp: 5, speed: 3, flee: 8, beh: 'fly', loot: { feather: [2, 3] }, xp: 2, snd: 'flap' } });
 const Z = EP.wildZones || (EP.wildZones = []), add = (id, list) => { const z = Z.find(q => q.id === id); if (z) for (const e of list) if (!z.sp.some(q => q[0] === e[0])) z.sp.push(e); };
 add('eMarsh', [['ibis', 3], ['croc', 1]]); add('eEast', [['jackal', 2, 'night']]); add('eWest', [['jackal', 2, 'night']]); add('eDesert', [['jackal', 2]]);

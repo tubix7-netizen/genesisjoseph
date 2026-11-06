@@ -101,7 +101,7 @@ pose('thrust2', true, (rig, p) => { // quick low jab from the hip
   set(rig, B.chest, (0.2 + 0.2 * h) * k, (0.3 * w - 0.4 * h) * k, 0);
   set(rig, B.uArmR, (-0.3 - 0.9 * h) * k, 0, (0.35 - 0.25 * h) * k); set(rig, B.fArmR, (-1.6 * w + 1.3 * h - 0.2) * k);
   set(rig, B.uArmL, -0.7 * k, 0, -0.35 * k); set(rig, B.fArmL, -1.2 * k);
-  set(rig, B.thighL, -0.5 * k, 0, 0.1); set(rig, B.shinL, 0.55 * k); set(rig, B.thighR, 0.3 * k, 0, -0.1); set(rig, B.shinR, 0.5 * k); rig.off[1] = -0.12 * k;
+  set(rig, B.thighL, -0.75 * k, 0, 0.1); set(rig, B.shinL, 0.85 * k); set(rig, B.thighR, 0.3 * k, 0, -0.1); set(rig, B.shinR, 0.4 * k); rig.off[1] = -0.12 * k; /* v18.34 front knee bent to the 12 cm drop (front foot was 6 cm in the ground, back foot 3 cm up) */
 });
 pose('thrust3', true, (rig, p) => { // long lunge: everything behind the point
   const w = ph01(p, 0, 0.36), h = ph01(p, 0.36, 0.5), k = 1 - ph01(p, 0.72, 1);
@@ -109,7 +109,7 @@ pose('thrust3', true, (rig, p) => { // long lunge: everything behind the point
   set(rig, B.chest, (-0.1 * w + 0.4 * h) * k, (0.55 * w - 0.6 * h) * k, 0);
   set(rig, B.uArmR, (-0.7 - 0.5 * w - 0.75 * h) * k, 0, 0.25 * k); set(rig, B.fArmR, (-1.7 * w + 1.65 * h - 0.05) * k);
   set(rig, B.uArmL, (-1.0 - 0.6 * h) * k, 0, -0.1 * k); set(rig, B.fArmL, (-0.9 + 0.75 * h) * k);
-  set(rig, B.thighL, (0.1 * w - 1.0 * h) * k, 0, 0.06); set(rig, B.shinL, (0.2 * w + 0.75 * h) * k); set(rig, B.thighR, 0.6 * h * k, 0, -0.06); set(rig, B.shinR, 0.2 * h * k);
+  set(rig, B.thighL, (0.1 * w - 1.36 * h) * k, 0, 0.06); set(rig, B.shinL, (0.2 * w + 0.91 * h) * k); set(rig, B.thighR, 0.6 * h * k, 0, -0.06); set(rig, B.shinR, (0.2 - 0.15 * h) * k); /* v18.34 a real lunge: front shin upright under a near-level thigh, back leg long (the front foot was 11 cm in the ground) */
   set(rig, B.head, -0.1 * h * k, -(0.55 * w - 0.6 * h) * k * 0.8, 0); rig.off[1] = (-0.04 * w - 0.2 * h) * k;
 });
 
@@ -130,7 +130,7 @@ pose('gather', false, (rig, p, t, st) => {
 });
 pose('harvest', false, (rig, p, t, st) => {
   const k = st && st.npcLoop ? 1 : sst(0, 0.2, p) * (1 - sst(0.85, 1, p)), sw = Math.sin(p * TAU);
-  set(rig, B.thighL, -0.5 * k, 0, 0.08); set(rig, B.shinL, 0.65 * k); set(rig, B.thighR, -0.15 * k, 0, -0.08); set(rig, B.shinR, 0.6 * k); rig.off[1] = -0.13 * k;
+  set(rig, B.thighL, -0.5 * k, 0, 0.08); set(rig, B.shinL, 1.1 * k); set(rig, B.thighR, -0.15 * k, 0, -0.08); set(rig, B.shinR, 0.92 * k); rig.off[1] = -0.13 * k; /* v18.34 shins 0.65/0.6 → 1.1/0.92: the knees bend as far as the hips drop (feet were 7 cm in the ground) */
   set(rig, B.chest, 0.7 * k, 0.2 * sw * k, 0); set(rig, B.head, 0.2 * k);
   set(rig, B.uArmR, -1.15 * k, 0, (0.15 + 0.45 * sw) * k); set(rig, B.fArmR, -0.35 * k); set(rig, B.uArmL, -1.2 * k, 0, -0.1 * k); set(rig, B.fArmL, -0.6 * k);
 });
@@ -140,14 +140,18 @@ pose('plant', false, (rig, p, t, st) => {
   set(rig, B.chest, 0.65 * k); set(rig, B.head, 0.35 * k);
   set(rig, B.uArmR, (-0.85 + 0.2 * poke) * k, 0, 0.1); set(rig, B.fArmR, (-0.2 - 0.3 * poke) * k); set(rig, B.uArmL, -0.5 * k, 0, 0.05); set(rig, B.fArmL, -0.9 * k);
 });
+/* v18.34 eat / drink: the hand never reached the mouth (the bread stopped 20 cm away, beside the right cheek) and k→0 set the arms to 0, so
+   seated (sit_eat / sit_drink from supper.js = sitg + these) the arms dropped to the floor every cycle. Now the arms ease from whatever the
+   body below was doing (walk swing, or sitg's hands on the knees) to angles solved by forward kinematics: between bites the bread is held at
+   the chest, at a bite it is 7 cm in front of the lips; the bowl's rim comes to the lips with the head tipped back */
 pose('eat', true, (rig, p, t) => { // bring food to the mouth twice and chew
   const k = sst(0, 0.15, p) * (1 - sst(0.85, 1, p)), bite = Math.max(0, Math.sin(p * PI * 4 - 0.6));
-  set(rig, B.uArmR, (-0.85 - 0.35 * bite) * k, 0, 0.3 * k); set(rig, B.fArmR, (-1.6 - 0.65 * bite) * k); set(rig, B.uArmL, -0.4 * k, 0, -0.15 * k); set(rig, B.fArmL, -1.1 * k);
-  set(rig, B.head, (0.12 - 0.08 * bite) * k); rig.faceM = 0.2 + 0.4 * Math.abs(Math.sin(t * 9)) * k;
+  to(rig, B.uArmR, -0.21 - 0.66 * bite, 0.26, 0.3, k); to(rig, B.fArmR, -1.66 - 0.32 * bite, 0.05 + 0.35 * bite, 0, k); to(rig, B.uArmL, -0.4, 0, -0.15, k); to(rig, B.fArmL, -1.1, 0, 0, k);
+  to(rig, B.head, 0.12 - 0.08 * bite, 0, 0, k); rig.faceM = 0.2 + 0.4 * Math.abs(Math.sin(t * 9)) * k;
 });
 pose('drink', true, (rig, p) => {
   const k = sst(0, 0.2, p) * (1 - sst(0.82, 1, p));
-  set(rig, B.uArmR, -1.25 * k, 0, 0.35 * k); set(rig, B.fArmR, -2.15 * k); set(rig, B.head, -0.4 * k); set(rig, B.chest, -0.08 * k);
+  to(rig, B.uArmR, -0.9, 0.34, 0.39, k); to(rig, B.fArmR, -1.92, 0.42, 0, k); to(rig, B.head, -0.4, 0, 0, k); add(rig, B.chest, -0.13, 0, 0, k);
 });
 
 // ---- rest (hold poses; the inertia spring eases in and out)
@@ -186,7 +190,7 @@ pose('climb', false, (rig, p, t) => { /* v18.14 a real climbing cycle (contralat
 });
 pose('squat', false, (rig, p, t) => { // v12: one knee down, forearm resting on the raised knee (no more deep frog squat)
   /* v18.34 the front foot stood 12 cm in the ground: its shin is vertical now (knee y 0.5, ankle y 0.072); the forearm still rests on that knee */
-  rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.69, 0, 0.12); set(rig, B.shinL, 1.64); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.5);
+  rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.69, 0, 0.12); set(rig, B.shinL, 1.64); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.62); /* v18.34 1.5 → 1.62: the kneeling foot lay 4 cm in the ground */
   set(rig, B.chest, 0.28); set(rig, B.head, -0.08, Math.sin(t * 0.3) * 0.3, 0);
   set(rig, B.uArmL, -0.8, 0, -0.05); set(rig, B.fArmL, -0.5); set(rig, B.uArmR, -0.35, 0, 0.18); set(rig, B.fArmR, -0.6);
 });
@@ -196,7 +200,7 @@ pose('crossArms', true, (rig, p, t) => { // stand with arms folded, weight on on
 });
 pose('warmHands', false, (rig, p, t) => { // v12: down on one knee by the fire (modest and steady instead of a deep squat), rubbing the hands
   const rub = Math.sin(t * 9) * 0.12;
-  rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.69, 0, 0.12); set(rig, B.shinL, 1.64); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.5); /* v18.34 front foot on the ground, as in squat */
+  rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.69, 0, 0.12); set(rig, B.shinL, 1.64); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.62); /* v18.34 1.5 → 1.62: the kneeling foot lay 4 cm in the ground */ /* v18.34 front foot on the ground, as in squat */
   set(rig, B.chest, 0.3); set(rig, B.head, 0.1);
   set(rig, B.uArmL, -1.1, 0, -0.3 + rub); set(rig, B.uArmR, -1.1, 0, 0.3 + rub); set(rig, B.fArmL, -0.7); set(rig, B.fArmR, -0.7);
 });
@@ -234,7 +238,7 @@ pose('laugh', true, (rig, p, t) => { const h = Math.abs(Math.sin(t * 7)) * (1 - 
 pose('weep', false, (rig, p, t) => { // 야곱이 소리 높여 울며 — face in the hands, shoulders shaking
   const sob = Math.sin(t * 6.5) * 0.04 * (0.6 + 0.4 * Math.sin(t * 1.3));
   set(rig, B.chest, 0.4 + sob); set(rig, B.head, 0.4); set(rig, B.uArmL, -1.0, 0, -0.38 + sob); set(rig, B.uArmR, -1.0, 0, 0.38 - sob); set(rig, B.fArmL, -2.25); set(rig, B.fArmR, -2.25);
-  set(rig, B.thighL, -0.12); set(rig, B.shinL, 0.25); set(rig, B.thighR, -0.12); set(rig, B.shinR, 0.25); rig.off[1] = -0.04; rig.faceE = 0.15; });
+  set(rig, B.thighL, -0.28); set(rig, B.shinL, 0.56); set(rig, B.thighR, -0.28); set(rig, B.shinR, 0.56); rig.off[1] = -0.035; rig.faceE = 0.15; }); /* v18.34 knees bend as far as the hips sink (feet were 3 cm in the ground) */
 pose('stretch', false, (rig, p, t) => { // 기지개 + yawn
   const u = ph01(p, 0, 0.35) * (1 - ph01(p, 0.7, 1)), o = ph01(p, 0.35, 0.55) * (1 - ph01(p, 0.7, 1));
   set(rig, B.uArmL, -2.9 * u + 0.6 * o, 0, -0.25 * u + 0.9 * o); set(rig, B.uArmR, -2.9 * u + 0.6 * o, 0, 0.25 * u - 0.9 * o); set(rig, B.fArmL, -0.2 * u); set(rig, B.fArmR, -0.2 * u);
@@ -277,7 +281,7 @@ pose('sling', true, (rig, p, t, st) => {
   set(rig, B.uArmL, (-1.3 + 0.9 * cst) * back, (0.35 - 0.35 * cst) * back, (-0.05 - 0.3 * cst) * back); set(rig, B.fArmL, (-0.15 - 0.9 * cst) * back, 0, 0);
   set(rig, B.thighL, (-0.12 - 0.3 * stride + 0.1 * ft) * back, -0.3 * (1 - pel) * back, 0.05); set(rig, B.shinL, (0.15 + 0.18 * stride) * back);
   set(rig, B.thighR, (0.12 + 0.22 * stride - 0.5 * ft) * back, -0.3 * (1 - pel) * back, -0.05); set(rig, B.shinR, (0.2 + 0.5 * ft) * back);
-  rig.off[1] = (-0.03 - 0.05 * stride * (1 - ft)) * back; rig.off[2] = 0.06 * cst * back; });
+  rig.off[1] = (-0.03 - 0.02 * stride * (1 - ft)) * back; rig.off[2] = 0.06 * cst * back; }); /* v18.34 stride drop 0.05 → 0.02: the lead foot stood 4 cm in the ground */
 
 // =================================================================== 3. IDLE FIDGETS & CONVERSATION
 /* additive overlays faded by a bell envelope, so they mix with breathing and weight shifts */
@@ -581,12 +585,15 @@ function animHuman(rig, st, t) {
       add(rig, B.pelvis, 0.12, 0, 0, ck); add(rig, B.chest, 0.42, 0, 0, ck); add(rig, B.head, -0.38, 0, 0, ck);
       add(rig, B.uArmL, -0.3, 0, -0.08, ck); add(rig, B.uArmR, -0.3, 0, 0.08, ck); add(rig, B.fArmL, -0.45, 0, 0, ck); add(rig, B.fArmR, -0.45, 0, 0, ck); }
     // a hard landing: absorb it in the knees, hands out
-    if (st.landT > 0 && !st.swim) { /* v18.34 not when the jump ends in deep water */ const k = sst(0, 0.25, st.landT), ld = ((rig.lm && rig.lm.land) || 0) * k;
+    if (st.landT > 0 && !st.swim) { /* v18.34 not when the jump ends in deep water */ const k = sst(0, 0.25, st.landT), lnd = (rig.lm && rig.lm.land) || 0, ld = lnd * k, th = 0.86 * k + 0.4 * (lnd - ld);
       /* v18.34 the knee bend now matches the 0.3 m drop (feet were 15 cm in the ground); the small landing dip of locoPose (lm.land) is taken out under it so the two don't stack */
-      rig.off[1] += -0.3 * k + 0.07 * ld; add(rig, B.thighL, -0.86 * k + 0.4 * ld, 0, 0.1 * k, 1); add(rig, B.thighR, -0.86 * k + 0.4 * ld, 0, -0.1 * k, 1); add(rig, B.shinL, 1.72 * k - 0.8 * ld, 0, 0, 1); add(rig, B.shinR, 1.72 * k - 0.8 * ld, 0, 0, 1); /* (matches locoPose's landing dip: 0.07 / 0.4 / 0.8) */
+      rig.off[1] += 0.07 * lnd - 0.87 * (1 - Math.cos(th)); /* v18.34 the hips drop by what the bent legs lose in height (thigh -th, shin +2th: 0.87·(1 - cos th)) instead of linearly in k, which put the feet up to 7 cm in the ground while standing up again (k≈0.5); the same 0.3 m at k = 1 */ add(rig, B.thighL, -0.86 * k + 0.4 * ld, 0, 0.1 * k, 1); add(rig, B.thighR, -0.86 * k + 0.4 * ld, 0, -0.1 * k, 1); add(rig, B.shinL, 1.72 * k - 0.8 * ld, 0, 0, 1); add(rig, B.shinR, 1.72 * k - 0.8 * ld, 0, 0, 1); /* (matches locoPose's landing dip: 0.07 / 0.4 / 0.8) */
       add(rig, B.chest, 0.4, 0, 0, k); add(rig, B.uArmL, -0.5, 0, -0.5, k); add(rig, B.uArmR, -0.5, 0, 0.5, k); }
     if (swk < 0.5) { fidgets(rig, st, t, dt, A); convo(rig, st, t, A); } /* v18.34 no hands-behind-the-back fidgets while treading water */
-  } else if (st.sit && !st.ride) seatedLife(rig, st, t);
+  } else if (st.sit && !st.ride) { const sf = st.act && P[st.act]; /* v18.34 a seated person with an upper-body act (the brothers at Joseph's table: sit + eat) did nothing — the hold skipped the act; now the arms play it and the seat keeps the legs */
+    if (sf && sf.up) { for (let i = 0; i < LOWER.length; i++) { const o = LOWER[i] * 3; SAVE[i * 3] = rig.rot[o]; SAVE[i * 3 + 1] = rig.rot[o + 1]; SAVE[i * 3 + 2] = rig.rot[o + 2]; } SOFF[0] = rig.off[0]; SOFF[1] = rig.off[1]; SOFF[2] = rig.off[2];
+      sf(rig, st.actT || 0, t, st); for (let i = 0; i < LOWER.length; i++) { const o = LOWER[i] * 3; rig.rot[o] = SAVE[i * 3]; rig.rot[o + 1] = SAVE[i * 3 + 1]; rig.rot[o + 2] = SAVE[i * 3 + 2]; } rig.off[0] = SOFF[0]; rig.off[1] = SOFF[1]; rig.off[2] = SOFF[2]; }
+    else seatedLife(rig, st, t); }
   if (st.emo || rig.ew) acting(rig, st, t, dt, hold || (rig.swk || 0) > 0.5); else rig.emF = null; /* v18.34 swimming keeps its stroke; the face still acts */
   /* v18.34 a lit torch is held up: the right arm raised forward, the elbow bent so the fist is above the shoulder (the walk's arm swing is mostly taken out) */
   rig.tk = lerp(rig.tk || 0, st.torch && !st.act && !hold ? 1 : 0, Math.min(1, dt * 7));
@@ -605,15 +612,15 @@ const UP_BASE = new Set(['sling', 'shoot', 'cast', 'water', 'fish', 'cheer']);
    toes up as the leg reaches forward for the heel strike, up onto the toes as it trails behind to push off — points
    when the hero is in the air, and trails behind the shin when kneeling instead of sticking into the floor. */
 function footRoll(rig, st, A, dt, hold) {
-  if (rig.n < 19) return; const fl = rig.fl || (rig.fl = [0, 0]), pel = rig.rot[B.pelvis * 3], k = Math.min(1, dt * 18);
+  if (rig.n < 19) return; const fl = rig.fl || (rig.fl = [0, 0]), pel = rig.rot[B.pelvis * 3], k = Math.min(1, dt * (st.landT > 0 ? 40 : 18)); /* v18.34 faster on a hard landing: the knees fold in 0.2 s and a lagging foot put the toes 5 cm in the ground */
   for (let i = 0; i < 2; i++) { const th = i ? B.thighR : B.thighL, sh = i ? B.shinR : B.shinL, ft = i ? B.footR : B.footL;
     const tx = rig.rot[th * 3], sum = pel + tx + rig.rot[sh * 3]; let want = -sum;
     if (st.air || st.swim) want = 0.45 - sum * 0.3;
     else if (!hold) want += A * (0.5 * Math.max(0, tx + 0.05) - 0.32 * Math.max(0, -tx - 0.12));
-    if (sum > 0.95) want = lerp(want, 0.3, sst(0.95, 1.45, sum)); // kneeling: the foot lies back along the floor
+    if (sum > 0.9) { const m = clamp(A * 3, 0, 1); want = lerp(want, lerp(PI - sum, 0.3, m), sst(lerp(0.9, 0.95, m), lerp(1.0, 1.45, m), sum)); } /* v18.34 kneeling: the foot lies back along the floor (0.3 left the toes 11-17 cm in the ground in kneel, pray, sitg, kneelRest, prostrate); walking and running keep the old 0.3 */
     if (rig.swFoot !== undefined) want = lerp(want, rig.swFoot, rig.swk || 0); /* v18.34 pointed in the glide, flexed for the frog kick */
     if (st.ride) want = 0.25; else if (st.sit || st.sleep) want *= 0.5;
-    fl[i] = lerp(fl[i], clamp(want, -0.6, 1.3), k); rig.rot[ft * 3] = fl[i]; }
+    fl[i] = lerp(fl[i], clamp(want, -0.9, 1.3), k); rig.rot[ft * 3] = fl[i]; } /* v18.34 -0.9 (was -0.6): in a deep knee bend (hard landing, crouch, pet) the sole stays flat instead of the toes dipping 2-5 cm into the ground */
 }
 // seated villagers: hands on knees, chin in hand, leaning back, chatting — chosen per person and changed now and then
 function seatedLife(rig, st, t) {

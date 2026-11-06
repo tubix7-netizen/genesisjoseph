@@ -12,7 +12,7 @@ if (MP && MP.sitg && MP.eat && MP.drink) {
   const mk2 = (k, sp) => { const f = (rig, p, t) => { MP.sitg(rig, p, t); const o = rig.mealO === undefined ? (rig.mealO = Math.random()) : rig.mealO; MP[k](rig, (t * sp + o) % 1, t); }; f.up = false; MP['sit_' + k] = f; };
   mk2('eat', 0.34); mk2('drink', 0.24); if (G.Motion.HOLD_IK_OFF) { G.Motion.HOLD_IK_OFF.add('sit_eat'); G.Motion.HOLD_IK_OFF.add('sit_drink'); } }
 const MEAL = { on: false, t: 0, n: null };
-let spreadMesh = null; const SM = G.m4(), HM = G.m4(), HM2 = G.m4();
+let spreadMesh = null; const SM = G.m4(), HM = G.m4(), HM2 = G.m4(), FLIP = G.m4trs(G.m4(), 0, -0.06, 0.12, 0, Math.PI, 0, 1, 1, 1); /* v18.34 the bowl turned the right way up when it is lifted to the mouth */
 const spreads = {}; function spread(cloth) { const key = cloth ? 'c' : 'n'; if (spreads[key]) return spreads[key]; const g = new G.GB(31);
   /* v18.34 laid along the table (1.4 × 0.7 m): a white linen cloth a little smaller than the top, and everything resting on it */
   const T = 0.012; g.box(1.16, T, 0.5, { at: [0, T / 2, 0], c: (x, y, z) => (Math.abs(z) > 0.215 || Math.abs(x) > 0.54 ? 0xd8c8a0 : 0xf2ece0), j: 0 });
@@ -43,16 +43,20 @@ function campfireMesh() { if (fireMesh) return fireMesh; const g = new G.GB(23);
 const dyn0 = EPJ.dyn; EPJ.dyn = function (list) { if (dyn0) dyn0.apply(this, arguments);
   if (spreadAt) { G.m4trs(SM, spreadAt[0], spreadAt[1], spreadAt[2], spreadAt[3], 0, 0, 1, 1, 1); list.push({ mesh: spread(true), m: SM, outline: true }); }
   if (MEAL.on) { const P = Game.P, n = MEAL.n, HB = G.HBI; /* bread or bowl in the eating hand */
-    if (P.rig && P.rig.world && P.emote) list.push({ mesh: Game.propMesh(P.emote.k === 'sit_drink' ? 'bowl' : 'bread'), m: (HM.set(P.rig.world[HB.handR]), HM), outline: true });
-    if (n && n.rig && n.rig.world && n.act && n.act.startsWith('sit_')) list.push({ mesh: Game.propMesh(n.act === 'sit_drink' ? 'bowl' : 'bread'), m: (HM2.set(n.rig.world[HB.handR]), HM2), outline: true }); }
+    if (P.rig && P.rig.world && P.emote) { const dr = P.emote.k === 'sit_drink'; list.push({ mesh: Game.propMesh(dr ? 'bowl' : 'bread'), m: dr ? G.m4mul(HM, P.rig.world[HB.handR], FLIP) || HM : (HM.set(P.rig.world[HB.handR]), HM), outline: true }); }
+    if (n && n.rig && n.rig.world && n.act && n.act.startsWith('sit_')) { const dr = n.act === 'sit_drink'; list.push({ mesh: Game.propMesh(dr ? 'bowl' : 'bread'), m: dr ? G.m4mul(HM2, n.rig.world[HB.handR], FLIP) || HM2 : (HM2.set(n.rig.world[HB.handR]), HM2), outline: true }); } }
   if (!fireAt) return; G.m4trs(FM, fireAt[0], fireAt[1], fireAt[2], 0, 0, 0, 1, 1, 1); list.push({ mesh: campfireMesh(), m: FM, outline: true }); };
 const up0 = EPJ.update; let fxT = 0; EPJ.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined;
   if (MEAL.on) { MEAL.t += dt || 0.016; const P = Game.P, n = MEAL.n, a = Math.floor(MEAL.t / 4.5) % 3, b = Math.floor((MEAL.t + 2.2) / 4.5) % 3;
     const k1 = a === 2 ? 'sit_drink' : a === 1 ? 'sitg' : 'sit_eat', k2 = b === 2 ? 'sit_drink' : b === 0 ? 'sitg' : 'sit_eat';
     if (!P.emote || P.emote.k !== k1) P.emote = { k: k1, t: 0, dur: 0 }; if (n && n.act !== k2) n.act = k2;
-    if (Math.random() < (dt || 0.016) * 0.25 && n && G.Life) G.Life.bubble(n.id, ['(빵을 뜯어 건넨다)', '맛있어요?', '(후후 불어 식힌다)', '아이들도 잘 먹네요.'][Math.floor(Math.random() * 4)], 2.2); } if (fireAt && (fxT -= (dt || 0.016)) <= 0) { fxT = 0.07; G.FX && G.FX.burst(fireAt[0], fireAt[1] + 0.15, fireAt[2], 2, { c: [1, 0.6 + Math.random() * 0.25, 0.18], sp: 0.25, up: 1.1, g: -0.6, life: 0.55, size: 0.22, a: 0.9, spread: 0.4, drag: 1 }); } return r; };
+    /* (her little lines are in the meal talk itself: bubbles are hidden while a dialogue is up) */ }
+  if (fireAt && (fxT -= (dt || 0.016)) <= 0) { fxT = 0.07; G.FX && G.FX.burst(fireAt[0], fireAt[1] + 0.15, fireAt[2], 2, { c: [1, 0.6 + Math.random() * 0.25, 0.18], sp: 0.25, up: 1.1, g: -0.6, life: 0.55, size: 0.22, a: 0.9, spread: 0.4, drag: 1 }); } return r; };
 B.meal = function (n, done) { if (!n || n.id !== 'asenath') return meal0.apply(this, arguments);
-  const S = Game.S(), P = Game.P, W = Game.W(), near = Math.hypot(P.x - HOUSE[0], P.z - HOUSE[1]) < 45 && Ho && Ho.room && !(Ho.inside && Ho.inside() && S.flags.inHouse && S.flags.inHouse.t !== 'mine');
+  const S = Game.S(), P = Game.P, W = Game.W();
+  if (P.ride && G.Ride) G.Ride.dismount(true); if (S.q && S.q.riding) { G.UI.toast('수레에서 먼저 내려요'); done && done(); return; } /* v18.34 not on a horse or the wagon */
+  if (Ho && Ho.inside && Ho.inside() && S.flags.inHouse && S.flags.inHouse.t !== 'mine') { G.UI.toast('집에 가서 함께 먹어요'); done && done(); return; } /* not in a neighbour's house */
+  const near = Math.hypot(P.x - HOUSE[0], P.z - HOUSE[1]) < 45 && Ho && Ho.room && !(Ho.inside && Ho.inside() && S.flags.inHouse && S.flags.inHouse.t !== 'mine');
   const save = { x: n.x, z: n.z, face: n.face }; let setup;
   if (near || (Ho && Ho.inside && Ho.inside() && S.flags.inHouse && S.flags.inHouse.t === 'mine')) {
     const v = Ho.allV().find(q => q.id === 'jhouse'), d = v && Ho.door(v, 0), R = Ho.room();
@@ -60,13 +64,17 @@ B.meal = function (n, done) { if (!n || n.id !== 'asenath') return meal0.apply(t
       Game.teleport(R.x - 0.75, R.z + 0.5, Math.PI / 2); P.y = R.y; Game.npcTo('asenath', R.x + 1.35, R.z + 0.5, -Math.PI / 2, false); n.y = R.y; spreadAt = [R.x + 0.3, R.y + 0.7, R.z + 0.5, 0, 1]; Ho.mealSet = true; /* straight on the cleared table top */
       Game.cineCam = { x: R.x + 0.3, y: R.y + 1.9, z: R.z - 2.1, lx: R.x + 0.3, ly: R.y + 0.75, lz: R.z + 0.5, fov: 0.9 }; };
   } else {
-    const a = P.face, fx = P.x + Math.sin(a) * 1.3, fz = P.z + Math.cos(a) * 1.3, fy = W.heightAt(fx, fz), ox = Math.cos(a), oz = -Math.sin(a);
+    /* v18.34 the fire goes where it can burn: on dry ground, not in the river, on a floor or inside a tent — the other side is tried first */
+    const bad = (x, z) => (W.water && W.heightAt(x, z) < W.water.level + 0.15) || (EPJ.floor && EPJ.floor(x, z, S) != null) || (EPJ.roadD && EPJ.roadD(x, z) < 1.6);
+    let a = P.face; if (bad(P.x + Math.sin(a) * 1.3, P.z + Math.cos(a) * 1.3)) a += Math.PI; if (bad(P.x + Math.sin(a) * 1.3, P.z + Math.cos(a) * 1.3)) a += Math.PI / 2;
+    const fx = P.x + Math.sin(a) * 1.3, fz = P.z + Math.cos(a) * 1.3, fy = W.heightAt(fx, fz), ox = Math.cos(a), oz = -Math.sin(a);
     setup = () => { fireAt = [fx, fy, fz]; spreadAt = [fx + ox * 0.95, W.heightAt(fx + ox * 0.95, fz + oz * 0.95), fz + oz * 0.95, a + Math.PI / 2, 1]; /* a cloth on the ground beside the fire */ Game.npcTo('asenath', fx + Math.sin(a) * 1.2, fz + Math.cos(a) * 1.2, a + Math.PI, false); P.face = a;
       Game.cineCam = { x: fx + ox * 3.4, y: fy + 1.6, z: fz + oz * 3.4, lx: fx, ly: fy + 0.6, lz: fz, fov: 0.9 }; G.Audio && G.Audio.sfx('fire', { vol: 0.6 }); };
   }
-  G.UI.fade(() => { setup(); P.emote = { k: 'sit_eat', t: 0, dur: 0 }; n.act = 'sit_eat'; n.sit = false; n.talking = true; Game.noDlgCam = true; Object.assign(MEAL, { on: true, t: 0, n, hand: S.hand }); S.hand = null; /* the staff is laid aside for the meal */ }, () => {
+  G.UI.fade(() => { setup(); P.emote = { k: 'sit_eat', t: 0, dur: 0 }; n.act = 'sit_eat'; n.sit = false; n.talking = true; Game.noDlgCam = true; Object.assign(MEAL, { on: true, t: 0, n, torch: G.Chem ? G.Chem.torchT : 0 }); if (S.hand && !S.flags.handBack) { S.flags.handBack = S.hand; S.hand = null; } /* the staff is laid aside for the meal (kept like carry.js does, so a reload gives it back) */ }, () => {
     if (fireAt) G.UI.toast('마른 가지를 모아 작은 모닥불을 피웠어요');
     /* the original meal (its words, rewards and bonds) plays while they sit; then everything is put back */
-    meal0.call(B, n, () => { G.UI.fade(() => { MEAL.on = false; spreadAt = null; Ho.mealSet = false; /* the table as it was */ if (MEAL.hand && !S.hand) S.hand = MEAL.hand; P.emote = null; n.act = null; n.talking = false; Game.cineCam = null; Game.noDlgCam = false; if (fireAt) { fireAt = null; Game.npcTo('asenath', save.x, save.z, save.face, false); } }, () => { done && done(); }); });
+    const f0 = G.UI.fade; G.UI.fade = (m, a2) => { m && m(); a2 && a2(); }; /* one black-out, not two (bond.js fades again) */
+    try { meal0.call(B, n, () => { G.UI.fade(() => { MEAL.on = false; spreadAt = null; Ho.mealSet = false; /* the table as it was */ if (S.flags.handBack && !S.hand) { S.hand = S.flags.handBack; S.flags.handBack = undefined; if (S.hand === 'torch' && G.Chem && MEAL.torch > 0) G.Chem.torchT = MEAL.torch; } P.emote = null; n.act = null; n.talking = false; Game.cineCam = null; Game.noDlgCam = false; fireAt = null; Game.npcTo('asenath', save.x, save.z, save.face, false); /* v18.34 she goes back to where she was (after a meal at home she stayed in the shared room) */ }, () => { done && done(); }); }); } finally { G.UI.fade = f0; }
   }); };
 })(window.G);

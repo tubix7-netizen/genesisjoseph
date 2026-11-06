@@ -144,7 +144,7 @@ const btnA = $('btnA');
 btnA.addEventListener('pointerdown', e => { e.preventDefault(); Game.INPUT.actHeld = true; if (mgHold) { mgHold(true); return; } Game.pressAction(); });
 const relA = () => { Game.INPUT.actHeld = false; if (mgHold) mgHold(false); };
 btnA.addEventListener('pointerup', relA); btnA.addEventListener('pointercancel', relA); btnA.addEventListener('pointerleave', relA);
-$('btnJump').addEventListener('pointerdown', e => { e.preventDefault(); const C = G.Combat; if (C && C.inCombat) { if (!C.dodge()) { if (Game.P.atk) Game.P.dodgeQ = 1; else if (!Game.P.ride && !Game.P.climb) G.UI.toast('기력이 모자라요 · 구르기'); } return; } Game.jump(); }); /* v18.34 「구르기」 is never a hop: during a swing it waits for the swing to end */
+$('btnJump').addEventListener('pointerdown', e => { e.preventDefault(); const C = G.Combat, P0 = Game.P; if (C && C.inCombat && !P0.climb) { if (!C.dodge()) { if (P0.atk) P0.dodgeQ = 1; else if (!P0.ride && P0.stam < 18 && P0.dodgeT <= 0) G.UI.toast('기력이 모자라요 · 구르기'); } return; } Game.jump(); }); /* v18.34 on a ladder it still lets go; the stamina message only when it is the stamina */ /* v18.34 「구르기」 is never a hop: during a swing it waits for the swing to end */
 for (const t of ['pointerup', 'pointercancel', 'pointerleave']) $('btnJump').addEventListener(t, () => Game.jumpRelease()); // hold for a full jump, tap for a hop
 $('btnAtk').addEventListener('pointerdown', e => { e.preventDefault(); G.Combat && G.Combat.attack(); });
 $('wpnBtn').onclick = () => G.Combat && G.Combat.toggleMode();
@@ -596,7 +596,7 @@ const fq = []; let fcEnd = 0, fcHide = 0, hintEnd = 0, hintStep = null;
 UI.featCard = function (k, f) { fq.push(f); };
 function closeFeat() { const el = $('featCard'); el.classList.remove('show'); fcEnd = 0; clearTimeout(fcHide); fcHide = setTimeout(() => { if (!fcEnd) el.hidden = true; }, 450); }
 function featTick(dt) { const el = $('featCard'); if (fcEnd) return; if (!fq.length || UI.busy() || (G.Cine && G.Cine.on)) return;
-  const f = fq.shift(); const kk = document.querySelector('#featCard small'); if (kk) kk.textContent = f.kick || '새로 열린 기능'; $('fcIc').innerHTML = icon(f.ic || 'star', '#ffd98a'); $('fcT').textContent = f.n; $('fcD').textContent = UI.short(UI.txt(f.d).split(/(?<=[.!?요다])\s/)[0], 30); clearTimeout(fcHide); el.hidden = false; requestAnimationFrame(() => el.classList.add('show')); fcEnd = Date.now() + (brief() ? 3200 : 4500); G.Audio && G.Audio.sfx('quest', { pitch: 1.2 }); }
+  const f = fq.shift(); const kk = document.querySelector('#featCard small'); if (kk) kk.textContent = f.kick || '새로 열린 기능'; $('fcIc').innerHTML = icon(f.ic || 'star', '#ffd98a'); $('fcT').textContent = f.n; { const t0 = UI.txt(f.d), m0 = t0.match(/^.*?[.!?요다](?=\s|$)/); $('fcD').textContent = UI.short(m0 ? m0[0] : t0, 30); } /* v18.34 no regex lookbehind (Safari before 16.4 could not read ui.js at all) */ clearTimeout(fcHide); el.hidden = false; requestAnimationFrame(() => el.classList.add('show')); fcEnd = Date.now() + (brief() ? 3200 : 4500); G.Audio && G.Audio.sfx('quest', { pitch: 1.2 }); }
 $('featCard').style.pointerEvents = 'auto'; $('featCard').onclick = closeFeat; $('featCard').addEventListener('pointerdown', e => { e.stopPropagation(); closeFeat(); });
 // tutorial hints: a small non-blocking pill above the thumb controls (UI.hint(text, key) / UI.hint(null))
 let hintK = null;
@@ -713,13 +713,13 @@ UI.frame = function (dt) {
   hudT -= dt; if (hudT <= 0) { hudT = 0.5; UI.hud(); }
   // action button
   const c = Game.ctx(); const lab = busyFlags.dialog || busyFlags.narr ? '다음' : c ? c.label : '행동';
-  const labS = lab.split(' · ')[0].replace(/\s*\([^()]*\)/g, ''); /* v18.34 the round A button gets the verb; the whole line stays on the floating prompt */
+  const Cf = G.Combat && G.Combat.fish; let labS = lab.split(' · ')[0].replace(/\s*\([^()]*\)/g, ''); /* v18.34 the round A button gets the verb; the whole line stays on the floating prompt */
+  if (Cf) labS = Cf.st === 'bite' ? '챔질!' : Cf.st === 'reel' ? '당기기' : '거두기'; else if (G.Cine && G.Cine.on) labS = '다음'; /* (decided once: it was written twice a frame) */
   if ($('btnAL').textContent !== labS) { $('btnAL').textContent = labS; btnA.classList.toggle('long', labS.length > 6); }
   btnA.classList.toggle('off', !c && !busyFlags.dialog); btnA.classList.toggle('on', !!c && !c.disabled && !UI.busy());
   $('btnRun').classList.toggle('on', P.sprint || !!(G.Cart && G.Cart.feeding && G.Cart.feeding())); $('btnJump').hidden = P.swim;
   const C = G.Combat, inC = C && C.inCombat; const jl = (G.Cart && G.Cart.jumpLabel && G.Cart.jumpLabel()) || (inC ? '구르기' : '점프'); /* v18.25 on the wagon: 짐칸 / 태우기 */ if ($('btnJump').textContent !== jl) $('btnJump').textContent = jl;
-  if (C && C.fish) { const f = C.fish, l2 = f.st === 'bite' ? '챔질!' : f.st === 'reel' ? '당기기' : '거두기'; if ($('btnAL').textContent !== l2) $('btnAL').textContent = l2; btnA.classList.toggle('on', f.st === 'bite'); btnA.classList.remove('off'); }
-  if (G.Cine && G.Cine.on) $('btnAL').textContent = '다음';
+  if (C && C.fish) { const f = C.fish, l2 = f.st === 'bite' ? '챔질!' : f.st === 'reel' ? '당기기' : '거두기';  btnA.classList.toggle('on', f.st === 'bite'); btnA.classList.remove('off'); }
   if (C && C.hpDirty) { C.hpDirty = 0; const H = S.hero; $('hpFill').style.width = (H.hp / H.hpMax * 100).toFixed(1) + '%'; $('hpTxt').textContent = `${Math.ceil(H.hp)} / ${H.hpMax}`; }
   const ctg = C && C.target(), tb = $('tgtBar');
   if (ctg && ctg.st !== 'dead' && !UI.busy()) { const s = R.project(ctg.x, ctg.y + ctg.fy + (ctg.d.big ? 2.0 : 1.3), ctg.z, UI.W, UI.H); if (s) { tb.hidden = false; tb.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; { const e = $('tgtName'); if (e.textContent !== ctg.name) e.textContent = ctg.name; } $('tgtFill').style.width = Math.max(0, ctg.hp / ctg.hpMax * 100) + '%'; } else tb.hidden = true; } else tb.hidden = true;

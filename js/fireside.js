@@ -43,9 +43,9 @@ const STORIES = [
   { k: 'rainbow', n: '노아와 무지개', t: ['오래전 온 땅이 물에 잠겼을 때, 하나님은 노아의 가족과 짐승들을 방주로 지키셨어요.', '물이 걷히자 하늘에 무지개를 두시고 약속하셨지요. 다시는 물로 땅을 멸하지 않겠다고. 그래서 비 갠 뒤 무지개를 보면 그 약속이 생각나요.'],
     kid: ['짐승들이 다 배에 탔어요? 낙타도요? 하마도요?', '다음에 무지개 뜨면 꼭 알려 주세요!'], wife: '비 온 뒤에 그 이야기를 다시 들려주세요. 아이들이 좋아할 거예요.', man: '나일이 넘칠 때마다 무서웠는데… 그런 약속이 있었구려.' },
   { k: 'dreams', n: '요셉의 두 꿈', t: ['어릴 적 저는 꿈을 꾸었어요. 밭에서 곡식단을 묶는데 형들의 단이 제 단에 절을 하는 꿈, 해와 달과 열한 별이 제게 절하는 꿈.', '그 꿈을 자랑하다 형들의 미움을 샀지요. 구덩이에 던져지고 종으로 팔렸어요. 그런데 지금 돌아보면… 그 모든 길에 하나님이 계셨어요.'],
-    kid: ['아빠 형들 나빠요! …그래도 지금은 용서했어요?', '아빠 꿈이 진짜가 됐어요?'], wife: '그 길 끝에서 우리가 만났네요. 저는 그 길이 고마워요.', man: '총리께서 종이었다니… 그래서 우리 같은 사람 마음을 아시는구려.' }];
+    kid: ['아빠 형들 나빠요! …그래도 지금은 용서했어요?', '아빠 꿈이 진짜가 됐어요?'], wife: '그 길 끝에서 우리가 만났네요. 저는 그 길이 고마워요.', man: '그런 길을 걸어오셨다니… 그래서 우리 같은 사람 마음을 아시는구려.' }];
 const TALK = [
-  [/아스낫/, ['불빛에 비친 아이들 얼굴 보셨어요? 당신을 꼭 닮았어요.', '온에 살 때는 밤이 이렇게 따뜻한 줄 몰랐어요. 당신이 오고 나서예요.', '오늘 므낫세가 「아빠의 하나님」께 혼자 기도했어요. 저도 따라 했어요.']],
+  [/아스낫/, ['온에 살 때는 밤이 이렇게 따뜻한 줄 몰랐어요. 당신이 오고 나서예요.']],
   [/므낫세|에브라임/, ['아빠, 불똥이 별처럼 올라가요!', '아빠 옆에 있으면 하나도 안 추워요.', '아빠, 내일도 여기 앉아요. 약속!']],
   [/어부|그물|나루|사공/, ['나일 강은 밤이 되면 소리가 달라지오. 하마가 숨 쉬는 소리가 들리지.', '오늘은 메기 한 마리를 놓쳤는데 팔뚝만 했다오. 정말이오!']],
   [/농부|일꾼|밭|감독/, ['올해 물이 알맞게 넘쳐서 밭이 검게 기름졌소. 감사한 일이지.', '하루 종일 흙을 만지다 이렇게 불가에 앉으면 세상 부러울 게 없소.']],
@@ -82,12 +82,12 @@ F.sit = function (f, back) { const S = Game.S(), P = Game.P, C = G.Climate; if (
     if (back) { menu(); return; } /* back from cooking: straight to the menu */
     const wetNow = C && (C.wet > 0.2 || C.cold), w = G.Weather && G.Weather.rainy() ? '빗소리 사이로 불이 타닥타닥 탑니다.' : !isNight(S) && !wetNow ? rnd(['모닥불 곁에 앉았어요. 장작이 타닥타닥 탑니다.', '불가에 앉으니 마음이 느긋해져요.']) : isNight(S) ? rnd(['밤하늘에 별이 쏟아질 듯합니다. 불꽃이 타닥타닥 튀어 오릅니다.', '나일 쪽에서 서늘한 바람이 불어오고, 모닥불이 따뜻하게 일렁입니다.']) : '젖은 옷에서 김이 피어오릅니다. 불기운이 몸을 녹입니다.';
     const intro = [{ n: '', t: w }]; if (first) intro.push({ n: '', t: (wetNow ? '몸이 마르고 따뜻해졌어요' : '몸이 따뜻해졌어요') + ' · 정신력 +15' });
-    if (ids.length) intro.push({ n: npc(ids[0]).name, t: ids[0] === 'asenath' ? rnd(['여기 계셨네요. 저도 같이 앉을게요.', '불 피워 두셨네요. 아이들도 데려올게요.']) : FAM.includes(ids[0]) ? rnd(['아빠! 나도 불 쬘래요!', '아빠 옆자리는 내 거예요!']) : rnd(['불 좀 같이 쬐어도 되겠소?', '아, 총리님도 불 쬐러 오셨구려. 앉으시오.', '이 불은 우리 마을 사람 누구나 쬐는 불이라오.']) });
+    if (ids.length) intro.push({ n: npc(ids[0]).name, t: ids[0] === 'asenath' ? rnd(Game.S().q.born1 ? ['여기 계셨네요. 저도 같이 앉을게요.', '불 피워 두셨네요. 아이들도 데려올게요.'] : ['여기 계셨네요. 저도 같이 앉을게요.']) : FAM.includes(ids[0]) ? rnd(['아빠! 나도 불 쬘래요!', '아빠 옆자리는 내 거예요!']) : rnd(['불 좀 같이 쬐어도 되겠소?', '아, 당신도 불 쬐러 오셨구려. 앉으시오.', '이 불은 우리 마을 사람 누구나 쬐는 불이라오.']) });
     G.UI.say(intro, () => menu()); }); };
 function menu() { const S = Game.S(), r = ring; if (!r) return; const ch = [];
   if (G.Hearth) ch.push({ t: '요리하기', then: () => setTimeout(cook, 30) });
   if (r.ids.length) { ch.push({ t: '옛이야기 들려주기', then: () => setTimeout(tellPick, 30) }); for (const id of r.ids) ch.push({ t: `${npc(id).name}의 이야기 듣기`, then: () => setTimeout(() => listen(id), 30) }); }
-  else ch.push({ t: '불을 바라보며 생각하기', then: () => setTimeout(() => G.UI.say([{ n: '요셉', t: rnd(ALONE) }], menu), 30) });
+  else ch.push({ t: '불을 바라보며 생각하기', then: () => setTimeout(() => G.UI.say([{ n: '요셉', t: rnd(Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast') ? ALONE.slice(2) : ALONE) }], menu) /* v18.34 no longing for Benjamin after he has come */, 30) });
   ch.push({ t: r.ids.length ? '함께 기도하기' : '기도하기', then: () => setTimeout(pray, 30) }); ch.push({ t: '일어나기', then: () => setTimeout(stand, 30) });
   G.UI.say([{ n: '', t: r.ids.length ? '무엇을 할까요?' : '홀로 불가에 앉아 있습니다.', choices: ch }], null); }
 function tellPick() { const S = Game.S(), told = S.flags.told = S.flags.told || {};
@@ -103,7 +103,7 @@ function listen(id) { const n = npc(id), B = G.Bond; const lv = B ? B.level(id).
   const ls = [{ n: n.name, t: rnd(pool) }]; if (lv >= 2 && !FAM.includes(id)) ls.push({ n: n.name, t: rnd(['당신이랑 이렇게 앉아 있으니 오래된 친구 같구려.', '이건 아무한테나 하는 얘기가 아니오. 당신이니까 하는 거요.']) });
   ls.push({ n: '요셉', t: rnd(['(고개를 끄덕이며 귀 기울인다)', '그랬군요. 들려줘서 고마워요.', '하나님이 그 마음을 아실 거예요.']) });
   G.UI.say(ls, () => { const b = B && B.get(id); if (b && b.fire !== ring.key) { b.fire = ring.key; B.add(id, 4, '불가의 이야기'); } menu(); }); }
-function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.emote = { k: 'pray', t: 0, dur: 4 }; const ls = [{ n: '요셉', t: rnd(['조상들의 하나님, 오늘 하루도 지켜 주셔서 감사합니다. 이 불가에 앉은 이들의 집에도 평안을 주세요.', '하나님, 멀리 가나안에 계신 아버지와 베냐민을 지켜 주세요. 그리고 이 땅의 사람들도요.']) }];
+function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.emote = { k: 'pray', t: 0, dur: 4 }; const ls = [{ n: '요셉', t: rnd(['조상들의 하나님, 오늘 하루도 지켜 주셔서 감사합니다. 이 불가에 앉은 이들의 집에도 평안을 주세요.', (Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast') ? '하나님, 아버지와 형제들을 지켜 주세요.' : '하나님, 멀리 가나안에 계신 아버지와 베냐민을 지켜 주세요.') + ' 그리고 이 땅의 사람들도요.']) }];
   if (r.ids.length) ls.push({ n: npc(r.ids[0]).name, t: FAM.includes(r.ids[0]) ? '아멘!' : rnd(['…아멘. 당신 하나님께 나도 인사드리오.', '(조용히 눈을 감고 따라 한다)']) });
   G.UI.say(ls, () => { P.emote = null; P.emote = { k: 'sitg', t: 0, dur: 1e4 }; if (S.flags.fsPray !== r.key) { S.flags.fsPray = r.key; G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(20); G.UI.toast('마음이 고요해졌어요 · 정신력 +20'); } menu(); }); }
 /* 요리하기: get up quietly, open the cooking sheet; when the dish is done (or the sheet is closed) sit back down by the same fire */

@@ -202,7 +202,7 @@ function calm() { if (!zonesWrapped && EP.wildZones) { zonesWrapped = true; for 
 // ------------------------------------------------------------------ every frame: scares, the fall, the torch
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s || !s.flags) return r; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
   try { Sc.tick(d); sync(); calm(); const c = cur(); if (!c && !anyIn() && Game.CAM && Game.CAM.zoom && Math.abs(Game.CAM.zoom - 1) > 0.002) Game.CAM.zoom += (1 - Game.CAM.zoom) * Math.min(1, d * 3); /* v18.34 back to the normal distance outside (it stayed close after a cave) */ if (!c) return r; const p = P(), lx = p.x - c.st.x, lz = p.z - c.st.z;
-    if (Math.hypot(lx, lz) > 90) { s.flags.caveIn = 0; return r; }
+    if (Math.hypot(lx, lz) > 90) { s.flags.caveIn = 0; rejoin(); return r; } /* (v18.34 woke up outside: the companions come again) */
     if (p.y < c.st.y - 3) { p.y = c.st.y; p.vy = 0; }
     LGT += (lightAt(c) - LGT) * Math.min(1, d * 3);
     if (G.Chem && G.Chem.torchT > 0) G.Chem.torchT += d * 0.6;

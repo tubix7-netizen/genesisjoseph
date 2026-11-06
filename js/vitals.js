@@ -58,7 +58,7 @@ V.hurt = function (dmg, why) {
 
 // ------------------------------------------------------------------ 빈사 · collapse and wake at the last safe place
 V.down = function (why) {
-  const P = Game.P, S = Game.S(); if (P.downed) return; P.downed = true; V.downT = 0; P.sprint = false; P.act = null; P.vx = P.vz = 0; P.atk = null; P.atkQ = false; P.dodgeT = 0; P.lungeT = 0; /* v18.34 no swinging from the ground */
+  const P = Game.P, S = Game.S(); if (P.downed) return; P.downed = true; V.downT = 0; P.sprint = false; P.act = null; P.vx = P.vz = 0; P.atk = null; P.atkQ = false; P.dodgeQ = 0; P.dodgeT = 0; P.lungeT = 0; /* v18.34 no swinging from the ground */
   if (G.Fish && G.Fish.cancel) G.Fish.cancel(); if (G.Combat) { G.Combat.cancelFish && G.Combat.cancelFish(); G.Combat.busy = true; }
   P.emote = null; sfx('thud'); Game.haptic && Game.haptic('thud');
   G.UI.toast('요셉이 쓰러졌어요… 눈앞이 흐려져요');

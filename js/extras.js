@@ -197,7 +197,7 @@ const GUESTS = [
   { n: '이스마엘 대상의 상인', line: '먼 길을 오느라 배가 고프오. 들짐승 고기 요리가 있으면 좋겠소만.', want: '고기 요리', ok: k => cls(k) === 'meat' },
   { n: '온의 제사장', line: '오늘은 고기를 먹지 않는 날이라오. 곡식이나 채소로 만든 요리면 고맙겠소.', want: '고기 없는 요리', ok: k => ['grain', 'veg', 'bean', 'milk', 'drink', 'sweet'].includes(cls(k)) },
   { n: '나일의 늙은 어부', line: '평생 생선만 잡았지만, 남이 구워 준 생선은 처음이라오.', want: '생선 요리', ok: k => cls(k) === 'fish' },
-  { n: '궁정의 아이들', line: '총리님, 달콤한 거 있어요? 꿀이나 과자요!', want: '단것', ok: k => cls(k) === 'sweet' },
+  { n: '궁정의 아이들', line: '총리님, 달콤한 거 있어요? 꿀이나 과자요!', want: '달콤한 먹거리', ok: k => cls(k) === 'sweet' },
   { n: '먼 나라의 사신', line: '애굽 총리의 식탁이 어떤지 우리 왕께 전해야 하오. 가장 공들인 요리를 보여 주시오.', want: '3단계 이상 요리', ok: k => tier(k) >= 3 },
   { n: '왕의 사냥꾼 세넵', line: '나으리, 요즘 무엇을 잡으셨습니까? 새로 잡은 짐승 요리가 궁금합니다.', want: '새 사냥감 요리', ok: k => !!(G.Hunt && G.Hunt.NEW && G.Hunt.NEW[k]) } ];
 function host() { const s = S(), f = F(), gi = (s.day * 7 + (f.host || 0)) % GUESTS.length, g = GUESTS[gi];
@@ -209,7 +209,7 @@ function host() { const s = S(), f = F(), gi = (s.day * 7 + (f.host || 0)) % GUE
       { n: '', t: good ? `손님이 크게 기뻐했어요 · 은 ${12 + t * 6}` : '손님이 고맙게 먹고 갔어요 · 은 4' }], () => G.UI.hud()); };
   const ch = dishes.map(k => ({ t: `${Game.ITEMS[k].n}${g.ok(k) ? ' ★' : ''}`, then: () => setTimeout(() => serve(k), 30) }));
   ch.push({ t: '다음에 대접하기', then: () => {} });
-  G.UI.say([{ n: g.n, t: g.line }, { n: '요셉', t: dishes.length ? `(${g.want}을 원해요. ★ 표시가 맞는 요리예요)` : '(가방에 요리가 없어요. 모닥불에서 만들어 오세요)', choices: ch }]); }
+  G.UI.say([{ n: g.n, t: g.line }, { n: '요셉', t: dishes.length ? `(${g.want}를 원해요. ★ 표시가 맞는 요리예요)` : '(가방에 요리가 없어요. 모닥불에서 만들어 오세요)', choices: ch }]); }
 spot('host', HOUSE[0] - 4.5, HOUSE[1] + 4.5, () => `만찬 손님 맞기 · ${GUESTS[(S().day * 7 + (F().host || 0)) % GUESTS.length].n}`, () => egypt() && !X.busy() && S().step !== 'g3_feast' && !(F().hostDay !== undefined && S().day - F().hostDay < 2), host);
 
 // =================================================================== 7 나일 강 계절
@@ -217,8 +217,7 @@ const SEASONS = [['아케트 · 범람', '나일 강이 불어 밭을 덮어요.
 X.season = () => (G.Nile && G.Nile.season ? ({ akhet: 0, peret: 1, shemu: 2 })[G.Nile.season(S()).k] : Math.floor(((S().day || 1) - 1) / 10) % 3); /* v18.34 one calendar: the Nile's (nile.js) — the 10-day seasons disagreed with the clock */
 function seasonTick() { if (!egypt()) return; const s = X.season(), z = EP.wildZones || [], m = z.find(q => q.id === 'eMarsh'), d = z.find(q => q.id === 'eDesert');
   if (m) m.max = SEASONS[s][2][0]; if (d) d.max = SEASONS[s][2][1];
-  const f = F(); if (f.season !== s) { f.season = s; card('나일 강의 계절', SEASONS[s][0], SEASONS[s][1], 'sun'); }
-  const ck = $('clock'); if (ck && !ck.querySelector('.exSeason')) { const sp = document.createElement('span'); sp.className = 'exSeason'; sp.style.cssText = 'margin-left:6px;opacity:.75;font-size:.85em'; sp.textContent = SEASONS[s][0].split(' · ')[1]; ck.appendChild(sp); } }
+  const f = F(); if (f.season !== s) f.season = s; } /* v18.34 nile.js already shows and announces the season (it appeared twice) */
 
 // =================================================================== 8 수레 순찰 기록
 const ROUTE = [{ n: '서쪽 마을 곳간', x: -152, z: -24 }, { n: '남쪽 마을 곳간', x: -158, z: 144 }, { n: '성읍 곳간', x: 16, z: -70 }, { n: '성읍 우물 (도착)', x: -21, z: -86.8 }];

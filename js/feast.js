@@ -27,11 +27,12 @@ const villages = s => (EP.villages || []).filter(v => (!v.when || v.when(s)) && 
 /* today's feast (decided once a day): every 4–6 days somewhere, plus the special days */
 function today(s) { const f = s.flags.feast; if (f && f.day === s.day) return f.v ? f : null;
   const vs = villages(s); let out = { day: s.day, v: null };
-  if (vs.length && chap(s) >= 2) { const last = s.flags.feastLast === undefined ? -3 : s.flags.feastLast, gap = s.day - last, era = chap(s) < 5 ? 'pre' : chap(s) === 5 ? 'plenty' : 'famine';
+  if (vs.length && chap(s) >= 2) { const last = s.flags.feastLast === undefined ? -3 : s.flags.feastLast, gap = s.day - last, era = chap(s) < 5 ? 'pre' : chap(s) === 5 || s.step === 'j_end' ? 'plenty' : 'famine';
     let why = null, v = null;
     if ((s.flags.arc_love || 0) >= 4 && !s.flags.wedDone) { why = 'wedding'; v = vs.find(x => x.id === 'city') || vs[0]; }
-    else if (G.Nile && G.Nile.season && G.Nile.season(s).k === 'akhet' && G.Nile.season(s).d === 0 && gap >= 2) { why = 'newyear'; }
+    else if (era !== 'famine' && G.Nile && G.Nile.season && G.Nile.season(s).k === 'akhet' && G.Nile.season(s).d === 0 && gap >= 2) { why = 'newyear'; }
     else if (gap >= 4 && (gap >= 6 || hash('f' + s.day) < 0.5)) why = rnd(era === 'plenty' ? ['harvest', 'plenty', 'name', 'house'] : era === 'famine' ? ['share', 'share', 'name', 'house'] : ['harvest', 'name', 'house']);
+    if (why === 'harvest' && G.Nile && G.Nile.season && G.Nile.season(s).k !== 'shemu') why = 'house'; /* v18.34 the harvest feast only at harvest time */
     if (why) { v = v || vs[Math.floor(hash('v' + s.day) * vs.length)]; out = { day: s.day, v: v.id, why }; s.flags.feastLast = s.day; } }
   s.flags.feast = out; return out.v ? out : null; }
 Fe.today = () => { const s = S(); return s ? today(s) : null; };

@@ -12,19 +12,20 @@ const css = document.createElement('style'); css.textContent = `#catchC{position
 #catchC .k{font-size:12px;letter-spacing:.2em;color:#e5b552;font-weight:800}#catchC b{display:block;font-size:24px;margin:4px 0 2px}#catchC .w{font-size:15px;font-weight:700}
 #catchC .bar{height:8px;border-radius:5px;background:rgba(255,255,255,.12);margin:8px 0 6px;overflow:hidden}#catchC .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7ac0e0,#e5b552);transition:width 1s ease .3s}
 #catchC .tag{display:inline-block;margin:2px 3px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800;background:#e5b552;color:#2a1a08}#catchC p{font-size:13px;line-height:1.45;margin:8px 0 2px;opacity:.88}#catchC small{display:block;margin-top:6px;font-size:11.5px;opacity:.6}
-body.catching #hud,body.catching .stick,body.catching .cbtn,body.catching .hot,body.catching #featCard{opacity:0;transition:opacity .3s}
+body.catching #hud,body.catching .stick,body.catching .cbtn,body.catching .hot{opacity:0;transition:opacity .3s}
 @keyframes ccIn{from{transform:translateY(40px) scale(.85);opacity:0}to{transform:none;opacity:1}}`; document.head.appendChild(css);
-let el = null, tmr = 0;
-function close() { if (!el) return; el.remove(); el = null; clearTimeout(tmr); const P = Game.P; P.carry = null; P.carryArms = false; P.emote = null; Game.cineCam = null; document.body.classList.remove('catching'); G.UI.setBusy('catch', false); G.UI.hud && G.UI.hud(); }
+let el = null, tmr = 0, myCam = null, openT = 0;
+function close() { if (!el) return; el.remove(); el = null; clearTimeout(tmr); const P = Game.P; if (P.carry === 'fish') { P.carry = null; P.carryArms = false; } if (P.emote && P.emote.k === 'raiseHands') P.emote = null;
+  if (Game.cineCam && Game.cineCam === myCam) { const cc = myCam; Game.camBlend = { x: cc.x, y: cc.y, z: cc.z, lx: cc.lx, ly: cc.ly, lz: cc.lz, fov: cc.fov || 0.9, t: 0, dur: 0.7 }; Game.cineCam = null; } myCam = null; /* v18.34 ease back, and only our own camera */ document.body.classList.remove('catching'); G.UI.setBusy('catch', false); G.UI.hud && G.UI.hud(); }
 const Ct = G.Catch = {};
 Ct.show = function (k, kg, rec, first, best) { const P = Game.P, it = Game.ITEMS[k] || { n: k }; if (el) close();
   P.carry = 'fish'; P.carryArms = true; P.emote = { k: 'raiseHands', t: 0, dur: 3.2 }; G.UI.setBusy('catch', true);
   /* the camera swings in front of Joseph, a little low, looking up at him and the fish */
-  const a = P.face, y = P.y; Game.cineCam = { x: P.x + Math.sin(a + 0.55) * 3.6, y: y + 1.5, z: P.z + Math.cos(a + 0.55) * 3.6, lx: P.x, ly: y + 1.55, lz: P.z, fov: 0.95 }; document.body.classList.add('catching');
+  const a = P.face, y = P.y; Game.cineCam = myCam = { x: P.x + Math.sin(a + 0.55) * 3.6, y: y + 1.5, z: P.z + Math.cos(a + 0.55) * 3.6, lx: P.x, ly: y + 1.55, lz: P.z, fov: 0.95 }; document.body.classList.add('catching');
   sfx(k === 'gfish' || rec ? 'levelup' : 'pickup', { pitch: 1.1 }); if (G.FX) G.FX.burst(P.x, y + 2.2, P.z, 14, { c: [0.7, 0.85, 1], sp: 1.6, up: 1.2, g: -4, life: 0.7, size: 0.09, spread: 0.3 }); /* drops off the fish */
   el = document.createElement('div'); el.id = 'catchC'; const pct = Math.min(100, Math.round(kg / (MAXW[k] || 5) * 100));
   el.innerHTML = `<div class="cc"><div class="k">잡았다!</div><b></b><div class="w">${kg.toFixed(1)} kg</div><div class="bar"><i></i></div>${first ? '<span class="tag">첫 낚시</span>' : ''}${rec ? '<span class="tag">새 기록!</span>' : ''}${k === 'gfish' ? '<span class="tag">아주 귀해요</span>' : ''}<p></p><small>${best && !rec && !first ? '내 기록 ' + best.toFixed(1) + ' kg · ' : ''}눌러서 닫기</small></div>`;
   el.querySelector('b').textContent = it.n; el.querySelector('p').textContent = LORE[k] || ''; document.body.appendChild(el);
   requestAnimationFrame(() => { const i = el && el.querySelector('.bar i'); if (i) i.style.width = pct + '%'; });
-  el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); close(); }); tmr = setTimeout(close, 3600); };
+  openT = performance.now(); el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); }); el.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (performance.now() - openT > 600) close(); }); tmr = setTimeout(close, 3600); }; /* v18.34 closed by a real tap (no click falls through to the bag button), and not by the reeling thumb in the first 0.6 s */
 })(window.G);

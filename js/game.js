@@ -841,7 +841,7 @@ function updatePlayer(dt) {
   mag = mag < 0.1 ? 0 : Math.pow((mag - 0.1) / 0.9, 1.15);
   const wO = EP.waterAt ? EP.waterAt(P.x, P.z, S) : null; /* v18.34 a sea of its own (Byblos) */
   const g0 = wO ? wO.bed : W.heightAt(P.x, P.z), wl = wO ? wO.level : W.water ? W.water.level : -99; P.swim = g0 < wl - 0.75;
-  if (mag === 0 || P.exhausted) P.sprint = P.sprint && mag > 0 && !P.exhausted; /* v18.34 달리기 in deep water = a fast crawl stroke */
+  P.sIdle = mag > 0 ? 0 : (P.sIdle || 0) + dt; if (P.exhausted || P.sIdle > 0.7) P.sprint = false; /* v18.34 달리기 pressed before moving still runs (it switched off on the next frame) */ /* v18.34 달리기 in deep water = a fast crawl stroke */
   townTick(dt); if (P.chaseT > 0) P.chaseT -= dt; const XS = G.Extras, town = P.town && !P.ride && !(S.q && S.q.riding) && !(P.chaseT > 0) && S.step !== 'c2_flee' && !(S.q && S.q.flee) && !(XS && ((XS.hide && XS.hide.on) || (XS.herd && XS.herd.on))); /* v18.24 inside a village: 달리기 is only a brisk walk, and it costs no breath */
   let target = 0;
   const RD = P.ride && G.Ride ? G.Ride.spec(P.ride) : null; if (RD && P.swim) G.Ride.dismount(false, '물이 깊어 내렸어요');
