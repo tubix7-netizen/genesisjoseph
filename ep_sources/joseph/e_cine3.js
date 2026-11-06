@@ -35,6 +35,9 @@ function cinDepart(S, G, next) { const [gx, gz] = G7GRAN, gh = hAt(gx, gz);
       t: '그들이 곡식을 나귀에 싣고 그 곳을 떠났더라. 한 사람이 여관에서 나귀에게 먹이를 주려고 자루를 풀고 본즉 그 돈이 자루 아귀에 있는지라.', ref: '창세기 42:26–27' },
     { fn: () => { S.q.heb2 = 1; place('jacob', G7HEB[0], G7HEB[1] + 2.6, 0); npcSet('jacob', { look: LOOK.jacobMourn }); }, cam: [G7HEB[0] + 3.4, hAt(G7HEB[0], G7HEB[1]) + 1.6, G7HEB[1] + 6.4], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.3, G7HEB[1] + 2.6], dur: 8,
       n: '야곱', t: '너희가 나에게 내 자식들을 잃게 하도다. 요셉도 없어졌고 시므온도 없어졌거늘 베냐민을 또 빼앗아 가고자 하니… 내 아들은 너희와 함께 내려가지 못하리니.', ref: '창세기 42:36, 38', e: 'weary' },
+    /* v18.34 Reuben's pledge (42:37), so Judah's later pledge (43:9) reads against it: words offered vs. himself offered */
+    { cam: [G7HEB[0] - 2.2, hAt(G7HEB[0], G7HEB[1]) + 1.5, G7HEB[1] + 5.6], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.3, G7HEB[1] + 2.6], dur: 7, n: '르우벤', t: '내가 그를 아버지께 데리고 돌아오지 아니하거든 내 두 아들을 죽이소서. 그를 내 손에 맡기소서.', ref: '창세기 42:37' },
+    { cam: [G7HEB[0] + 1.6, hAt(G7HEB[0], G7HEB[1]) + 1.6, G7HEB[1] + 4.6], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.4, G7HEB[1] + 2.6], dur: 6, n: '야곱', t: '…손자를 죽여서 무엇이 내게 위로가 되겠느냐. 그의 형은 죽었고 그만 남았거늘.', ref: '창세기 42:38', e: 'sad' },
   ], () => { S.q.heb2 = 0; S.q.broShow = 0; npcSet('jacob', { look: LOOK.jacob }); BRO.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); next && next(); });
 }
 function cinJudahPledge(S, G, next) { const hh = hAt(G7HEB[0], G7HEB[1]);
@@ -93,6 +96,9 @@ function cinIAmJoseph(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 
     { cam: [hx - 1.2, hh + 1.6, hz + 1.8], look: [hx, hh + 1.6, hz], dur: 9, n: '요셉', t: '그런즉 나를 이리로 보낸 이는 당신들이 아니요 하나님이시라. 하나님이 나를 바로에게 아버지로 삼으시고 그 온 집의 주로 삼으시며 애굽 온 땅의 통치자로 삼으셨나이다.', ref: '창세기 45:8', e: 'tender' },
     { fn: () => { const b = G.npc('benjamin2'); if (b) { b.act = null; G.npcTo('benjamin2', hx + 0.5, hz + 0.9, Math.PI, false); b.emote = { k: 'weep', t: 0, dur: 9, amb: true }; } }, cam: [hx + 2.6, hh + 1.5, hz + 0.4], look: [hx + 0.2, hh + 1.4, hz + 0.5], dur: 8,
       t: '자기 아우 베냐민의 목을 안고 우니 베냐민도 요셉의 목을 안고 우니라. 요셉이 또 형들과 입맞추며 안고 우니 형들이 그제서야 요셉과 말하니라.', ref: '창세기 45:14–15' },
+    /* v18.34 the promise made at Hebron (p_provision: 「형, 꼭 빨리 와야 해. 약속!」) is answered at last */
+    { cam: [hx + 1.9, hh + 1.45, hz + 1.5], look: [hx + 0.3, hh + 1.45, hz + 0.6], dur: 5.5, n: '베냐민', t: '형… 금방 온다고 약속했잖아. 스무 해가 넘게 기다렸어.', e: 'cry' },
+    { cam: [hx + 0.9, hh + 1.55, hz + 1.9], look: [hx + 0.3, hh + 1.5, hz + 0.6], dur: 6, n: '요셉', t: '늦어서 미안해, 베냐민. 이제 별 이야기, 날마다 해 줄게. 하나님이 우리 약속을 잊지 않으셨어.', e: 'cry' },
   ], () => { cpose(null); BRO11.forEach(id => { const n = G.npc(id); if (n) { n.act = null; n.emote = null; } }); next && next(); });
 }
 function cinSendOff(S, G, next) { const cx = 34, cz = -30, ch = hAt(cx, cz), hh = hAt(G7HEB[0], G7HEB[1]);
@@ -155,7 +161,7 @@ function seatPuzzle(S, G, done) { let k = 0, miss = 0; const ORD = BRO11;
   ask(); }
 
 const STEPS7 = {
-  g1_spy: { ch: 8, obj: '청지기 네브에게 형들의 자루를 채우라 이르기', target: 'npc:steward2',
+  g1_spy: { ch: 8, obj: '청지기에게 형들의 자루를 채우라 이르기', target: 'npc:steward2',
     enter(S, G, re) { if (!re) cinSpies(S, G, () => G.teleport(SPOTS.josephHouse[0] + 3, SPOTS.josephHouse[1] + 6, 0)); else ageBrothers(); },
     talk: { steward2(S, G) { if (S.q.sacks) return false; const order = [];
       const pick = () => say([{ n: '요셉', t: `청지기에게 무엇을 이를까? (${order.length}/3)`, choices: [
@@ -190,7 +196,7 @@ const STEPS7 = {
     check: S => qd(S, 'reveal'), done(S, G, next) { cinIAmJoseph(S, G, () => narr([{ kick: '창세기 45:5', title: '나는 요셉이라', t: '"하나님이 생명을 구원하시려고 나를 당신들보다 먼저 보내셨나이다." 스무 해의 눈물이 화해로 바뀌었습니다. 이제 아버지를 모셔 올 차례예요.', ref: '창세기 45:5' }], next)); }, next: 'g6_wagons' },
   // =============================================================== 8장 · 고센 땅
   g6_wagons: { ch: 9, obj: '아버지께 보낼 수레 채비', list: S => [{ t: '성읍 곳간에서 곡식 자루 싣기', ok: qd(S, 'wGrain') }, { t: '장터에서 애굽의 좋은 물품 고르기', ok: qd(S, 'wGoods') }, { t: '형들에게 옷 나눠 주기 (청지기)', ok: qd(S, 'wClothes') }],
-    target: S => !qd(S, 'wGrain') ? { x: G7GRAN[0], z: G7GRAN[1] - 2 } : !qd(S, 'wGoods') ? { x: SPOTS.market[0], z: SPOTS.market[1] } : 'npc:steward2',
+    target: S => !qd(S, 'wGrain') ? { x: G7GRAN[0], z: G7GRAN[1] - 2 } : !qd(S, 'wGoods') ? { x: -22, z: -71 } : 'npc:steward2',
     enter(S, G, re) { S.q.broShow = 0; S.q.famShow = 0; BRO11.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); showAt('steward2', 15, -138.6, -0.6); /* v18.22 the steward is back at the house (the cup scene left him out on the road, so 「옷 나눠 주기」 pointed at an empty spot) */ if (!re) narr([{ kick: '창세기 45:17–20', title: '바로의 명령', t: '바로가 요셉에게 이르되 「너는 애굽 땅에서 수레를 가져다가 너희 자녀와 아내들을 태우고 너희 아버지를 모셔 오라. 온 애굽 땅의 좋은 것이 너희 것임이니라」', ref: '창세기 45:17–20' }]); },
     talk: { steward2(S, G) { if (S.q.wClothes || !S.q.wGrain || !S.q.wGoods) return false; say([N('steward2', '형제분들께 드릴 옷을 마련해 두었습니다. 어떻게 나누어 드릴까요?'),
       { n: '요셉', t: '(창세기 45:22)', choices: [{ t: '모두에게 한 벌씩, 베냐민에게는 은 삼백과 옷 다섯 벌', then: () => setTimeout(() => say([N('steward2', '알겠습니다. 막내분께는 각별히요.', '', 'happy')], () => tick(S, 'wClothes')), 30) },
@@ -231,7 +237,7 @@ specials.push({ id: 'g_seat', x: SPOTS.josephHouse[0], z: SPOTS.josephHouse[1] +
   { id: 'g_portion', x: SPOTS.josephHouse[0] + 2, z: SPOTS.josephHouse[1] + 10, r: 3.4, label: '베냐민의 몫 정하기', on: S => S.step === 'g3_feast' && S.q.seated && !S.q.portion,
     use: (S, G) => say([{ n: '요셉', t: '베냐민에게는 얼마나 줄까?', choices: [{ t: '다른 형들과 똑같이' }, { t: '두 배' }, { t: '다섯 배', then: () => tick(S, 'portion') }] }], () => { if (!S.q.portion) GG.UI.toast('성경에는 베냐민의 몫이 다른 사람보다 「다섯 배」였다고 해요 (창 43:34)'); }) },
   { id: 'g_grain', x: G7GRAN[0], z: G7GRAN[1] - 2, r: 3.2, label: '곡식 자루 싣기', on: S => S.step === 'g6_wagons' && !S.q.wGrain, use: (S, G) => { GG.UI.toast('수레에 곡식 자루를 실었어요 · 암나귀 열 필 분량'); tick(S, 'wGrain'); } },
-  { id: 'g_goods', x: SPOTS.market[0], z: SPOTS.market[1], r: 4, label: '애굽의 좋은 물품 고르기', on: S => S.step === 'g6_wagons' && !S.q.wGoods,
+  { id: 'g_goods', x: -22, z: -71, r: 4, /* v18.34 the city market (SPOTS.market is the slave market far south) */ label: '애굽의 좋은 물품 고르기', on: S => S.step === 'g6_wagons' && !S.q.wGoods,
     use: (S, G) => say([{ n: '요셉', t: '아버지께 무엇을 보낼까? (창세기 45:23)', choices: [{ t: '고운 세마포와 꿀, 대추야자, 향품', then: () => tick(S, 'wGoods') }, { t: '금 장신구와 우상 조각', then: () => setTimeout(() => GG.UI.toast('아버지는 하나님만 섬기셨어요 · 다른 걸 골라 봐요'), 30) }] }], null) });
 
 // ------------------------------------------------------------------ 고센 마을 (free journey, IF)

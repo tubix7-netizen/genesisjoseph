@@ -74,7 +74,7 @@ F.sit = function (f, back) { const S = Game.S(), P = Game.P, C = G.Climate; if (
     a0 = ring.a0; P.x = f.x + Math.sin(a0) * 1.7; P.z = f.z + Math.cos(a0) * 1.7; P.face = a0 + Math.PI; P.vx = P.vz = 0; P.emote = { k: 'sitg', t: 0, dur: 1e4 };
     const wl = W.water ? W.water.level : -99, dry = a => { const x = f.x + Math.sin(a) * 1.75, z = f.z + Math.cos(a) * 1.75; return W.heightAt(x, z) > wl + 0.25 && !(W.waterAt && W.waterAt(x, z)) && W.ray(f.x + Math.sin(a), y, f.z + Math.cos(a), x + Math.sin(a) * 0.4, y, z + Math.cos(a) * 0.4) >= 1; };
     const seats = [0.95, -0.95, 1.85, -1.85, 2.5, -2.5].map(d => a0 + d).filter(dry);
-    ids.forEach((id, i) => { const n = npc(id), a = seats.length ? seats[i % seats.length] + (i >= seats.length ? 0.4 : 0) : a0 + [0.95, -0.95, 1.85][i]; n.x = f.x + Math.sin(a) * 1.75; n.z = f.z + Math.cos(a) * 1.75; n.face = a + Math.PI; n.talking = true; n.walk = null; n.emote = null; n.sit = true; });
+    ids.forEach((id, i) => { const n = npc(id), a = seats.length ? seats[i % seats.length] + (i >= seats.length ? 0.4 : 0) : a0 + [0.95, -0.95, 1.85][i]; n.x = f.x + Math.sin(a) * 1.75; n.z = f.z + Math.cos(a) * 1.75; n.face = a + Math.PI; n.talking = true; n.walk = null; n.emote = null; n.act = 'sitg'; n.sit = false; });
     if (C) { C.wet = 0; C.warm(300); } if (first) { S.flags.fsNight = key; G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(15); }
     const cd = 1 + 4 * Math.max(0.4, Math.min(1, W.ray(f.x - Math.sin(a0), y, f.z - Math.cos(a0), f.x - Math.sin(a0) * 5, y + 1.2, f.z - Math.cos(a0) * 5)) - 0.05), gy = W.heightAt(f.x, f.z);
     Game.cineCam = { x: f.x - Math.sin(a0) * cd, y: gy + 1.2 + cd * 0.3, z: f.z - Math.cos(a0) * cd, lx: f.x + Math.sin(a0) * 0.5, ly: gy + 0.65, lz: f.z + Math.cos(a0) * 0.5, fov: 1.2 };
@@ -110,7 +110,7 @@ function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.em
 function cook() { const r = ring; if (!r) return; const f = r.f; stand(true); G.Hearth.open(f); let n = 0;
   const iv = setInterval(() => { const el = $('cookUI'); if (++n > 600) { clearInterval(iv); return; } if ((el && !el.hidden) || calm()) return; clearInterval(iv); if (Math.hypot(Game.P.x - f.x, Game.P.z - f.z) < 4) F.sit(f, true); }, 300); }
 function stand(quiet) { const P = Game.P, r = ring; ring = null; P.emote = null; Game.noDlgCam = false; if (Game.cineCam && !(G.Cine && G.Cine.on)) Game.cineCam = null; if (!r) return;
-  for (const id of r.ids) { const n = npc(id); if (!n) continue; n.emote = null; n.sit = false; n.talking = false; }
+  for (const id of r.ids) { const n = npc(id); if (!n) continue; n.emote = null; n.sit = false; n.act = null; n.talking = false; }
   if (!quiet) G.UI.toast((G.Surv && G.Surv.cold > 0) || isNight(Game.S()) || (G.Climate && G.Climate.wet > 0.2) ? '불기운이 5분 동안 추위를 막아 줘요' : '불가에서 잠시 쉬었어요'); }
 
 // the action by the fire

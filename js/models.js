@@ -124,7 +124,7 @@ function humanoid(o, lod) {
      width) from a hash of its look, so a crowd of pretty faces is not one face. Hand-designed faces opt out with vary: false. */
   const VARY = o.vary !== false && !o.realFace && (G.FACE || {}).vary !== 0, vKey = JSON.stringify([o.seed, o.skin, o.hair, o.top, o.trim, o.eye, o.hairStyle, o.fem, o.kid, o.beard, o.age]);
   const vh = k => { if (!VARY) return 0; let h = 2166136261 ^ k * 7919; for (let i = 0; i < vKey.length; i++) h = Math.imul(h ^ vKey.charCodeAt(i), 16777619); h ^= h >>> 13; h = Math.imul(h, 2654435761); h ^= h >>> 16; return (h >>> 0) / 4294967296 - 0.5; };
-  F.nose *= 1 + vh(4) * 0.6; F.chin *= 1 + vh(7) * 0.5;
+  F.nose *= 1 + vh(4) * 1.0; F.chin *= 1 + vh(7) * 0.9; /* v18.34 wider differences (they were too small to notice) */
   const HSc = kid ? KIDS : AHS, SC = p => [KNP[0] + (p[0] - KNP[0]) * HSc, KNP[1] + (p[1] - KNP[1]) * HSc, KNP[2] + (p[2] - KNP[2]) * HSc];
   const HYs = y => KNP[1] + (y - KNP[1]) * HSc, HRs = HR.map(r => r * HSc), HZs = KNP[2] + (HZ - KNP[2]) * HSc;
   // ---------------------------------------------------------------- head shape
@@ -136,7 +136,7 @@ function humanoid(o, lod) {
     : fem ? { cw: 0.0738, c2: 0.0722, ck: 0.0668, jw: 0.0578, j2: 0.0478, j3: 0.0372, chW: 0.0285, ch2: 0.017, chinY: -0.1055, zf: 0.0838, Ef: 2.45 } // v16.3 미형: shorter, softer chin; slimmer jaw
       : !o.realFace && !old ? { cw: 0.0778, c2: 0.0766, ck: 0.0722, jw: 0.0652 + 0.003 * strong, j2: 0.0578 + 0.003 * strong, j3: 0.0492 + 0.003 * strong, chW: 0.0352 + 0.003 * strong, ch2: 0.0232 + 0.002 * strong, chinY: -0.1075, zf: 0.0878, Ef: 2.3, jE: 1.9 } // v16.3 미형: a cleaner V-line // v12: young men — shorter, rounder lower face and a softer chin (BotW proportions)
       : { cw: 0.0795, c2: 0.0768, ck: 0.0712, jw: 0.0672 + 0.004 * strong, j2: 0.0592 + 0.004 * strong, j3: 0.0478 + 0.004 * strong, chW: 0.0338 + 0.004 * strong, ch2: 0.0222 + 0.003 * strong, chinY: -0.1305, zf: 0.0905, Ef: 2.5, jE: 2.15, long: 1 };
-  HP.cw *= 1 + vh(5) * 0.08; HP.jw *= 1 + vh(6) * 0.12; HP.j2 *= 1 + vh(6) * 0.1; // v17.0 얼굴 개성: face and jaw width
+  HP.cw *= 1 + vh(5) * 0.13; HP.jw *= 1 + vh(6) * 0.2; HP.j2 *= 1 + vh(6) * 0.17; // v17.0 얼굴 개성: face and jaw width
   const CJ = old || o.realFace || kid ? 1 : fem ? 0.92 : 0.96;
   if (!old && !o.realFace && !kid) { const t = fem ? 0.9 : 0.87; HP.jw *= 0.94; HP.j2 *= t; HP.j3 *= t * 0.96; HP.chW *= t * 0.93; HP.ch2 *= t * 0.9; HP.chinY += fem ? 0.002 : 0.003; } // v16.7 미형: a slimmer, tapered lower face under the same skull
   if (!old && !o.realFace) { HP.Ef = fem || kid ? 2.02 : 2.08; if (HP.jE) HP.jE = 1.78; } // v16.5 보들보들: round (not boxy) cross-sections for young faces // v16.4: the chin sits back under the face instead of jutting forward
@@ -256,7 +256,7 @@ function humanoid(o, lod) {
       const bh = o.long ? 0.05 : 0.04;
       g.tube(y => sk(y, 0.0035), hemY, a => hemY(a) + bh, Q(28, 14), 2, J({ c: (x, y) => o.trim2 && Math.abs(y - (hem + bh * 0.55)) < bh * 0.18 ? o.trim2 : trim, bf: skirtBF(hem, o.long ? 0.42 : 0.62), ds: true, inner: 0.4, mod: (a, y) => fold(a, vOf(y)) }));
     }
-    if (o.kilt) g.tube(y => [0.06 - (0.9 - y) * 0.03, 0.01, 0, 0.17], 0.62, 1.0, 6, 3, J({ c: shade(bot, -0.1), b: 0, rx: -0.1 }));
+    if (o.kilt) g.tube(y => [0.06 - (0.9 - y) * 0.03, 0.01, 0, 0.17], 0.74, 1.0, 6, 3, /* v18.34 ends above the knee (it cut through the thighs when sitting or striding) */ J({ c: shade(bot, -0.1), b: 0, rx: -0.1 }));
   }
   // ---------------------------------------------------------------- garments: upper tunic
   const vNeck = !fem && !o.collar && !o.roundNeck;
@@ -397,11 +397,11 @@ function humanoid(o, lod) {
   const EYE2 = (G.FACE || {}).eye !== undefined ? !!G.FACE.eye : !old && !o.realFace; // v17.0 눈 (2차 연구 2장): anime eye drawing for young stylised faces (kids too)
   const ES0 = (kid ? 1.2 : fem ? 1.1 : old ? 0.9 : 1.27) * (o.realFace ? 1 : old ? 1.06 : 1.16); // v16.8 value (kids, old, realFace)
   const KID2 = kid && (G.FACE || {}).kid !== 0; // v17.0 아이 미형: kids' eyes were 34% of the face with only a fifth of an eye between them
-  const ES = (YA ? (fem ? 1.04 : 1.12) : KID2 ? 1.3 : ES0) * (1 + vh(1) * 0.14) * 0.92; /* v18.12j eyes a touch smaller (-8%) */ // v17.0: kids 1.39 -> 1.3 (eye/face ~0.31 — a little bigger than adults' 0.27); ±4% per person // v16.9 미형: 연구 보고서 2-1 — ES 남 1.47→1.12, 여 1.28→1.04 (표의 1.10은 여성 얼굴이 좁아 눈÷얼굴 0.30이 되어 목표 0.27에 맞춤)
+  const ES = (YA ? (fem ? 1.04 : 1.12) : KID2 ? 1.3 : ES0) * (1 + vh(1) * 0.22) * 0.92; /* v18.12j eyes a touch smaller (-8%) */ // v17.0: kids 1.39 -> 1.3 (eye/face ~0.31 — a little bigger than adults' 0.27); ±4% per person // v16.9 미형: 연구 보고서 2-1 — ES 남 1.47→1.12, 여 1.28→1.04 (표의 1.10은 여성 얼굴이 좁아 눈÷얼굴 0.30이 되어 목표 0.27에 맞춤)
   const huK = !old && !o.realFace ? (fem ? 0.97 : YA ? 1.0 : 1.2) : 1; // v16.9 미형: 연구 보고서 2-1 — 젊은 남성 위 눈꺼풀 추가 배율 1.2→1.0
   const riK = o.realFace ? 1 : old ? 1.07 : KID2 ? 1.45 : !YA ? (fem ? 1.14 : 1.3) : fem ? 1.2 : 1.4; // v17.0: kids' iris 1.3 -> 1.45 (big, glassy irises in a smaller eye) // v16.9 미형: 연구 보고서 2-1 — 홍채 남 1.3→1.4, 여 1.14→1.2
   const MALE = !fem && !kid; const E = { x: (MALE ? 0.0333 : 0.0338) * (kid ? 0.97 : 1), y: !old && !o.realFace ? -0.0048 : -0.003, w: (MALE ? 0.0187 : 0.0198) * ES, hu: (fem || kid ? 0.0126 : 0.0109) * ES * (o.narrow ? 0.78 : 1) * huK, hl: 0.0071 * ES * (!old && !o.realFace ? 0.92 : 1), tilt: (o.tilt === undefined ? (!old && !o.realFace ? 0.0022 : 0.0012) : o.tilt), ri: (MALE ? 0.0111 : 0.0116) * ES * riK };
-  if (YA) E.x = fem ? 0.0372 : 0.038; if (KID2) E.x = 0.0425; E.x *= 1 + vh(2) * 0.1; if (o.tilt === undefined) E.tilt += vh(3) * 0.0034; E.hu *= 1 + vh(9) * 0.3; // round or narrow eyes // v17.0: kid spacing 0.19 -> ~0.7 eye; per-person spacing and tilt // v16.9 미형: 연구 보고서 2-1 — 미간 남 0.0362→0.038, 여 0.0352→0.0372 (표의 0.036은 미간÷눈 0.65라 목표 0.8에 맞춤)
+  if (YA) E.x = fem ? 0.0372 : 0.038; if (KID2) E.x = 0.0425; E.x *= 1 + vh(2) * 0.16; if (o.tilt === undefined) E.tilt += vh(3) * 0.0034; E.hu *= 1 + vh(9) * 0.3; // round or narrow eyes // v17.0: kid spacing 0.19 -> ~0.7 eye; per-person spacing and tilt // v16.9 미형: 연구 보고서 2-1 — 미간 남 0.0362→0.038, 여 0.0352→0.0372 (표의 0.036은 미간÷눈 0.65라 목표 0.8에 맞춤)
   if (G.faceLog) G.faceLog.push({ fem, kid, old, real: !!o.realFace, ES, Ex: E.x, Ew: E.w, W: sec(E.y, [0, 0, 0, 0, 0, 0])[0], W2: sec(-0.011, [0, 0, 0, 0, 0, 0])[0] }); // dev: face proportions (set G.faceLog = [] before building a look)
   if (!lo2) for (const s of [1, -1]) {
     const top = x => { const q = (x - 0.12 * E.w) / (1.06 * E.w); return E.hu * Math.pow(Math.max(0, 1 - q * q), 0.62) + E.tilt * x / E.w; };
@@ -728,8 +728,8 @@ function locoPose(rig, st, t) { // returns true when a full-body hold pose (slee
   const legL = gaitLeg(uL, R, kW, kR), legR = gaitLeg(uR, R, kW, kR);
   const tw = clamp(lm.turn, -3, 3) * 0.09 * turnK; // stepping round: the feet open toward the turn
   rig.set(B.thighL, -legL[0] * limpK, tw, 0.03 + R * 0.02 + Math.max(0, tw) * 0.5); rig.set(B.thighR, -legR[0], tw, -0.03 - R * 0.02 + Math.min(0, tw) * 0.5);
-  rig.set(B.shinL, legL[1] * (st.limp ? 0.7 : 1) + lm.land * 0.55, 0, 0); rig.set(B.shinR, legR[1] + lm.land * 0.55, 0, 0);
-  if (lm.land > 0) { rig.rot[B.thighL * 3] -= lm.land * 0.3; rig.rot[B.thighR * 3] -= lm.land * 0.3; }
+  rig.set(B.shinL, legL[1] * (st.limp ? 0.7 : 1) + lm.land * 0.8, 0, 0); rig.set(B.shinR, legR[1] + lm.land * 0.8, 0, 0); /* v18.34 the knees take the landing dip (feet sank ~9 cm) */
+  if (lm.land > 0) { rig.rot[B.thighL * 3] -= lm.land * 0.4; rig.rot[B.thighR * 3] -= lm.land * 0.4; }
   const cyc = 2 * PI * uL, lag = 0.55; // the arm trails the leg a little
   const armW = 0.27 * Ag * (1 - turnK * 0.6) * W1 * (0.6 + 0.4 * Math.min(1, sp / 1.6)), armR = (0.68 + 0.14 * (st.sprint ? 1 : 0)) * R;
   /* v17.0 부위별 위상 (움직임 연구 보고서 3장 ③, Local Motion Phases): the arms have their own phase and swing size. The phase
@@ -748,7 +748,7 @@ function locoPose(rig, st, t) { // returns true when a full-body hold pose (slee
   rig.set(B.chest, 0.05 + R * 0.25 + 0.04 * spr + accLean + breath + 0.1 * lm.startK + 0.025 * Ag * Math.abs(Math.sin(cyc)), twC - twP, -lean * 0.45 - drop * 0.6);
   rig.off[0] = -Math.sin(cyc) * 0.022 * Ag * W1 + shift * 0.014;
   const bobW = -0.032 * Ag * 0.5 * (1 + Math.cos(2 * cyc)), bobR = -0.064 * R * 0.5 * (1 + Math.cos(2 * (cyc - 2 * PI * 0.15))) - 0.03 * R;
-  rig.off[1] = bobW * W1 + bobR + (st.limp ? Math.max(0, -Math.sin(cyc)) * -0.05 * A : 0) - lm.land * 0.12;
+  rig.off[1] = bobW * W1 + bobR + (st.limp ? Math.max(0, -Math.sin(cyc)) * -0.05 * A : 0) - lm.land * 0.07;
   const idleLook = st.idle && A < 0.1 && !st.talk && st.look === undefined ? Math.sin(t * 0.21 + lm.seed) * 0.22 * Math.max(0, Math.sin(t * 0.09 + lm.seed * 2)) : 0;
   rig.set(B.head, -0.03 - R * 0.08 - (0.05 + R * 0.2 + accLean) * 0.7 + (st.lookDown || 0), (st.look || 0) - twC * 0.9 + idleLook + clamp(lm.turn, -3, 3) * 0.1 * turnK, -lean * 0.3 + drop * 0.4); // eyes stay level and forward
   if (st.idle && Ag < 0.08) { rig.set(B.uArmL, Math.sin(t * 1.1 + lm.seed) * 0.025, 0, 0.13); rig.set(B.uArmR, -Math.sin(t * 1.1 + lm.seed) * 0.025, 0, -0.13); rig.set(B.fArmL, -0.14 - breath, 0, 0); rig.set(B.fArmR, -0.14 - breath, 0, 0); }
@@ -1154,6 +1154,9 @@ function prop(kind) {
       for (const [L, rr, a] of SEG) { const dy = -Math.cos(a) * L, dz = -Math.sin(a) * L; g.cyl(rr * 0.8, rr, L, 5, { at: [0, y + dy / 2, z + dz / 2], rx: a, c: 0x9a7a4a }); y += dy; z += dz; }
       g.cyl(0.026, 0.026, 0.12, 6, { at: [0, 0.02, 0.02], c: 0x5a4028 }); /* the cord grip */
       { const a = 1.5, L = 0.32; g.cyl(0.0025, 0.0025, L, 3, { at: [0, y - Math.cos(a) * L / 2, z - Math.sin(a) * L / 2], rx: a, c: 0xf0f0f0 }); g.sph(0.014, 4, 3, { at: [0, y - Math.cos(a) * L, z - Math.sin(a) * L], c: 0xe8dcc0 }); } break; }
+    case 'fish': { const k = 0.55; g.sph(1, 10, 6, { at: [0, -0.2 * k / 0.55, 0.04], s: [0.045, 0.2, 0.075], c: (x, y) => (y > -0.17 ? 0xb8c4c8 : 0x8a9aa0) }); g.box(0.012, 0.09, 0.09, { at: [0, -0.43, 0.04], rx: 0.785, c: 0x7a8a90 }); g.box(0.01, 0.06, 0.04, { at: [0, -0.14, 0.11], c: 0x7a8a90 }); for (const s of [1, -1]) g.sph(0.012, 5, 4, { at: [0.035 * s, -0.04, 0.06], c: 0x101010 }); break; } /* v18.34 a fresh catch held up by the tail */
+    case 'bread': g.sph(0.075, 9, 6, { at: [0, -0.05, 0.05], s: [1, 0.45, 1], c: (x, y) => (y > -0.04 ? 0xc8884a : 0xe0b070) }); break; /* v18.34 a round flat loaf, for meals */
+    case 'bowl': g.lathe([[0.02, 0], [0.07, 0.01], [0.085, 0.045], [0.09, 0.06]], 10, { at: [0, -0.06, 0.06], c: 0xb5673a }); g.cyl(0.078, 0.078, 0.01, 10, { at: [0, -0.012, 0.06], c: 0x8a4a22 }); break;
     case 'hoe': g.cyl(0.02, 0.024, 1.3, 6, { at: [0, 0.1, 0.03], c: 0x8a6440 }); g.box(0.06, 0.04, 0.22, { at: [0, 0.74, 0.13], c: 0x6e6a64 }); break;
     case 'sickle': g.cyl(0.02, 0.022, 0.18, 6, { at: [0, -0.02, 0.02], c: 0x7a5232 }); for (let i = 0; i < 6; i++) { const a = i / 6 * 2.2; g.box(0.015, 0.06, 0.05, { at: [0, 0.08 + Math.sin(a) * 0.12, 0.02 + (1 - Math.cos(a)) * 0.12], rx: a, c: 0xb8b2a8, j: 0 }); } break; /* v18.23 the blade rises from the top of the grip and curves forward (it hung upside down) */
     case 'axe': g.cyl(0.02, 0.024, 0.7, 6, { at: [0, 0.15, 0.03], c: 0x8a6440 }); g.box(0.04, 0.16, 0.16, { at: [0, 0.45, 0.11], c: 0x8a8680 }); break;

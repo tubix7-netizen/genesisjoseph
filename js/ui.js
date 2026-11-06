@@ -187,7 +187,7 @@ addEventListener('blur', () => { for (const k in Game.INPUT.keys) Game.INPUT.key
 { const stop = e => e.preventDefault();
   for (const n of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(n, stop, { passive: false });
   document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
-  let lastTap = 0; document.addEventListener('touchend', e => { const t = Date.now(); if (t - lastTap < 350 && !(e.target && e.target.closest && e.target.closest('button'))) e.preventDefault(); lastTap = t; /* v18.34 never swallow a button tap */ }, { passive: false });
+  let lastTap = 0; document.addEventListener('touchend', e => { const t = Date.now(); if (t - lastTap < 350 && !(e.target && e.target.closest && e.target.closest('button,#dialog,#narr,#questBox,#minimap,#qSide,.slotAsk'))) e.preventDefault(); lastTap = t; /* v18.34 never swallow a button tap */ }, { passive: false });
   document.addEventListener('dblclick', stop, { passive: false });
   const vp = document.querySelector('meta[name=viewport]'); let fixing = false;
   const unzoom = () => { if (fixing || !window.visualViewport || visualViewport.scale <= 1.02 || !vp) return; fixing = true; const c = vp.content; vp.content = 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover'; scrollTo(0, 0); setTimeout(() => { vp.content = c; fixing = false; UI.resize(); }, 120); };
@@ -213,7 +213,7 @@ const brief = () => (Game.SET.help || 'brief') === 'brief';
 UI.short = function (s, max) { s = String(s || ''); if (!brief()) return s; s = s.replace(/\s*\([^()]*\)/g, ''); const parts = s.split(' · ').filter(Boolean); let out = parts[0] || '';
   for (let i = 1; i < parts.length && (out + ' · ' + parts[i]).length <= max; i++) out += ' · ' + parts[i];
   out = out.replace(/\s*\([^)]*\)\s*$/, ''); return out.length > max + 8 ? out.slice(0, max + 6).replace(/\s+\S*$/, '') + '…' : out; };
-UI.toast = function (m, full) { const t = $('toast'), s = full ? UI.txt(m) : UI.short(UI.txt(m), 64); t.textContent = s; t.classList.toggle('two', s.length > 30); t.classList.add('show'); toastT = 2.6 + Math.min(2.2, Math.max(0, s.length - 30) * 0.05); }; // v18.13c up to two lines (was cut at 36 characters), longer ones stay a little longer
+UI.toast = function (m, full) { const t = $('toast'), s = full ? UI.txt(m) : UI.short(UI.txt(m), 64); t.textContent = s; t.classList.toggle('two', s.length > 24); t.classList.add('show'); toastT = 2.6 + Math.min(2.2, Math.max(0, s.length - 30) * 0.05); }; // v18.13c up to two lines (was cut at 36 characters), longer ones stay a little longer
 /* v18.21 days matter little in this story: up to 30 days 「N일째」, then months, then years (the exact count is kept in the journal) */
 UI.dayLabel = d => d <= 30 ? `${d}일째` : d <= 360 ? `${Math.ceil(d / 30)}달째` : `${Math.ceil(d / 360)}해째`;
 UI.tipOnce = function (key, m, full) { const S = Game.S(); if (!S) return false; const f = S.flags.tips = S.flags.tips || {}; if (f[key]) return false; f[key] = 1; UI.toast(m, full); return true; }; // v18.13 help text shows once per save
@@ -277,12 +277,12 @@ function openPanel(title, tabs, cur, render, onClose) {
   busyFlags.panel = true; $('panelWrap').hidden = false; panelClose = onClose || null;
   const P = $('panel'); P.innerHTML = `<div class="p-head"><h3>${esc(title)}</h3><button class="p-x" id="pX">닫기</button></div>` + (tabs ? `<div class="tabs" id="pTabs">${tabs.map(t => `<button data-t="${t[0]}" class="${t[0] === cur ? 'on' : ''}">${esc(t[1])}</button>`).join('')}</div>` : '') + `<div class="p-body" id="pBody"></div>`;
   $('pX').onclick = UI.closePanel;
-  if (tabs) $('pTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; [...$('pTabs').children].forEach(x => x.classList.toggle('on', x === b)); render(b.dataset.t, $('pBody')); };
+  if (tabs) $('pTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; [...$('pTabs').children].forEach(x => x.classList.toggle('on', x === b)); $('pBody').scrollTop = 0; render(b.dataset.t, $('pBody')); };
   render(cur, $('pBody'));
 }
 UI.openPanel = openPanel;
 UI.closePanel = function () { panelLock = false; busyFlags.panel = false; $('panelWrap').hidden = true; $('panel').innerHTML = ''; const c = panelClose; panelClose = null; c && c(); UI.hud(); Game.checkStep(); };
-$('panelWrap').addEventListener('pointerdown', e => { if (e.target !== $('panelWrap')) return; if (panelLock) { UI.toast('이 퍼즐을 마쳐야 이야기가 이어져요'); return; } UI.closePanel(); });
+$('panelWrap').addEventListener('click', e => { if (e.target !== $('panelWrap')) return; /* v18.34 click, not pointerdown: a scroll that starts at the edge no longer closes the sheet, and no tap leaks to the button under it */ if (panelLock) { UI.toast('이 퍼즐을 마쳐야 이야기가 이어져요'); return; } UI.closePanel(); });
 const costHTML = (cost, silver) => { const S = Game.S(); let h = ''; for (const k in cost || {}) { const ok = Game.have(k, cost[k]); h += `<em class="${ok ? '' : 'no'}">${esc(Game.ITEMS[k].n)} ${Game.inv(k)}/${cost[k]}</em>`; } if (silver) h += `<em class="${S.silver >= silver ? '' : 'no'}">은 ${S.silver}/${silver}</em>`; return `<div class="cost">${h}</div>`; };
 
 UI.menu = function (tab) {
@@ -402,7 +402,7 @@ UI.shop = function (shopId) {
   openPanel(shop.n, [['sell', '팔기'], ['buy', '사기']], 'sell', function render(tab, body) {
     const S = Game.S();
     if (tab === 'sell') {
-      const ks = Object.keys(S.inv).filter(k => S.inv[k] > 0 && Game.ITEMS[k] && Game.ITEMS[k].cat !== 'key' && (!shop.sells || shop.sells.includes(Game.ITEMS[k].cat)) && !(shop.no && shop.no.includes(k))); /* v18.23 a shop does not buy back what it sells */
+      const ks = Object.keys(S.inv).filter(k => S.inv[k] > 0 && Game.ITEMS[k] && Game.ITEMS[k].cat !== 'key' && (!shop.sells || shop.sells.includes(Game.ITEMS[k].cat)) && !(shop.no && shop.no.includes(k)) && !(shop.buy || []).some(x => x.item === k) && Game.ITEMS[k].p > 0); /* v18.34 nor anything it sells (buy 3 bread for 12, sell for 12 each = endless silver), nor things worth nothing (the cave's glowing stones) */ /* v18.23 a shop does not buy back what it sells */
       body.innerHTML = `<div class="sec">가진 은 ${S.silver}</div>` + (ks.length ? ks.map(k => { const it = Game.ITEMS[k]; const pr = Game.price(k, shop.mul); return `<div class="row">${itemIcon(k)}<div class="t"><b>${esc(it.n)} ×${S.inv[k]}</b><span>하나에 은 ${pr}</span></div><button class="sbtn" data-s="${k}" data-n="1">1개</button><button class="sbtn pri" data-s="${k}" data-n="999">모두</button></div>`; }).join('') : '<div class="row"><div class="t"><span>팔 물건이 없어요</span></div></div>');
       body.onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; Game.sell(b.dataset.s, +b.dataset.n, shop.mul); render('sell', body); };
     } else {
@@ -562,7 +562,8 @@ UI.quest = function () {
   const list = st.list ? st.list(S, Game) : []; $('qList').innerHTML = list.map(l => `<div class="${l.ok ? 'ok' : ''}"><i>${l.ok ? '✓' : '·'}</i><span>${esc(l.t)}</span></div>`).join('');
   const tr = G.Life && G.Life.tracked(S); const qs = $('qSide'); if (tr && tr.q) { qs.hidden = false; const gs = Game.goalSide(); $('questBox').classList.toggle('sideGoal', gs); qs.classList.toggle('goal', gs); qs.innerHTML = `<b>${gs ? '목표 · ' : '부탁 · '}${esc(tr.q.title)}</b>` + tr.q.obj.map(o => { const ok = o.ok(S, Game, tr.st); return `<span>${ok ? '✓' : '·'} ${esc(typeof o.t === 'function' ? o.t(S, Game, tr.st) : o.t)}</span>`; }).join(''); } else { qs.hidden = true; $('questBox').classList.remove('sideGoal'); }
 };
-UI.hud = function () {
+UI.hud = function () { try { /* v18.34 the right-hand column follows the map and its rings, whatever the pills above do (when they wrap to two rows the compass covered the 정신력 ring) */
+    const mw = document.getElementById('mapwrap'); if (mw && mw.offsetParent) { let b = mw.getBoundingClientRect().bottom; mw.querySelectorAll('.core').forEach(c => { const r = c.getBoundingClientRect(); if (r.height) b = Math.max(b, r.bottom); }); b = Math.round(b); if (b > 0 && b !== UI._hudB) { UI._hudB = b; document.documentElement.style.setProperty('--hudB', b + 'px'); } } } catch (e) { }
   const S = Game.S(); if (!S) return;
   const h = S.time % 24, night = h < 5.6 || h > 19.6;
   const wic = G.Weather ? G.Weather.icon(S) : S.weather === 'rain' ? 'rain' : 'sun'; const ic = wic === 'sun' && night ? 'moon' : wic;
@@ -570,7 +571,7 @@ UI.hud = function () {
   if (G.Surv) { const sv = G.Surv.get(), gf = $('gFood'), gw = $('gWarm'); gf.hidden = !Game.feat('surv'); gw.hidden = !Game.feat('warm');
     if (!gf.hidden) { gf.querySelector('i').style.width = sv.food + '%'; gf.classList.toggle('low', sv.food < 28); }
     if (!gw.hidden) { gw.querySelector('i').style.width = sv.warm + '%'; gw.classList.toggle('low', sv.warm < 35); gw.classList.toggle('warmHot', !!G.Surv.src && G.Surv.heat > G.Surv.cold); /* v18.34 '.hot' is the hotbar's class: the gauge jumped down onto it */ } }
-  const rb = $('rideBtn'); if (rb && G.Ride) { const P = Game.P, own = G.Ride.list.length > 0; rb.hidden = !own || !Game.feat('ride') || !!(G.Caves && G.Caves.inside && G.Caves.inside()) || !!(G.Cave && G.Cave.inside && G.Cave.inside()); const lab = P.ride ? '내리기' : '부르기'; if (rb.dataset.l !== lab) { rb.dataset.l = lab; rb.innerHTML = icon('donkey', '#e8d8b8') + lab; } }
+  const rb = $('rideBtn'); if (rb && G.Ride) { const P = Game.P, own = G.Ride.list.length > 0; rb.hidden = !own || !Game.feat('ride') || !!(G.Caves && G.Caves.inside && G.Caves.inside()) || !!(G.Cave && G.Cave.inside && G.Cave.inside()) || !!(G.Homes && G.Homes.inside && G.Homes.inside()); const lab = P.ride ? '내리기' : '부르기'; if (rb.dataset.l !== lab) { rb.dataset.l = lab; rb.innerHTML = icon('donkey', '#e8d8b8') + lab; } }
   $('silverPill').innerHTML = icon('coin', '#e8c870') + `은 ${S.silver}`;
   const seed = Game.curSeed();
   $('seedBtn').innerHTML = seed ? itemIcon(seed) + `${esc(Game.ITEMS[seed].n.replace(' 씨앗', ''))} ×${S.inv[seed]}` : icon('seed', '#8a8070') + '씨앗 없음';
@@ -704,7 +705,7 @@ function drawBig() {
   c.fillStyle = 'rgba(9,16,34,.75)'; c.beginPath(); c.arc(w - 30, 30, 20, 0, 7); c.fill(); c.fillStyle = '#ffd98a'; c.font = '800 13px sans-serif'; c.fillText('북', w - 30, 18); c.fillStyle = '#f4e8cc'; c.font = '600 10px sans-serif'; c.fillText('남', w - 30, 43); c.fillText('동', w - 15, 30); c.fillText('서', w - 45, 30);
   const L = k > 4 ? 20 : k > 1.6 ? 50 : 100; c.fillStyle = 'rgba(9,16,34,.75)'; c.fillRect(10, h - 26, L * k + 16, 18); c.fillStyle = '#f4e8cc'; c.fillRect(18, h - 18, L * k, 3); c.font = '600 10px sans-serif'; c.textAlign = 'left'; c.fillText(`${L}걸음`, 18 + L * k + 4 > w ? 18 : 18, h - 22);
 }
-let tagEls = {}, hudT = 0, mapT = 0;
+let tagEls = {}, hudT = 0, mapT = 0; UI.tagOf = id => tagEls[id];
 UI.frame = function (dt) {
   const R = G.R, P = Game.P, S = Game.S();
   if (toastT > 0) { toastT -= dt * (busyFlags.dialog || busyFlags.narr ? 5 : 1); /* v18.29 a toast makes way for a conversation or a story card */ if (toastT <= 0) $('toast').classList.remove('show'); }
@@ -721,11 +722,11 @@ UI.frame = function (dt) {
   if (G.Cine && G.Cine.on) $('btnAL').textContent = '다음';
   if (C && C.hpDirty) { C.hpDirty = 0; const H = S.hero; $('hpFill').style.width = (H.hp / H.hpMax * 100).toFixed(1) + '%'; $('hpTxt').textContent = `${Math.ceil(H.hp)} / ${H.hpMax}`; }
   const ctg = C && C.target(), tb = $('tgtBar');
-  if (ctg && ctg.st !== 'dead' && !UI.busy()) { const s = R.project(ctg.x, ctg.y + ctg.fy + (ctg.d.big ? 2.0 : 1.3), ctg.z, UI.W, UI.H); if (s) { tb.hidden = false; tb.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; $('tgtName').textContent = ctg.name; $('tgtFill').style.width = Math.max(0, ctg.hp / ctg.hpMax * 100) + '%'; } else tb.hidden = true; } else tb.hidden = true;
+  if (ctg && ctg.st !== 'dead' && !UI.busy()) { const s = R.project(ctg.x, ctg.y + ctg.fy + (ctg.d.big ? 2.0 : 1.3), ctg.z, UI.W, UI.H); if (s) { tb.hidden = false; tb.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; { const e = $('tgtName'); if (e.textContent !== ctg.name) e.textContent = ctg.name; } $('tgtFill').style.width = Math.max(0, ctg.hp / ctg.hpMax * 100) + '%'; } else tb.hidden = true; } else tb.hidden = true;
   // prompt bubble
   const pr = $('prompt');
   if (c && !UI.busy() && !c.noTag) { const EPf = Game.EP(), /* v18.22 noTag: things that are always there (drinking from the jar, the cart's space) show only on the A button, not as a tag beside Joseph */ fl = EPf && EPf.floor ? EPf.floor(c.x, c.z, Game.S()) : null, gy = fl !== null && fl !== undefined ? fl : Game.W().heightAt(c.x, c.z); // v16.9 the bubble sits on the thing (absolute height when given, else above the floor/ground under it)
-    const s = R.project(c.x, c.yAbs !== undefined ? c.yAbs : gy + (c.y || 1.5), c.z, UI.W, UI.H); if (s) { pr.hidden = false; pr.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; $('promptT').textContent = c.label; pr.classList.toggle('off', !!c.disabled); } else pr.hidden = true; }
+    const s = R.project(c.x, c.yAbs !== undefined ? c.yAbs : gy + (c.y || 1.5), c.z, UI.W, UI.H); if (s) { pr.hidden = false; pr.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; { const e = $('promptT'); if (e.textContent !== c.label) e.textContent = c.label; } /* v18.34 write only when it changes (layout every frame on the phone) */ pr.classList.toggle('off', !!c.disabled); } else pr.hidden = true; }
   else pr.hidden = true;
   // stamina ring
   const sv = $('stam');
@@ -736,7 +737,7 @@ UI.frame = function (dt) {
   else sv.hidden = true;
   // compass
   const tg = Game.curTarget; const cp = $('compass');
-  if (tg && !UI.busy()) { const dx = tg.x - P.x, dz = tg.z - P.z; const rel = Math.atan2(dx, dz) - Math.atan2(-Math.sin(Game.CAM.yaw), -Math.cos(Game.CAM.yaw)); cp.hidden = false; cp.classList.toggle('side', !!tg.side); $('cArrow').style.transform = `rotate(${-rel}rad)`; $('cDist').textContent = Math.round(Math.hypot(dx, dz)) + 'm'; }
+  if (tg && !UI.busy()) { const dx = tg.x - P.x, dz = tg.z - P.z; const rel = Math.atan2(dx, dz) - Math.atan2(-Math.sin(Game.CAM.yaw), -Math.cos(Game.CAM.yaw)); cp.hidden = false; cp.classList.toggle('side', !!tg.side); $('cArrow').style.transform = `rotate(${-rel}rad)`; { const e = $('cDist'), v = Math.round(Math.hypot(dx, dz)) + 'm'; if (e.textContent !== String(v)) e.textContent = v; } }
   else cp.hidden = true;
   document.body.classList.toggle('dlgcam', Game.dlgW > 0.3); // dialogue close-up: clear the frame
   // name tags

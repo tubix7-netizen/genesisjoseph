@@ -65,7 +65,8 @@ function startCount() { if (CT.on) return; ui(); const s = S(); CT.on = true; G.
   el.innerHTML = `<div class="cb"><div>곡식 자루 세기 · 창 41:49</div><div class="lane"><div class="gate"></div></div><div class="tal"></div><div class="hint">자루가 파란 줄에 닿을 때 화면을 톡!</div></div>`; document.body.appendChild(el);
   const lane = el.querySelector('.lane'), tal = el.querySelector('.tal'), N = 10, sacks = []; let hit = 0, miss = 0, wrong = 0, i = 0, t0 = performance.now(), done = false;
   for (let k = 0; k < N; k++) { const d = document.createElement('div'); d.className = 'sack'; lane.appendChild(d); sacks.push({ el: d, at: 900 + k * (720 + (k % 3) * 120), got: false }); }
-  const W = () => lane.clientWidth || 300, speed = 0.16; /* px per ms */
+  const W0 = lane.clientWidth || 300, W = () => W0, speed = 0.16; /* px per ms (width measured once: no layout every frame) */
+  let hidT = 0; const vis = () => { if (done) return document.removeEventListener('visibilitychange', vis); if (document.hidden) hidT = performance.now(); else if (hidT) { t0 += performance.now() - hidT; hidT = 0; } }; document.addEventListener('visibilitychange', vis); /* v18.34 a phone call or the lock screen pauses the count */
   const tick = () => { if (done) return; const t = performance.now() - t0, w = W(); for (const q of sacks) { const x = w + 20 - (t - q.at + w / 2 / speed) * speed; q.x = x; q.el.style.left = (x - 18) + 'px'; if (!q.got && x < w / 2 - 34 && !q.miss) { q.miss = true; miss++; q.el.style.opacity = 0.35; } }
     if (sacks.every(q => q.got || q.miss)) return end(); requestAnimationFrame(tick); };
   const tap = e => { e.preventDefault(); e.stopPropagation(); const w = W(); let best = null, bd = 1e9; for (const q of sacks) { if (q.got || q.miss) continue; const d = Math.abs(q.x - w / 2); if (d < bd) { bd = d; best = q; } }

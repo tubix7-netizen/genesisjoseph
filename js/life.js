@@ -24,7 +24,7 @@ function drawBubbles(dt) {
     const s = R.project(n.x, n.y + (n.bubY || 2.55) * (n.scale || 1), n.z, UI.W, UI.H); /* (v18.34 bubY: a cat's bubble sits over the cat) */ if (!s || Math.hypot(n.x - Game.P.x, n.z - Game.P.z) > 30) { b.el.hidden = true; continue; }
     b.el.hidden = false; if (!b.w) { const r = b.el.getBoundingClientRect(); if (r.width) { b.w = r.width; b.h = r.height; } }
     /* v18.29 kept on screen, off the quest list, and stacked instead of piled on top of each other */
-    let x = s[0], y = s[1]; const w = b.w || 120, h = b.h || 30; x = Math.max(w / 2 + 6, Math.min(UI.W - w / 2 - 6, x)); y = Math.max(h + 4, y);
+    let x = s[0], y = s[1]; const w = b.w || 120, h = b.h || 30; { const tg = typeof b.who === 'string' && UI.tagOf && UI.tagOf(b.who); if (tg && !tg.hidden && tg.style.display !== 'none' && tg.style.opacity !== '0') y -= 24; } /* v18.34 above the name tag, not on it */ x = Math.max(w / 2 + 6, Math.min(UI.W - w / 2 - 6, x)); y = Math.max(h + 52, y); /* (and below the notch) */
     for (let k = 0; k < 3; k++) { const hit = placed.find(q => Math.abs(q[0] - x) < (q[2] + w) / 2 && Math.abs(q[1] - y) < (q[3] + h) / 2 + 2); if (!hit) break; y = hit[1] - hit[3] - 4; }
     placed.push([x, y, w, h]); let op = Math.min(1, b.t * 2); if (qb && x + w / 2 > qb.left && x - w / 2 < qb.right && y > qb.top && y - h < qb.bottom) op *= 0.12;
     b.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%) scale(var(--uik,1))`; b.el.style.opacity = op; }
@@ -75,7 +75,7 @@ function schedules(S) {
     let k = list.length - 1; for (let i = 0; i < list.length; i++) if (hr >= list[i][0]) k = i; // last slot whose hour has passed (wraps from previous day)
     const key = list[k].join(','); if (n.schedSlot === k && n.schedKey === key) continue; n.schedSlot = k; n.schedKey = key;
     const [h, x, z, face, mode] = list[k]; n.sit = false; n.act = null; n.schedHidden = false; n.wander = null;
-    const arrive = () => { n.face = n.homeFace = face || 0; if (mode === 'sit') n.sit = true; else if (mode === 'hide') n.schedHidden = true; else if (mode && mode.startsWith('act:')) n.act = mode.slice(4); else if (mode && mode.startsWith('wander')) n.wander = { r: +(mode.split(':')[1] || 4), cx: x, cz: z, tx: null, wait: 1 }; };
+    const arrive = () => { n.face = n.homeFace = face || 0; if (mode === 'sit') { if (n.d.folk) n.act = 'sitg'; else n.sit = true; } /* v18.34 villagers sit on the ground (the chair pose floated on nothing) */ else if (mode === 'hide') n.schedHidden = true; else if (mode && mode.startsWith('act:')) n.act = mode.slice(4); else if (mode && mode.startsWith('wander')) n.wander = { r: +(mode.split(':')[1] || 4), cx: x, cz: z, tx: null, wait: 1 }; };
     const d = Math.hypot(n.x - x, n.z - z);
     if (d < 0.6 || Game.Q.firstFrame) { Game.npcTo(id, x, z, face, false); arrive(); } else Game.npcWalk(id, x, z, arrive, n.d.walkSp || 1.7, n.d.route ? n.d.route(n, x, z) : null);
     delete S.npcPos[id];

@@ -81,7 +81,7 @@ if (EP) {
   if (EP.shops && EP.shops.market) EP.shops.market.buy.push({ n: '소금 ×3', item: 'salt', qty: 3, price: 6 }, { n: '커민 ×3', item: 'cumin', qty: 3, price: 9 }, { n: '고수 ×3', item: 'coriander', qty: 3, price: 6 }, { n: '병아리콩 ×4', item: 'chickpea', qty: 4, price: 8 },
     { n: '잠두 ×4', item: 'fava', qty: 4, price: 8 }, { n: '마늘 ×3', item: 'garlic', qty: 3, price: 7 }, { n: '부추 ×3', item: 'leek', qty: 3, price: 6 }, { n: '건포도 ×3', item: 'raisins', qty: 3, price: 12 }, { n: '참외 ×1', item: 'melon', qty: 1, price: 8 }, { n: '겨자씨 ×3', item: 'mustard', qty: 3, price: 7 });
   const T = EP.lootTables; if (T) { T.egypt.push(['chickpea', 1, 3, 2], ['fava', 1, 3, 2], ['garlic', 1, 2, 2], ['leek', 1, 2, 2], ['salt', 1, 2, 1], ['cumin', 1, 2, 1], ['melon', 1, 1, 1]);
-    T.nile.push(['coriander', 1, 2, 2], ['mint', 1, 2, 2], ['leek', 1, 2, 1]); T.canaan.push(['pomegranate', 1, 2, 2], ['grapes', 1, 2, 2], ['almond', 1, 3, 2], ['pistachio', 1, 3, 1], ['raisins', 1, 2, 1]);
+    T.nile.push(['coriander', 1, 2, 2], ['mint', 1, 2, 2], ['leek', 1, 2, 1]); T.canaan.push(['coriander', 1, 2, 2], ['pomegranate', 1, 2, 2], /* v18.34 Jacob asks for coriander lentil soup in Hebron */ ['grapes', 1, 2, 2], ['almond', 1, 3, 2], ['pistachio', 1, 3, 1], ['raisins', 1, 2, 1]);
     T.desert.push(['salt', 1, 2, 2], ['almond', 1, 2, 1]); T.treasure.push(['pistachio', 2, 4, 1], ['almond', 2, 4, 1], ['cumin', 1, 3, 1], ['raisins', 2, 4, 1]); }
   if (G.Combat && G.Combat.WILD.partridge) G.Combat.WILD.partridge.loot = Object.assign({}, G.Combat.WILD.partridge.loot, { fowl: 1 });
   // forage: fruit and nut trees in Canaan, herb and garden patches along the Nile

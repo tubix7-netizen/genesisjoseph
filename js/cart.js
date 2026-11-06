@@ -144,8 +144,8 @@ function dismount(quiet) { const s = S(), p = P(); if (!s.q.riding) return; D.v 
 Ct.mount = mount; Ct.dismount = dismount;
 // the left button: 「수레 부르기」 (no 「타기/내리기」 there any more — that is A at the cart)
 const e = (EP.extra || []).find(x => x.id === 'chariot');
-if (e) { const on0 = e.on; e.on = (s, g) => (on0 ? on0(s, g) : true) && !s.q.riding && !(G.Caves && G.Caves.inside()) && !(G.Cave && G.Cave.inside()) && !(G.Byblos && G.Byblos.inBy && G.Byblos.inBy()); /* (not underground or overseas) */ e.label = () => '수레 부르기'; e.click = () => Ct.call(); }
-Ct.call = function () { const s = S(), p = P(), W = Game.W(); if (s.q.riding || drive) return;
+if (e) { const on0 = e.on; e.on = (s, g) => (on0 ? on0(s, g) : true) && !s.q.riding && !(G.Caves && G.Caves.inside()) && !(G.Cave && G.Cave.inside()) && !(G.Byblos && G.Byblos.inBy && G.Byblos.inBy()) && !(G.Homes && G.Homes.inside && G.Homes.inside()); /* (not underground, overseas or indoors · v18.34 houses) */ e.label = () => '수레 부르기'; e.click = () => Ct.call(); }
+Ct.call = function () { const s = S(), p = P(), W = Game.W(); if (s.q.riding || drive) return; if (G.Homes && G.Homes.inside && G.Homes.inside()) { G.UI.toast('집 안에서는 수레를 부를 수 없어요'); return; }
   const t = Ct.town(p.x, p.z); if (t) { pop('여기선 못 불러요', `${t} 안이에요 · 마을 밖으로 나가서 불러요`, 'donkey'); return; }
   const c = s.q.cartAt, wet = (x, z) => W.water && hAt(x, z) < W.water.level - 0.25, open = (x, z) => !wet(x, z) && !Ct.town(x, z) && W.ray(x, hAt(x, z) + 1, z, p.x, p.y + 1, p.z) > 0.97;
   if (c && Math.hypot(c.x - p.x, c.z - p.z) < 7) { pop('수레가 바로 옆에 있어요', '수레 뒤에서 A키로 타요', 'donkey'); return; }
@@ -315,4 +315,6 @@ const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, ar
 /* v18.28 no big help card in the middle of the screen while the wagon is rolling: it waits until you have stopped for a moment */
 const HQ = []; let stillT = 0; { const h0 = G.UI.help; if (h0) { G.UI.help = function (k, t, l) { if (driving() && Math.abs(D.v) > 0.4) { if (!HQ.some(q => q[0] === k)) HQ.push([k, t, l]); return true; } return h0.apply(this, arguments); };
   Ct.helpTick = dt => { if (!HQ.length) return; if (driving() && Math.abs(D.v) > 0.2 || G.UI.busy()) { stillT = 0; return; } if ((stillT += dt) > 1.2) { stillT = 0; const q = HQ.shift(); h0.apply(G.UI, q); } }; } }
+/* v18.34 a loaded game starts with a quiet cart (a cart still coming, things on its floor or a feeding timer from the game before carried over) */
+{ const E = G.EP && G.EP.joseph; if (E) { const ol = E.onLoad; E.onLoad = function () { const r = ol ? ol.apply(this, arguments) : undefined; try { drive = null; LOAD.length = 0; Object.assign(D, { v: 0, hv: 0, sx: 0, thr: 0, pend: null, brake: null, whipT: 0, feedT: 0, feedK: null, tired: false, held: false, kHeld: false }); AUTO.on = false; HQ.length = 0; } catch (e) { } return r; }; } }
 })(window.G);

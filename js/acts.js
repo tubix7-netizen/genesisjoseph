@@ -126,7 +126,7 @@ Ac.open = function () {
     UI._emoTab = tab; const T = TABS.find(t => t[0] === tab);
     body.innerHTML = `<div class="emo-grid">${T[2].map(k => k === 'photo' ? `<button class="emo" data-photo="1"><b>사진 모드</b><span>화면의 표시를 숨겨요</span></button>`
       : `<button class="emo${P.emote && P.emote.k === k ? ' on' : ''}" data-k="${k}"><b>${DEF[k][0]}</b><span>${DEF[k][1].d || (DEF[k][1].rest ? '쉬면 기력이 빨리 차요' : DEF[k][1].walk ? '걸으면서도 할 수 있어요' : DEF[k][1].hold ? '움직이면 멈춰요' : '')}</span></button>`).join('')}</div>
-      <p class="emo-note">${tab === 'rest' ? '앉거나 누워 쉬면 기력이 2.5배 빨리 차고 배도 덜 고파요. 밤에 누우면 그대로 잠들 수 있어요.' : tab === 'faith' ? '제단 앞이 아니어도 어디서나 기도할 수 있어요.' : tab === 'social' ? '가까운 주민들이 손을 흔들어 주거나 같이 웃어 줘요.' : '피리를 불면 아이들이 춤추고 양들이 모여들어요.'}</p>`;
+      <p class="emo-note">${tab === 'rest' ? '앉거나 누워 쉬면 기력이 2.5배 빨리 차고 배도 덜 고파요. 밤에 누우면 그대로 잠들 수 있어요.' : tab === 'faith' ? '제단 앞이 아니어도 어디서나 기도할 수 있어요.' : tab === 'social' ? '가까운 주민들이 손을 흔들어 주거나 같이 웃어 줘요.' : '양·염소·나귀 곁에서 쓰다듬어 줄 수 있어요. 사진 모드로 풍경을 담아요.'}</p>`;
     body.onclick = e => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.photo) { UI.closePanel(); Ac.photo(true); return; }
       const k = b.dataset.k; UI.closePanel(); setTimeout(() => Ac.toggle(k), 60); };

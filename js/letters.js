@@ -11,7 +11,7 @@ const Game = G.Game, EP = G.EP && G.EP.joseph; if (!EP || !G.UI) return;
 const S = () => Game.S(), P = () => Game.P, rnd = a => a[Math.floor(Math.random() * a.length)], sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const pop = (t, s, i) => G.UI.pop ? G.UI.pop(t, s, i) : G.UI.toast(s ? t + ' · ' + s : t);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' ? 7 : (+st[1] || 2); };
+const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' || st[0] === 'g' ? 7 : (+st[1] || 2); } /* v18.34 g1–g8 are chapters 7–8 (they read as chapter 1) */;
 const Lt = G.Letters = {};
 const box = () => { const s = S(); return (s.letters = s.letters || { list: [], cool: {}, last: -1, wait: [] }); };
 const title = s => chap(s) >= 5 ? '총리님' : '요셉 님';
@@ -50,7 +50,7 @@ function dispatch(L) { const p = P(), W = Game.W(); let x = p.x, z = p.z;
 function runTick(dt) { const r = runner; if (!r) return; const p = P(), n = Game.ENT.npcs[r.n.id || 'mailkid']; r.t -= dt;
   if (!n) { runner = null; return; } const d = Math.hypot(n.x - p.x, n.z - p.z);
   if (r.t <= 0 || away() || (G.Cine && G.Cine.on)) { const got = file(r.L, true); Game.removeNPC('mailkid'); runner = null; pop('편지가 왔어요', `${r.L.from}${got ? ' · ' + got : ''} · 메뉴 → 편지`, 'scroll'); return; }
-  if (d < 1.9 && !G.UI.busy()) { n.walk = null; n.face = Math.atan2(p.x - n.x, p.z - n.z); runner = null; const L = r.L, got = file(L, false);
+  if (d < 1.9 && !G.UI.busy() && !(G.Combat && G.Combat.fish)) { /* v18.34 not in the middle of a fish fight */ n.walk = null; n.face = Math.atan2(p.x - n.x, p.z - n.z); runner = null; const L = r.L, got = file(L, false);
     const head = L.kind === 'invite' ? '잔치 초대장이에요!' : L.kind === 'kiin' ? '동굴의 할아버지가 보내셨어요! …손에서 이상한 냄새가 나요.' : `${L.from}께서 보내셨어요!`;
     G.UI.say([{ n: '심부름하는 아이', t: head }, { n: `✉ ${L.from}의 편지`, t: L.text.replace(/\n/g, ' ') }].concat(got ? [{ n: '', t: `(편지와 함께 온 선물 · ${got})` }] : []), () => {
       G.Life.bubble('mailkid', rnd(['그럼 이만~!', '또 심부름 올게요!', '안녕히 계세요!']), 2); Game.npcWalk('mailkid', n.x + (n.x - p.x) * 6, n.z + (n.z - p.z) * 6, () => Game.removeNPC('mailkid'), 3.2); setTimeout(() => { if (Game.ENT.npcs.mailkid) Game.removeNPC('mailkid'); }, 9000); });

@@ -272,7 +272,7 @@ function rumors(S) { if (between(S, 'c6_open')) return ['곳간 문이 열렸다
   return ['나일 강이 불어날 철이 다가오오.', '바로의 궁에 새 오벨리스크를 세운다더군요.']; }
 const chatter = [
   { a: 'cook', b: 'gardener', when: S => between(S, 'c2_arrive', 'c2_tempt2'), lines: [[0, '세티! 연못 물 좀 쓰자니까.'], [1, '연꽃이 다 죽는다고 몇 번을 말해!']] },
-  { a: 'neb', b: 'ameni', when: S => between(S, 'c2_arrive', 'c2_quiz'), lines: [[0, '저 히브리 놈, 말 한마디 못 알아듣던데.'], [1, '두고 보게. 눈빛이 다른 아이야.']] },
+  { a: 'neb', b: 'ameni', when: S => between(S, 'c2_arrive', 'c2_quiz'), lines: [[0, '저 히브리 녀석, 말 한마디 못 알아듣던데.'], [1, '두고 보게. 눈빛이 다른 아이야.']] },
   { a: 'prisA', b: 'prisB', when: S => between(S, 'c3_keeper', 'c3_wait'), r: 7, lines: [[0, '저 히브리 사람은 왜 늘 기도하지?'], [1, '그 덕에 우리가 물이라도 마시잖아.']] },
   { a: 'magician', b: 'sage', when: S => between(S, 'c4_court', 'c4_answer'), r: 16, lines: [[0, '히브리 죄수가 바로의 꿈을 푼다고?'], [1, '…우리가 못 푼 꿈이오. 지켜봅시다.']] },
   { a: 'reuben', b: 'judah', when: S => S.step === 'c1_pit', r: 8, lines: [[0, '…해가 지면 내가 우물 쪽을 살펴보겠다.'], [1, '왜, 형? 마음이 약해졌소?']] },

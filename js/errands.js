@@ -8,7 +8,7 @@
 const Game = G.Game, EP = G.EP && G.EP.joseph; if (!EP || !G.Life) return;
 const S = () => Game.S(), P = () => Game.P, sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const pop = (t, s, i) => G.UI.pop ? G.UI.pop(t, s, i) : G.UI.toast(s ? t + ' · ' + s : t);
-const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' ? 7 : (+st[1] || 2); };
+const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' || st[0] === 'g' ? 7 : (+st[1] || 2); } /* v18.34 g1–g8 are chapters 7–8 (they read as chapter 1) */;
 const CLERK = [21.5, -58.5];
 const lookOf = id => { const d = (EP.npcs || []).find(n => n.id === id); return d && d.look; };
 EP.npcs.push({ id: 'dlClerk', name: '곳간 서기 이피', look: Object.assign({}, lookOf('scribeA') || lookOf('steward') || lookOf('ameni') || {}, { top: 0xf0ead8, trim: 0x2c5a9a }), x: CLERK[0], z: CLERK[1], face: -2.4, talkR: 2.6,

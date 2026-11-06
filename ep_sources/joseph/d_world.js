@@ -58,7 +58,7 @@ const npcs = [
   { id: 'pharaoh', name: '바로', look: LOOK.pharaoh, x: -30, z: -177.2, face: 0, dy: 1.1 + padH(-30, -176) - padH(-30, -177.2), sit: true, fixedFace: true, talkR: 7.5, show: S => between(S, 'c4_court') || !!S.q.pharShow },
   { id: 'magician', name: NM.magician, look: LOOK.magician, x: -36.5, z: -171, face: 0.7, show: S => between(S, 'c4_court', 'c4_answer') || !!S.q.pharShow, chat: ['…나일의 신께서도 침묵하시는데, 히브리 노예가 무엇을 안다고.'] },
   { id: 'sage', name: NM.sage, look: Object.assign({}, LOOK.magician, { skin: 0xa86a40, sash: GOLD }), x: -23.5, z: -171, face: -0.7, show: S => between(S, 'c4_court', 'c4_answer') || !!S.q.pharShow, chat: ['일곱이라… 하늘의 수로다.'] },
-  { id: 'cupbearerC', name: NM.cupbearer, look: LOOK.cupbearer, x: -26, z: -169, face: -0.4, show: S => between(S, 'c4_court') || !!S.q.pharShow, chat: ['요셉… 아니, 총리님. 이 년이나 잊고 있었던 나를 용서하시오.', '바로의 잔을 들 때마다 그날 옥에서의 일을 생각하오.'] },
+  { id: 'cupbearerC', name: NM.cupbearer, look: LOOK.cupbearer, x: -26, z: -169, face: -0.4, show: S => between(S, 'c4_court') || !!S.q.pharShow, chat: S => between(S, 'c5_patrol') ? ['요셉… 아니, 총리님. 이 년이나 잊고 있었던 나를 용서하시오.', '바로의 잔을 들 때마다 그날 옥에서의 일을 생각하오.'] : ['…자네가 그 히브리 청년이군. 이 년이나 잊고 있었네. 미안하네.', '바로 앞에서는 떨지 말게. 자네 하나님이 함께하실 걸세.'] }, /* v18.34 not 총리 before he is made one */
   ...[[-35, -144], [-25, -144], [-38, -158], [-22, -158]].map(([x, z], i) => ({ id: 'royalG' + i, name: '궁의 호위병', look: LOOK.soldierEg, x, z, face: i < 2 ? 0 : (i === 2 ? 1.57 : -1.57), prop: 'spear', noTalk: true, show: S => between(S, 'c4_court') || !!S.q.pharShow })),
   // ---- the vizier's household (ch5–6)
   { id: 'asenath', name: '아스낫', look: LOOK.asenath, x: 7.6, z: -137.4, face: 0.4, show: S => between(S, 'c5_patrol') && !S.q.finale, chat: S => [S.q.born2 ? '므낫세가 에브라임에게 걸음마를 가르쳐요. 둘 다 넘어지지만요, 후후.' : S.q.born1 ? '므낫세가 오늘 당신을 보고 웃었어요.' : '여보, 오늘도 먼 길 다녀오셨군요.', '아버지께서 온의 신전에서 당신의 지혜를 칭찬하셨어요.'] },
@@ -79,7 +79,7 @@ const npcs = [
   { id: 'byElder', name: NM.elder, look: LOOK.elder, x: 16.4, z: -55.2, face: -2.9, show: show('c6_sell') },
   { id: 'bySidon', name: NM.sidon, look: LOOK.sidon, x: 19.2, z: -56.2, face: -2.5, show: show('c6_sell') },
   { id: 'byEdom', name: NM.edom, look: LOOK.edom, x: 8.4, z: -54.2, face: 2.2, show: show('c6_sell') },
-  { id: 'byAmeni', name: NM.ameni, look: LOOK.ameniOld, x: 21, z: -58.6, face: -2.2, show: show('c6_sell') },
+  { id: 'byAmeni', name: NM.ameni, look: LOOK.ameniOld, x: 19.4, z: -53.6, /* v18.34 not inside the clerk Ipi */ face: -2.2, show: show('c6_sell') },
   { id: 'benjamin2', name: '베냐민', look: LOOK.benjaminAdult, x: 172, z: 150, face: 0, noTalk: true, show: S => !!S.q.heb2 },
 ];
 for (const n of npcs) if (n.id === 'jacob') n.show = S => before(S, 'p_road') || !!S.q.heb || !!S.q.heb2;
@@ -167,7 +167,7 @@ const LORE = [
   ['onAltar', 12, -102.2, '온의 제단', '온(헬리오폴리스)은 해를 섬기던 성읍이에요. 요셉의 아내 아스낫은 이 온의 제사장 보디베라의 딸이었어요.', '창세기 41:45'],
   ['obelisk', 6.6, -95, '오벨리스크', '돌 하나를 통째로 깎아 세운 뾰족한 기둥이에요. 꼭대기를 금으로 씌워 햇빛에 번쩍였대요.', ''],
   ['pyramid', -188, -175, '피라미드', '요셉이 애굽에 왔을 때, 이 피라미드는 이미 수백 년 된 옛 왕들의 무덤이었어요.', ''],
-  ['tent', 172.6, 150.4, '염소털 장막', '야곱의 장막은 검은 염소털로 짰어요. 비가 오면 털실이 부풀어 물이 새지 않고, 해가 나면 바람이 잘 통했대요.', ''],
+  ['tent', 168.4, 146.6, '염소털 장막', /* v18.34 moved behind the tent: it took the A button from Jacob in the very first step */ '야곱의 장막은 검은 염소털로 짰어요. 비가 오면 털실이 부풀어 물이 새지 않고, 해가 나면 바람이 잘 통했대요.', ''],
 ];
 const loreBusy = (S, me) => specials.some(o => o !== me && !o.lore && o.id !== 'rodeChk' && Math.hypot(o.x - Gm().P.x, o.z - Gm().P.z) < (o.r || 2.4) && o.on && o.on(S, Gm()));
 for (const [id, x, z, n, t, ref] of LORE) { const sp = SP('lore_' + id, x, z, `살펴보기 · ${n}`, S => !loreBusy(S, sp), (S, G) => {

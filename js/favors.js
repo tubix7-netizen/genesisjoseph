@@ -17,7 +17,7 @@ const T = {
   weaver: ['{n}의 아마 실', { flax: 3 }, ['딸아이 혼례 예복을 짜는 중인데 아마가 떨어졌어요.', '아마 세 묶음이면 세마포 한 필이 나와요.'], ['보세요, 눈처럼 고운 세마포! 남은 건 {t}께 드릴게요.'], { items: { linen: 1 }, silver: 6 }],
   washer: ['{n}의 빨래 방망이', { branch: 2, olive: 2 }, ['악어가 제 빨래 방망이를 물어 갔어요! 정말이에요!', '단단한 가지 둘이랑 올리브 두 알만 있으면… 아, 올리브는 제 점심이에요. 헤헤.'], ['새 방망이로 두드리니 빨래가 훨씬 하얘요! 악어야, 이번 건 못 가져간다!'], { silver: 10, items: { linen: 1 } }],
   water: ['{n}의 깨진 물동이', { clay: 3 }, ['우물에서 물동이를 떨어뜨려 깨 먹었어요. 토기장이 아저씨가 진흙만 있으면 새로 빚어 준대요.', '진흙 세 덩이만 구해 주실 수 있어요?'], ['새 물동이예요! 첫 물은 {t}께 떠 드릴게요. 시원하죠?'], { silver: 10, items: { cucumber: 2 } }],
-  merchant: ['{n}의 귀한 손님', { linen: 1 }, ['먼 곳에서 귀한 손님이 와요. 고운 세마포 한 필을 선물해야 체면이 서는데…', '하나만 구해 주시면 값은 두 배로 쳐 드리지요!'], ['손님이 아주 기뻐했어요! 약속대로 넉넉히 드립니다.'], { silver: 34 }],
+  merchant: ['{n}의 귀한 손님', { linen: 1 }, ['먼 곳에서 귀한 손님이 와요. 고운 세마포 한 필을 선물해야 체면이 서는데…', '하나만 구해 주시면 값은 두 배로 쳐 드리지요!'], ['손님이 아주 기뻐했어요! 약속대로 넉넉히 드립니다.'], { silver: 60 }],
   brickmaker: ['{n}의 벽돌 짚', { straw: 5 }, ['곳간 벽돌을 더 찍어야 하는데 짚이 모자라요. 짚 없으면 벽돌이 금방 갈라져요.', '짚 다섯 단이면 오늘 다 찍을 수 있어요!'], ['오늘 찍은 벽돌엔 {t} 이름을 몰래 새겨 둘게요. 하하!'], { silver: 14, items: { brick: 4 } }],
   porter: ['{n}의 점심', { bread: 2 }, ['짐을 나르다 점심을 개한테 빼앗겼어요. 그 개는 신발만 모으는 줄 알았는데…', '빵 두 덩이만 있으면 오후 짐도 거뜬해요!'], ['살았다! 이제 기운이 펄펄 나요. 짐 나를 일 있으면 언제든 부르세요!'], { silver: 10 }],
   elder: ['{n} 어르신의 약초', { herb: 2 }, ['요즘 무릎이 쑤셔서… 들풀 약초 두 줌이면 달여 먹을 수 있겠소.', '젊었을 땐 내가 직접 캤는데, 이젠 산에 오르기가 힘들구려.'], ['고맙소. 늙은이 말 한마디 들려주리다. 받은 은혜는 물에 새기지 말고 돌에 새기시오.'], { silver: 8, insight: 1 }],
@@ -25,7 +25,7 @@ const T = {
   child: ['{n}의 잃어버린 나무 인형', null, ['{t}… 제 나무 인형이 없어졌어요. 엄마가 깎아 준 거예요.', '아까 집 근처에서 놀았는데… 같이 찾아 주실래요?'], ['찾았다! 고맙습니다, {t}! 이제 이 인형 이름은 「요셉」이에요!'], { items: { flower: 2 } }],
 };
 const roleOf = n => (n.d.folk && n.d.folk.role) || (/어부/.test(n.name) ? 'fisher' : /빵/.test(n.name) ? 'baker' : /농부/.test(n.name) ? 'farmer' : /아이/.test(n.name) ? 'child' : /노인|장로/.test(n.name) ? 'elder' : null);
-const title = s => { const st = s.step || ''; return st[0] === 'j' || (+st[1] || 0) >= 5 ? '총리님' : '요셉 님'; };
+const title = s => { const st = s.step || ''; return st[0] === 'j' || st[0] === 'g' || (+st[1] || 0) >= 5 ? '총리님' : '요셉 님'; };
 const DOLL = {}; /* where each child's doll lies (picked once, near their home) */
 function dollAt(n) { if (DOLL[n.id]) return DOLL[n.id]; const v = n.d.village, h = v && v.homes && v.homes[n.d.folk.home || 0]; const bx = h ? h[0] : n.x, bz = h ? h[1] : n.z;
   for (let i = 0; i < 12; i++) { const a = i * 2.4, r = 6 + (i % 3) * 2, x = bx + Math.cos(a) * r, z = bz + Math.sin(a) * r; if (!Game.solidAt(x, z, 0.5)) return (DOLL[n.id] = [x, z]); } return (DOLL[n.id] = [bx + 4, bz]); }

@@ -7,7 +7,7 @@ const SOLID = { oak: k => ({ r: 0.5 * k, h: 4 }), olive: k => ({ r: 0.35 * k, h:
   rock: k => ({ r: 1.0 * k, h: 1.2 }), outcrop: k => ({ r: 1.7 * k, h: 2 }), rockField: k => ({ r: 1.1 * k, h: 1 }), cliff: k => ({ r: 3.4 * k, h: 5 }), honeyRock: k => ({ r: 0.9 * k, h: 1 }),
   tent: (k, o) => ({ w: 5.6 * k, d: 3.6 * k, h: 2.6, cam: true, a: o.ry || 0 }), well: k => ({ r: 1.5 * k, h: 1 }), trough: (k, o) => ({ w: 2.2 * k, d: 0.8 * k, h: 0.6, a: o.ry || 0 }),
   pillar: k => ({ r: 0.45 * k, h: 1.6 }), altar: k => ({ r: 0.9 * k, h: 1.1 }), column: k => ({ r: 0.8 * k, h: 6 }), obelisk: k => ({ r: 0.8 * k, h: 8 }), sacks: k => ({ r: 0.6 * k, h: 0.8 }), pots: k => ({ r: 0.5 * k, h: 0.8 }),
-  pyramid: (k, o) => { const sz = ((o.args && o.args[0]) || 20) * k; return { w: sz * 1.38, d: sz * 1.38, h: sz * 1.2, cam: true, a: (o.ry || 0) + Math.PI / 4 * 0 }; }, stallM: (k, o) => ({ w: 2.4 * k, d: 2 * k, h: 2.2, a: o.ry || 0 }),
+  pyramid: (k, o) => { const sz = ((o.args && o.args[0]) || 20) * k; return { w: sz * 1.41, d: sz * 1.41, h: sz * 1.2, below: 6, cam: true, a: (o.ry || 0) + Math.PI / 4 * 0 }; }, stallM: (k, o) => ({ w: 2.4 * k, d: 2 * k, h: 2.2, a: o.ry || 0 }),
   booth: k => ({ r: 1.2 * k, h: 2.2 }), dovecote: k => ({ r: 1.1 * k, h: 3.5 }), shaduf: k => ({ r: 0.4 * k, h: 2.5 }), oven: k => ({ r: 0.8 * k, h: 1.2 }), quern: (k, o) => ({ w: 1 * k, d: 0.6 * k, h: 0.5, a: o.ry || 0 }),
   jars: (k, o) => { const n = (o.args && o.args[0]) || 4; return { w: n * 0.62 * k, d: 0.7 * k, h: 1, a: o.ry || 0 }; }, shelves: (k, o) => ({ w: 2.5 * k, d: 0.6 * k, h: 1.9, a: o.ry || 0 }),
   chestEg: (k, o) => ({ w: 0.95 * k, d: 0.6 * k, h: 0.7, a: o.ry || 0 }), bedEg: (k, o) => ({ w: 1.9 * k, d: 0.8 * k, h: 0.6, a: o.ry || 0 }), offering: (k, o) => ({ w: 1.8 * k, d: 0.8 * k, h: 0.9, a: o.ry || 0 }),
@@ -98,12 +98,14 @@ class World {
     o = o || {}; let y = o.y !== undefined ? o.y : this.heightAt(x, z) + (o.dy || 0);
     // v15: rocks, outcrops and scree must not hang in the air on a slope — sit them on the LOWEST ground under their footprint (the uphill side just sinks in)
     if (o.y === undefined && typeof fn === 'string' && ROCKY[fn]) { const rad = ROCKY[fn] * (o.s || 1); let lo = y; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; lo = Math.min(lo, this.heightAt(x + Math.cos(a) * rad, z + Math.sin(a) * rad), this.heightAt(x + Math.cos(a) * rad * 0.5, z + Math.sin(a) * rad * 0.5)); } y = lo - 0.04 + (o.dy || 0); }
+    /* v18.34 a pyramid sits on the lowest ground under its base (on a slope its far side stood above the sand and you could walk in under it) */
+    if (o.y === undefined && fn === 'pyramid') { const rad = ((o.args && o.args[0]) || 20) * 0.7 * (o.s || 1); let lo = y; for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8; for (const f of [1, 0.6]) lo = Math.min(lo, this.heightAt(x + Math.cos(a) * rad * f, z + Math.sin(a) * rad * f)); } y = lo; }
     const M = m4trs(m4(), x, y, z, o.ry || 0, 0, 0, o.s || 1, o.s || 1, o.s || 1);
     const g = o.gb || this.gb(x, z, o.detail); const r = rng(o.seed || ((x * 73856093) ^ (z * 19349663)));
     (typeof fn === 'string' ? G.env[fn] : fn)(g, M, r, ...(o.args || []));
     const kind = o.kind || (typeof fn === 'string' ? fn : null);
     if (o.col === undefined && kind && SOLID[kind] && !o.gb && !o.noCol) { const c = SOLID[kind](o.s || 1, o); if (c) o = Object.assign({}, o, { col: c }); }
-    if (o.col) this.addCol(Object.assign({ x, z, a: o.ry || 0, y0: y, y1: y + (o.col.h || 3) }, o.col));
+    if (o.col) this.addCol(Object.assign({ x, z, a: o.ry || 0, y0: y - (o.col.below || 0), y1: y + (o.col.h || 3) }, o.col)); /* (below: reaches down into the ground) */
     return { x, y, z };
   }
   finishStatics() {

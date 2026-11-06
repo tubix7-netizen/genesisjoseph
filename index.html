@@ -166,7 +166,7 @@ body.desk #controls .stick,body.desk #controls .cbtn,body.desk #btnLock{display:
 .q-side b{font-size:11px;color:#9be0ff;letter-spacing:.04em}
 .tag .mk{display:inline-grid;place-items:center;width:15px;height:15px;margin-right:4px;border-radius:50%;background:var(--gold);color:var(--ink);font-size:11px;font-weight:800}
 .tag .mk.q{background:#9be0ff}
-#fishUI{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 250px);transform:translateX(-50%);z-index:12;width:min(300px,80vw);display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);text-align:center;pointer-events:none}
+#fishUI{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 330px);transform:translateX(-50%);z-index:12;width:min(300px,80vw);display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);text-align:center;pointer-events:none}
 #fishUI b{font-size:14px;color:var(--gold-hi)}#fishUI span{font-size:11.5px;color:var(--muted)}
 #fishUI .meter{height:10px}#fishUI .tension i{background:linear-gradient(90deg,#7fbf6a,#e5b552 70%,#e0704f)}
 #cine{position:fixed;inset:0;z-index:28;pointer-events:auto;cursor:pointer}
@@ -210,7 +210,7 @@ body.cine #hud,body.cine #controls,body.cine #tags,body.cine #prompt,body.cine #
 .d-choices button:active{background:var(--gold);color:var(--ink)}
 
 /* overlays */
-.overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:20px var(--gr) 20px var(--gl)}
+.overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:max(20px,calc(env(safe-area-inset-top,0px) + 8px)) var(--gr) max(20px,calc(env(safe-area-inset-bottom,0px) + 8px)) var(--gl)} /* v18.34 sheets clear the notch and the home bar */
 #narr{background:radial-gradient(ellipse at center,rgba(12,20,44,.86),rgba(5,8,20,.96));cursor:pointer}
 .n-card{max-width:640px;width:100%;display:flex;flex-direction:column;gap:12px;text-align:center;max-height:100%;overflow:auto;padding-block:6px}
 .n-kick{font-size:12px;letter-spacing:.14em;color:var(--gold);font-weight:600}
@@ -224,7 +224,7 @@ body.cine #hud,body.cine #controls,body.cine #tags,body.cine #prompt,body.cine #
 .panel{width:100%;max-width:760px;max-height:100%;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.45)}
 .p-head{display:flex;align-items:center;gap:10px;padding:12px 14px 10px 18px;border-bottom:1px solid rgba(229,181,82,.18)}
 .p-head h3{margin:0;font-family:var(--serif);font-size:20px;color:var(--gold-hi);flex:1;min-width:0}
-.p-x{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
+.p-x{border:1px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;min-height:36px;font-size:13px;font-weight:700}
 .tabs{display:flex;gap:4px;padding:8px 12px 0;flex-wrap:wrap}
 .tabs button{border:0;background:transparent;padding:7px 12px;border-radius:9px 9px 0 0;font-size:13px;font-weight:700;color:var(--muted)}
 .tabs button.on{background:var(--panel2);color:var(--gold-hi)}
@@ -417,7 +417,7 @@ body.cine #hud,body.cine #controls,body.cine #tags,body.cine #prompt,body.cine #
 .emo.on{border-color:var(--gold);background:rgba(229,181,82,.18)}.emo:active{background:var(--gold)}.emo:active b,.emo:active span{color:var(--ink)}
 .emo-note{margin:2px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted)}
 /* photo mode */
-body.photo #hud,body.photo #tags,body.photo #prompt,body.photo #stam,body.photo #tgtBar,body.photo .cbtn,body.photo .hot,body.photo .stick,body.photo #gains,body.photo #frost,body.photo #featCard,body.photo #toast{visibility:hidden!important}
+body.photo #popBox,body.photo #exHud,body.cine #exHud,body.photo #hud,body.photo #tags,body.photo #prompt,body.photo #stam,body.photo #tgtBar,body.photo .cbtn,body.photo .hot,body.photo .stick,body.photo #gains,body.photo #frost,body.photo #featCard,body.photo #toast{visibility:hidden!important}
 #photoBar{position:fixed;z-index:26;left:var(--gl);right:var(--gr);top:var(--gt);margin-inline:auto;width:max-content;max-width:calc(100vw - 32px);display:flex;gap:8px;align-items:center;padding:6px 6px 6px 14px;border-radius:999px;background:rgba(9,16,34,.72);border:1px solid var(--line);font-size:12px}
 #photoBar span{color:var(--sand);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#photoBar .sbtn{white-space:nowrap}
 /* v9 · cinematic fades & titles, skip, tutorial hints, episode buttons */
@@ -427,7 +427,7 @@ body.photo #hud,body.photo #tags,body.photo #prompt,body.photo #stam,body.photo 
 @keyframes ctIn{0%{opacity:0;transform:translateY(-44%)}16%{opacity:1;transform:translateY(-50%)}84%{opacity:1}100%{opacity:0}}
 #cineTitle b{display:block;font-family:var(--serif);font-weight:700;font-size:clamp(30px,8vw,54px);line-height:1.15;color:var(--gold-hi);text-shadow:0 2px 22px rgba(0,0,0,.85);text-wrap:balance}
 #cineTitle span{display:block;margin-top:10px;font-size:13px;letter-spacing:.22em;color:var(--sand);text-shadow:0 1px 8px #000}
-#cineSkip{position:absolute;left:var(--gl);top:calc(9vh - 36px);border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.35);color:rgba(255,255,255,.78);border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:700}
+#cineSkip{position:absolute;left:var(--gl);top:max(calc(9vh - 36px),calc(env(safe-area-inset-top,0px) + 4px));min-height:36px;border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.35);color:rgba(255,255,255,.78);border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:700}
 #hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 238px);transform:translate(-50%,8px);z-index:9;display:flex;gap:9px;align-items:center;width:max-content;max-width:min(88vw,430px);padding:8px 15px 8px 8px;border-radius:14px;background:rgba(9,16,34,.88);border:1px solid var(--gold);box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;font-size:13.5px;font-weight:600;line-height:1.45;text-wrap:balance}
 #hint.show{opacity:1;transform:translate(-50%,0)}
 /* v16.9 brief tips: one compact line */
@@ -437,6 +437,11 @@ body.photo #hud,body.photo #tags,body.photo #prompt,body.photo #stam,body.photo 
 body.busy #hint,body.cine #hint,body.photo #hint{visibility:hidden}
 @media (min-aspect-ratio:1/1){#hint{bottom:calc(env(safe-area-inset-bottom,0px) + 150px)}}
 #hint{zoom:var(--uik)}
+
+/* v18.34 (tester round 2) bigger touch targets and readable small text */
+.hot button{min-height:40px}#autoBtn{min-height:40px}#starBtn small{font-size:11px}#featCard small{font-size:11.5px}#slingBar span,#slingCancel span{font-size:11.5px}
+@media (max-aspect-ratio:1/1){body .compass{top:calc(var(--hudB, calc(var(--gt) + var(--mw) + 60px)) + 6px)}body #gains{top:calc(var(--hudB, calc(var(--gt) + 190px)) + 46px)}body #autoBtn,body #starBtn{top:calc(var(--hudB, calc(var(--gt) + var(--mw) + 106px)) + 48px)}#bossBar{left:var(--gl);transform:none;top:calc(var(--gt) + 50px);width:calc(100vw - var(--gl) - var(--gr) - var(--mw) - 2*var(--cs) - 14px)}body #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 360px)}}
+
 </style>
 
 <canvas id="view"></canvas>
@@ -505,80 +510,82 @@ body.busy #hint,body.cine #hint,body.photo #hint{visibility:hidden}
 <div id="fader"></div>
 <div id="loadErr" hidden>이 기기에서는 3D 그래픽(WebGL2)을 사용할 수 없어요. 최신 브라우저에서 다시 열어 주세요.</div>
 
-<script src="js/core.js?v=1793885210"></script>
-<script src="js/audio.js?v=1793885210"></script>
-<script src="js/models.js?v=1793885210"></script>
-<script src="js/motion.js?v=1793885210"></script>
-<script src="js/world.js?v=1793885210"></script>
-<script src="js/game.js?v=1793885210"></script>
-<script src="js/ui.js?v=1793885210"></script>
-<script src="js/pop.js?v=1793885210"></script>
-<script src="js/combat.js?v=1793885210"></script>
-<script src="js/life.js?v=1793885210"></script>
-<script src="js/shots.js?v=1793885210"></script>
-<script src="js/mood.js?v=1793885210"></script>
-<script src="js/companion.js?v=1793885210"></script>
-<script src="js/weather.js?v=1793885210"></script>
-<script src="js/vitals.js?v=1793885210"></script>
-<script src="js/survival.js?v=1793885210"></script>
-<script src="js/wilds.js?v=1793885210"></script>
-<script src="js/hearth.js?v=1793885210"></script>
-<script src="js/climb.js?v=1793885210"></script>
-<script src="js/physics.js?v=1793885210"></script>
-<script src="js/loot.js?v=1793885210"></script>
-<script src="js/lockon.js?v=1793885210"></script>
-<script src="js/build.js?v=1793885210"></script>
-<script src="js/ride.js?v=1793885210"></script>
-<script src="js/npcai.js?v=1793885210"></script>
-<script src="js/greet.js?v=1793885210"></script>
-<script src="js/bond.js?v=1793885210"></script>
-<script src="js/qcam.js?v=1793885210"></script>
-<script src="js/climate.js?v=1793885210"></script>
-<script src="js/chem.js?v=1793885210"></script>
-<script src="js/deeds.js?v=1793885210"></script>
-<script src="js/sling.js?v=1793885210"></script>
-<script src="js/stones.js?v=1793885210"></script>
-<script src="js/acts.js?v=1793885210"></script>
-<script src="js/opening.js?v=1793885210"></script>
-<script src="js/ep_joseph.js?v=1793885210"></script>
-<script src="js/ep_joseph_life.js?v=1793885210"></script>
-<script src="js/pantry.js?v=1793885210"></script>
-<script src="js/fireside.js?v=1793885210"></script>
-<script src="js/sites.js?v=1793885210"></script>
-<script src="js/focus.js?v=1793885210"></script>
-<script src="js/cuisine.js?v=1793885210"></script>
-<script src="js/delights.js?v=1793885210"></script>
-<script src="js/tonic.js?v=1793885210"></script>
-<script src="js/hunt.js?v=1793885210"></script>
-<script src="js/extras.js?v=1793885210"></script>
-<script src="js/persona.js?v=1793885210"></script>
-<script src="js/carry.js?v=1793885210"></script>
-<script src="js/storage.js?v=1793885210"></script>
-<script src="js/homes.js?v=1793885210"></script>
-<script src="js/rooms.js?v=1793885210"></script>
-<script src="js/puzzle.js?v=1793885210"></script>
-<script src="js/prison.js?v=1793885210"></script>
-<script src="js/cart.js?v=1793885210"></script>
-<script src="js/village.js?v=1793885210"></script>
-<script src="js/egypt2.js?v=1793885210"></script>
-<script src="js/city.js?v=1793885210"></script>
-<script src="js/street.js?v=1793885210"></script>
-<script src="js/dreams.js?v=1793885210"></script>
-<script src="js/feast.js?v=1793885210"></script>
-<script src="js/letters.js?v=1793885210"></script>
-<script src="js/errands.js?v=1793885210"></script>
-<script src="js/nile.js?v=1793885210"></script>
-<script src="js/cave.js?v=1793885210"></script>
-<script src="js/caves.js?v=1793885210"></script>
-<script src="js/tips.js?v=1793885210"></script>
-<script src="js/nav.js?v=1793885210"></script>
-<script src="js/favors.js?v=1793885210"></script>
-<script src="js/stable.js?v=1793885210"></script>
-<script src="js/byblos.js?v=1793885210"></script>
-<script src="js/fauna.js?v=1793885210"></script>
-<script src="js/egypt3.js?v=1793885210"></script>
-<script src="js/sleep.js?v=1793885210"></script>
-<script src="js/perf.js?v=1793885210"></script>
-<script src="js/main.js?v=1793885210"></script>
+<script src="js/core.js?v=1793922542"></script>
+<script src="js/audio.js?v=1793922542"></script>
+<script src="js/models.js?v=1793922542"></script>
+<script src="js/motion.js?v=1793922542"></script>
+<script src="js/world.js?v=1793922542"></script>
+<script src="js/game.js?v=1793922542"></script>
+<script src="js/ui.js?v=1793922542"></script>
+<script src="js/pop.js?v=1793922542"></script>
+<script src="js/combat.js?v=1793922542"></script>
+<script src="js/life.js?v=1793922542"></script>
+<script src="js/shots.js?v=1793922542"></script>
+<script src="js/mood.js?v=1793922542"></script>
+<script src="js/companion.js?v=1793922542"></script>
+<script src="js/weather.js?v=1793922542"></script>
+<script src="js/vitals.js?v=1793922542"></script>
+<script src="js/survival.js?v=1793922542"></script>
+<script src="js/wilds.js?v=1793922542"></script>
+<script src="js/hearth.js?v=1793922542"></script>
+<script src="js/climb.js?v=1793922542"></script>
+<script src="js/physics.js?v=1793922542"></script>
+<script src="js/loot.js?v=1793922542"></script>
+<script src="js/lockon.js?v=1793922542"></script>
+<script src="js/build.js?v=1793922542"></script>
+<script src="js/ride.js?v=1793922542"></script>
+<script src="js/npcai.js?v=1793922542"></script>
+<script src="js/greet.js?v=1793922542"></script>
+<script src="js/bond.js?v=1793922542"></script>
+<script src="js/qcam.js?v=1793922542"></script>
+<script src="js/climate.js?v=1793922542"></script>
+<script src="js/chem.js?v=1793922542"></script>
+<script src="js/deeds.js?v=1793922542"></script>
+<script src="js/sling.js?v=1793922542"></script>
+<script src="js/stones.js?v=1793922542"></script>
+<script src="js/acts.js?v=1793922542"></script>
+<script src="js/opening.js?v=1793922542"></script>
+<script src="js/ep_joseph.js?v=1793922542"></script>
+<script src="js/ep_joseph_life.js?v=1793922542"></script>
+<script src="js/pantry.js?v=1793922542"></script>
+<script src="js/fireside.js?v=1793922542"></script>
+<script src="js/sites.js?v=1793922542"></script>
+<script src="js/focus.js?v=1793922542"></script>
+<script src="js/cuisine.js?v=1793922542"></script>
+<script src="js/delights.js?v=1793922542"></script>
+<script src="js/tonic.js?v=1793922542"></script>
+<script src="js/hunt.js?v=1793922542"></script>
+<script src="js/extras.js?v=1793922542"></script>
+<script src="js/persona.js?v=1793922542"></script>
+<script src="js/carry.js?v=1793922542"></script>
+<script src="js/storage.js?v=1793922542"></script>
+<script src="js/homes.js?v=1793922542"></script>
+<script src="js/rooms.js?v=1793922542"></script>
+<script src="js/puzzle.js?v=1793922542"></script>
+<script src="js/prison.js?v=1793922542"></script>
+<script src="js/cart.js?v=1793922542"></script>
+<script src="js/village.js?v=1793922542"></script>
+<script src="js/egypt2.js?v=1793922542"></script>
+<script src="js/city.js?v=1793922542"></script>
+<script src="js/street.js?v=1793922542"></script>
+<script src="js/dreams.js?v=1793922542"></script>
+<script src="js/feast.js?v=1793922542"></script>
+<script src="js/letters.js?v=1793922542"></script>
+<script src="js/errands.js?v=1793922542"></script>
+<script src="js/nile.js?v=1793922542"></script>
+<script src="js/cave.js?v=1793922542"></script>
+<script src="js/caves.js?v=1793922542"></script>
+<script src="js/tips.js?v=1793922542"></script>
+<script src="js/nav.js?v=1793922542"></script>
+<script src="js/favors.js?v=1793922542"></script>
+<script src="js/stable.js?v=1793922542"></script>
+<script src="js/byblos.js?v=1793922542"></script>
+<script src="js/fauna.js?v=1793922542"></script>
+<script src="js/egypt3.js?v=1793922542"></script>
+<script src="js/catch.js?v=1793922542"></script>
+<script src="js/supper.js?v=1793922542"></script>
+<script src="js/sleep.js?v=1793922542"></script>
+<script src="js/perf.js?v=1793922542"></script>
+<script src="js/main.js?v=1793922542"></script>
 
 </body></html>

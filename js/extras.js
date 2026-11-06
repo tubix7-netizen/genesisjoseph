@@ -267,6 +267,6 @@ let slow = 0;
 const upd0 = EP.update; EP.update = function (dt) { const r = upd0 ? upd0.apply(this, arguments) : undefined; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
   if (Game.mode !== 'play') return r; try { herdTick(d); patrolTick(d); hideTick(d); } catch (e) { console.error('extras', e); }
   if ((slow += d) > 0.5) { slow = 0; try { legTick(); seasonTick(); } catch (e) { console.error('extras', e); } }
-  sbtn.hidden = !(free() && night() && after('p_night') && !X.busy() && !document.body.classList.contains('photo'));
+  sbtn.hidden = !(free() && night() && after('p_night') && !X.busy() && !document.body.classList.contains('photo') && !(Game.S().q && Game.S().q.riding)); /* v18.34 not over the wagon's 자동 이동 button */
   return r; };
 })(window.G);

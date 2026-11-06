@@ -152,13 +152,15 @@ pose('drink', true, (rig, p) => {
 
 // ---- rest (hold poses; the inertia spring eases in and out)
 pose('sitg', false, (rig, p, t) => { // cross-legged on the ground
-  rig.off[1] = -0.74; set(rig, B.thighL, -1.45, 0, 0.55); set(rig, B.thighR, -1.45, 0, -0.55); set(rig, B.shinL, 2.5); set(rig, B.shinR, 2.5);
+  /* v18.34 the shins folded down through the floor (ankles 15 cm under it): the thighs now open with a little outward turn and the shins
+     fold flat, knees at the same place (y≈0.14), ankles on the ground (y≈0.065) in front of the hips */
+  rig.off[1] = -0.74; set(rig, B.thighL, -1.45, 0.3, 0.2); set(rig, B.thighR, -1.45, -0.3, -0.2); set(rig, B.shinL, 2.85); set(rig, B.shinR, 2.85);
   set(rig, B.chest, 0.1 + Math.sin(t * 1.6) * 0.02); set(rig, B.uArmL, -0.55, 0, 0.12); set(rig, B.uArmR, -0.55, 0, -0.12); set(rig, B.fArmL, -0.55); set(rig, B.fArmR, -0.55);
   set(rig, B.head, 0.05, Math.sin(t * 0.23) * 0.3, 0);
 });
 pose('sitHug', false, (rig, p, t) => { // knees up, arms around them
   const rock = Math.sin(t * 0.9) * 0.03;
-  rig.off[1] = -0.76; set(rig, B.thighL, -1.95, 0, 0.12); set(rig, B.thighR, -1.95, 0, -0.12); set(rig, B.shinL, 2.45); set(rig, B.shinR, 2.45);
+  rig.off[1] = -0.76; set(rig, B.thighL, -1.95, 0, 0.12); set(rig, B.thighR, -1.95, 0, -0.12); set(rig, B.shinL, 2.8); set(rig, B.shinR, 2.8); /* v18.34 shins 2.45 → 2.8: the feet were 7 cm in the ground, now drawn in to rest on it */
   set(rig, B.pelvis, -0.2 + rock); set(rig, B.chest, 0.45); set(rig, B.head, 0.05, Math.sin(t * 0.3) * 0.25, 0);
   set(rig, B.uArmL, -1.05, 0, -0.32); set(rig, B.uArmR, -1.05, 0, 0.32); set(rig, B.fArmL, -1.15, 0.3); set(rig, B.fArmR, -1.15, -0.3);
 });
@@ -168,8 +170,10 @@ pose('lie', false, (rig, p, t) => { // v13: on the back, hands behind the head, 
   set(rig, B.thighL, -0.06, 0, -0.04); set(rig, B.shinL, 0.06); set(rig, B.thighR, -0.04, 0, 0.05); set(rig, B.shinR, 0.04);
 });
 pose('kneelRest', false, (rig, p, t) => { // sitting back on the heels, hands on the thighs
-  rig.off[1] = -0.66; set(rig, B.thighL, -1.42, 0, 0.1); set(rig, B.thighR, -1.42, 0, -0.1); set(rig, B.shinL, 2.85); set(rig, B.shinR, 2.85);
-  set(rig, B.chest, 0.05 + Math.sin(t * 1.5) * 0.015); set(rig, B.uArmL, -0.55, 0, 0.05); set(rig, B.uArmR, -0.55, 0, -0.05); set(rig, B.fArmL, -0.75); set(rig, B.fArmR, -0.75);
+  /* v18.34 the knees floated ~13 cm (thighs nearly level): now thighs slope down to the knees, knees (y≈0.075) and ankles (y≈0.09) rest
+     on the ground, the hips stay at the same height; the hands lie on the thighs instead of hovering past the knees */
+  rig.off[1] = -0.66; set(rig, B.thighL, -1.1, 0, 0.1); set(rig, B.thighR, -1.1, 0, -0.1); set(rig, B.shinL, 2.71); set(rig, B.shinR, 2.71);
+  set(rig, B.chest, 0.05 + Math.sin(t * 1.5) * 0.015); set(rig, B.uArmL, -0.3, 0, -0.08); set(rig, B.uArmR, -0.3, 0, 0.08); set(rig, B.fArmL, -0.4); set(rig, B.fArmR, -0.4);
 });
 pose('climb', false, (rig, p, t) => { /* v18.14 a real climbing cycle (contralateral): the right hand reaches up while the left knee comes high to a new
      foothold, then the body pulls up and the other pair goes — arms swing from a bent pull at the shoulder to fully stretched overhead,
@@ -181,9 +185,10 @@ pose('climb', false, (rig, p, t) => { /* v18.14 a real climbing cycle (contralat
   rig.off[1] = -0.12 + 0.05 * Math.abs(c); rig.off[2] = -0.04;
 });
 pose('squat', false, (rig, p, t) => { // v12: one knee down, forearm resting on the raised knee (no more deep frog squat)
-  rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.42, 0, 0.12); set(rig, B.shinL, 1.42); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.5);
+  /* v18.34 the front foot stood 12 cm in the ground: its shin is vertical now (knee y 0.5, ankle y 0.072); the forearm still rests on that knee */
+  rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.69, 0, 0.12); set(rig, B.shinL, 1.64); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.5);
   set(rig, B.chest, 0.28); set(rig, B.head, -0.08, Math.sin(t * 0.3) * 0.3, 0);
-  set(rig, B.uArmL, -0.75, 0, -0.05); set(rig, B.fArmL, -0.5); set(rig, B.uArmR, -0.35, 0, 0.18); set(rig, B.fArmR, -0.6);
+  set(rig, B.uArmL, -0.8, 0, -0.05); set(rig, B.fArmL, -0.5); set(rig, B.uArmR, -0.35, 0, 0.18); set(rig, B.fArmR, -0.6);
 });
 pose('crossArms', true, (rig, p, t) => { // stand with arms folded, weight on one leg
   set(rig, B.uArmL, -0.5, 0, -0.42); set(rig, B.uArmR, -0.55, 0, 0.42); set(rig, B.fArmL, -1.95, 0.15); set(rig, B.fArmR, -1.95, -0.15);
@@ -191,7 +196,7 @@ pose('crossArms', true, (rig, p, t) => { // stand with arms folded, weight on on
 });
 pose('warmHands', false, (rig, p, t) => { // v12: down on one knee by the fire (modest and steady instead of a deep squat), rubbing the hands
   const rub = Math.sin(t * 9) * 0.12;
-  rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.42, 0, 0.12); set(rig, B.shinL, 1.42); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.5);
+  rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.69, 0, 0.12); set(rig, B.shinL, 1.64); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.5); /* v18.34 front foot on the ground, as in squat */
   set(rig, B.chest, 0.3); set(rig, B.head, 0.1);
   set(rig, B.uArmL, -1.1, 0, -0.3 + rub); set(rig, B.uArmR, -1.1, 0, 0.3 + rub); set(rig, B.fArmL, -0.7); set(rig, B.fArmR, -0.7);
 });
@@ -199,10 +204,12 @@ pose('warmHands', false, (rig, p, t) => { // v12: down on one knee by the fire (
 // ---- worship
 pose('prostrate', false, (rig, p, t) => { // 엎드려 절하기: kneel, then the face to the ground
   const k = ph01(p, 0.05, 0.4) * (1 - ph01(p, 0.8, 1));
-  rig.off[1] = -0.55; set(rig, B.thighL, -0.35 - 0.6 * k, 0, 0.08); set(rig, B.thighR, -0.35 - 0.6 * k, 0, -0.08); set(rig, B.shinL, 1.7 + 0.6 * k); set(rig, B.shinR, 1.7 + 0.6 * k);
-  set(rig, B.pelvis, 0.15 + 0.55 * k); set(rig, B.chest, 0.2 + 0.85 * k); set(rig, B.head, 0.1 + 0.25 * k);
+  /* v18.34 the knees sank 4 cm (k=0) to 16 cm (k=1) into the ground: the thighs follow the pelvis tilt now (thigh angle = hip flexion,
+     the pelvis already pitches 0.55), knees y≈0.06 and ankles y≈0.05 through the whole bow; the chest bends further so the head still
+     comes down to the hands (hands on the ground at k=1) */
+  rig.off[1] = -0.45; set(rig, B.thighL, -0.35 - 0.35 * k, 0, 0.08); set(rig, B.thighR, -0.35 - 0.35 * k, 0, -0.08); set(rig, B.shinL, 1.75 - 0.2 * k); set(rig, B.shinR, 1.75 - 0.2 * k);
+  set(rig, B.pelvis, 0.15 + 0.55 * k); set(rig, B.chest, 0.2 + 1.1 * k); set(rig, B.head, 0.1 + 0.25 * k);
   set(rig, B.uArmL, -0.6 - 1.9 * k, 0, -0.15); set(rig, B.uArmR, -0.6 - 1.9 * k, 0, 0.15); set(rig, B.fArmL, -0.3); set(rig, B.fArmR, -0.3);
-  rig.off[1] -= 0.12 * k;
 });
 pose('raiseHands', true, (rig, p, t) => { // 두 손 들고 찬양
   const sw = Math.sin(t * 1.6);
@@ -238,7 +245,7 @@ pose('flute', true, (rig, p, t) => { // 갈대 피리: both hands at the lips, f
   set(rig, B.head, 0.12 + sw * 0.04, sw * 0.06, sw * 0.05); add(rig, B.chest, 0.05, 0, sw * 0.04, 1); rig.faceM = 0.12; });
 pose('pet', false, (rig, p, t) => { // crouch and stroke an animal
   const k = sst(0, 0.2, p) * (1 - sst(0.85, 1, p)), st2 = Math.sin(t * 5);
-  rig.off[1] = -0.3 * k; set(rig, B.thighL, -0.95 * k, 0, 0.15); set(rig, B.shinL, 1.35 * k); set(rig, B.thighR, -0.55 * k, 0, -0.15); set(rig, B.shinR, 1.15 * k);
+  rig.off[1] = -0.3 * k; set(rig, B.thighL, -0.95 * k, 0, 0.15); set(rig, B.shinL, 1.72 * k); set(rig, B.thighR, -0.55 * k, 0, -0.15); set(rig, B.shinR, 1.66 * k); /* v18.34 shins 1.35/1.15 left the feet 9/16 cm in the ground */
   set(rig, B.chest, 0.5 * k); set(rig, B.head, 0.3 * k); set(rig, B.uArmR, (-1.0 + 0.15 * st2) * k, 0, 0.1); set(rig, B.fArmR, -0.35 * k); set(rig, B.uArmL, -0.4 * k, 0, -0.1); set(rig, B.fArmL, -0.8 * k);
   rig.faceM = 0.3; });
 pose('dance2', false, (rig, p, t) => { // circle dance: clap high, step-hop
@@ -312,7 +319,7 @@ function gaitStyle(rig, st, t, A, dt) {
   if (bd.fem && !bd.kid) { // hip sway, narrow line, arms closer and softer
     add(rig, B.pelvis, 0, -rig.rot[B.pelvis * 3 + 1] * 0.35, Math.cos(ph) * 0.06 * A * W1, 1);
     add(rig, B.thighL, 0, 0, -0.035 * A, 1); add(rig, B.thighR, 0, 0, 0.035 * A, 1);
-    rig.rot[B.uArmL * 3] *= 0.8; rig.rot[B.uArmR * 3] *= 0.8; add(rig, B.uArmL, 0, 0, -0.04, 1); add(rig, B.uArmR, 0, 0, 0.04, 1);
+    if (!st.carry) { rig.rot[B.uArmL * 3] *= 0.8; rig.rot[B.uArmR * 3] *= 0.8; add(rig, B.uArmL, 0, 0, -0.04, 1); add(rig, B.uArmR, 0, 0, 0.04, 1); } /* v18.34 not when the hands hold a load (×0.8 dropped them off a jar on the head) */
     rig.off[0] -= Math.cos(ph) * 0.008 * A * W1;
     if (A < 0.1) { add(rig, B.thighL, -0.04, 0, -0.02, 1); add(rig, B.shinL, 0.1, 0, 0, 1); add(rig, B.pelvis, 0, 0, 0.035, 1); } // contrapposto at rest
   }
@@ -329,7 +336,7 @@ function gaitStyle(rig, st, t, A, dt) {
     add(rig, B.chest, -0.3, 0, 0, b); add(rig, B.pelvis, -0.08, 0, 0, b); add(rig, B.head, 0.15, 0, 0, b);
     rig.rot[B.thighL * 3] = lerp(rig.rot[B.thighL * 3], -0.6, Math.min(1, b)); rig.rot[B.shinL * 3] = lerp(rig.rot[B.shinL * 3], 0.12, Math.min(1, b));
     rig.rot[B.thighR * 3] = lerp(rig.rot[B.thighR * 3], 0.3, Math.min(1, b)); rig.rot[B.shinR * 3] = lerp(rig.rot[B.shinR * 3], 0.55, Math.min(1, b));
-    add(rig, B.uArmL, -0.45, 0, 0.15, b); add(rig, B.uArmR, -0.45, 0, -0.15, b); rig.off[1] -= 0.07 * b; }
+    if (!st.carry) { add(rig, B.uArmL, -0.45, 0, 0.15, b); add(rig, B.uArmR, -0.45, 0, -0.15, b); } rig.off[1] -= 0.13 * b; } /* v18.34 hips 0.13 (was 0.07) so the planted feet touch the ground (they floated 6–9 cm); hands stay on a carried load */
   // turning on the spot: a little shuffle of the feet instead of sliding
   const tr = Math.abs(lm.turn || 0), pv = st.act || lm.mode === 'turn' || lm.mode === 'stop' ? 0 : clamp((tr - 0.9) / 2, 0, 1) * (1 - sst(0.05, 0.25, A)); // v14: real turn steps in locoPose replace the shuffle
   if (pv > 0.01) { const q = Math.sin(t * 11), side = Math.sign(lm.turn || 1);
@@ -342,6 +349,40 @@ function gaitStyle(rig, st, t, A, dt) {
        forward; downhill the knees stay bent to brake (quadriceps eccentric) and the pelvis sits lower */
     if (sl > 0) { add(rig, B.thighL, -sl * 0.22 * A, 0, 0, 1); add(rig, B.thighR, -sl * 0.22 * A, 0, 0, 1); rig.off[2] += sl * 0.04 * A; }
     else { const d = -sl; add(rig, B.shinL, d * 0.3 * A, 0, 0, 1); add(rig, B.shinR, d * 0.3 * A, 0, 0, 1); add(rig, B.thighL, -d * 0.12 * A, 0, 0, 1); add(rig, B.thighR, -d * 0.12 * A, 0, 0, 1); rig.off[1] -= d * 0.035 * A; } }
+}
+
+/* v18.34 SWIM. In deep water (st.swim) the walk cycle used to play upright. Now: moving = breaststroke — the body lies forward
+   (pelvis pitched ~1.1, the head tipped back so the eyes look ahead), the arms reach, sweep out, pull in under the chest and
+   shoot forward again; the legs draw the heels up with the knees apart and whip together (frog kick) while the arms recover,
+   then a short glide; the shoulders lift on the pull for a breath. At rest = treading water: nearly upright, the hands scull in
+   and out at chest height, the legs pedal slowly. The stroke has its own clock (rig.swc) so it never jumps with the walk phase.
+   game.js keeps the root at water level - 1.25 m in deep water; st.swimLift (optional) = how far the root sits above that
+   (shallower water, the feet on the bottom), so the body still floats at the same height. Weight rig.swk eases in and out. */
+const SW_ARM = [ // c, upper arm pitch, upper arm abduction (left; mirrored), forearm bend
+  [0, -2.72, -0.3, -0.08], [0.22, -2.45, 0.85, -0.25], [0.42, -1.75, 0.55, -1.5], [0.58, -2.1, -0.05, -1.75], [0.76, -2.72, -0.3, -0.08], [1, -2.72, -0.3, -0.08]];
+const SW_LEG = [ // c, thigh pitch, thigh abduction (left; mirrored), shin bend
+  [0, 0.05, 0.06, 0.1], [0.42, 0, 0.08, 0.25], [0.62, -0.75, 0.38, 2.0], [0.78, -0.15, 0.45, 0.5], [0.9, 0.05, 0.1, 0.1], [1, 0.05, 0.06, 0.1]];
+const SWV = [0, 0, 0];
+function kfr(K, c) { let i = 0; while (i < K.length - 2 && c > K[i + 1][0]) i++; const a = K[i], b = K[i + 1], e = E((c - a[0]) / (b[0] - a[0]));
+  for (let j = 0; j < 3; j++) SWV[j] = a[j + 1] + (b[j + 1] - a[j + 1]) * e; return SWV; }
+function swimPose(rig, st, t, dt) {
+  const k = rig.swk = lerp(rig.swk || 0, st.swim && !st.act ? 1 : 0, Math.min(1, dt * 5)); if (k < 0.01) { rig.swFoot = undefined; return 0; }
+  const sp = st.speed || 0, mv = sst(0.25, 1.4, sp); /* 0 = treading water, 1 = swimming */
+  const c = rig.swc = ((rig.swc || 0) + dt * Math.min(1.6, 0.5 + 0.3 * sp) * mv) % 1; /* breaststroke ≈ 1.2 strokes/s at 2.4 m/s */
+  const tw = t * 3.2 + ((rig.lm && rig.lm.seed) || 0), s1 = Math.sin(tw), s2 = Math.sin(tw + PI);
+  const lift = bell(clamp((c - 0.18) / 0.5, 0, 1)) * mv; /* shoulders up on the pull = a breath */
+  const pel = lerp(0.3, 1.12 - 0.12 * lift, mv), ch = lerp(0.05, 0.12 - 0.1 * lift, mv), hd = lerp(-0.18, -0.85 - 0.12 * lift, mv);
+  const ar = kfr(SW_ARM, c), uX = lerp(-0.9, ar[0], mv), uZ = lerp(0.55 + 0.32 * s1, ar[1], mv), fX = lerp(-0.95 + 0.25 * s1, ar[2], mv);
+  const to3 = (b, x, y, z) => { const o = b * 3; rig.rot[o] = lerp(rig.rot[o], x, k); rig.rot[o + 1] = lerp(rig.rot[o + 1], y, k); rig.rot[o + 2] = lerp(rig.rot[o + 2], z, k); };
+  to3(B.pelvis, pel, 0, 0); to3(B.chest, ch, 0, 0); to3(B.head, hd, (st.look || 0) * 0.6, 0);
+  to3(B.uArmL, uX, 0, uZ); to3(B.uArmR, uX, 0, -uZ); to3(B.fArmL, fX, 0, 0); to3(B.fArmR, fX, 0, 0);
+  const lg = kfr(SW_LEG, c), tX = lg[0], tZ = lg[1], sX = lg[2]; /* treading: slow alternate pedalling, knees forward and apart */
+  to3(B.thighL, lerp(-0.8 + 0.22 * s1, tX, mv), 0, lerp(0.4, tZ, mv)); to3(B.thighR, lerp(-0.8 + 0.22 * s2, tX, mv), 0, -lerp(0.4, tZ, mv));
+  to3(B.shinL, lerp(1.25 + 0.45 * s2, sX, mv), 0, 0); to3(B.shinR, lerp(1.25 + 0.45 * s1, sX, mv), 0, 0);
+  const oy = lerp(-0.2 + 0.02 * s1, 0.14 + 0.05 * lift, mv) - (st.swimLift || 0);
+  rig.off[0] = lerp(rig.off[0], 0, k); rig.off[1] = lerp(rig.off[1], oy, k); rig.off[2] = lerp(rig.off[2], 0, k);
+  rig.swFoot = lerp(0.35, 1.05 - 0.75 * sst(0.5, 0.62, c) * (1 - sst(0.8, 0.9, c)), mv); /* feet pointed in the glide, flexed for the kick */
+  return k;
 }
 
 // =================================================================== 5. FOOT IK (two-bone, analytic)
@@ -522,7 +563,8 @@ function animHuman(rig, st, t) {
   const sp = st.speed || 0, A = Math.min(1, sp / 2.2);
   const hold = locoPose(rig, st, t);
   if (!hold) {
-    gaitStyle(rig, st, t, A, dt);
+    const swk = swimPose(rig, st, t, dt); /* v18.34 breaststroke / treading water replaces the walk in deep water (gait styling, skid and slope lean are for feet on the ground) */
+    if (swk < 0.99) gaitStyle(rig, st, t, A * (1 - swk), dt);
     const a = st.act, fn = a && P[a];
     if (a) {
       const up = fn ? fn.up : UP_BASE.has(a), wMove = up ? sst(0.06, 0.45, A) : 0;
@@ -534,18 +576,21 @@ function animHuman(rig, st, t) {
     } else if (st.hurt || st.shiver > 0) baseAct(rig, st, t);
     // 앉기(crouch): knees bent, hips low, chest over the knees, eyes up, hands forward for balance — a stalking walk
     const ck = rig.ck = lerp(rig.ck || 0, st.crouch && !st.act ? 1 : 0, Math.min(1, dt * 9));
-    if (ck > 0.01) { rig.off[1] -= 0.27 * ck; add(rig, B.thighL, -0.62, 0, 0.08, ck); add(rig, B.thighR, -0.62, 0, -0.08, ck); add(rig, B.shinL, 0.95, 0, 0, ck); add(rig, B.shinR, 0.95, 0, 0, ck);
+    /* v18.34 hips 0.27 lower with only 0.62/0.95 of knee bend put the feet 17 cm in the ground: bend matched to the drop (feet stay at y≈0.075) */
+    if (ck > 0.01) { rig.off[1] -= 0.24 * ck; add(rig, B.thighL, -0.9, 0, 0.08, ck); add(rig, B.thighR, -0.9, 0, -0.08, ck); add(rig, B.shinL, 1.55, 0, 0, ck); add(rig, B.shinR, 1.55, 0, 0, ck);
       add(rig, B.pelvis, 0.12, 0, 0, ck); add(rig, B.chest, 0.42, 0, 0, ck); add(rig, B.head, -0.38, 0, 0, ck);
       add(rig, B.uArmL, -0.3, 0, -0.08, ck); add(rig, B.uArmR, -0.3, 0, 0.08, ck); add(rig, B.fArmL, -0.45, 0, 0, ck); add(rig, B.fArmR, -0.45, 0, 0, ck); }
     // a hard landing: absorb it in the knees, hands out
-    if (st.landT > 0) { const k = sst(0, 0.25, st.landT) ; rig.off[1] -= 0.3 * k; add(rig, B.thighL, -0.7, 0, 0.1, k); add(rig, B.thighR, -0.7, 0, -0.1, k); add(rig, B.shinL, 1.2, 0, 0, k); add(rig, B.shinR, 1.2, 0, 0, k);
+    if (st.landT > 0 && !st.swim) { /* v18.34 not when the jump ends in deep water */ const k = sst(0, 0.25, st.landT), ld = ((rig.lm && rig.lm.land) || 0) * k;
+      /* v18.34 the knee bend now matches the 0.3 m drop (feet were 15 cm in the ground); the small landing dip of locoPose (lm.land) is taken out under it so the two don't stack */
+      rig.off[1] += -0.3 * k + 0.07 * ld; add(rig, B.thighL, -0.86 * k + 0.4 * ld, 0, 0.1 * k, 1); add(rig, B.thighR, -0.86 * k + 0.4 * ld, 0, -0.1 * k, 1); add(rig, B.shinL, 1.72 * k - 0.8 * ld, 0, 0, 1); add(rig, B.shinR, 1.72 * k - 0.8 * ld, 0, 0, 1); /* (matches locoPose's landing dip: 0.07 / 0.4 / 0.8) */
       add(rig, B.chest, 0.4, 0, 0, k); add(rig, B.uArmL, -0.5, 0, -0.5, k); add(rig, B.uArmR, -0.5, 0, 0.5, k); }
-    fidgets(rig, st, t, dt, A); convo(rig, st, t, A);
+    if (swk < 0.5) { fidgets(rig, st, t, dt, A); convo(rig, st, t, A); } /* v18.34 no hands-behind-the-back fidgets while treading water */
   } else if (st.sit && !st.ride) seatedLife(rig, st, t);
-  if (st.emo || rig.ew) acting(rig, st, t, dt, hold); else rig.emF = null;
+  if (st.emo || rig.ew) acting(rig, st, t, dt, hold || (rig.swk || 0) > 0.5); else rig.emF = null; /* v18.34 swimming keeps its stroke; the face still acts */
   /* v18.34 a lit torch is held up: the right arm raised forward, the elbow bent so the fist is above the shoulder (the walk's arm swing is mostly taken out) */
   rig.tk = lerp(rig.tk || 0, st.torch && !st.act && !hold ? 1 : 0, Math.min(1, dt * 7));
-  if (rig.tk > 0.01) { const k = rig.tk, o = B.uArmR * 3, f = B.fArmR * 3; rig.rot[o] = lerp(rig.rot[o], -1.32, k); rig.rot[o + 1] = lerp(rig.rot[o + 1], 0.1, k); rig.rot[o + 2] = lerp(rig.rot[o + 2], 0.16, k);
+  if (rig.tk > 0.01) { const k = rig.tk, o = B.uArmR * 3, f = B.fArmR * 3; rig.rot[o] = lerp(rig.rot[o], -1.32 + 0.15 * rig.rot[o], k); /* v18.34 keeps a little of the walk's swing so the raised arm isn't frozen */ rig.rot[o + 1] = lerp(rig.rot[o + 1], 0.1, k); rig.rot[o + 2] = lerp(rig.rot[o + 2], 0.16, k);
     rig.rot[f] = lerp(rig.rot[f], -0.95, k); rig.rot[f + 1] = lerp(rig.rot[f + 1], 0, k); rig.rot[f + 2] = lerp(rig.rot[f + 2], 0, k); }
   const choreo = postureChoreo(rig, st, t); // v16.9 lie ↔ stand goes through a kneel (target pose)
   if (M.timing) { const t0 = performance.now(); inertialize(rig, st, t, choreo); M.iStats.ms += performance.now() - t0; M.iStats.n++; } else inertialize(rig, st, t, choreo); // v16.9 one inertializer for every change (replaces inertia())
@@ -566,6 +611,7 @@ function footRoll(rig, st, A, dt, hold) {
     if (st.air || st.swim) want = 0.45 - sum * 0.3;
     else if (!hold) want += A * (0.5 * Math.max(0, tx + 0.05) - 0.32 * Math.max(0, -tx - 0.12));
     if (sum > 0.95) want = lerp(want, 0.3, sst(0.95, 1.45, sum)); // kneeling: the foot lies back along the floor
+    if (rig.swFoot !== undefined) want = lerp(want, rig.swFoot, rig.swk || 0); /* v18.34 pointed in the glide, flexed for the frog kick */
     if (st.ride) want = 0.25; else if (st.sit || st.sleep) want *= 0.5;
     fl[i] = lerp(fl[i], clamp(want, -0.6, 1.3), k); rig.rot[ft * 3] = fl[i]; }
 }
@@ -660,7 +706,7 @@ M.groundFn = function (ent) { // st.gnd sampler: height of the ground at a point
     const k = ent.scale || 1; return (W.heightAt(ent.x + (lx * c + lz * s) * k, ent.z + (-lx * s + lz * c) * k) - (ent.y || 0) + (ent.gndOff || 0)) / k; });
 };
 M.isRest = k => k === 'sitg' || k === 'sitHug' || k === 'lie' || k === 'kneelRest' || k === 'squat' || k === 'warmHands';
-G.animHuman = animHuman; G.animAnimal = animAnimal; M.legIK = legIK;
+G.animHuman = animHuman; G.animAnimal = animAnimal; M.legIK = legIK; M.swimPose = swimPose;
 // v17.1 P11: with ?perf=1 the animators are timed (M.animMs, summed per frame, read by js/perf.js); game.js picks these up when it loads
 if (/[?&]perf\b/.test(location.search)) { M.animMs = 0; const ah = animHuman, aa = animAnimal;
   G.animHuman = function () { const t = performance.now(); const r = ah.apply(this, arguments); M.animMs += performance.now() - t; return r; };

@@ -57,8 +57,11 @@ const TYPE = {
 };
 TYPE.mine = { n: '요셉의 집', model(g) { g.box(1.1, 0.45, 2.1, { at: [-2.5, 0.22, 1.9], c: 0x8a6440 }); g.box(1.0, 0.12, 2.0, { at: [-2.5, 0.5, 1.9], c: 0xece2c8 }); g.box(0.7, 0.14, 0.32, { at: [-2.5, 0.6, 2.7], c: 0xd8c8a8 });
     g.box(0.9, 0.55, 0.55, { at: [2.4, 0.28, 2.3], c: 0x8a5a32 }); g.box(0.94, 0.12, 0.59, { at: [2.4, 0.6, 2.3], c: 0x6e4424 }); g.box(0.12, 0.12, 0.04, { at: [2.4, 0.46, 2.0], c: 0xc8a040 });
-    g.box(1.4, 0.7, 0.7, { at: [0.3, 0.35, 0.5], c: 0x7a5a3a }); for (let i = 0; i < 3; i++) g.cyl(0.05, 0.05, 0.5, 6, { at: [-0.1 + i * 0.3, 0.75, 0.5], rz: Math.PI / 2, c: 0xe8dcb8 }); g.cyl(0.08, 0.1, 0.08, 8, { at: [0.8, 0.76, 0.4], c: 0xc8a040 }); }, act: null };
-const TYPES = Object.keys(TYPE).filter(k => k !== 'mine');
+    g.box(1.4, 0.7, 0.7, { at: [0.3, 0.35, 0.5], c: 0x7a5a3a }); for (let i = 0; i < 3; i++) g.cyl(0.05, 0.05, 0.5, 6, { at: [0.88, 0.75 + (i === 2 ? 0.08 : 0), 0.38 + (i % 2) * 0.12 + (i === 2 ? 0.06 : 0)], rx: Math.PI / 2, c: 0xe8dcb8 }); g.cyl(0.08, 0.1, 0.08, 8, { at: [-0.3, 0.76, 0.75], c: 0xc8a040 }); } /* v18.34 the scrolls at the end of the table, so the supper has room */, act: null };
+TYPE.mineMeal = { n: '요셉의 집', model(g) { /* v18.34 the same room with the table cleared for supper (scrolls and ink put away) */ g.box(1.1, 0.45, 2.1, { at: [-2.5, 0.22, 1.9], c: 0x8a6440 }); g.box(1.0, 0.12, 2.0, { at: [-2.5, 0.5, 1.9], c: 0xece2c8 }); g.box(0.7, 0.14, 0.32, { at: [-2.5, 0.6, 2.7], c: 0xd8c8a8 });
+    g.box(0.9, 0.55, 0.55, { at: [2.4, 0.28, 2.3], c: 0x8a5a32 }); g.box(0.94, 0.12, 0.59, { at: [2.4, 0.6, 2.3], c: 0x6e4424 }); g.box(0.12, 0.12, 0.04, { at: [2.4, 0.46, 2.0], c: 0xc8a040 });
+    g.box(1.4, 0.7, 0.7, { at: [0.3, 0.35, 0.5], c: 0x7a5a3a }); } /* v18.34 the scrolls at the end of the table, so the supper has room */, act: null };
+const TYPES = Object.keys(TYPE).filter(k => k !== 'mine' && k !== 'mineMeal');
 Ho.TYPE = TYPE; Ho.room = () => ({ x: IX, z: IZ, y: IY, w: RW, d: RD, h: WH }); Ho.mk = mk; /* v18.23 rooms.js adds shops, a senet room, a scribe school, a healer and room layouts */
 /* v18.22 Joseph's house (the vizier's house) can be entered too: his bed and his chest are inside */
 const ord = () => Game.stepOrder(), afterStep = k => { const o = ord(), s = S(); return !!s && o.indexOf(s.step) >= o.indexOf(k); };
@@ -89,7 +92,7 @@ const FAM = ['할머니', '할아버지', '어머니', '맏딸', '아들'];
 function famHome(v, i) { if (v.mine || !ownerOf(v, i)) return null; const k = houseKey(v, i), h = S().time % 24; if (hash(k + 'fam') > 0.65 || h < 7 || h > 21.5) return null; return FAM[Math.floor(hash(k + 'who') * FAM.length)]; }
 function ownerNear(v, i, d) { if (v.mine) return { home: true, me: true }; const f0 = ownerNearReal(v, i, d); if (f0) return f0; const fm = famHome(v, i); return fm ? { home: true, fam: fm } : null; }
 function ownerNearReal(v, i, d) { const ow = ownerOf(v, i), n = ow && Game.ENT.npcs[ow.id]; if (!n || !n.vis && !n.schedHidden) return null; const hm = v.homes[i];
-  if (n.schedHidden && Math.hypot(n.x - hm[0], n.z - hm[1]) < 3) return { n, home: true }; if (n.vis && !n.schedHidden && Math.hypot(n.x - d.x, n.z - d.z) < 9) return { n, home: false }; return null; }
+  if (n.schedHidden && Math.hypot(n.x - hm[0], n.z - hm[1]) < 6.5) return { n, home: true }; /* v18.34 (gone in through the door, which is a few steps from the middle) */ if (n.vis && !n.schedHidden && Math.hypot(n.x - d.x, n.z - d.z) < 9) return { n, home: false }; return null; }
 /* v18.34 at night (9 pm – 6 am) nobody opens the door to a visitor, not even for the vizier: you may knock, but you stay outside */
 const isNightH = () => { const h = S().time % 24; return h >= 21 || h < 6; };
 Ho.night = isNightH;
@@ -160,7 +163,7 @@ Game.CTX.push(function (s) { const p = P(); if (p.ride || p.swim || p.act || p.c
 const MX = G.m4(), MX2 = G.m4();
 const dyn0 = EP.dyn; EP.dyn = function (list) { if (dyn0) dyn0.apply(this, arguments); if (Game.mode !== 'play') return; const h = cur(), p = P();
   if (!h || Math.hypot(p.x - IX, p.z - IZ) > 40) return;
-  G.m4trs(MX, IX, IY, IZ, 0, 0, 0, 1, 1, 1); list.push({ mesh: Ho.roomMesh ? Ho.roomMesh(h, room) : mk('hRoom', room), m: MX, outline: true }); if (Ho.decoMesh) { const dm = Ho.decoMesh(h); if (dm) list.push({ mesh: dm, m: MX, outline: true }); } list.push({ mesh: mk('hT_' + h.t, TYPE[h.t].model), m: MX, outline: true }); };
+  G.m4trs(MX, IX, IY, IZ, 0, 0, 0, 1, 1, 1); list.push({ mesh: Ho.roomMesh ? Ho.roomMesh(h, room) : mk('hRoom', room), m: MX, outline: true }); if (Ho.decoMesh) { const dm = Ho.decoMesh(h); if (dm) list.push({ mesh: dm, m: MX, outline: true }); } { const tk = h.t === 'mine' && Ho.mealSet ? 'mineMeal' : h.t; list.push({ mesh: mk('hT_' + tk, TYPE[tk].model), m: MX, outline: true }); } };
 /* inside: the camera looks down over the open-topped walls instead of hiding behind them */
 /* v18.34 inside: one steady view from just inside the doorway, up near the top of the wall, looking into the room (it used to follow the outside camera's angle and,
    clamped to the room, swung round to the far side as Joseph neared the door). Forward on the stick = into the room. */

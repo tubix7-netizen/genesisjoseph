@@ -74,7 +74,8 @@ function chatter(dt) { tT -= dt; if (tT > 0) return; tT = 6 + Math.random() * 6;
 // ------------------------------------------------------------------ building the stage (once, at world build)
 let STAGE = null; const COLS = [];
 const LIME = 0xc4b490, LIME2 = 0xae9e7e, CEDAR = 0x5a3a24, LEAF = 0x2f5a3a, LEAF2 = 0x3a6a44;
-const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); try { buildQuay(W); STAGE = buildStage(W); } catch (e) { console.error('byblos', e); } };
+const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); try { if (STAGE) { STAGE.statics.forEach(m => G.R.free && G.R.free(m)); if (STAGE.sea && G.R.free) G.R.free(STAGE.sea.mesh); } COLS.length = 0; modeOn = null; /* v18.34 a rebuilt world (back from the title) starts clean */ buildQuay(W); STAGE = buildStage(W); } catch (e) { console.error('byblos', e); } };
+const olB = EP.onLoad; EP.onLoad = function () { const r = olB ? olB.apply(this, arguments) : undefined; try { sync(true); } catch (e) { } return r; };
 function buildQuay(W) { const E = EP.envx || {}, x0 = Q.x + 0.6, x1 = -107.5, y = Q.deckY, z = Q.z, mid = (x0 + x1) / 2, len = x0 - x1;
   W.place((g, M) => { g.box(len, 0.16, 2.6, { m: M, at: [0, -0.08, 0], c: 0x8a6a48 }); for (let i = 0; i < Math.floor(len / 0.5); i++) g.box(0.06, 0.02, 2.62, { m: M, at: [-len / 2 + 0.25 + i * 0.5, 0.005, 0], c: 0x5a4230, j: 0 });
     for (let i = 0; i <= Math.floor(len / 2.4); i++) for (const s of [-1, 1]) g.cyl(0.12, 0.14, 2.4, 6, { m: M, at: [-len / 2 + 0.2 + i * 2.4, -1.2, s * 1.15], c: 0x5a4230 }); }, mid, z, { y });
@@ -118,6 +119,12 @@ function buildStage(W) { const R = G.R, g = new G.GB(77), cols = [], C = (o) => 
   for (let x = -44; x <= 44; x += 7) if (Math.abs(x) > 6) cedarTree(g, X + x, BY, Z + 28.6, 0.75 + ((x * 13) % 5) * 0.06);
   // Lebanon: snow-capped mountains to the south, cedar forest on their feet
   let sd = 53; const rng = () => (sd = (sd * 16807) % 2147483647) / 2147483647; const MT = [[-95, 70, 46, 52], [-40, 62, 40, 46], [8, 74, 50, 60], [58, 64, 42, 48], [110, 72, 48, 54], [-150, 80, 50, 44], [160, 82, 52, 46], [30, 110, 60, 70], [-80, 112, 58, 62]];
+  /* v18.34 a wide green ground out to the horizon behind and beside the town (there was empty sky under the mountains), and the mountains
+     stand further back behind foothills (their steep sides rose right at the town's edge) */
+  g.box(460, 1, 340, { at: [X, BY - 0.68, Z + 140], c: 0x7a8a5a, j: 0.04 });
+  for (let i = 0; i < 26; i++) { const fx = -150 + i * 12 + (rng() - 0.5) * 6, fz = 52 + rng() * 22, fr = 14 + rng() * 10; g.sph(fr, 10, 5, { at: [X + fx, BY - fr * 0.3, Z + fz], s: [1, 0.55, 0.8], c: [0x6e7e52, 0x748656, 0x667648][i % 3], j: 0.06 });
+    for (let k = 0; k < 3; k++) { const tx = fx + (rng() - 0.5) * fr, tz = fz - fr * 0.3 + rng() * fr * 0.4; if (tz < 36) continue; cedarTree(g, X + tx, BY + fr * 0.08, Z + tz, 1 + rng() * 0.5); } }
+  for (const m of MT) m[1] += 34;
   for (const [x, z, rb, h] of MT) { const y0 = BY - 14, top = y0 + h; g.cyl(2.5, rb, h, 14, { at: [X + x, y0 + h / 2, Z + z], c: 0x6e7a5e, j: 0.08 }); const cf = 0.24, rc = 2.5 + (rb - 2.5) * cf; g.cyl(0.6, rc * 1.04, h * cf, 14, { at: [X + x, top - h * cf / 2 + 0.05, Z + z], c: 0xf2f2ee, j: 0.02 });
     for (let k = 0; k < 14; k++) { const a = rng() * Math.PI * 2, d = rb * (0.55 + rng() * 0.4), tx = x + Math.cos(a) * d, tz = z + Math.sin(a) * d; if (tz < 34) continue; const ty = Math.max(BY - 0.6, y0 + h * (1 - d / rb)); cedarTree(g, X + tx, ty - 0.4, Z + tz, 1.2 + rng() * 0.6); } }
   // edges you cannot walk off: the sea, the quay, the mountains

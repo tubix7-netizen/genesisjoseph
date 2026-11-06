@@ -66,11 +66,16 @@ V.down = function (why) {
 function wake() {
   const P = Game.P, S = Game.S(), H = hero();
   G.UI.fade(() => {
-    const c = S.ckpt || { x: P.x, z: P.z, face: P.face }, sp = safeSpot(c.x, c.z); Game.teleport(sp[0], sp[1], c.face); P.downed = false; P.vy = 0; if (G.Lock) G.Lock.reset && G.Lock.reset();
+    /* v18.34 wake where a passer-by would carry you: the nearest village's fire within 160 m of where you fell, else the last safe place
+       (an old checkpoint or a spot pushed 50 m from the beast landed in odd places — after a crocodile, across the river) */
+    let c = S.ckpt || { x: P.x, z: P.z, face: P.face }, vill = null; const EPx = Game.EP(), inSpecial = (G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside()) || (G.Byblos && G.Byblos.inBy && G.Byblos.inBy());
+    if (!inSpecial) { let bd = 160; for (const v of (EPx && EPx.villages) || []) { if (v.when && !v.when(S)) continue; const d = Math.hypot(v.x - P.x, v.z - P.z); if (d < bd) { bd = d; vill = v; } } }
+    if (vill) { const sp0 = (vill.spots && (vill.spots.fire || vill.spots.hub)) || [vill.x, vill.z]; c = { x: sp0[0] + 1.6, z: sp0[1] + 1.2, face: Math.atan2(-1.6, -1.2) }; } /* facing the fire */
+    const sp = safeSpot(c.x, c.z); Game.teleport(sp[0], sp[1], c.face); V.wokeAt = vill ? vill.n : null; P.downed = false; P.vy = 0; if (G.Lock) G.Lock.reset && G.Lock.reset();
     if (H) H.hp = Math.round(H.hpMax * 0.5); P.stam = 40; P.exhausted = false;
     if (G.Surv && Game.feat('surv')) { const s = G.Surv.get(); s.food = Math.max(5, s.food - 12); }
     S.time += 2; if (G.Combat) { for (const a of G.Combat.wild()) if (a.st !== 'dead' && a.st !== 'gone') { const h = a.spawn || a.home; a.angry = false; a.alert = 0; a.hp = a.hpMax; a.st = 'wander'; a.tx = h[0]; a.tz = h[1]; a.t = 14; a.home = [h[0], h[1]]; } } // v16.9 the beasts lose interest and go back where they came from
-    G.UI.toast('정신을 차려 보니 아까 쉬던 곳이에요 · 몸이 무겁고 배가 고파요'); G.UI.hud();
+    G.UI.toast(V.wokeAt ? `${V.wokeAt} 사람들이 쓰러진 요셉을 불가로 데려왔어요 · 몸이 무거워요` : '정신을 차려 보니 아까 쉬던 곳이에요 · 몸이 무겁고 배가 고파요'); G.UI.hud();
   }, () => { if (G.Combat) G.Combat.busy = false; V.grey = 0; });
 }
 // the engine's old faint (teleport to a bed) becomes the same collapse-and-wake

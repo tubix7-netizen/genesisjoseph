@@ -211,7 +211,7 @@ C.pickTarget = function () {
 
 // =================================================================== PLAYER COMBAT
 C.attack = function () {
-  const P = Game.P, S = Game.S(), h = S.hero; if (P.atk && P.atk.g.kind === 'melee' && P.atk.t > P.atk.dur * 0.4 && (P.atk.combo || 0) < 2) { P.atkQ = true; return; } /* v18.12i a press near the end of a swing is remembered and starts the next hit at once */ if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act || P.downed || P.climb) return;
+  const P = Game.P, S = Game.S(), h = S.hero; if (P.atk && P.atk.g.kind === 'melee' && P.atk.t > P.atk.dur * 0.4 && (P.atk.combo || 0) < 2) { P.atkQ = true; return; } /* v18.12i a press near the end of a swing is remembered and starts the next hit at once */ if (P.atk || P.dodgeT > 0 || G.UI.busy() || P.act || P.downed || P.climb || P.swim) return; /* v18.34 no sword swings while swimming */
   const k = C.armedK(); if (!k) { const any = C.hasWeapon() || Game.tool('staff'); G.UI.toast(Game.handLock() ? '지금은 손에 아무것도 들 수 없어요' : Game.hand() === 'torch' ? '횃불을 들고 있어요 · 싸우려면 왼쪽 손 단추로 지팡이를 들어요' : any ? '빈손으로는 공격할 수 없어요 · 왼쪽 손 단추로 지팡이나 무기를 들어요' : '무기가 없어요. 지팡이를 만들거나 메뉴 → 장비에서 만들어요'); return; } /* v18.14 only with a staff or weapon in hand */
   const g = GEAR[k];
   if (g.kind === 'ranged') { if (!(g.ammo === 'stone' && G.Stones ? G.Stones.has() : Game.have(g.ammo))) { G.UI.toast(g.ammo === 'stone' ? '물매에 쓸 돌이 없어요 (돌무더기에서 주워요)' : '화살이 없어요 (제작에서 만들어요)'); return; } }
@@ -280,7 +280,7 @@ C.faint = function () {
     G.UI.toast(lost ? `쓰러졌다가 장막에서 깨어났다… (은 ${lost}을 잃었다)` : '쓰러졌다가 장막에서 깨어났다…'); }, () => { C.busy = false; });
 };
 C.dodge = function () {
-  const P = Game.P, h = C.hero(); if (P.dodgeT > 0 || P.atk || G.UI.busy() || P.ride || P.climb || P.downed || P.act || P.lock || (Game.S().q && Game.S().q.riding)) return false; /* v18.34 no rolling on a donkey, a ladder or the floor */ const cost = Math.round(18 * (1 - h.sk.agi * 0.15)); if (P.stam < cost) return false;
+  const P = Game.P, h = C.hero(); if (P.dodgeT > 0 || P.atk || G.UI.busy() || P.ride || P.climb || P.downed || P.act || P.lock || P.swim || (Game.S().q && Game.S().q.riding)) return false; /* v18.34 no rolling on a donkey, a ladder or the floor */ const cost = Math.round(18 * (1 - h.sk.agi * 0.15)); if (P.stam < cost) return false;
   P.stam -= cost; P.stamT = 0; P.dodgeT = P.dodgeDur = 0.42 + h.sk.agi * 0.03; P.dodgeDir = null; sfx('dodge'); return true;
 };
 C.toggleMode = function () { const h = C.hero(); if (!h.ranged) { G.UI.toast('물매나 활이 있어야 바꿀 수 있어요'); return; } h.mode = h.mode === 'ranged' ? 'melee' : 'ranged'; G.UI.toast(h.mode === 'ranged' ? `원거리 · ${GEAR[h.ranged].n}` : `근접 · ${GEAR[h.weapon || 'staff'].n}`); sfx('click'); G.UI.hud(); };
@@ -362,9 +362,9 @@ function fishUpdate(dt, t) {
     if (f.st === 'land') { const k = f.fish, h = C.hero(); Game.give(k, 1); h.fish[k] = (h.fish[k] || 0) + 1; Game.stat('fish'); Game.addXP(k === 'gfish' ? 20 : Math.round(3 + f.kg)); h.fishRec = h.fishRec || {};
       const rec = f.kg > (h.fishRec[k] || 0); if (rec) h.fishRec[k] = f.kg;
       msg = `${Game.ITEMS[k].n}을(를) 낚았다! · ${f.kg.toFixed(1)}kg${rec && h.fish[k] > 1 ? ' · 새 기록!' : ''}`; sfx(k === 'gfish' || rec && h.fish[k] > 1 ? 'levelup' : 'splash'); Game.haptic && Game.haptic('quest');
-      if (G.Fx2) G.Fx2.splash(f.x, f.z, 1.2); if (Game.EP().onFish) Game.EP().onFish(k, S, Game); }
+      if (G.Fx2) G.Fx2.splash(f.x, f.z, 1.2); if (Game.EP().onFish) Game.EP().onFish(k, S, Game); if (G.Catch) { G.Catch.show(k, f.kg, rec && h.fish[k] > 1, h.fish[k] === 1, h.fishRec[k]); msg = null; } }
     else msg = f.st === 'snap' ? '줄이 너무 팽팽해서 물고기가 달아났다… (물고기가 도는 반대쪽으로 스틱을 밀어요)' : f.st === 'early' ? '너무 일찍 챘어요 · 톡톡 건드릴 땐 기다렸다가, 찌가 쑥 들어갈 때!' : '물고기가 미끼만 먹고 달아났다';
-    G.UI.toast(msg); C.fish = null; P.act = null; P.actProp = null; P.lock = false; G.UI.fishUI && G.UI.fishUI(false); Game.checkStep();
+    if (msg) G.UI.toast(msg); C.fish = null; P.act = null; P.actProp = null; P.lock = false; G.UI.fishUI && G.UI.fishUI(false); Game.checkStep();
   }
 }
 C.fishPress = function () {

@@ -636,12 +636,12 @@ const steps = {
   c2_flee: { ch: 3, obj: '도망쳐요! 대문 밖으로', target: { x: -28, z: 74 }, enter(S, G) { S.q.flee = 1; G.UI.hint('달리기 버튼으로 뛰어요!', 'flee', 'run'); }, check: (S, G) => G.P.z > 71.5 && Math.abs(G.P.x + 28) < 9,
     done(S, G, next) { G.UI.hint(null); S.q.flee = 0; cinAccuse(S, G, next); }, next: 'c3_cell' },
   // =============================================================== 3장 · 왕의 옥
-  c3_cell: { ch: 4, obj: '창으로 드는 달빛 아래에서 기도하기', target: { x: -18.4, z: -8.2 }, enter(S, G, re) { S.q.cellLock = 1; if (!re) setTimeout(() => G.UI.hint('차꼬를 차서 천천히 걸어요', 'chain', 'move'), 1200); } },
+  c3_cell: { ch: 4, obj: '창으로 드는 달빛 아래에서 기도하기', target: { x: -18.4, z: -8.2 }, enter(S, G, re) { S.q.cellLock = 1; if (!re) setTimeout(() => G.UI.hint('창으로 드는 달빛 아래로 가서 A 버튼으로 기도해요', 'chain', 'move'), 1200); } },
   c3_keeper: { ch: 4, obj: '간수장이 맡긴 일', list: S => [{ t: `감방의 죄수들에게 물 나눠 주기 (${Object.keys(S.q.gave || {}).length}/4)`, ok: Object.keys(S.q.gave || {}).length >= 4 }, { t: '앓는 늙은 죄수 돌보기', ok: qd(S, 'oldCare') }],
     enter(S, G, re) { S.q.cellLock = 0; if (!re) say([N('keeper', '일어나라, 히브리 종. 여기서는 일하지 않으면 먹지도 못한다.', '', 'cold'), N('keeper', '저 대야에서 물을 길어 감방마다 나눠 줘라. 그리고 구석의 늙은이가 사흘째 앓고 있으니 좀 살펴보고.', '', 'cold')], () => { if (!G.tool('jar')) G.giveTool('jar'); }); },
     target: S => Object.keys(S.q.gave || {}).length < 4 ? (S.water > 0 ? { x: -33, z: -4.6 } : 'spot:basin') : 'npc:oldP', check: S => Object.keys(S.q.gave || {}).length >= 4 && qd(S, 'oldCare'),
     talk: { oldP(S, G) { if (S.q.oldCare) return false; if (Object.keys(S.q.gave || {}).length < 4) { say([N('oldP', '…물… 물을…', '', 'weary')]); return; }
-      say([N('oldP', '…누구냐… 간수냐…?', '', 'weary'), J('물을 가져왔어요, 할아버지. 그리고 제 몫의 떡도요. 조금이라도 드세요.', '', 'tender'), N('oldP', '네 몫을…? 여기서 남에게 떡을 주는 놈은 처음 보는구나…', '', 'weary'),
+      say([N('oldP', '…누구냐… 간수냐…?', '', 'weary'), J('물을 가져왔어요, 할아버지. 그리고 제 몫의 떡도요. 조금이라도 드세요.', '', 'tender'), N('oldP', '네 몫을…? 여기서 남에게 떡을 주는 사람은 처음 보는구나…', '', 'weary'),
         T('요셉은 늙은 죄수의 이마를 젖은 천으로 닦아 주고, 밤새 곁을 지켰습니다.')], () => tick(S, 'oldCare')); } },
     done(S, G, next) { say([N('keeper', '…너는 이상한 녀석이로구나. 차꼬를 차고도 남을 먼저 챙기다니.', '', 'cold'), N('keeper', '그 차꼬, 풀어 주마. 대신 내일부터는 옥 안의 일을 네가 도맡아라.'),
       T('여호와께서 요셉과 함께 하시고 그에게 인자를 더하사, 간수장에게 은혜를 받게 하셨습니다.', '창세기 39:21')], () => { G.sfx('chain'); G.setOutfit('prisoner'); G.give('bread', 1, true); next(); }); }, next: 'c3_charge' },
@@ -665,7 +665,7 @@ const steps = {
     enter(S, G, re) { waitSetup(S, G, re); }, target: S => WAIT[S.q.wait || 0] ? WAIT[S.q.wait || 0].target(S) : null },
   // =============================================================== 4장 · 바로의 꿈
   c4_shave: { ch: 5, obj: '대야에서 수염을 깎고 옷 갈아입기', target: 'spot:basin',
-    enter(S, G, re) { if (!re) say([N('messenger', '히브리 사람 요셉이 누구냐! 바로께서 너를 부르신다! 서둘러라!', '', 'urgent'), N('keeper', '…요셉. 어서 가거라. 너는 원래부터 여기 있을 사람이 아니었다.', '', 'tender'),
+    enter(S, G, re) { if (!re) say([N('messenger', '히브리 사람 요셉이 누구냐! 바로께서 너를 부르신다! 서둘러라!', '', 'urgent'), N('keeper', '…요셉. 어서 가거라. 네 하나님이 결국 문을 여셨구나.', '', 'tender'),
       T('바로 앞에 나아가려면 깨끗이 씻고 단장해야 해요. 옥 마당의 대야로 가세요.')]); } },
   c4_court: { ch: 5, obj: '궁 안으로 들어가 바로 앞에 서기', target: 'spot:court', check: (S, G) => G.dist(SPOTS.court[0], SPOTS.court[1]) < 3.4,
     done(S, G, next) { courtIntro(S, G, next); }, next: 'c4_vision' },
@@ -687,7 +687,7 @@ const steps = {
     done(S, G, next) { narr([{ kick: '창세기 41:47–48', title: '풍년 첫해', t: '일곱 해 풍년에 토지 소출이 심히 많았습니다. 요셉은 각 성 주위의 밭의 곡물을 그 성 중에 쌓아 두기로 했습니다. 먼저 곳간 셋을 지어야 해요.', ref: '창세기 41:47–48' }], next); }, next: 'c5_year1' },
   c5_year1: { ch: 6, obj: '풍년 1년 · 곳간 짓기', list: S => [{ t: '벽돌 굽는 우니에게 벽돌 받기', ok: qd(S, 'bricks') }, { t: '성읍 곳간 짓기', ok: !!S.built.granA }, { t: '서쪽 마을 곳간 짓기', ok: !!S.built.granB }, { t: '남쪽 마을 곳간 짓기', ok: !!S.built.granC }],
     target: S => !qd(S, 'bricks') ? 'npc:brick' : !S.built.granA ? 'site:granA' : !S.built.granB ? 'site:granB' : !S.built.granC ? 'site:granC' : null, check: S => S.built.granA && S.built.granB && S.built.granC,
-    talk: { brick(S, G) { if (S.q.bricks) return false; say([N('brick', '총리님! 가마마다 벽돌이 산더미입니다. 진흙에 짚을 섞어 볕에 말린 튼튼한 벽돌이지요.'), N('brick', '곳간 셋에 쓸 만큼 수레에 실어 두었습니다. 터에 가서 「짓기」만 하시면 일꾼들이 쌓을 겁니다.')], () => { G.give('brick', 60); G.give('wood', 18); tick(S, 'bricks'); }); } },
+    talk: { brick(S, G) { if (S.q.bricks) return false; say([N('brick', '총리님! 가마마다 벽돌이 산더미입니다. 진흙에 짚을 섞어 볕에 말린 튼튼한 벽돌이지요.'), N('brick', '곳간 셋에 쓸 만큼 수레에 실어 두었습니다. 터에 가서 「짓기」만 하시면 일꾼들이 쌓을 겁니다.')], () => { G.give('brick', 72); G.give('wood', 24); tick(S, 'bricks'); }); } },
     done(S, G, next) { narr([{ kick: '풍년 1년', title: '곳간 셋', t: '성읍과 서쪽 마을과 남쪽 마을에 곳간이 섰습니다. 그해 가을, 수레마다 곡식이 넘치도록 실려 들어왔습니다.', ref: '창세기 41:48' }], next); }, next: 'c5_manasseh' },
   c5_manasseh: { ch: 6, obj: '총리의 집으로 · 아스낫이 기다린다', target: 'npc:asenath', talk: { asenath(S, G) { birthScene(S, G, 'manasseh'); } } },
   c5_year2: { ch: 6, obj: '풍년 2년 · 왕실 밭과 곳간', list: S => [{ t: `왕실 밭의 밀 거두기 (${Math.min(12, S.q.wheat || 0)}/12)`, ok: (S.q.wheat || 0) >= 12 }, { t: '서기관에게 곳간 기록 듣기', ok: qd(S, 'record') }],
@@ -785,7 +785,7 @@ const npcs = [
   { id: 'pharaoh', name: '바로', look: LOOK.pharaoh, x: -30, z: -177.2, face: 0, dy: 1.1 + padH(-30, -176) - padH(-30, -177.2), sit: true, fixedFace: true, talkR: 7.5, show: S => between(S, 'c4_court') || !!S.q.pharShow },
   { id: 'magician', name: NM.magician, look: LOOK.magician, x: -36.5, z: -171, face: 0.7, show: S => between(S, 'c4_court', 'c4_answer') || !!S.q.pharShow, chat: ['…나일의 신께서도 침묵하시는데, 히브리 노예가 무엇을 안다고.'] },
   { id: 'sage', name: NM.sage, look: Object.assign({}, LOOK.magician, { skin: 0xa86a40, sash: GOLD }), x: -23.5, z: -171, face: -0.7, show: S => between(S, 'c4_court', 'c4_answer') || !!S.q.pharShow, chat: ['일곱이라… 하늘의 수로다.'] },
-  { id: 'cupbearerC', name: NM.cupbearer, look: LOOK.cupbearer, x: -26, z: -169, face: -0.4, show: S => between(S, 'c4_court') || !!S.q.pharShow, chat: ['요셉… 아니, 총리님. 이 년이나 잊고 있었던 나를 용서하시오.', '바로의 잔을 들 때마다 그날 옥에서의 일을 생각하오.'] },
+  { id: 'cupbearerC', name: NM.cupbearer, look: LOOK.cupbearer, x: -26, z: -169, face: -0.4, show: S => between(S, 'c4_court') || !!S.q.pharShow, chat: S => between(S, 'c5_patrol') ? ['요셉… 아니, 총리님. 이 년이나 잊고 있었던 나를 용서하시오.', '바로의 잔을 들 때마다 그날 옥에서의 일을 생각하오.'] : ['…자네가 그 히브리 청년이군. 이 년이나 잊고 있었네. 미안하네.', '바로 앞에서는 떨지 말게. 자네 하나님이 함께하실 걸세.'] }, /* v18.34 not 총리 before he is made one */
   ...[[-35, -144], [-25, -144], [-38, -158], [-22, -158]].map(([x, z], i) => ({ id: 'royalG' + i, name: '궁의 호위병', look: LOOK.soldierEg, x, z, face: i < 2 ? 0 : (i === 2 ? 1.57 : -1.57), prop: 'spear', noTalk: true, show: S => between(S, 'c4_court') || !!S.q.pharShow })),
   // ---- the vizier's household (ch5–6)
   { id: 'asenath', name: '아스낫', look: LOOK.asenath, x: 7.6, z: -137.4, face: 0.4, show: S => between(S, 'c5_patrol') && !S.q.finale, chat: S => [S.q.born2 ? '므낫세가 에브라임에게 걸음마를 가르쳐요. 둘 다 넘어지지만요, 후후.' : S.q.born1 ? '므낫세가 오늘 당신을 보고 웃었어요.' : '여보, 오늘도 먼 길 다녀오셨군요.', '아버지께서 온의 신전에서 당신의 지혜를 칭찬하셨어요.'] },
@@ -806,7 +806,7 @@ const npcs = [
   { id: 'byElder', name: NM.elder, look: LOOK.elder, x: 16.4, z: -55.2, face: -2.9, show: show('c6_sell') },
   { id: 'bySidon', name: NM.sidon, look: LOOK.sidon, x: 19.2, z: -56.2, face: -2.5, show: show('c6_sell') },
   { id: 'byEdom', name: NM.edom, look: LOOK.edom, x: 8.4, z: -54.2, face: 2.2, show: show('c6_sell') },
-  { id: 'byAmeni', name: NM.ameni, look: LOOK.ameniOld, x: 21, z: -58.6, face: -2.2, show: show('c6_sell') },
+  { id: 'byAmeni', name: NM.ameni, look: LOOK.ameniOld, x: 19.4, z: -53.6, /* v18.34 not inside the clerk Ipi */ face: -2.2, show: show('c6_sell') },
   { id: 'benjamin2', name: '베냐민', look: LOOK.benjaminAdult, x: 172, z: 150, face: 0, noTalk: true, show: S => !!S.q.heb2 },
 ];
 for (const n of npcs) if (n.id === 'jacob') n.show = S => before(S, 'p_road') || !!S.q.heb || !!S.q.heb2;
@@ -894,7 +894,7 @@ const LORE = [
   ['onAltar', 12, -102.2, '온의 제단', '온(헬리오폴리스)은 해를 섬기던 성읍이에요. 요셉의 아내 아스낫은 이 온의 제사장 보디베라의 딸이었어요.', '창세기 41:45'],
   ['obelisk', 6.6, -95, '오벨리스크', '돌 하나를 통째로 깎아 세운 뾰족한 기둥이에요. 꼭대기를 금으로 씌워 햇빛에 번쩍였대요.', ''],
   ['pyramid', -188, -175, '피라미드', '요셉이 애굽에 왔을 때, 이 피라미드는 이미 수백 년 된 옛 왕들의 무덤이었어요.', ''],
-  ['tent', 172.6, 150.4, '염소털 장막', '야곱의 장막은 검은 염소털로 짰어요. 비가 오면 털실이 부풀어 물이 새지 않고, 해가 나면 바람이 잘 통했대요.', ''],
+  ['tent', 168.4, 146.6, '염소털 장막', /* v18.34 moved behind the tent: it took the A button from Jacob in the very first step */ '야곱의 장막은 검은 염소털로 짰어요. 비가 오면 털실이 부풀어 물이 새지 않고, 해가 나면 바람이 잘 통했대요.', ''],
 ];
 const loreBusy = (S, me) => specials.some(o => o !== me && !o.lore && o.id !== 'rodeChk' && Math.hypot(o.x - Gm().P.x, o.z - Gm().P.z) < (o.r || 2.4) && o.on && o.on(S, Gm()));
 for (const [id, x, z, n, t, ref] of LORE) { const sp = SP('lore_' + id, x, z, `살펴보기 · ${n}`, S => !loreBusy(S, sp), (S, G) => {
@@ -1437,15 +1437,15 @@ function windowPray(S, G) {
     ], () => { cpose(null); RT.grace = 0; G.newDay('옥에서의 아침'); G.go('c3_keeper'); });
   } else {
     cine([
-      { fn: () => { G.teleport(PRAY[0], PRAY[1] + 0.2, Math.PI); cpose('kneelPray', 0, true); RT.grace = 0; }, cam: [-16.9, h + 1.25, -6.2], look: [-18.4, h + 1.0, -8.6], dur: 6.5, n: '요셉', t: '하나님, 술 맡은 관원장이 떠난 지 벌써 한 해가 넘었어요.', e: 'weary' },
+      { fn: () => { G.teleport(PRAY[0], PRAY[1] + 0.2, Math.PI); cpose('kneelPray', 0, true); RT.grace = 0; }, cam: [-16.9, h + 1.25, -6.2], look: [-18.4, h + 1.0, -8.6], dur: 6.5, n: '요셉', t: '하나님, 술 맡은 관원장이 떠난 지 벌써 두 해가 다 되어 가요.', e: 'weary' },
       { cam: [-19.8, h + 0.9, -6.6], look: [-18.4, h + 1.1, -8.3], dur: 7, n: '요셉', t: '날마다 문소리가 나면 혹시나 했어요. …이제는 그 문소리가 무서워요.', e: 'sad' },
       { cam: [-18.0, h + 1.1, -7.1], look: [-18.4, h + 1.2, -8.3], dur: 6.5, fov: 0.58, n: '요셉', t: '그래도… 하나님은 저를 잊지 않으셨죠? 사람은 잊어도요.', e: 'cry' },
       { cam: [-18.6, h + 0.5, -6.4], look: [-18.4, h + 2.6, -9.6], dur: 10, each: t => { RT.grace = Math.min(0.7, t / 8); },
-        t: '그날 밤 요셉은 원망 대신 감사로 기도를 마쳤습니다. 오늘도 살아 있게 하신 것과, 어린 케티에게 이야기를 들려줄 수 있었던 것과, 늙은 죄수가 웃으며 문을 나선 것을.' },
+        t: '그날 밤 요셉은 원망 대신 감사로 기도를 마쳤습니다. 오늘도 살아 있게 하신 것과, 어린 타후에게 이야기를 들려줄 수 있었던 것과, 늙은 죄수가 웃으며 문을 나선 것을.' },
     ], () => { cpose(null); RT.grace = 0; S.q.wReady = 0; waitNext(S, G); });
   }
 }
-const GIVE_T = { prisA: ['…고맙다. 너 같은 놈은 처음 본다.', '떡이다! 오늘은 좀 크구나.'], prisB: ['물이다! 살겠다…', '고맙다, 히브리 사람.'], oldP: ['…물… 고맙구나…', '…떡…'], prisD: ['고맙소. 나는 곧 나간다오.', '마지막 떡이로군. 고맙소.'] };
+const GIVE_T = { prisA: ['…고맙다. 너 같은 녀석은 처음 본다.', '떡이다! 오늘은 좀 크구나.'], prisB: ['물이다! 살겠다…', '고맙다, 히브리 사람.'], oldP: ['…물… 고맙구나…', '…떡…'], prisD: ['고맙소. 나는 곧 나간다오.', '마지막 떡이로군. 고맙소.'] };
 function cellGive(S, G, i) {
   const id = CELL_IDS[i], keeper = S.step === 'c3_keeper';
   if (keeper) { if (S.water < 1) { G.UI.toast('물이 없어요 · 마당의 대야에서 물을 길어 오세요'); return; } S.water--; (S.q.gave = S.q.gave || {})[i] = 1; act('water', 0.7, 'jar'); G.UI.hud(); }
@@ -1453,7 +1453,7 @@ function cellGive(S, G, i) {
   bubble(id, GIVE_T[id][keeper ? 0 : 1], 3); G.UI.quest(); G.checkStep();
 }
 function fight(S, G) {
-  say([N('prisA', '메루 놈이 내 떡을 훔쳐 먹었어!', '', 'angry'), N('prisB', '거짓말! 네가 먼저 내 물을 엎질렀잖아!', '', 'angry'),
+  say([N('prisA', '메루 녀석이 내 떡을 훔쳐 먹었어!', '', 'angry'), N('prisB', '거짓말! 네가 먼저 내 물을 엎질렀잖아!', '', 'angry'),
     { n: '요셉', t: '어떻게 말릴까?', choices: [
       { t: '"제 몫의 떡을 반씩 나눠 드릴게요. 대신 서로 손을 잡으세요."', ok: true },
       { t: '"간수장께 일러서 둘 다 벌을 받게 하겠어요."', ok: false, fb: '벌은 미움을 키울 뿐이에요. 형제의 미움이 어디까지 갈 수 있는지, 요셉은 누구보다 잘 알았습니다.' },
@@ -1546,18 +1546,18 @@ function waitNext(S, G) {
 }
 steps.c3_wait.talk = {
   youngP(S, G) { if ((S.q.wait || 0) !== 0) return false;
-    say([N('youngP', '…엄마… 엄마…', '', 'cry'), J('얘야, 이름이 뭐니?', '', 'tender'), N('youngP', '…케티. 빵 하나 훔쳤다고… 여기 갇혔어요.', '', 'cry'),
-      J('케티. 내 동생 베냐민도 지금쯤 너만 하겠구나. …나도 처음 여기 왔을 때 많이 무서웠어.', '', 'tender'),
+    say([N('youngP', '…엄마… 엄마…', '', 'cry'), J('얘야, 이름이 뭐니?', '', 'tender'), N('youngP', '…타후. 빵 하나 훔쳤다고… 여기 갇혔어요.', '', 'cry'),
+      J('타후. 내 동생 베냐민도 지금쯤 너만 하겠구나. …나도 처음 여기 왔을 때 많이 무서웠어.', '', 'tender'),
       N('youngP', '형도요? 형은 어른이잖아요.', ''),
       J('무서울 땐 이렇게 해 봐. 하늘을 보고 「여호와여」 하고 불러. 우리 아버지가 그랬어. 어디에 있든지 함께 계시는 분이라고.', '', 'tender'),
       N('youngP', '…여호와. 여기에도요?', ''), J('응. 구덩이 속에도 계셨어. 내가 알아.', '', 'calm')], () => waitNext(S, G)); },
   oldP(S, G) { if ((S.q.wait || 0) !== 1) return false;
     say([N('oldP', '요셉… 오늘 내가 나간다. 앓아누웠던 이 늙은이를 살린 건 너였어.', '', 'tender'), J('하나님이 하신 일이에요, 할아버지.', '', 'calm'),
-      N('oldP', '그래, 네 하나님. …얘야, 그 관원장 놈이 너를 잊었다고 낙심하지 마라.', '', 'tender'),
+      N('oldP', '그래, 네 하나님. …얘야, 그 관원장 녀석이 너를 잊었다고 낙심하지 마라.', '', 'tender'),
       N('oldP', '사람은 잊어도, 네 하나님은 너를 잊지 않으실 게다. 이 늙은이가 장담하마.', '', 'tender'),
       T('늙은 죄수는 요셉의 손을 오래도록 붙잡았다가, 웃으며 옥 문을 나섰습니다.')], () => waitNext(S, G)); },
   keeper(S, G) { if ((S.q.wait || 0) !== 3) return false;
-    say([N('keeper', '요셉, 잠이 안 오는구나. 나도 그렇다.', '', 'calm'), N('keeper', '너는 왜 원망하지 않느냐? 그 관원장 놈은 너를 까맣게 잊었을 텐데.', '', 'calm'),
+    say([N('keeper', '요셉, 잠이 안 오는구나. 나도 그렇다.', '', 'calm'), N('keeper', '너는 왜 원망하지 않느냐? 그 관원장 녀석은 너를 까맣게 잊었을 텐데.', '', 'calm'),
       { n: '요셉', t: '요셉은 무엇이라 대답할까?', choices: [{ t: '"원망한 날도 있었어요. 그래도… 하나님은 구덩이에서도, 보디발의 집에서도, 여기서도 저를 떠나지 않으셨어요."', ok: true },
         { t: '"원망 같은 건 해 본 적 없어요."', ok: false, fb: '그건 정직한 대답이 아니었어요. 요셉도 사람이었고, 울며 기도한 밤들이 있었습니다.' }] },
       N('keeper', '…네 하나님이 부럽구나. 나도 그런 신을 섬겨 보고 싶다.', '', 'tender'), T('그 밤, 나일 강 건너 바로의 궁에서는 한 왕이 잠 못 이루고 있었습니다.', '창세기 41:1')], () => waitNext(S, G)); },
@@ -1592,7 +1592,7 @@ function shaveScene(S, G) {
     { fn: () => cpose('shave', 0, true), cam: [bx + 2.2, h + 1.6, bz - 0.6], look: [bx + 1.2, h + 1.5, bz], dur: 5, fov: 0.6 },
     { fn: () => { cpose(null); G.setOutfit('josephShaved'); G.sfx('whoosh'); G.FX.burst(bx + 1.2, h + 1, bz, 20, { c: [1, 0.95, 0.8], sp: 1.4, up: 1.4 }); }, cam: [bx + 3.4, h + 1.5, bz + 1.4], look: [bx + 1.2, h + 1.1, bz], dur: 5, t: '그의 옷을 갈아입고 바로에게 들어가니', ref: '창세기 41:14' },
     { fn: () => { place('youngP', bx + 4, bz + 2.4, -2, { vis: true }); place('keeper', bx + 3.4, bz - 1.6, -1.2); }, cam: [bx + 4.6, h + 1.5, bz + 4.4], look: [bx + 2.4, h + 1.2, bz + 1], dur: 5, n: '어린 죄수', t: '형… 가는 거야? 진짜 가는 거야?', e: 'cry' },
-    { cam: [bx + 0.6, h + 1.5, bz + 2.2], look: [bx + 2.4, h + 1.2, bz + 1.6], dur: 6, n: '요셉', t: '응. 하나님이 문을 여셨어. 케티, 너도 꼭 기도해. 그분은 너도 잊지 않으셔.', e: 'tender' },
+    { cam: [bx + 0.6, h + 1.5, bz + 2.2], look: [bx + 2.4, h + 1.2, bz + 1.6], dur: 6, n: '요셉', t: '응. 하나님이 문을 여셨어. 타후, 너도 꼭 기도해. 그분은 너도 잊지 않으셔.', e: 'tender' },
     { cam: [bx + 5.6, h + 1.6, bz - 2], look: [bx + 3.4, h + 1.5, bz - 1.6], dur: 5, n: '간수장', t: '…가거라, 요셉. 너는 원래부터 여기 있을 사람이 아니었다.', e: 'tender' },
   ], () => { const y = G.npc('youngP'); if (y) y.forceVis = undefined; fade(() => { G.teleport(SPOTS.palaceGate[0], SPOTS.palaceGate[1] + 2, Math.PI); S.time = Math.floor(S.time / 24) * 24 + 9; GG.Game.musicOverride = 'j_court'; }, () => G.go('c4_court')); });
 }
@@ -1700,7 +1700,7 @@ function cinInvest(S, G) {
       each: t => { const [x, z, f] = along((t + 9) / 16); const P = G.P; P.x = x; P.z = z; P.y = hAt(x, z); P.face = f; P.spd = 6; }, t: '아브렉! 아브렉!', n: '애굽 백성', e: 'shout' },
     { cam: [-14, hAt(-22, -66) + 6, -56], cam2: [-8, hAt(-22, -66) + 14, -48], look: [-22, hAt(-22, -66) + 1.4, -66], dur: 8, t: '바로가 그에게 애굽 전국을 총리로 다스리게 하였더라. 요셉이 애굽 왕 바로 앞에 설 때에 삼십 세라.', ref: '창세기 41:43, 46', fadeOut: 1.6 },
     { black: true, title: '5장 · 일곱 해 풍년', sub: '창세기 41:46–52', cam: [-22, 6, -60], look: [-22, 1, -66], dur: 4, fn: () => { S.q.parade = 0; crowdLine(G, road, false); } },
-  ], () => { S.q.chariotOk = 1; S.q.riding = 1; GG.Game.musicOverride = null; G.go('c5_patrol'); });
+  ], () => { S.q.chariotOk = 1; S.q.riding = 1; S.q.rode = 1; /* v18.34 the 「버금 수레 타기」 line gets its tick */ GG.Game.musicOverride = null; G.go('c5_patrol'); });
 }
 function crowdLine(G, road, on) {
   const LK = [LOOK.farmer, LOOK.woman, LOOK.elder, LOOK.maid, LOOK.official, LOOK.farmerThin, LOOK.priest, EGV.kidA, EGV.kidB, EGV.waterB];
@@ -1847,6 +1847,9 @@ function cinDepart(S, G, next) { const [gx, gz] = G7GRAN, gh = hAt(gx, gz);
       t: '그들이 곡식을 나귀에 싣고 그 곳을 떠났더라. 한 사람이 여관에서 나귀에게 먹이를 주려고 자루를 풀고 본즉 그 돈이 자루 아귀에 있는지라.', ref: '창세기 42:26–27' },
     { fn: () => { S.q.heb2 = 1; place('jacob', G7HEB[0], G7HEB[1] + 2.6, 0); npcSet('jacob', { look: LOOK.jacobMourn }); }, cam: [G7HEB[0] + 3.4, hAt(G7HEB[0], G7HEB[1]) + 1.6, G7HEB[1] + 6.4], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.3, G7HEB[1] + 2.6], dur: 8,
       n: '야곱', t: '너희가 나에게 내 자식들을 잃게 하도다. 요셉도 없어졌고 시므온도 없어졌거늘 베냐민을 또 빼앗아 가고자 하니… 내 아들은 너희와 함께 내려가지 못하리니.', ref: '창세기 42:36, 38', e: 'weary' },
+    /* v18.34 Reuben's pledge (42:37), so Judah's later pledge (43:9) reads against it: words offered vs. himself offered */
+    { cam: [G7HEB[0] - 2.2, hAt(G7HEB[0], G7HEB[1]) + 1.5, G7HEB[1] + 5.6], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.3, G7HEB[1] + 2.6], dur: 7, n: '르우벤', t: '내가 그를 아버지께 데리고 돌아오지 아니하거든 내 두 아들을 죽이소서. 그를 내 손에 맡기소서.', ref: '창세기 42:37' },
+    { cam: [G7HEB[0] + 1.6, hAt(G7HEB[0], G7HEB[1]) + 1.6, G7HEB[1] + 4.6], look: [G7HEB[0], hAt(G7HEB[0], G7HEB[1]) + 1.4, G7HEB[1] + 2.6], dur: 6, n: '야곱', t: '…손자를 죽여서 무엇이 내게 위로가 되겠느냐. 그의 형은 죽었고 그만 남았거늘.', ref: '창세기 42:38', e: 'sad' },
   ], () => { S.q.heb2 = 0; S.q.broShow = 0; npcSet('jacob', { look: LOOK.jacob }); BRO.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); next && next(); });
 }
 function cinJudahPledge(S, G, next) { const hh = hAt(G7HEB[0], G7HEB[1]);
@@ -1905,6 +1908,9 @@ function cinIAmJoseph(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 
     { cam: [hx - 1.2, hh + 1.6, hz + 1.8], look: [hx, hh + 1.6, hz], dur: 9, n: '요셉', t: '그런즉 나를 이리로 보낸 이는 당신들이 아니요 하나님이시라. 하나님이 나를 바로에게 아버지로 삼으시고 그 온 집의 주로 삼으시며 애굽 온 땅의 통치자로 삼으셨나이다.', ref: '창세기 45:8', e: 'tender' },
     { fn: () => { const b = G.npc('benjamin2'); if (b) { b.act = null; G.npcTo('benjamin2', hx + 0.5, hz + 0.9, Math.PI, false); b.emote = { k: 'weep', t: 0, dur: 9, amb: true }; } }, cam: [hx + 2.6, hh + 1.5, hz + 0.4], look: [hx + 0.2, hh + 1.4, hz + 0.5], dur: 8,
       t: '자기 아우 베냐민의 목을 안고 우니 베냐민도 요셉의 목을 안고 우니라. 요셉이 또 형들과 입맞추며 안고 우니 형들이 그제서야 요셉과 말하니라.', ref: '창세기 45:14–15' },
+    /* v18.34 the promise made at Hebron (p_provision: 「형, 꼭 빨리 와야 해. 약속!」) is answered at last */
+    { cam: [hx + 1.9, hh + 1.45, hz + 1.5], look: [hx + 0.3, hh + 1.45, hz + 0.6], dur: 5.5, n: '베냐민', t: '형… 금방 온다고 약속했잖아. 스무 해가 넘게 기다렸어.', e: 'cry' },
+    { cam: [hx + 0.9, hh + 1.55, hz + 1.9], look: [hx + 0.3, hh + 1.5, hz + 0.6], dur: 6, n: '요셉', t: '늦어서 미안해, 베냐민. 이제 별 이야기, 날마다 해 줄게. 하나님이 우리 약속을 잊지 않으셨어.', e: 'cry' },
   ], () => { cpose(null); BRO11.forEach(id => { const n = G.npc(id); if (n) { n.act = null; n.emote = null; } }); next && next(); });
 }
 function cinSendOff(S, G, next) { const cx = 34, cz = -30, ch = hAt(cx, cz), hh = hAt(G7HEB[0], G7HEB[1]);
@@ -1967,7 +1973,7 @@ function seatPuzzle(S, G, done) { let k = 0, miss = 0; const ORD = BRO11;
   ask(); }
 
 const STEPS7 = {
-  g1_spy: { ch: 8, obj: '청지기 네브에게 형들의 자루를 채우라 이르기', target: 'npc:steward2',
+  g1_spy: { ch: 8, obj: '청지기에게 형들의 자루를 채우라 이르기', target: 'npc:steward2',
     enter(S, G, re) { if (!re) cinSpies(S, G, () => G.teleport(SPOTS.josephHouse[0] + 3, SPOTS.josephHouse[1] + 6, 0)); else ageBrothers(); },
     talk: { steward2(S, G) { if (S.q.sacks) return false; const order = [];
       const pick = () => say([{ n: '요셉', t: `청지기에게 무엇을 이를까? (${order.length}/3)`, choices: [
@@ -2002,7 +2008,7 @@ const STEPS7 = {
     check: S => qd(S, 'reveal'), done(S, G, next) { cinIAmJoseph(S, G, () => narr([{ kick: '창세기 45:5', title: '나는 요셉이라', t: '"하나님이 생명을 구원하시려고 나를 당신들보다 먼저 보내셨나이다." 스무 해의 눈물이 화해로 바뀌었습니다. 이제 아버지를 모셔 올 차례예요.', ref: '창세기 45:5' }], next)); }, next: 'g6_wagons' },
   // =============================================================== 8장 · 고센 땅
   g6_wagons: { ch: 9, obj: '아버지께 보낼 수레 채비', list: S => [{ t: '성읍 곳간에서 곡식 자루 싣기', ok: qd(S, 'wGrain') }, { t: '장터에서 애굽의 좋은 물품 고르기', ok: qd(S, 'wGoods') }, { t: '형들에게 옷 나눠 주기 (청지기)', ok: qd(S, 'wClothes') }],
-    target: S => !qd(S, 'wGrain') ? { x: G7GRAN[0], z: G7GRAN[1] - 2 } : !qd(S, 'wGoods') ? { x: SPOTS.market[0], z: SPOTS.market[1] } : 'npc:steward2',
+    target: S => !qd(S, 'wGrain') ? { x: G7GRAN[0], z: G7GRAN[1] - 2 } : !qd(S, 'wGoods') ? { x: -22, z: -71 } : 'npc:steward2',
     enter(S, G, re) { S.q.broShow = 0; S.q.famShow = 0; BRO11.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); showAt('steward2', 15, -138.6, -0.6); /* v18.22 the steward is back at the house (the cup scene left him out on the road, so 「옷 나눠 주기」 pointed at an empty spot) */ if (!re) narr([{ kick: '창세기 45:17–20', title: '바로의 명령', t: '바로가 요셉에게 이르되 「너는 애굽 땅에서 수레를 가져다가 너희 자녀와 아내들을 태우고 너희 아버지를 모셔 오라. 온 애굽 땅의 좋은 것이 너희 것임이니라」', ref: '창세기 45:17–20' }]); },
     talk: { steward2(S, G) { if (S.q.wClothes || !S.q.wGrain || !S.q.wGoods) return false; say([N('steward2', '형제분들께 드릴 옷을 마련해 두었습니다. 어떻게 나누어 드릴까요?'),
       { n: '요셉', t: '(창세기 45:22)', choices: [{ t: '모두에게 한 벌씩, 베냐민에게는 은 삼백과 옷 다섯 벌', then: () => setTimeout(() => say([N('steward2', '알겠습니다. 막내분께는 각별히요.', '', 'happy')], () => tick(S, 'wClothes')), 30) },
@@ -2043,7 +2049,7 @@ specials.push({ id: 'g_seat', x: SPOTS.josephHouse[0], z: SPOTS.josephHouse[1] +
   { id: 'g_portion', x: SPOTS.josephHouse[0] + 2, z: SPOTS.josephHouse[1] + 10, r: 3.4, label: '베냐민의 몫 정하기', on: S => S.step === 'g3_feast' && S.q.seated && !S.q.portion,
     use: (S, G) => say([{ n: '요셉', t: '베냐민에게는 얼마나 줄까?', choices: [{ t: '다른 형들과 똑같이' }, { t: '두 배' }, { t: '다섯 배', then: () => tick(S, 'portion') }] }], () => { if (!S.q.portion) GG.UI.toast('성경에는 베냐민의 몫이 다른 사람보다 「다섯 배」였다고 해요 (창 43:34)'); }) },
   { id: 'g_grain', x: G7GRAN[0], z: G7GRAN[1] - 2, r: 3.2, label: '곡식 자루 싣기', on: S => S.step === 'g6_wagons' && !S.q.wGrain, use: (S, G) => { GG.UI.toast('수레에 곡식 자루를 실었어요 · 암나귀 열 필 분량'); tick(S, 'wGrain'); } },
-  { id: 'g_goods', x: SPOTS.market[0], z: SPOTS.market[1], r: 4, label: '애굽의 좋은 물품 고르기', on: S => S.step === 'g6_wagons' && !S.q.wGoods,
+  { id: 'g_goods', x: -22, z: -71, r: 4, /* v18.34 the city market (SPOTS.market is the slave market far south) */ label: '애굽의 좋은 물품 고르기', on: S => S.step === 'g6_wagons' && !S.q.wGoods,
     use: (S, G) => say([{ n: '요셉', t: '아버지께 무엇을 보낼까? (창세기 45:23)', choices: [{ t: '고운 세마포와 꿀, 대추야자, 향품', then: () => tick(S, 'wGoods') }, { t: '금 장신구와 우상 조각', then: () => setTimeout(() => GG.UI.toast('아버지는 하나님만 섬기셨어요 · 다른 걸 골라 봐요'), 30) }] }], null) });
 
 // ------------------------------------------------------------------ 고센 마을 (free journey, IF)
@@ -2356,7 +2362,7 @@ function rumors(S) { if (between(S, 'c6_open')) return ['곳간 문이 열렸다
   return ['나일 강이 불어날 철이 다가오오.', '바로의 궁에 새 오벨리스크를 세운다더군요.']; }
 const chatter = [
   { a: 'cook', b: 'gardener', when: S => between(S, 'c2_arrive', 'c2_tempt2'), lines: [[0, '세티! 연못 물 좀 쓰자니까.'], [1, '연꽃이 다 죽는다고 몇 번을 말해!']] },
-  { a: 'neb', b: 'ameni', when: S => between(S, 'c2_arrive', 'c2_quiz'), lines: [[0, '저 히브리 놈, 말 한마디 못 알아듣던데.'], [1, '두고 보게. 눈빛이 다른 아이야.']] },
+  { a: 'neb', b: 'ameni', when: S => between(S, 'c2_arrive', 'c2_quiz'), lines: [[0, '저 히브리 녀석, 말 한마디 못 알아듣던데.'], [1, '두고 보게. 눈빛이 다른 아이야.']] },
   { a: 'prisA', b: 'prisB', when: S => between(S, 'c3_keeper', 'c3_wait'), r: 7, lines: [[0, '저 히브리 사람은 왜 늘 기도하지?'], [1, '그 덕에 우리가 물이라도 마시잖아.']] },
   { a: 'magician', b: 'sage', when: S => between(S, 'c4_court', 'c4_answer'), r: 16, lines: [[0, '히브리 죄수가 바로의 꿈을 푼다고?'], [1, '…우리가 못 푼 꿈이오. 지켜봅시다.']] },
   { a: 'reuben', b: 'judah', when: S => S.step === 'c1_pit', r: 8, lines: [[0, '…해가 지면 내가 우물 쪽을 살펴보겠다.'], [1, '왜, 형? 마음이 약해졌소?']] },

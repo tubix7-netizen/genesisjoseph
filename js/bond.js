@@ -70,10 +70,10 @@ B.giftPick = function (n, done) { const S = Game.S(), id = n.id, b = B.get(id), 
       setTimeout(() => G.UI.say([{ n: n.name, t: like ? rnd(['어머, 이거 정말 좋아하는 거예요! 고마워요!', '어떻게 알았소? 내가 이걸 제일 좋아하는데!', '와아! 최고예요!']) : sto ? rnd(['…이걸 왜 주시오? 허허.', '음… 고마워요. (어리둥절)']) : rnd(['고마워요. 잘 쓸게요.', '정성이 고맙구려.']) }], () => { B.add(id, like ? 6 : sto ? 0 : 2, '선물'); done && done(); }), 30); } })).concat([{ t: '그만두기', then: () => done && done() }]) }], null); };
 // family time
 B.meal = function (n, done) { const S = Game.S(), P = Game.P, b = B.get(n.id); b.meal = S.day; const F = fam(n.id);
-  G.UI.fade(() => { P.sit = true; const H = S.hero; if (H) H.hp = H.hpMax; P.stam = (H && H.stamMax) || 100; if (G.Vitals && G.Vitals.mindGain) G.Vitals.mindGain(25); if (S.surv) S.surv.food = 100; }, () => {
+  G.UI.fade(() => { P.emote = { k: 'sitg', t: 0, dur: 1e4 }; /* v18.34 on the floor mat, not on an invisible chair */ const H = S.hero; if (H) H.hp = H.hpMax; P.stam = (H && H.stamMax) || 100; if (G.Vitals && G.Vitals.mindGain) G.Vitals.mindGain(25); if (S.surv) S.surv.food = 100; }, () => {
     G.UI.say([{ n: '', t: rnd(['식탁에 따뜻한 빵과 렌틸 죽, 대추야자가 차려졌습니다.', '아이들이 앞다투어 오늘 있었던 일을 이야기했습니다.', '나일 강에서 잡은 생선이 구수하게 익었습니다.']) },
       { n: n.name, t: rnd(F.mealTalk) }, { n: '요셉', t: rnd(['하나님, 이 식탁을 주셔서 감사합니다.', '고마워요. 오늘도 덕분에 힘이 나요.', '(아이들의 웃음소리를 들으며 미소 짓는다)']) }],
-      () => { P.sit = false; B.add(n.id, 5, '함께한 식사'); for (const k in Game.EP().family) if (k !== n.id && Game.ENT.npcs[k] && Game.ENT.npcs[k].vis) B.add(k, 2); G.UI.toast('체력·기력·정신력이 가득 찼어요'); done && done(); }); }); };
+      () => { P.emote = null; B.add(n.id, 5, '함께한 식사'); for (const k in Game.EP().family) if (k !== n.id && Game.ENT.npcs[k] && Game.ENT.npcs[k].vis) B.add(k, 2); G.UI.toast('체력·기력·정신력이 가득 찼어요'); done && done(); }); }); };
 B.play = function (n, done) { const S = Game.S(), P = Game.P, b = B.get(n.id); b.play = S.day; const F = fam(n.id), game = rnd(F.games);
   n.emote = { k: game.k, t: 0, dur: 5 }; P.emote = { k: game.me, t: 0, dur: 5 }; sfx('cheer');
   G.UI.say([{ n: '', t: game.t }, { n: n.name, t: rnd(game.kid) }], () => { B.add(n.id, 5, '함께 논 시간'); if (G.Vitals && G.Vitals.mindGain) G.Vitals.mindGain(15); done && done(); }); };

@@ -152,7 +152,7 @@ Game.saveKey = KEY;
 Game.setSlot = n => { Game.slot = n; try { localStorage.setItem('genesisSlot', String(n)); } catch (e) { } };
 Game.readSlot = (id, n) => { try { return JSON.parse(localStorage.getItem(KEY(id, n)) || 'null'); } catch (e) { return null; } };
 Game.hasSave = (id, n) => { try { return !!localStorage.getItem(KEY(id, n)); } catch (e) { return false; } };
-Game.save = function (quiet) { if (!S || Game.mode !== 'play') return; S.player = { x: P.x, z: P.z, face: P.face }; S.savedAt = Date.now(); if (G.Ride) G.Ride.save(); try { localStorage.setItem(KEY(S.ep), JSON.stringify(S)); if (!quiet) G.UI.toast('저장했어요'); } catch (e) { } };
+Game.save = function (quiet) { if (!S || Game.mode !== 'play') return; S.player = { x: P.x, z: P.z, face: P.face }; S.savedAt = Date.now(); if (G.Ride) G.Ride.save(); try { localStorage.setItem(KEY(S.ep), JSON.stringify(S)); if (!quiet) G.UI.toast('저장했어요'); } catch (e) { console.warn(e); if (!quiet) G.UI.toast('저장하지 못했어요 · 저장 공간이 부족해요'); } };
 Game.deleteSave = (id, n) => { try { localStorage.removeItem(KEY(id, n)); } catch (e) { } };
 
 // =================================================================== WORLD SETUP
@@ -263,7 +263,7 @@ Game.start = function (epId, fresh, preview) {
   for (const s of ENT.sites) if (S.built[s.id]) applySiteFx(s);
   buildSiteMeshes();
   ENT.plotsDirty = true;
-  P.x = S.player.x; P.z = S.player.z; P.face = S.player.face; P.y = W.heightAt(P.x, P.z); P.vx = P.vz = P.vy = 0; P.stam = 100; P.follow = []; P.carry = null;
+  P.x = S.player.x; P.z = S.player.z; P.face = S.player.face; P.y = W.heightAt(P.x, P.z); P.vx = P.vz = P.vy = 0; P.stam = 100; P.follow = []; P.carry = null; P.act = null; P.actFn = null; P.emote = null; if (G.Chem) G.Chem.torchT = S.hand === 'torch' ? 90 : 0; if (S.flags && S.flags.handBack && !S.hand) { S.hand = S.flags.handBack; S.flags.handBack = undefined; } /* v18.34 nothing carried over from the game before; a saved torch is lit; a tool put away to carry a jar comes back */
   setOutfit(S.outfit);
   if (G.Combat) G.Combat.reset(S); if (G.Vitals) G.Vitals.reset(); if (G.Phys) G.Phys.reset(); if (G.Loot) G.Loot.reset(); if (G.Lock) G.Lock.reset(); if (G.Life) G.Life.reset(); if (G.Ride) G.Ride.reset(S); if (G.NpcAI) G.NpcAI.reset(S); Q.firstFrame = true; Game.refreshLook();
   CAM.yaw = P.face + PI; CAM.pitch = camCfg().pRest; snapCam();
@@ -274,7 +274,7 @@ Game.start = function (epId, fresh, preview) {
   G.UI.enterGame();
   if (EP.onLoad) EP.onLoad(S, Game);
   Game.go(S.step, true); featCheck(true);
-  if (fresh && EP.opening && G.Opening && !S.flags.opened) { S.flags.opened = 1; G.Opening.play(EP.opening, S, Game); }
+  if (fresh && EP.opening && G.Opening && !S.flags.opened) { G.Opening.play(EP.opening, S, Game); setTimeout(() => { if (Game.S() === S) S.flags.opened = 1; }, 4000); } /* v18.34 (a tab closed in the first seconds shows the opening again) */
 };
 /* v18.24 garden pools: every pool the episode built leaves its four water corners in G.POOLS; they become one water mesh (a 1 m grid, for the ripples) */
 function poolMesh(list) { if (!list || !list.length) return null; const d = []; const v = p => d.push(p[0], p[1], p[2], 0, 1, 0, 1, 1, 1, 0, 0);
@@ -324,7 +324,15 @@ Game.refreshLook = function () { if (!S) return; const base = (EP.outfits && EP.
 Game.setOutfit = setOutfit;
 
 // =================================================================== NPCs
-function addNPC(d) {
+/* v18.34 villagers who share a costume look like brothers: each one gets their own hair, beard, skin tone and hair colour (story characters keep theirs) */
+function folkLook(d) { if (!d.folk || !d.look || d._fv || d.look.vary === false) return; d._fv = 1; const L = d.look; let h = 2166136261; for (const ch of String(d.id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); const r = k => { let x = Math.imul(h ^ (k * 2654435761), 1597334677); x ^= x >>> 15; return (x >>> 0) / 4294967296; };
+  const fem = L.fem !== undefined ? !!L.fem : L.headwear === 'veil', o = Object.assign({}, L);
+  if (!L.kid) { if (!L.hairStyle && !L.headwear) o.hairStyle = (fem ? ['long', 'braid', 'bun', 'tied', 'wig'] : ['short', 'curly', 'wig', 'short', 'wild'])[Math.floor(r(1) * 5)];
+    if (!fem && L.beard === undefined && L.age !== 'old' && r(2) < 0.38) o.beard = 'short'; }
+  if (L.skin !== undefined) o.skin = G.mixHex(L.skin, r(3) < 0.5 ? 0x000000 : 0xffffff, r(4) * 0.12);
+  if (L.hair !== undefined && L.age !== 'old') o.hair = [L.hair, 0x1a120c, 0x2e1e14, 0x3a2618][Math.floor(r(5) * 4)];
+  o.seed = (L.seed || 0) + Math.floor(r(6) * 1000); d.look = o; }
+function addNPC(d) { folkLook(d);
   const n = { d, id: d.id, name: d.name, rig: new Rig(d.animal ? AB[d.animal] : d.look && d.look.kid ? HBK : HB), mesh: d.animal ? animalMesh(d.animal, d.pattern || 'plain', d.extra) : null, meshLo: null,
     x: d.x, z: d.z, y: 0, face: d.face || 0, homeFace: d.face || 0, vis: true, st: { phase: 0 }, walk: null, wander: d.wander ? { r: d.wander, cx: d.x, cz: d.z, tx: null, wait: Math.random() * 3 } : null, talking: false, act: d.act || null, scale: d.scale || 1 };
   const sp = S.npcPos[d.id]; if (sp) { n.x = sp[0]; n.z = sp[1]; if (sp[2] !== undefined) n.face = n.homeFace = sp[2]; }
@@ -947,7 +955,7 @@ function updateNPCs(dt, t) { npcFrame++;
            it slips sideways along the wall first and only as a last resort steps through, so a story beat can never stall */
         if (dist < 70 || (Game.cineCam && Math.hypot(n.x - Game.cineCam.x, n.z - Game.cineCam.z) < 70)) { n.col.on = false; W.move(q, mdx / d * st, mdz / d * st, 0.32); n.col.on = true; const mv = Math.hypot(q.x - n.x, q.z - n.z);
           if (mv < st * 0.3) { w.stuck += dt; if (w.stuck > 0.5) { const sx = -dz / d * (w.side || (w.side = Math.random() < 0.5 ? 1 : -1)); q.x += sx * st; q.z += dx / d * w.side * st; n.col.on = false; W.collide(q, 0.32); n.col.on = true; }
-            if (n.d.folk && !Game.cineOn && w.stuck > 3) { /* a villager who truly cannot get there gives up and lets the day plan choose again (no head against the wall) */ const cb = w.cb; n.walk = null; n.homeFace = n.face; n.schedSlot = -1; cb && cb(); }
+            if (n.d.folk && !Game.cineOn && w.stuck > 3) { /* a villager who truly cannot get there gives up and lets the day plan choose again (no head against the wall) */ const cb = w.cb; n.walk = null; n.homeFace = n.face; cb && cb(); } /* v18.34 settle where they stand (re-planning walked them into the same wall again and again) */
             else if (w.stuck > (w.solid === false ? 1.6 : 2.5)) { q.x = n.x + dx / d * st; q.z = n.z + dz / d * st; } } else w.stuck = Math.max(0, w.stuck - dt); }
         else { q.x += dx / d * st; q.z += dz / d * st; }
         if (W.avoids.length) W.avoid(q, n.x, n.z);
@@ -962,7 +970,7 @@ function updateNPCs(dt, t) { npcFrame++;
     if (!n.pass) { let gy = W.heightAt(n.x, n.z); if (EP.floor && !n.d.animal) { const f2 = EP.floor(n.x, n.z, S); if (f2 !== null && f2 !== undefined && f2 > gy - 0.3) gy = Math.max(gy, f2); }
       gy += n.seatY || 0; n.y = n.y === undefined || Math.abs(gy - n.y) > 1.2 ? gy : n.y + (gy - n.y) * Math.min(1, dt * 14); } // ease over steps; snap only on a real jump
     n.col.x = n.x; n.col.z = n.z;
-    n.aspd = (n.aspd || 0) + (speed - (n.aspd || 0)) * Math.min(1, dt * 7); n.st.face = n.face; n.st.speed = n.aspd; n.st.phase = (n.st.phase || 0) + (n.d.animal ? n.aspd * dt * 3.2 : G.stepRate(n.aspd) * dt); n.st.idle = 1;
+    n.aspd = (n.aspd || 0) + (speed - (n.aspd || 0)) * Math.min(1, dt * 7); n.st.face = n.face; const nsc = n.d.animal ? 1 : (n.scale || 1); n.st.speed = n.aspd / nsc; n.st.phase = (n.st.phase || 0) + (n.d.animal ? n.aspd * dt * 3.2 : G.stepRate(n.aspd / nsc) * dt); /* v18.34 small people take small steps (children's feet slid) */ n.st.idle = 1;
     n.st.talk = n.talking && ((G.UI.speaker && G.UI.speaker() === n.name) || (G.NpcAI && G.NpcAI.speaking === n));
     if (n.rig.bodyLook !== n.d.look) { n.rig.body = G.Motion.bodyOf(n.d.look); n.rig.bodyLook = n.d.look; } n.gndOff = -(n.d.dy || 0); n.st.gnd = (cc ? Math.min(dist, Math.hypot(n.x - cc.x, n.z - cc.z)) : dist) < 30 && !n.d.animal ? G.Motion.groundFn(n) : null; n.st.npcLoop = true;
     n.st.listen = n.talking && !n.st.talk; n.st.cold = G.Surv && G.Surv.cold > 8;
@@ -973,7 +981,7 @@ function updateNPCs(dt, t) { npcFrame++;
     if (COARSE && !Game.cineOn && !n.talking && n.rig.bones && n.M) { if (n._ah === undefined) { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0; n._ah = Math.abs(h); }
       const vx = -Math.sin(CAM.yaw), vz = -Math.cos(CAM.yaw), bx = n.x - CAM.x, bz = n.z - CAM.z, behind = dist > 7 && vx * bx + vz * bz < -0.25 * Math.hypot(bx, bz);
       const k = behind ? 4 : dist > 55 ? 3 : dist > 28 ? 2 : 1; if (k > 1 && (npcFrame + n._ah) % k) { n.rig.update(m4trs(n.M, n.x, n.y + (n.d.dy || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale)); continue; } } /* (only the pose maths is skipped; the bones follow the body every frame) */
-    if (n.d.animal) animAnimal(n.rig, n.st, t); else animHuman(n.rig, n.st, t + n.x);
+    if (n.d.animal) animAnimal(n.rig, n.st, t); else animHuman(n.rig, n.st, t + (n._to === undefined ? (n._to = Math.random() * 50) : n._to)); /* v18.34 a steady clock per person (it ran with the x position) */
     n.rig.update(m4trs(n.M || (n.M = m4()), n.x, n.y + (n.d.dy || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale));
   }
 }
@@ -1176,7 +1184,7 @@ Game.frame = function (now) {
   perfTick(rawMs, dt); // adaptive resolution / frame lock / shadow rate (below)
   if (Game.mode === 'play' && W) {
     const modal = G.UI.modal();
-    if (!modal) { S.time += dt / SEC_PER_HOUR * (EP.timeScale || 1); if (S.time >= 26) { G.UI.toast('너무 늦었어요… 그 자리에서 잠이 들었다'); newDay(); } }
+    if (!modal) { S.time += dt / SEC_PER_HOUR * (EP.timeScale || 1); if (S.time >= 26) { newDay(); setTimeout(() => G.UI.toast('너무 늦었어요… 그 자리에서 잠이 들었다'), 2400); } } /* v18.34 after the day card, not on top of it */
     if (G.Combat && G.Combat.hitStop > 0) { G.Combat.hitStop -= dt; dt *= 0.2; }
     PM.b('player'); if (!Game.cineOn) updatePlayer(dt * (Game.worldScale || 1)); else { P.vx = P.vz = 0; P.spd = 0; }
     if (G.Vitals) G.Vitals.update(dt, S); PM.e('player');
@@ -1248,7 +1256,7 @@ function render(dt) {
   { pst.vy = P.vy; pst.hero = true; pst.sprint = P.sprint && P.spd > 5.8; // v16.7 야숨: the hero glances at what he could use / who he could talk to
     let lk = 0; const c = ctx; if (c && c.x !== undefined && !P.act && !P.ride && !Game.cineOn && !G.UI.busy()) { const d = Math.hypot(c.x - P.x, c.z - P.z); if (d > 0.4 && d < 7) lk = clamp(angDiff(P.face, Math.atan2(c.x - P.x, c.z - P.z)), -1.05, 1.05); }
     P.lookS = lerp(P.lookS || 0, lk, 0.1); if (Math.abs(P.lookS) > 0.02) pst.look = P.lookS; else delete pst.look; }
-  pst.gnd = P.grounded && !P.swim && !(EP.floor && EP.floor(P.x, P.z, S) !== null) ? G.Motion.groundFn(P) : null; pst.listen = !pst.talk && !!spk; pst.swim = P.swim;
+  pst.gnd = P.grounded && !P.swim && !(EP.floor && EP.floor(P.x, P.z, S) !== null) ? G.Motion.groundFn(P) : null; pst.listen = !pst.talk && !!spk; pst.swim = P.swim; { const wO = EP.waterAt ? EP.waterAt(P.x, P.z, S) : null, wl0 = wO ? wO.level : W.water ? W.water.level : -99; pst.swimLift = P.swim ? Math.max(0, P.y - (wl0 - 1.25)) : 0; } /* v18.34 the same float height in shallower deep water */
   if (!pst.act && P.emote) { pst.act = P.emote.k; pst.actT = P.emote.dur ? Math.min(1, P.emote.t / P.emote.dur) : (P.emote.t % 2) / 2; }
   P.phase += G.stepRate(P.spd) * dt;
   if (P.atkPose) { pst.act = P.atkPose; pst.actT = 0.5; } else if (P.atk) { pst.act = P.atk.anim; pst.actT = P.atk.t / P.atk.dur; } else if (P.dodgeT > 0) { pst.act = 'dodge'; pst.actT = 1 - P.dodgeT / (P.dodgeDur || 0.45); } pst.hurt = P.tintT > 0;
@@ -1257,7 +1265,7 @@ function render(dt) {
   { const em = G.Cine && G.Cine.emoOf ? G.Cine.emoOf(EP.hero) : null; // v16.8 acting: the line's feeling, or out of breath / cold in play
     const mo = !em && G.Mood ? G.Mood.hero(dt) : null; // v17.7 P4: fear / weary from the game itself (js/mood.js)
     pst.emo = em ? em[0] : mo ? mo[0] : !Game.cineOn && (P.exhausted || (P.stam !== undefined && P.stam < 12)) && P.spd < 0.5 && !P.act && !P.swim && !P.climb && !P.ride ? 'tired' : !Game.cineOn && pst.shiver > 0.35 && P.spd < 0.5 && !P.act ? 'cold' : null; pst.emoK = em ? em[1] : mo ? mo[1] : 1; }
-  pst.torch = hand() === 'torch' && !!G.Chem && G.Chem.torchT > 0 && !P.carry && !P.ride && !P.swim && !P.climb && !P.sleeping; /* v18.34 held up while it burns */
+  pst.torch = hand() === 'torch' && !!G.Chem && G.Chem.torchT > 0 && !P.carry && !(G.Phys && G.Phys.held) && !P.ride && !P.swim && !P.climb && !P.sleeping; /* v18.34 held up while it burns */
   if (EP.pose) EP.pose(pst, S, Game);
   if (P.downed) { pst.act = 'fallen'; pst.actT = 1; pst.speed = 0; }
   if (P.climb) { pst.act = 'climb'; pst.actT = ((P.climbPh || 0) / (PI * 2)) % 1; pst.speed = 0; pst.air = false; pst.gnd = null; pst.staff = false; }
@@ -1267,7 +1275,7 @@ function render(dt) {
   if (Game.mode === 'play') scene.skinned.push(P.sk || (P.sk = { mesh: null, bones: P.rig.bones, outline: true, bs: [0, 0, 0, 1.8] })); if (P.sk) { P.sk.mesh = P.mesh; P.sk.bs[0] = P.x; P.sk.bs[1] = P.y + 1; P.sk.bs[2] = P.z; P.sk.tint = P.tint || null; }
   // held prop
   // only one thing in the hand: the action's own tool > a drawn weapon > the tool the player chose to hold
-  const freeHand = !P.carry && !P.ride && !P.sleeping && !Game.cineOn && !(P.emote && (P.emote.k === 'eat' || P.emote.k === 'drink')) && !(pst.act && pst.act !== P.act && !(G.Acts && G.Acts.walkable(pst.act)));
+  const freeHand = !P.carry && !P.ride && !P.sleeping && !Game.cineOn && !(P.emote && (P.emote.k === 'eat' || P.emote.k === 'drink' || P.emote.k === 'sit_eat' || P.emote.k === 'sit_drink' || P.emote.k === 'sitg')) && !(pst.act && pst.act !== P.act && !(G.Acts && G.Acts.walkable(pst.act)));
   const busyP = P.actProp || (G.Combat && G.Combat.heldProp()), hk = !busyP && freeHand ? hand() : null;
   const hp = Game.mode !== 'play' ? null : busyP || (hk && !((hk === 'staff' || hk === 'hoe') && !pst.staff) ? (hk === 'weapon' ? G.Combat.wProp() : TOOL_PROP[hk]) || null : null);
   if (hp) scene.dyn.push(P.propD || (P.propD = { outline: true, m: P.propM = m4() })), P.propD.mesh = propMesh(hp), P.propD.m.set(P.rig.world[hp === 'bow' ? HBI.handL : HBI.handR]);
@@ -1336,7 +1344,9 @@ Game.craft = function (r, times) {
   G.UI.hud(); checkStep(); return made;
 };
 Game.recipes = () => RECIPES.filter(r => !EP.recipes || EP.recipes.includes(r.id));
-Game.price = (k, mul) => Math.max(1, Math.round(ITEMS[k].p * (EP.sellMul || 1) * ((mul && mul[ITEMS[k].cat]) || 1)));
+/* v18.34 a thing never sells for more than 70% of the cheapest price any shop asks for it (buying in one shop and selling in another made endless silver) */
+let buyMin = null; const cheapest = k => { if (!buyMin) { buyMin = {}; for (const id in (EP.shops || {})) for (const x of (EP.shops[id].buy || [])) { if (!x.item) continue; const u = (x.price || x.p || 0) / (x.qty || x.n || 1); if (u > 0 && (!(x.item in buyMin) || u < buyMin[x.item])) buyMin[x.item] = u; } } return buyMin[k]; };
+Game.price = (k, mul) => { let p = Math.max(1, Math.round(ITEMS[k].p * (EP.sellMul || 1) * ((mul && mul[ITEMS[k].cat]) || 1))); const c = cheapest(k); if (c) p = Math.max(1, Math.min(p, Math.floor(c * 0.7))); return p; };
 Game.sell = function (k, n, mul) { n = Math.min(n, inv(k)); if (n <= 0) return; const price = Game.price(k, mul); take(k, n); silver(price * n); S.stats.sold += n; G.UI.toast(`${ITEMS[k].n} ${n}개를 팔았다 · 은 ${price * n}`); checkStep(); };
 Game.buy = function (entry) {
   if (S.silver < entry.price) { G.UI.toast('은이 부족해요'); return false; } silver(-entry.price);

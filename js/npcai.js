@@ -63,6 +63,10 @@ AI.plan = function (v, f, S) {
     else if (where === 'eat') { if (dayR(f.id, S, 'e' + i) < 0.5) p = [hm[0], hm[1], hm[2] || 0]; else p = spotPos(v, 'fire', f, S, i); mode = 'sit'; }
     else if (where === 'shelter') { const sh = v.shelters[Math.floor(hash(f.id + S.day) * v.shelters.length)]; const a = hash(f.id) * PI * 2; p = [sh[0] + Math.cos(a) * 0.8, sh[1] + Math.sin(a) * 0.6, sh[2] || 0]; }
     else p = spotPos(v, where, f, S, i);
+    /* v18.34 at home (or visiting) means inside the house: the spot is the middle of the house, so 'wander' / 'act' / 'sit' there sent people
+       pacing back and forth in front of the door. A few still sit by their own door in the evening air. */
+    if (where === 'home' || where === 'visit' || (where === 'eat' && p[0] === hm[0] && p[1] === hm[1])) { const inside = Game.solidAt && Game.solidAt(where === 'visit' ? p[0] - 1.4 : p[0], where === 'visit' ? p[1] - 1.1 : p[1], 0.05);
+      if (inside || where === 'visit') mode = where === 'eat' && dayR(f.id, S, 'd' + i) < 0.25 ? 'sit' : 'hide'; }
     return [h, +p[0].toFixed(2), +p[1].toFixed(2), +(p[2] || 0).toFixed(2), mode];
   });
 };
@@ -208,7 +212,7 @@ function spawnStranger(S) {
     else { const p = rp.pts[rp.pts.length - 1 - Math.floor(rp.pts.length * 0.2)]; const p2 = rp.pts[Math.max(0, rp.pts.length - 2 - Math.floor(rp.pts.length * 0.2))]; const ang = Math.atan2(p[0] - p2[0], p[1] - p2[1]) + PI / 2; x = p[0] + Math.sin(ang) * 2.6; z = p[1] + Math.cos(ang) * 2.6; face = ang + PI; } }
   else { const ca = Game.CAM.yaw + PI; let tries = 0; do { const a = ca + (Math.random() - 0.5) * 2.2, d = 30 + Math.random() * 22; x = P.x + Math.sin(a) * d; z = P.z + Math.cos(a) * d; tries++; } while (tries < 8 && (!okGround(x, z) || (EP.roadD && EP.roadD(x, z) < 4))); if (tries >= 8) return; }
   if (!okGround(x, z) || inVillage(x, z) || Math.hypot(x - P.x, z - P.z) < 18) return;
-  const id = 'stg' + (++stN), name = T.n, d = { id, name, look: strangerLook(type), x, z, face, prop: T.prop, mount: T.mount, pack: T.pack, stranger: type, sit: T.sit, persona: T.persona, rider: false, noRide: true, talkR: T.mount ? 3.2 : 2.6, walkSp: T.slow ? 1.1 : 1.6 };
+  const id = 'stg' + (++stN), name = T.n, d = { id, name, look: strangerLook(type), x, z, face, prop: T.prop, mount: T.mount, pack: T.pack, stranger: type, persona: T.persona, rider: false, noRide: true, talkR: T.mount ? 3.2 : 2.6, walkSp: T.slow ? 1.1 : 1.6 };
   const n = Game.spawnNPC(d); n.trav = true; if (T.sit) n.act = 'sitg';
   const s = { id, type, life: T.life, path, called: false, followers: [] };
   if (T.travel && path) Game.npcWalk(id, path[path.length - 1][0], path[path.length - 1][1], () => { s.arrived = true; }, T.mount === 'camel' ? 2.4 : T.mount ? 2.6 : T.slow ? 1.1 : 1.6, path.slice(1, -1));
@@ -319,7 +323,7 @@ function strangerTalk(n) {
   } else if (type === 'elder') {
     const i = S.flags.taleN || 0, tale = TALES[i % TALES.length];
     say([{ n: n.name, t: i >= TALES.length ? '내 이야기를 다 들었구려. 이제 그대가 아이들에게 전해 주시오.' : '앉으시오. 우리 조상 아브라함 이야기를 들려주리다.', choices: [].concat(
-      [{ t: i >= TALES.length ? '한 번 더 들려주세요' : '이야기 듣기', then: () => setTimeout(() => { Game.P.sit = true; G.UI.narr([{ kick: '노인의 옛이야기', title: tale.title, t: tale.t, ref: tale.ref }], () => { Game.P.sit = false; if (i < TALES.length) { S.flags.taleN = i + 1; if (Game.insight) Game.insight(1, tale.title); } say([{ n: n.name, t: '하나님은 약속하신 것을 반드시 지키신다오. 잊지 마시오.' }], back); }); }, 30) }], free, [bye]) }]);
+      [{ t: i >= TALES.length ? '한 번 더 들려주세요' : '이야기 듣기', then: () => setTimeout(() => { Game.P.emote = { k: 'sitg', t: 0, dur: 1e4 }; G.UI.narr([{ kick: '노인의 옛이야기', title: tale.title, t: tale.t, ref: tale.ref }], () => { Game.P.emote = null; if (i < TALES.length) { S.flags.taleN = i + 1; if (Game.insight) Game.insight(1, tale.title); } say([{ n: n.name, t: '하나님은 약속하신 것을 반드시 지키신다오. 잊지 마시오.' }], back); }); }, 30) }], free, [bye]) }]);
   } else if (type === 'waterwoman') {
     const jar = Game.tool('jar') || Game.tool('bigjar');
     say([{ n: n.name, t: '먼 우물에서 물을 길어 오는 길이에요. 목마르지 않으세요?', choices: [].concat(
@@ -361,8 +365,8 @@ const SOLO = { farmer: ['에구구, 허리야…', '올해 농사도 잘 되어�
 let ctT = 6; const chatQ = { run: null };
 function villageChatter(dt, S) {
   const P = Game.P;
-  if (chatQ.run) { const r = chatQ.run; r.t -= dt; if (r.t <= 0) { if (r.i >= r.lines.length) { chatQ.run = null; return; } const [w, txt] = r.lines[r.i]; const id = w === 0 ? r.a.id : r.b.id; const n = w === 0 ? r.a : r.b, o = w === 0 ? r.b : r.a;
-    const tx = txt.replace('야곱', hero(S)), rt = G.Life.readT ? G.Life.readT(tx) : 3.4; G.Life.bubble(id, tx, rt); if (!n.walk) n.face = Math.atan2(o.x - n.x, o.z - n.z); r.i++; r.t = rt * 0.9 + 0.3; } return; }
+  if (chatQ.run) { const r = chatQ.run; r.t -= dt; if (r.t <= 0) { if (r.i >= r.lines.length) { if (r.a) r.a._chatFace = undefined; if (r.b) r.b._chatFace = undefined; chatQ.run = null; return; } const [w, txt] = r.lines[r.i]; const id = w === 0 ? r.a.id : r.b.id; const n = w === 0 ? r.a : r.b, o = w === 0 ? r.b : r.a;
+    const tx = txt.replace('야곱', hero(S)), rt = G.Life.readT ? G.Life.readT(tx) : 3.4; G.Life.bubble(id, tx, rt); if (!n.walk) { n._chatFace = Math.atan2(o.x - n.x, o.z - n.z); o._chatFace = Math.atan2(n.x - o.x, n.z - o.z); } r.i++; /* v18.34 turn smoothly and keep facing while talking */ r.t = rt * 0.9 + 0.3; } return; }
   ctT -= dt; if (ctT > 0) return; ctT = 8 + Math.random() * 9; if (G.UI.busy() || Game.cineOn) return; if (G.Street && G.Street.on()) return; /* v18.25 the street scenes (street.js) speak for the villagers now */
   const list = Object.values(Game.ENT.npcs).filter(n => n.vis && n.near && n.d.folk && !n.talking && !n.walk && !n.schedHidden && Math.hypot(n.x - P.x, n.z - P.z) < 24);
   const pairs = []; for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) if (Math.hypot(list[i].x - list[j].x, list[i].z - list[j].z) < 5) pairs.push([list[i], list[j]]);

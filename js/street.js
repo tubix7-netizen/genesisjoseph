@@ -12,7 +12,7 @@ const ST = G.Street = {};
 const S = () => Game.S(), P = () => Game.P;
 const rnd = a => a[Math.floor(Math.random() * a.length)];
 const short = n => (n.name || '').split(' ').pop();
-const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' ? 7 : (+st[1] || 2); }; /* (j_end, the free journey, counts as after the story) */
+const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' || st[0] === 'g' ? 7 : (+st[1] || 2); } /* v18.34 g1–g8 are chapters 7–8 (they read as chapter 1) */; /* (j_end, the free journey, counts as after the story) */
 const era = s => { const c = chap(s); return c < 5 ? 'pre' : c === 5 ? 'plenty' : 'famine'; };
 const isKid = n => !!(n.d.folk && (n.d.folk.age === 'kid' || n.d.folk.role === 'child'));
 const role = n => (n.d.folk && n.d.folk.role) || '';

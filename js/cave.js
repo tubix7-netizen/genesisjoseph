@@ -17,7 +17,7 @@ const MOUTH = { x: -201.5, z: 0, f: Math.PI / 2 }; /* stand here, facing west in
 const CX = -60, CZ = 150, CY = 92; /* the stage: high above the dunes, out of sight */
 const inCave = () => { const s = S(); return !!(s && s.flags && s.flags.cave); };
 const Cv = G.Cave = { inside: inCave };
-Object.assign(Game.ITEMS, { crystal: { n: '빛나는 돌', cat: 'good', p: 0, ic: 'stone', c: '#8ad8ff' }, waterclock: { n: '기인의 물시계', cat: 'key', p: 0, ic: 'jar', c: '#c8a070' },
+Object.assign(Game.ITEMS, { crystal: { n: '빛나는 돌', cat: 'key', p: 0, ic: 'stone', c: '#8ad8ff' }, waterclock: { n: '기인의 물시계', cat: 'key', p: 0, ic: 'jar', c: '#c8a070' },
   mirror: { n: '빛 모으는 구리 거울', cat: 'key', p: 0, ic: 'coin', c: '#e8a050' }, starmap: { n: '네브세니의 별 지도', cat: 'key', p: 0, ic: 'scroll', c: '#4a5a9a' } });
 // ------------------------------------------------------------------ the cave's shape: chambers (circles) joined by tunnels
 const CH = { A: [0, 0, 5.5], B: [2, 15, 5], C: [-12, 26, 6], D: [10, 30, 5], E: [22, 42, 3.6], F: [-2, 45, 8] };
@@ -82,7 +82,7 @@ function buildMouth(W) { const x0 = MOUTH.x - 4.6, z0 = MOUTH.z, y0 = W.heightAt
     g.box(3.6, 2.2, 6.6, { m: M, at: [-1.6, 4.2, 0], c: ROCK[1], j: 0.1 }); g.box(1.2, 2.7, 2.6, { m: M, at: [0.2, 1.35, 0], c: 0x0a0806, j: 0 }); /* the dark opening */
     g.box(5, 5, 9, { m: M, at: [-3.4, 1.5, 0], c: ROCK[0], j: 0.1 }); }, x0, z0, { y: y0 - 0.3, col: null });
   W.addCol({ x: x0 - 1.8, z: z0, w: 6, d: 9.5, y0: y0 - 2, y1: y0 + 6, cam: true }); }
-const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); STAGE = null; COLS.length = 0; try { buildMouth(W); W.place('campfire', MOUTH.x + 3.2, MOUTH.z + 3.4, { kind: 'campfire', col: { r: 0.75, h: 0.5 } }); /* v18.34 the fire by the mouth has stones and sticks under it */ } catch (e) { console.error('cave build', e); } }; /* v18.30 the inside is built on the first visit (less to build, and less memory, at load) */
+const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); if (STAGE && G.R.free) STAGE.statics.forEach(m => G.R.free(m)); STAGE = null; COLS.length = 0; CROOF = null; try { buildMouth(W); W.place('campfire', MOUTH.x + 3.2, MOUTH.z + 3.4, { kind: 'campfire', col: { r: 0.75, h: 0.5 } }); /* v18.34 the fire by the mouth has stones and sticks under it */ } catch (e) { console.error('cave build', e); } }; /* v18.30 the inside is built on the first visit (less to build, and less memory, at load) */
 const ensure = () => { if (!STAGE && Game.W()) try { STAGE = buildCave(Game.W()); } catch (e) { console.error('cave build', e); } };
 /* a fire by the mouth to light torches at */
 EP.stations.push({ id: 'fCave', type: 'fire', x: MOUTH.x + 3.2, z: MOUTH.z + 3.4, r: 2.6, on: s => free(s) });
@@ -142,7 +142,7 @@ const lt0 = G.Life.talk; G.Life.talk = function (id) { const s = S(); if (id ===
   if (id === 'cvBoy' && s.q.kMet && !(s.side && s.side.act && s.side.act.k_find)) { G.UI.say([{ n: '목동 아이 메리', t: rnd(['그 할아버지가 저한테도 반짝이는 돌 보여 주셨어요!', '오늘도 펑 소리 났어요. 이번엔 웃음소리도 들렸어요!', '횃불 꺼지면 화로에서 다시 붙이세요!']) }], () => { const n = Game.npc('cvBoy'); if (n) n.talking = false; }); return true; }
   return lt0.apply(this, arguments); };
 // ------------------------------------------------------------------ in and out
-function go(inside) { const s = S(), p = P(); for (const k in seenS) delete seenS[k]; if (s.q && s.q.riding) { pop('수레에서 먼저 내려요', '', 'house'); return; } if ((p.follow || []).length && inside) { pop('혼자 들어가요', '함께 가는 사람은 입구에서 기다려요', 'house'); }
+function go(inside) { const s = S(), p = P(); for (const k in seenS) delete seenS[k]; if (s.q && s.q.riding) { pop('수레에서 먼저 내려요', '', 'house'); return; } if ((p.follow || []).length && inside) { pop('혼자 들어가요', '함께 가는 사람은 입구에서 기다려요', 'house'); const ids = p.follow.map(n => n.id); s.flags.cvWait = ids; ids.forEach((id, i) => { Game.npcFollow(id, false); Game.npcTo(id, MOUTH.x + 2.4 + (i % 3) * 0.9, MOUTH.z - 1 + Math.floor(i / 3) * 0.9, 0, false); }); } /* v18.34 they really wait */ if (!inside && s.flags.cvWait) { const ids = s.flags.cvWait; s.flags.cvWait = null; setTimeout(() => ids.forEach(id => Game.npcFollow(id, true)), 700); }
   G.UI.fade(() => { s.flags.cave = inside ? 1 : 0; sync(true);
     if (inside) { if (G.Vitals && G.Vitals.mark) G.Vitals.mark('cave'); Game.teleport(CX + EXIT[0], CZ + EXIT[1] + 1.2, 0); p.y = p.airTop = CY; Game.snapCam && Game.snapCam(); } else Game.teleport(MOUTH.x + 1.2, MOUTH.z, Math.PI / 2);
     sfx('step', { surf: 'stone' }); }, () => { if (inside) { const lit = Game.hand() === 'torch' && G.Chem && G.Chem.torchT > 0; if (!(G.UI.help && G.UI.help('cave', '서쪽 바위산 동굴', lit ? '횃불 빛만큼만 보여요 · 꺼지면 화로에서 다시 붙여요 · 맨 안쪽에 누군가 있어요' : '너무 어두워요! 입구 모닥불에서 횃불을 붙여 와요')) && !lit) pop('너무 어두워요', '횃불을 붙여 들고 오세요', 'star'); } }); }

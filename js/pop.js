@@ -26,16 +26,21 @@ document.head.appendChild(css);
 const box = document.createElement('div'); box.id = 'popBox'; document.body.appendChild(box);
 const q = []; let busy = false;
 UI.pop = function (t, sub, ic) { q.push([t, sub, ic]); if (!busy) next(); };
-function next() { const it = q.shift(); if (!it) { busy = false; return; } busy = true; const [t, sub, ic] = it;
+const mapOpen = () => { const m = document.getElementById('bigmap'); return !!(m && !m.hidden && m.offsetParent !== null); };
+function next() { if (q.length && ((UI._bf && (UI._bf.fade || UI._bf.narr || UI._bf.panel)) || (G.Cine && G.Cine.on) || Game.cineOn || mapOpen())) { /* (v18.34 nor over the big map or a menu) */ busy = true; setTimeout(() => { busy = false; next(); }, 400); return; } /* v18.34 a pop waits until the fade / story card / cutscene is over */
+  const it = q.shift(); if (!it) { busy = false; return; } busy = true; const [t, sub, ic] = it;
   const c = document.createElement('div'); c.className = 'popC'; c.innerHTML = `<div class="pi">${UI.icon(ic || 'star', '#5a3a10')}</div><div><b></b>${sub ? '<span></span>' : ''}</div>`;
   c.querySelector('b').textContent = UI.txt(t); if (sub) c.querySelector('span').textContent = UI.txt(sub);
   for (let i = 0; i < 9; i++) { const s = document.createElement('i'); s.className = 'sp'; const a = Math.random() * Math.PI * 2, r = 40 + Math.random() * 60; s.style.left = '30px'; s.style.top = '30px'; s.style.setProperty('--dx', Math.cos(a) * r + 'px'); s.style.setProperty('--dy', Math.sin(a) * r + 'px'); s.style.animationDelay = (Math.random() * 0.15) + 's'; c.appendChild(s); }
   box.appendChild(c); sfx('levelup', { vol: 0.32, pitch: 1.5 });
   setTimeout(() => { c.classList.add('out'); setTimeout(() => { c.remove(); next(); }, 330); }, q.length ? 1100 : 1650); }
 // first-time help: one card, once per save
+const HQ = []; /* v18.34 one help card at a time (two at once doubled the backdrop and freed the controls under the second) */
 UI.help = function (key, t, line) { const S = Game.S(); if (!S) return false; const f = S.flags.tips = S.flags.tips || {}; if (f[key]) return false; f[key] = 1;
+  if (document.getElementById('helpC')) { HQ.push([t, line]); return true; } return showHelp(t, line); };
+function showHelp(t, line) {
   const el = document.createElement('div'); el.id = 'helpC'; el.innerHTML = `<div class="hc"><small>처음이에요</small><b></b><p></p><div class="ok">눌러서 닫기</div></div>`; el.querySelector('b').textContent = UI.txt(t); el.querySelector('p').textContent = UI.txt(line);
-  const close = () => { el.remove(); UI.setBusy('help', false); }; el.addEventListener('pointerdown', e => { e.preventDefault(); close(); }); document.body.appendChild(el); UI.setBusy('help', true); sfx('insight', { vol: 0.4, pitch: 1.2 }); setTimeout(() => { if (el.isConnected) close(); }, 7000); return true; };
+  const close = () => { if (!el.isConnected) return; el.remove(); UI.setBusy('help', false); const n = HQ.shift(); if (n) setTimeout(() => showHelp(n[0], n[1]), 250); }; el.addEventListener('pointerdown', e => { e.preventDefault(); close(); }); document.body.appendChild(el); UI.setBusy('help', true); sfx('insight', { vol: 0.4, pitch: 1.2 }); setTimeout(() => { if (el.isConnected) close(); }, 7000); return true; };
 // the old one-time tips now use the help card (first sentence = title, the rest = the line)
 UI.tipOnce = function (key, m) { const s = String(m), i = s.indexOf(' · '); return UI.help(key, i > 0 ? s.slice(0, i) : '도움말', i > 0 ? s.slice(i + 3) : s); };
 })(window.G);

@@ -134,12 +134,12 @@ const steps = {
   c2_flee: { ch: 3, obj: '도망쳐요! 대문 밖으로', target: { x: -28, z: 74 }, enter(S, G) { S.q.flee = 1; G.UI.hint('달리기 버튼으로 뛰어요!', 'flee', 'run'); }, check: (S, G) => G.P.z > 71.5 && Math.abs(G.P.x + 28) < 9,
     done(S, G, next) { G.UI.hint(null); S.q.flee = 0; cinAccuse(S, G, next); }, next: 'c3_cell' },
   // =============================================================== 3장 · 왕의 옥
-  c3_cell: { ch: 4, obj: '창으로 드는 달빛 아래에서 기도하기', target: { x: -18.4, z: -8.2 }, enter(S, G, re) { S.q.cellLock = 1; if (!re) setTimeout(() => G.UI.hint('차꼬를 차서 천천히 걸어요', 'chain', 'move'), 1200); } },
+  c3_cell: { ch: 4, obj: '창으로 드는 달빛 아래에서 기도하기', target: { x: -18.4, z: -8.2 }, enter(S, G, re) { S.q.cellLock = 1; if (!re) setTimeout(() => G.UI.hint('창으로 드는 달빛 아래로 가서 A 버튼으로 기도해요', 'chain', 'move'), 1200); } },
   c3_keeper: { ch: 4, obj: '간수장이 맡긴 일', list: S => [{ t: `감방의 죄수들에게 물 나눠 주기 (${Object.keys(S.q.gave || {}).length}/4)`, ok: Object.keys(S.q.gave || {}).length >= 4 }, { t: '앓는 늙은 죄수 돌보기', ok: qd(S, 'oldCare') }],
     enter(S, G, re) { S.q.cellLock = 0; if (!re) say([N('keeper', '일어나라, 히브리 종. 여기서는 일하지 않으면 먹지도 못한다.', '', 'cold'), N('keeper', '저 대야에서 물을 길어 감방마다 나눠 줘라. 그리고 구석의 늙은이가 사흘째 앓고 있으니 좀 살펴보고.', '', 'cold')], () => { if (!G.tool('jar')) G.giveTool('jar'); }); },
     target: S => Object.keys(S.q.gave || {}).length < 4 ? (S.water > 0 ? { x: -33, z: -4.6 } : 'spot:basin') : 'npc:oldP', check: S => Object.keys(S.q.gave || {}).length >= 4 && qd(S, 'oldCare'),
     talk: { oldP(S, G) { if (S.q.oldCare) return false; if (Object.keys(S.q.gave || {}).length < 4) { say([N('oldP', '…물… 물을…', '', 'weary')]); return; }
-      say([N('oldP', '…누구냐… 간수냐…?', '', 'weary'), J('물을 가져왔어요, 할아버지. 그리고 제 몫의 떡도요. 조금이라도 드세요.', '', 'tender'), N('oldP', '네 몫을…? 여기서 남에게 떡을 주는 놈은 처음 보는구나…', '', 'weary'),
+      say([N('oldP', '…누구냐… 간수냐…?', '', 'weary'), J('물을 가져왔어요, 할아버지. 그리고 제 몫의 떡도요. 조금이라도 드세요.', '', 'tender'), N('oldP', '네 몫을…? 여기서 남에게 떡을 주는 사람은 처음 보는구나…', '', 'weary'),
         T('요셉은 늙은 죄수의 이마를 젖은 천으로 닦아 주고, 밤새 곁을 지켰습니다.')], () => tick(S, 'oldCare')); } },
     done(S, G, next) { say([N('keeper', '…너는 이상한 녀석이로구나. 차꼬를 차고도 남을 먼저 챙기다니.', '', 'cold'), N('keeper', '그 차꼬, 풀어 주마. 대신 내일부터는 옥 안의 일을 네가 도맡아라.'),
       T('여호와께서 요셉과 함께 하시고 그에게 인자를 더하사, 간수장에게 은혜를 받게 하셨습니다.', '창세기 39:21')], () => { G.sfx('chain'); G.setOutfit('prisoner'); G.give('bread', 1, true); next(); }); }, next: 'c3_charge' },
@@ -163,7 +163,7 @@ const steps = {
     enter(S, G, re) { waitSetup(S, G, re); }, target: S => WAIT[S.q.wait || 0] ? WAIT[S.q.wait || 0].target(S) : null },
   // =============================================================== 4장 · 바로의 꿈
   c4_shave: { ch: 5, obj: '대야에서 수염을 깎고 옷 갈아입기', target: 'spot:basin',
-    enter(S, G, re) { if (!re) say([N('messenger', '히브리 사람 요셉이 누구냐! 바로께서 너를 부르신다! 서둘러라!', '', 'urgent'), N('keeper', '…요셉. 어서 가거라. 너는 원래부터 여기 있을 사람이 아니었다.', '', 'tender'),
+    enter(S, G, re) { if (!re) say([N('messenger', '히브리 사람 요셉이 누구냐! 바로께서 너를 부르신다! 서둘러라!', '', 'urgent'), N('keeper', '…요셉. 어서 가거라. 네 하나님이 결국 문을 여셨구나.', '', 'tender'),
       T('바로 앞에 나아가려면 깨끗이 씻고 단장해야 해요. 옥 마당의 대야로 가세요.')]); } },
   c4_court: { ch: 5, obj: '궁 안으로 들어가 바로 앞에 서기', target: 'spot:court', check: (S, G) => G.dist(SPOTS.court[0], SPOTS.court[1]) < 3.4,
     done(S, G, next) { courtIntro(S, G, next); }, next: 'c4_vision' },
@@ -185,7 +185,7 @@ const steps = {
     done(S, G, next) { narr([{ kick: '창세기 41:47–48', title: '풍년 첫해', t: '일곱 해 풍년에 토지 소출이 심히 많았습니다. 요셉은 각 성 주위의 밭의 곡물을 그 성 중에 쌓아 두기로 했습니다. 먼저 곳간 셋을 지어야 해요.', ref: '창세기 41:47–48' }], next); }, next: 'c5_year1' },
   c5_year1: { ch: 6, obj: '풍년 1년 · 곳간 짓기', list: S => [{ t: '벽돌 굽는 우니에게 벽돌 받기', ok: qd(S, 'bricks') }, { t: '성읍 곳간 짓기', ok: !!S.built.granA }, { t: '서쪽 마을 곳간 짓기', ok: !!S.built.granB }, { t: '남쪽 마을 곳간 짓기', ok: !!S.built.granC }],
     target: S => !qd(S, 'bricks') ? 'npc:brick' : !S.built.granA ? 'site:granA' : !S.built.granB ? 'site:granB' : !S.built.granC ? 'site:granC' : null, check: S => S.built.granA && S.built.granB && S.built.granC,
-    talk: { brick(S, G) { if (S.q.bricks) return false; say([N('brick', '총리님! 가마마다 벽돌이 산더미입니다. 진흙에 짚을 섞어 볕에 말린 튼튼한 벽돌이지요.'), N('brick', '곳간 셋에 쓸 만큼 수레에 실어 두었습니다. 터에 가서 「짓기」만 하시면 일꾼들이 쌓을 겁니다.')], () => { G.give('brick', 60); G.give('wood', 18); tick(S, 'bricks'); }); } },
+    talk: { brick(S, G) { if (S.q.bricks) return false; say([N('brick', '총리님! 가마마다 벽돌이 산더미입니다. 진흙에 짚을 섞어 볕에 말린 튼튼한 벽돌이지요.'), N('brick', '곳간 셋에 쓸 만큼 수레에 실어 두었습니다. 터에 가서 「짓기」만 하시면 일꾼들이 쌓을 겁니다.')], () => { G.give('brick', 72); G.give('wood', 24); tick(S, 'bricks'); }); } },
     done(S, G, next) { narr([{ kick: '풍년 1년', title: '곳간 셋', t: '성읍과 서쪽 마을과 남쪽 마을에 곳간이 섰습니다. 그해 가을, 수레마다 곡식이 넘치도록 실려 들어왔습니다.', ref: '창세기 41:48' }], next); }, next: 'c5_manasseh' },
   c5_manasseh: { ch: 6, obj: '총리의 집으로 · 아스낫이 기다린다', target: 'npc:asenath', talk: { asenath(S, G) { birthScene(S, G, 'manasseh'); } } },
   c5_year2: { ch: 6, obj: '풍년 2년 · 왕실 밭과 곳간', list: S => [{ t: `왕실 밭의 밀 거두기 (${Math.min(12, S.q.wheat || 0)}/12)`, ok: (S.q.wheat || 0) >= 12 }, { t: '서기관에게 곳간 기록 듣기', ok: qd(S, 'record') }],

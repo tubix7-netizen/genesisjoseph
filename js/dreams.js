@@ -31,7 +31,7 @@ const DREAMS = [
     art: SV('#3a2a3a', `<path d="M160 180 C150 130 175 110 160 60" stroke="#5a3a20" stroke-width="8" fill="none"/>${[[120, 80], [200, 70], [165, 45]].map(([x, y]) => `<path d="M160 100 Q${(x + 160) / 2} ${y - 10} ${x} ${y}" stroke="#5a3a20" stroke-width="4" fill="none"/>${[0, 1, 2, 3, 4, 5].map(i => `<circle cx="${x + (i % 3) * 7 - 7}" cy="${y + 6 + Math.floor(i / 3) * 7}" r="4.5" fill="#7a2a7a"/>`).join('')}`).join('')}<path d="M240 140 L260 140 L256 170 L244 170 Z" fill="#e0b040"/>`),
     dream: '포도나무에 가지 셋이 있는데, 싹이 나고 꽃이 피고 포도가 익었어요. 그 포도를 짜서 바로의 잔에 드렸어요.',
     mean: '요셉의 풀이: 가지 셋은 사흘. 사흘 안에 바로가 당신을 다시 그 자리에 세울 거예요. 정말 사흘 뒤 그대로 되었어요.',
-    heart: '"그 풀이는 하나님께 있지 아니하니이까" — 요셉은 감옥에서도 꿈의 주인이 하나님이심을 잊지 않았어요.' },
+    heart: '"해석은 하나님께 있지 아니하니이까" — 요셉은 감옥에서도 꿈의 주인이 하나님이심을 잊지 않았어요.' },
   { id: 'baskets', t: '떡 굽는 관원의 광주리', ref: '창세기 40:16–19', open: () => after('c3_dreams'),
     art: SV('#4a3a2a', `<ellipse cx="160" cy="150" rx="26" ry="10" fill="#c8a070"/>${[0, 1, 2].map(i => `<rect x="${124}" y="${48 + i * 22}" width="72" height="18" rx="5" fill="${i ? '#e8dcc0' : '#f8f0e0'}" stroke="#8a6a40"/>`).join('')}${[[120, 30], [200, 36], [175, 20]].map(([x, y]) => `<path transform="translate(${x} ${y})" d="M-10 0 L0 -5 L10 0 L0 2 Z" fill="#1a1a1a"/>`).join('')}`),
     dream: '머리에 흰 떡 세 광주리를 이고 있는데, 맨 위 광주리의 구운 음식을 새들이 와서 먹었어요.',
@@ -41,7 +41,7 @@ const DREAMS = [
     art: SV('#e8c890', `<rect y="110" width="320" height="70" fill="#5a8ab0"/><rect y="104" width="320" height="10" fill="#7a9a50"/>${[30, 70, 110, 150].map(x => cow(x, 90, true, '#c87a3a')).join('')}${[190, 230, 270, 300].map(x => cow(x, 92, false, '#6a5a4a')).join('')}`),
     dream: '나일 강에서 살지고 아름다운 소 일곱이 올라와 풀을 뜯는데, 뒤이어 흉하고 마른 소 일곱이 올라와 살진 소들을 먹어 버렸어요. 그래도 여전히 말랐어요.',
     mean: '요셉의 풀이: 일곱 해 큰 풍년 뒤에 일곱 해 흉년이 온다. 그러니 풍년 동안 곡식을 거두어 쌓아 두어야 해요.',
-    heart: '"내가 아니라 하나님께서 바로에게 평안한 대답을 주시리이다" (창 41:16)' },
+    heart: '"내가 아니라 하나님께서 바로에게 편안한 대답을 하시리이다" (창 41:16)' },
   { id: 'ears', t: '바로의 일곱 이삭', ref: '창세기 41:5–7', open: () => after('c4_court'),
     art: SV('#f0dcaa', `<rect y="140" width="320" height="40" fill="#b89a58"/>${[40, 65, 90, 115, 140, 160, 185].map(x => ear(x, 150, true)).join('')}${[210, 228, 246, 264, 282, 296, 310].map(x => ear(x, 150, false)).join('')}<path d="M320 60 Q260 70 200 50" stroke="#d8a060" stroke-width="3" fill="none" opacity=".6"/>`),
     dream: '한 줄기에 무성하고 충실한 이삭 일곱이 나오더니, 뒤이어 동풍에 마른 이삭 일곱이 나와 충실한 이삭을 삼켜 버렸어요.',
@@ -70,6 +70,6 @@ function render(body, re) { const sn = seen(); const open = DREAMS.filter(d => d
 .dreamC p{margin:4px 0;font-size:12.5px;line-height:1.5}.dreamC .dM span{display:inline-block;background:rgba(229,181,82,.2);border-radius:6px;padding:0 6px;margin-right:6px;font-size:11px}.dreamC .dH{opacity:.85;font-style:italic}.dreamC.lock{opacity:.6}`; document.head.appendChild(css); }
 /* a dream newly opened: tell once */
 let chk = 0; const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; if (Game.mode !== 'play' || !S()) return r; chk -= (typeof dt === 'number' && dt < 1 ? dt : 1 / 60); if (chk > 0) return r; chk = 2;
-  try { const s = S(), told = (s.flags.dreamsTold = s.flags.dreamsTold || {}); for (const d of DREAMS) if (d.open() && !told[d.id]) { told[d.id] = 1; if (d.id !== 'sheaves' && d.id !== 'stars' && !(G.Cine && G.Cine.on) && !G.UI.busy()) { G.UI.pop && G.UI.pop('꿈 앨범에 새 그림', `「${d.t}」 · 메뉴 → 꿈 앨범`, 'star'); break; } } } catch (e) { console.error('dreams', e); } return r; };
+  try { const s = S(), told = (s.flags.dreamsTold = s.flags.dreamsTold || {}); for (const d of DREAMS) if (d.open() && !told[d.id]) { if (d.id !== 'sheaves' && d.id !== 'stars' && ((G.Cine && G.Cine.on) || G.UI.busy())) break; /* v18.34 wait for the scene to end instead of losing the notice */ told[d.id] = 1; if (d.id !== 'sheaves' && d.id !== 'stars') { G.UI.pop && G.UI.pop('꿈 앨범에 새 그림', `「${d.t}」 · 메뉴 → 꿈 앨범`, 'star'); break; } } } catch (e) { console.error('dreams', e); } return r; };
 G.Dreams = { list: DREAMS, render };
 })(window.G);

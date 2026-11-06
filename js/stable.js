@@ -58,7 +58,8 @@ function buyOne(h) { const s = S(); if (s.silver < h.price) { G.UI.say([{ n: KN,
   if (ST) { r.x = r.m.x = ST.yard[0]; r.z = r.m.z = ST.yard[1]; if (r.col) { r.col.x = r.x; r.col.z = r.z; } }
   G.UI.say([{ n: KN, t: `${h.n}이 총리님 말이 되었어요! 이 녀석 이름은 뭐라고 할까요… 제가 몰래 「바람」이라고 불렀는데, 마음에 드시면 그대로 부르세요.` }, { n: KN, t: mode(s) === 'cart' ? '지금은 수레로 다니시니, 말 타고 다니시려면 저에게 「말 타고 다니기」라고 말씀하세요.' : '「말 부르기」로 휘파람을 불면 달려올 거예요!' }]); }
 function setMode(m) { const s = S(); s.flags.travel = m; const p = P();
-  if (m === 'horse') { if (s.q.riding && G.Cart) G.Cart.dismount(true); if (ST) s.q.cartAt = { x: ST.cart[0], z: ST.cart[1], f: ST.f }; if (!Rd.list.length) { G.UI.say([{ n: KN, t: '말 타고 다니시려면 먼저 말이 있어야 해요. 한 마리 고르시겠어요?' }], () => setTimeout(buy, 40)); s.flags.travel = 'cart'; return; }
+  if (m === 'horse') { if (!Rd.list.length) { G.UI.say([{ n: KN, t: '말 타고 다니시려면 먼저 말이 있어야 해요. 한 마리 고르시겠어요?' }], () => setTimeout(buy, 40)); s.flags.travel = 'cart'; return; } /* v18.34 asked first: the cart is no longer sent away when you have no horse */
+    if (s.q.riding && G.Cart) G.Cart.dismount(true); if (ST) s.q.cartAt = { x: ST.cart[0], z: ST.cart[1], f: ST.f };
     pop('이제 말 타고 다녀요', '「말 부르기」로 휘파람 · 수레는 마구간 옆에 서 있어요', 'donkey'); }
   else { if (p.ride && Rd.dismount) Rd.dismount(true); if (ST) for (const r of Rd.list) { r.x = ST.yard[0] + (Math.random() - 0.5) * 5; r.z = ST.yard[1] + (Math.random() - 0.5) * 3; r.called = false; r.tx = null; }
     pop('이제 수레로 다녀요', '「수레 부르기」 · 말들은 마구간에서 쉬어요', 'donkey'); }

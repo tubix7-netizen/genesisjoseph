@@ -60,7 +60,7 @@ EP.wildZones = [
   { id: 'eWest', x: -168, z: 20, r: 26, max: 4, nightMax: 2, on: egypt, sp: [['hare', 3], ['gazelle', 2], ['ibex', 2], ['wolf', 1, 'night']] },
 ];
 // ------------------------------------------------------------------ fish
-EP.fishAt = (x, z) => wd(x, z) < 30 ? [['tilapia', 6], ['mullet', 3], ['catfish', 2], ['barbel', 2], ['perch', 1]] : [['tilapia', 5], ['carp', 2]];
+EP.fishAt = (x, z) => wd(x, z) < 30 ? [['tilapia', 6], ['mullet', 3], ['catfish', 2], ['barbel', 2], ['perch', 1], ['gfish', 0.15]] /* v18.34 the golden carp can be caught */ : [['tilapia', 5], ['carp', 2]];
 
 // ------------------------------------------------------------------ foraging: scattered once the world is built
 const prevBuild = EP.build;
@@ -243,7 +243,7 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
   const CANAAN_X = 118, EGYPT_X = 112; let msgT = 0;
   EP.landOf = S => { const o = Game.stepOrder(), i = o.indexOf(S.step); if (i < 0) return null; return i < o.indexOf('c1_caravan') ? 'canaan' : i > o.indexOf('c1_caravan') ? 'egypt' : null; };
   const prev = EP.update;
-  EP.update = function (dt, S) { if (prev) prev.apply(this, arguments); if (!S || (G.Cine && G.Cine.on)) return; const land = EP.landOf(S); if (!land) return; const P = Game.P; msgT -= dt;
+  EP.update = function (dt, S) { if (prev) prev.apply(this, arguments); if (!S || (G.Cine && G.Cine.on)) return; const land = EP.landOf(S); if (!land || (G.Byblos && G.Byblos.inBy && G.Byblos.inBy())) return; /* v18.34 Byblos is its own stage (it sits across the Egypt/Canaan line on the map) */ const P = Game.P; msgT -= dt;
     let hit = false; if (land === 'canaan' && P.x < CANAAN_X) { P.x = CANAAN_X; hit = true; } if (land === 'egypt' && P.x > EGYPT_X) { P.x = EGYPT_X; hit = true; }
     if (hit) { if (P.vx) P.vx = 0; if (msgT <= 0) { msgT = 4; G.UI.toast(land === 'canaan' ? '이 너머는 끝없는 광야예요 · 지금은 형들을 찾아야 해요' : '가나안으로 가는 광야 길이에요 · 이제는 애굽 땅에서 지내야 해요'); } } };
 })(window.G);

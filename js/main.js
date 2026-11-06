@@ -64,7 +64,7 @@ function seedCartSlot() { try { if (localStorage.getItem('genesisCartSeed')) ret
   s.player = { x: -26, z: -112, face: Math.PI }; s.inv = Object.assign(s.inv || {}, { hay: 4, barley: 3, bread: 4, fig: 3 }); s.outfit = 'josephVizier';
   localStorage.setItem(n > 1 ? 'genesisSave_' + k + '#' + n : 'genesisSave_' + k, JSON.stringify(s)); localStorage.setItem('genesisCartSeed', String(n)); } catch (e) { console.warn('cart seed', e); } }
 seedCartSlot();
-Main.play = function (ep, fresh, slot) {
+Main.play = function (ep, fresh, slot) { if (Main._go) return; Main._go = 1; setTimeout(() => { Main._go = 0; }, 1500); /* v18.34 a double tap no longer builds the world twice */
   try { localStorage.setItem('genesisLast', ep); } catch (e) { }
   if (!slot) { slot = SLOTS.find(n => !Game.hasSave(ep, n)) || Game.slot; } Game.setSlot(slot); // a new game goes into an empty slot
   if (fresh) Game.deleteSave(ep, slot);
@@ -90,7 +90,7 @@ const go = d => { try { if (!playing) boot(d); } finally { $('eps').classList.re
 const later = f => requestAnimationFrame(() => setTimeout(f, 30));
 if (hot && hot.ready) hot.ready(d => later(() => go(d))); else later(() => go((hot && hot.data) || {}));
 addEventListener('pagehide', () => { if (playing) Game.save(true); });
-setInterval(() => { if (playing && Game.mode === 'play' && !UI.busy()) Game.save(true); }, 40000); // v18.23 auto-save to the slot being played
+setInterval(() => { if (playing && Game.mode === 'play' && !UI.busy() && !Game.cineOn && !(G.Cine && G.Cine.on)) Game.save(true); }, 40000); /* v18.34 not in the middle of a cutscene */ // v18.23 auto-save to the slot being played
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing) Game.save(true); });
 let lastRun = 0; // v18.4 P15: with a frame lock (30 / 60) display frames are skipped so that the ones that run are evenly spaced
 Main.shouldRun = now => { let tg = Game.fpsTarget ? Game.fpsTarget() : 0; if (Game.COARSE && Game.mode === 'play' && UI.overlayOn && UI.overlayOn() && !/[?&]ov=0\b/.test(location.search)) tg = 15; if (Game.COARSE && Game.mode === 'title' && !/[?&]ov=0\b/.test(location.search)) tg = 20; /* v18.12: the title backdrop only needs 20 fps */ if (tg && now - lastRun < 1000 / tg - 2.5) return false; lastRun = now; return true; };

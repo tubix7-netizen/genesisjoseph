@@ -201,7 +201,7 @@ Bd.renderMenu = function (body, rerender) {
   const cost = c => `<div class="cost">${Object.keys(c).map(i => `<em class="${Game.have(i, c[i]) ? '' : 'no'}">${esc(Game.ITEMS[i] ? Game.ITEMS[i].n : i)} ${Game.inv(i)}/${c[i]}</em>`).join('')}</div>`;
   const open = keys.filter(k => Bd.avail(k, S)), locked = keys.filter(k => !Bd.avail(k, S));
   const mine = bld(S);
-  body.innerHTML = `<div class="row"><div class="t"><b>원하는 곳에 지어요</b><span>설계도를 고르면 야곱 앞에 초록 그림자가 보여요. 걸어서 자리를 잡고 「돌리기」로 방향을 바꾼 뒤 A를 누르면 지어요.</span></div></div>` +
+  body.innerHTML = `<div class="row"><div class="t"><b>원하는 곳에 지어요</b><span>설계도를 고르면 요셉 앞에 초록 그림자가 보여요. 걸어서 자리를 잡고 「돌리기」로 방향을 바꾼 뒤 A를 누르면 지어요.</span></div></div>` +
     open.map(k => { const b = B[k], ok = canPay(b.cost); return `<div class="row">${UI.icon(b.ic || 'tool', ok ? '#e5b552' : '#8a8070')}<div class="t"><b>${esc(b.n)}${Bd.count(S, k) ? ` · ${Bd.count(S, k)}개 지음` : ''}</b><span>${esc(b.d0 || '')}</span>${cost(b.cost)}</div><button class="sbtn ${ok ? 'pri' : ''}" data-bp="${k}" ${ok ? '' : 'disabled'}>자리 잡기</button></div>`; }).join('') +
     (locked.length ? `<div class="sec">아직 모르는 설계도 ${locked.length}개</div><div class="row"><div class="t"><span>이야기가 이어지면 더 많은 것을 지을 수 있어요.</span></div></div>` : '') +
     (mine.length ? `<div class="sec">내가 지은 것</div>` + mine.map(b => { const bp = B[b.k]; const dd = Math.round(Math.hypot(b.x - Game.P.x, b.z - Game.P.z)); return `<div class="row">${UI.icon(bp ? bp.ic || 'tool' : 'tool', '#c8c0b0')}<div class="t"><b>${esc(bp ? bp.n : b.k)}</b><span>${dd}m 떨어져 있어요 · ${b.day}일째에 지음</span></div><button class="sbtn" data-rm="${b.id}">허물기</button></div>`; }).join('') : '');

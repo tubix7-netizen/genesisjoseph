@@ -74,7 +74,7 @@ St.openBox = function (title, key, withWard, cap) { const s = S(), box = s[key] 
       <div class="sec">${cap ? title : '창고'}</div><div class="grid bagG">${st.length ? st.map(k => row(k, box[k], 'take', '꺼내기')).join('') : '<div class="card"><div class="t"><span>창고가 비어 있어요</span></div></div>'}</div>`;
     body.onclick = e => { const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
       const put = k => { const n = s.inv[k]; if (!n) return; if (cap && !box[k] && Object.keys(box).filter(q => box[q] > 0).length >= cap) { UI.toast(`${title}이 꽉 찼어요 (${cap}칸)`); return; } box[k] = (box[k] || 0) + n; s.inv[k] = 0; delete s.inv[k]; if (s.quick === k) s.quick = null; };
-      if (d.put) put(d.put); else if (d.take) { s.inv[d.take] = (s.inv[d.take] || 0) + box[d.take]; delete box[d.take]; } else if (d.bulk) Object.keys(s.inv).filter(k => catOf(k) === d.bulk).forEach(put); else return;
+      if (d.put) put(d.put); else if (d.take) { s.inv[d.take] = (s.inv[d.take] || 0) + box[d.take]; delete box[d.take]; } else if (d.bulk) Object.keys(s.inv).filter(k => catOf(k) === d.bulk && !(Game.ITEMS[k] && Game.ITEMS[k].cat === 'key') && k !== 'crystal').forEach(put); /* v18.34 quest things stay in the bag */ else return;
       sfx('pickup', { vol: 0.5 }); UI.hud(); render('store', body); Game.save && Game.save(true); }; }); };
 
 St.open = () => { St.openBox('개인 창고', 'store', true); UI.help && UI.help('chest', '개인 창고', '맡긴 물건은 칸을 쓰지 않아요 · 옷장도 여기'); };

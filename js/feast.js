@@ -11,7 +11,7 @@ const Game = G.Game, EP = G.EP && G.EP.joseph, AI = G.NpcAI; if (!EP || !AI) ret
 const S = () => Game.S(), P = () => Game.P, rnd = a => a[Math.floor(Math.random() * a.length)];
 const pop = (t, s, i) => G.UI.pop ? G.UI.pop(t, s, i) : G.UI.toast(s ? t + ' · ' + s : t), sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 100000) / 100000; };
-const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' ? 7 : (+st[1] || 2); };
+const chap = s => { const st = s.step || 'c2'; return st[0] === 'j' || st[0] === 'g' ? 7 : (+st[1] || 2); } /* v18.34 g1–g8 are chapters 7–8 (they read as chapter 1) */;
 const H0 = 16.5, H1 = 20.5;
 const Fe = G.Feast = {};
 const REASON = {
@@ -65,7 +65,7 @@ Game.CTX.push(function (s) { const p = P(); if (Game.cineOn || p.act || (s.q && 
   else out.push({ d: d - 0.3, label: '함께 춤추기', x: cx, z: cz, y: 1.1, key: 'feastDance', noTag: true, use: () => danceGame(s, v, f) });
   return out; });
 function eat(s, v, f) { s.flags.feastAte = s.day; const H = s.hero, p = P(); if (H) { H.hp = Math.min(H.hpMax || 100, (H.hp || 0) + 30); H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 15); } p.stam = Math.max(p.stam, (G.Vitals && G.Vitals.cap) || 100);
-  if (G.Surv && G.Surv.eat) try { G.Surv.eat(40); } catch (e) { }
+  if (G.Surv && G.Surv.fed) try { G.Surv.fed('bread', 40); } catch (e) { } /* v18.34 (Surv.eat never existed: the feast did not fill you) */
   let n = 0; if (G.Bond) for (const fo of v.folk) if (Game.ENT.npcs[fo.id]) { G.Bond.add(fo.id, 2, 'feast'); n++; }
   if (G.Acts) G.Acts.play('eat'); sfx('pickup', { pitch: 1.1 }); const R = REASON[f.why];
   pop('잔치 음식을 함께 먹었어요', `${R.n} · 체력·기력·정신력이 찼어요 · ${v.n} 사람들과 조금 더 친해졌어요`, 'heart');
@@ -81,7 +81,7 @@ let DG = null;
 function danceGame(s, v, f) { if (DG) return; const el = document.createElement('div'); el.id = 'danceUI'; el.innerHTML = '<div class="dz"><div class="dc"></div><div class="dr"></div></div><div class="dt">북소리에 맞춰 화면을 톡!</div><div class="ds">0 / 12</div>'; document.body.appendChild(el);
   if (G.Acts) G.Acts.play('dance'); G.UI.setBusy && G.UI.setBusy('dance', true);
   DG = { el, v, f, beat: 0, t: -1.2, per: 0.75, hits: 0, perfect: 0, judged: -1, done: false };
-  const hit = e => { if (e) { e.preventDefault(); e.stopPropagation(); } const g = DG; if (!g || g.done || g.judged === g.beat) return; const ph = g.t - g.beat * g.per, err = Math.abs(ph); g.judged = g.beat;
+  const hit = e => { if (e) { e.preventDefault(); e.stopPropagation(); } const g = DG; if (!g || g.done || g.judged === g.beat) return; if (g.t < -g.per * 0.5) return; /* v18.34 a tap in the count-in does not use up the first beat */ const ph = g.t - g.beat * g.per, err = Math.abs(ph); g.judged = g.beat;
     const txt = el.querySelector('.dt'); if (err < 0.09) { g.hits++; g.perfect++; txt.textContent = '완벽해요!'; sfx('hit', { pitch: 1.6, vol: 0.5 }); } else if (err < 0.2) { g.hits++; txt.textContent = '좋아요!'; sfx('blip', { pitch: 1.3 }); } else { txt.textContent = '앗, 박자가…'; sfx('fail', { vol: 0.3 }); } };
   el.addEventListener('pointerdown', hit); DG.hit = hit; }
 Fe.danceTap = () => DG && DG.hit && DG.hit();

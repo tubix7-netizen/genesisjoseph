@@ -39,7 +39,8 @@ function spawnCats() { built = true; const W = Game.W(); if (!W) return; let i =
       const [hide, collar] = COATS[i % COATS.length], c = { id: 'cat' + i, name: NAMES[i % NAMES.length], v: v.id, home: [x, z], x, z, y: W.heightAt(x, z), face: a, st: 'idle', t: Math.random() * 4, tx: x, tz: z, phase: 0, speed: 0,
         rig: new G.Rig(G.AB.cat), mesh: Game.animalMesh('cat', 'plain', collar ? { hide, collar } : { hide }), M: G.m4(), scale: 1, vis: true, seed: i * 7.1, bubY: 0.75 };
       CATS.push(c); } } }
-const fishOf = () => { const H = G.Hearth, L = []; for (const k in Game.ITEMS) if (k !== 'gfish' && H && H.KIND && H.KIND[k] === 'fish' && Game.have && Game.have(k)) L.push(k); L.sort((a, b) => (Game.ITEMS[a].p || 0) - (Game.ITEMS[b].p || 0)); return L[0] || null; }; /* v18.34 the cheapest fish, never the golden carp */
+let fishC = null, fishT = 0; const fishOf = () => { const now = performance.now(); if (now - fishT < 500) return fishC; fishT = now; fishC = fishOf2(); return fishC; }; /* v18.34 looked up twice a second, not every frame */
+const fishOf2 = () => { const H = G.Hearth, L = []; for (const k in Game.ITEMS) if (k !== 'gfish' && H && H.KIND && H.KIND[k] === 'fish' && Game.have && Game.have(k)) L.push(k); L.sort((a, b) => (Game.ITEMS[a].p || 0) - (Game.ITEMS[b].p || 0)); return L[0] || null; }; /* v18.34 the cheapest fish, never the golden carp */
 const fr = c => (S().flags.cats = S().flags.cats || {})[c.id] || 0;
 function upd(dt) { if (!built) spawnCats(); const s = S(), p = P(), W = Game.W(); if (!s || !W || !egyptAny(s)) return; const h = s.time % 24, t = performance.now() / 1000, today = s.day;
   const CF = s.flags.catF || NOF; for (const c of CATS) { const dP = Math.hypot(c.x - p.x, c.z - p.z); c.near = dP < 70; if (!c.near) continue; c.t -= dt; let want = c.face, sp = 0;

@@ -77,6 +77,7 @@ const RUN = {};
 function cTick(dt) { if (!viz()) return; const p = P(), f = F();
   for (const c of CUL) { const n = Game.npc(c.id); if (!n || !n.vis) continue;
     if (f.jailed[c.id]) { if (!n._jail) { n._jail = 1; Game.npcTo(c.id, CELL[c.cell][0], CELL[c.cell][1], 0); } continue; }
+    if (f.caught[c.id] && !n.follow && !n._cartBack && Game.npcFollow) Game.npcFollow(c.id, true); /* v18.34 after a reload the caught one follows again (he stood frozen and the quest could not finish) */
     if (f.caught[c.id] || !act(c.q)) continue; const r = RUN[c.id] || (RUN[c.id] = { t: 0, w: 0, b: -9, tired: 0 }), d = Math.hypot(n.x - p.x, n.z - p.z);
     if (d < 9) { r.t += dt; p.chaseT = 1.5; /* v18.24 a chase: running is allowed even in the village */ if ((r.w -= dt) <= 0) { r.w = 0.35; const dx = n.x - p.x, dz = n.z - p.z, l = Math.hypot(dx, dz) || 1, sp = r.t < 9 ? 4.6 : 2.3; Game.npcWalk(c.id, n.x + dx / l * 6, n.z + dz / l * 6, null, sp); }
       if (r.t - r.b > 3) { r.b = r.t; G.Life && G.Life.bubble && G.Life.bubble(c.id, r.t > 9 ? '헉… 헉… 숨이…' : c.run[Math.floor(Math.random() * c.run.length)], 2); } }

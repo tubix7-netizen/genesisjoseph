@@ -76,7 +76,7 @@ Rd.dismount = function (quiet, why) {
   if (why) G.UI.toast(why); else if (!quiet) sfx('hoof', { pitch: 1.1, vol: 0.5 }); G.UI.hud();
 };
 // whistle: the nearest own mount trots to you (from far away it is brought along by a servant — it just appears nearby)
-Rd.call = function () { if ((G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside())) { G.UI.toast('동굴 안에서는 부를 수 없어요'); return; } /* v18.34 */
+Rd.call = function () { if ((G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside()) || (G.Homes && G.Homes.inside && G.Homes.inside()) || (G.Byblos && G.Byblos.inBy && G.Byblos.inBy())) { G.UI.toast('여기서는 부를 수 없어요'); return; } /* v18.34 */
   const P = Game.P; if (P.ride) return; let best = null, bd = 1e9;
   for (const r of Rd.list) { const d = Math.hypot(r.x - P.x, r.z - P.z); if (d < bd) { bd = d; best = r; } }
   if (!best) return; sfx('whistle');
