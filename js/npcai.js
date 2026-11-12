@@ -189,7 +189,8 @@ function makeRequest(n, S) {
   const val = kill ? 14 * cnt : Game.ITEMS[item].p * cnt; const silver = Math.round(val * 1.5 + 6 + Math.random() * 6);
   const id = 'dq' + (S.dqN = (S.dqN || 0) + 1);
   const d = { giver: n.id, name: n.name, short, item, kill: kill ? r[1] : null, n: cnt, silver, xp: 12 + cnt * 2, title: `${short}의 부탁`, desc: kill ? `${ANIM_N[r[1]]}이(가) 가축을 해쳐요` : `${WHY[item] || '쓸 데가 있어서'} ${Game.ITEMS[item].n}이(가) 필요해요` };
-  return { id, d, line: kill ? `요즘 ${ANIM_N[r[1]]} 때문에 골치가 아프오. ${cnt}마리만 잡아 주면 은 ${silver}을 드리리다.` : `${WHY[item] || '쓸 데가 있어서'} ${Game.ITEMS[item].n} ${cnt}개가 필요한데… 구해다 주면 은 ${silver}을 드리리다.` };
+  const sv = G.Econ ? G.Econ.boost(silver) : silver; /* v18.55 what they will really pay */
+  return { id, d, line: kill ? `요즘 ${ANIM_N[r[1]]} 때문에 골치가 아프오. ${cnt}마리만 잡아 주면 은 ${sv}을 드리리다.` : `${WHY[item] || '쓸 데가 있어서'} ${Game.ITEMS[item].n} ${cnt}개가 필요한데… 구해다 주면 은 ${sv}을 드리리다.` };
 }
 function acceptRequest(rq) { const S = Sf(); dq(S)[rq.id] = rq.d; regQuest(rq.id, rq.d); G.Life.accept(rq.id); }
 
@@ -269,6 +270,7 @@ function strangers(dt, S) {
 }
 
 // =================================================================== TALK
+AI.makeRequest = (n, S) => makeRequest(n, S); AI.acceptRequest = rq => acceptRequest(rq); AI.rumor = (S, n) => rumor(S, n); /* v18.54 for the notice boards (js/notice.js) */
 AI.talk = function (n) {
   if (n.d.lambOf) { n.talking = false; if (!n.follow) { Game.npcFollow(n.id, true); sfx('bleat', { pitch: 1.4 }); G.UI.toast('어린양을 안았어요 · 목자에게 데려가요'); } return true; }
   if (n.d.folk) { if (n.d.folk.stall && G.Market && G.Market.talk(n)) return true; folkTalk(n); return true; }

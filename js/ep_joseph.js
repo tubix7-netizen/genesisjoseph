@@ -148,6 +148,7 @@ const ENVX = {
   mudWall(g, M, r, len, h) { h = h || 2.4; const n = Math.max(1, Math.round(len / 2)); for (let i = 0; i < n; i++) g.box(len / n + 0.02, h, 0.6, { m: M, at: [-len / 2 + (i + 0.5) * len / n, h / 2, 0], c: [0xc49a6c, 0xbc9264, 0xcaa274][i % 3], j: 0.03 }); },
   tileFloor(g, M, r, w, d, a, b, t) { t = t || 1.5; const nx = Math.max(1, Math.round(w / t)), nz = Math.max(1, Math.round(d / t)), tw = w / nx, td = d / nz; for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) g.box(tw - 0.03, 0.05, td - 0.03, { m: M, at: [-w / 2 + (i + 0.5) * tw, 0.03, -d / 2 + (k + 0.5) * td], c: (i + k) % 2 ? (a || 0xe8dcc4) : (b || 0xcdbb98), j: 0.015 }); g.box(w, 0.03, d, { m: M, at: [0, 0.012, 0], c: 0x9a8a6a, j: 0 }); },
   pillarEg(g, M, r, h) { h = h || 4; g.cyl(0.42, 0.46, 0.22, 12, { m: M, at: [0, 0.11, 0], c: 0xcdbb98, j: 0 }); g.cyl(0.3, 0.34, h - 0.3, 12, { m: M, at: [0, (h - 0.3) / 2, 0], c: SAND, j: 0.02 }); g.cyl(0.46, 0.3, 0.5, 12, { m: M, at: [0, h - 0.45, 0], c: TURQ }); for (const y of [0.3, 0.5, 0.7]) g.cyl(0.33, 0.33, 0.14, 12, { m: M, at: [0, h * y, 0], c: y === 0.5 ? LAPIS : OCHRE, j: 0 }); },
+  brickTower(g, M, r, w, d, h) { g.box(w, h, d, { m: M, at: [0, h / 2, 0], c: 0xd8c8a8, j: 0.03 }); g.box(w + 0.3, 0.4, d + 0.3, { m: M, at: [0, h + 0.2, 0], c: 0xc4b08a }); for (const s of [1, -1]) g.box(w + 0.02, 0.35, 0.02, { m: M, at: [0, h * 0.72, s * (d / 2 + 0.01)], c: 0x2c5aa0, j: 0 }); for (let i = 0; i < Math.floor(w / 0.7); i++) g.box(0.36, 0.3, d + 0.36, { m: M, at: [-w / 2 + 0.35 + i * 0.7, h + 0.55, 0], c: 0xc4b08a, j: 0 }); }, /* v18.55 */
   slab(g, M, r, w, d, y) { g.box(w, 0.32, d, { m: M, at: [0, y + 0.16, 0], c: 0xe6dcc4, j: 0.02 }); g.box(w, 0.03, d, { m: M, at: [0, y - 0.015, 0], c: 0x27477e, j: 0 }); for (let i = 0; i < 260; i++) g.box(0.13, 0.02, 0.13, { m: M, at: [(r() - 0.5) * w, y - 0.04, (r() - 0.5) * d], ry: 0.78, c: 0xf0d070, j: 0 }); g.box(w + 0.3, 0.14, d + 0.3, { m: M, at: [0, y + 0.36, 0], c: 0xc8a050, j: 0 }); },
   frieze(g, M, r, len, y) { y = y || 3; g.box(len, 0.5, 0.03, { m: M, at: [0, y, 0], c: 0xf0e6cc, j: 0 }); g.box(len, 0.07, 0.04, { m: M, at: [0, y + 0.25, 0], c: LAPIS, j: 0 }); g.box(len, 0.07, 0.04, { m: M, at: [0, y - 0.25, 0], c: OCHRE, j: 0 }); const n = Math.floor(len / 0.62); for (let i = 0; i < n; i++) { const x = -len / 2 + (i + 0.5) * len / n; g.cyl(0.015, 0.1, 0.22, 6, { m: M, at: [x, y + 0.02, 0.02], s: [1, 1, 0.2], c: [TURQ, GOLD, OCHRE][i % 3], j: 0 }); g.sph(0.045, 6, 4, { m: M, at: [x + len / n / 2, y, 0.02], s: [1, 1, 0.3], c: LAPIS, j: 0 }); } },
   plainRoof(g, M, r, w, d, y, c) { g.box(w, 0.2, d, { m: M, at: [0, y + 0.1, 0], c: c || 0xd8c8a4, j: 0.02 }); for (let i = 0; i < 7; i++) g.box(w - 0.3, 0.1, 0.14, { m: M, at: [0, y - 0.05, -d / 2 + (i + 0.5) * d / 7], c: 0x7a5a3a, j: 0.03 }); },
@@ -355,7 +356,7 @@ function build(W, Game) {
   // ================= THE KING'S PRISON (in the house of the captain of the guard, 창 40:3)
   { const x0 = -45, x1 = -15, z0 = -10, z1 = 14, gx = -30;
     wallL(x0, z0, x1, z0, 3.4, 'prisonWall'); wallL(x0, z0, x0, z1, 3.4, 'prisonWall'); wallL(x1, z0, x1, z1, 3.4, 'prisonWall'); wallL(x0, z1, gx - 1.6, z1, 3.4, 'prisonWall'); wallL(gx + 1.6, z1, x1, z1, 3.4, 'prisonWall');
-    P('gatePosts', gx, z1, { args: [3.2] }); for (const s of [1, -1]) { P('pylon', gx + s * 4.4, z1 + 0.2, { s: 0.3, col: { w: 3.6, d: 1.3, h: 3.5, cam: true } }); P('banner', gx + s * 8, z1 - 0.42, { ry: -PI / 2, args: [2.2, s > 0 ? LAPIS : OCHRE] }); P('banner', gx + s * 8, z1 + 0.42, { ry: PI / 2, args: [2.2, s > 0 ? LAPIS : OCHRE] }); P('lampStand', gx + s * 2.4, z1 - 1.6, { col: { r: 0.22, h: 1.6 } }); P('potPlant', x0 + 2 + (s > 0 ? 26 : 0), 12.2, { args: ['palm'], col: { r: 0.32, h: 1 } }); }
+    P('gatePosts', gx, z1, { args: [3.2] }); for (const s of [1, -1]) { P('brickTower', gx + s * 4.4, z1 + 0.2, { args: [3.4, 1.3, 3.6], col: { w: 3.6, d: 1.3, h: 3.8, cam: true } }); P('banner', gx + s * 8, z1 - 0.42, { ry: -PI / 2, args: [2.2, s > 0 ? LAPIS : OCHRE] }); P('banner', gx + s * 8, z1 + 0.42, { ry: PI / 2, args: [2.2, s > 0 ? LAPIS : OCHRE] }); P('lampStand', gx + s * 2.4, z1 - 1.6, { col: { r: 0.22, h: 1.6 } }); P('potPlant', x0 + 2 + (s > 0 ? 26 : 0), 12.2, { args: ['palm'], col: { r: 0.32, h: 1 } }); }
     P('tileFloor', gx, 2.5, { args: [29, 15, 0xd8ccb0, 0xc4b696, 1.8], col: null }); P('tileFloor', gx, 11.5, { args: [3, 4.6, 0xd8ccb0, 0xc4b696, 1.5], col: null }); P('flowers', -41, 3, { args: [0xd86a8a] }); P('flowers', -19, 3, { args: [0xe8c850] }); P('datePalm', -42.4, -2.4); P('datePalm', -17.6, 0.4);
     P('cellRow', -30, -7.6, { args: [5, 5.5, 4.4, 2.8, 4] }); W.addCol({ x: -32.175, z: -5.55, w: 23.55, d: 0.4, h: 2.8, cam: false }); W.addCol({ x: -17.1, z: -5.55, w: 2.1, d: 0.4, h: 2.8, cam: false }); GG.CELLDOOR = W.addCol({ x: -19.275, z: -5.55, w: 2.25, d: 0.4, h: 2.8, cam: false }); /* v18.35 Joseph is one prisoner among the others: the same row, the same bars, a door of his own */
     for (const x of [-41, -35.5, -30, -24.5]) P('straw', x, -8.8);
@@ -367,9 +368,9 @@ function build(W, Game) {
   city.forEach(([x, z], i) => P('egHouse', x, z, { ry: (i % 4) * PI / 2 + (r() - 0.5) * 0.1, args: [{ w: 6 + (i % 3), d: 5, h: 2.8 + (i % 2) * 1.2, awning: i % 3 === 0 ? OCHRE : null }], col: { w: 6 + (i % 3), d: 5, h: 3.4 + (i % 2) * 1.2, a: (i % 4) * PI / 2, cam: true } }));
   [[-26, -76, 0x8a3a5a], [-18, -76, 0x2c5aa0], [-26, -66, 0x3e8a66], [-18, -66, 0xd9a73a]].forEach(([x, z, c]) => { const a = x < -22 ? PI / 2 : -PI / 2; P('stallM', x, z, { ry: a, args: [c, true], col: { w: 2.6, d: 2.2, h: 2.2, a } }); }); // v18.14 the four stalls face the middle aisle (they stood at odd angles)
   P('well', -21, -90, { col: { r: 1.7, h: 1 } }); // v18.14 the city well, at the south edge of the square (the well action used to sit in the middle of the market with no well)
-  P('obelisk', -32, -71, { col: { r: 0.8, h: 8 } }); P('palmRow', -48, -114, { args: [5] });
+  P('palmRow', -48, -114, { args: [5] }); /* v18.55 the square's obelisk is gone: obelisks and pylons belong to the temple of On */
   // temple of On (Heliopolis): Asenath's father Potiphera is its priest (창 41:45)
-  P('obelisk', 5, -95, { col: { r: 0.8, h: 8 } }); P('obelisk', 19, -95, { col: { r: 0.8, h: 8 } }); P('portico', 12, -102, { args: [12, 6, 3.6, 4], col: { w: 12, d: 5, h: 4, cam: true } });
+  P('obelisk', 5, -95, { col: { r: 0.8, h: 8 } }); P('obelisk', 19, -95, { col: { r: 0.8, h: 8 } }); for (const s of [1, -1]) P('pylon', 12 + s * 5.6, -98.2, { s: 0.42, col: { w: 5, d: 1.8, h: 4.8, cam: true } }); /* v18.55 the temple's own gate */ P('portico', 12, -102, { args: [12, 6, 3.6, 4], col: { w: 12, d: 5, h: 4, cam: true } });
   // ================= PHARAOH'S PALACE
   { const x0 = -54, x1 = -6, z0 = -182, z1 = -142, gx = -30;
     wallL(x0, z0, -47.2, z0, 5); wallL(-44.8, z0, -15.2, z0, 5); wallL(-12.8, z0, x1, z0, 5); wallL(x0, -212, x0, z1, 5); wallL(x1, -212, x1, z1, 5); wallL(x0, -212, x1, -212, 5); wallL(x0, z1, gx - 9.9, z1, 5);
@@ -387,11 +388,11 @@ function build(W, Game) {
       for (const x of [-46, -30, -14]) { P('hieroWall', x, -211.3, { args: [15, 5], col: null }); for (const [dx, z] of [[-5.6, -197], [5.6, -197], [-5.6, -205], [5.6, -205]]) P('pillarEg', x + dx, z, { args: [4.9], col: { r: 0.42, h: 5, cam: false } }); }
       P('dais', -30, -208.6, { args: [6, 4.4, 0.14], col: null }); for (const [x, z] of [[-24.2, -192.6], [-39.8, -192.6]]) P('brazier', x, z);
       GG.PALACE = { bedCol: W.addCol({ x: -30, z: -208.6, w: 2.7, d: 2.3, h: 1.1 }), bed: W.addCol({ x: -30, z: -190, w: 2.4, d: 0.4, h: 3 }), office: W.addCol({ x: -14, z: -190, w: 2.4, d: 0.4, h: 3 }) }; } wallL(gx + 9.9, z1, x1, z1, 5);
-    for (const s of [1, -1]) P('pylon', gx + s * 6.6, z1, { s: 0.55, col: { w: 6.6, d: 2.4, h: 6.2, cam: true } }); P('gatePosts', gx, z1, { args: [5] });
-    for (const s of [1, -1]) P('obelisk', gx + s * 9.5, z1 + 4, { col: { r: 0.8, h: 8 } });
+    for (const s of [1, -1]) P('brickTower', gx + s * 6.6, z1, { args: [6.2, 2.4, 6], col: { w: 6.6, d: 2.4, h: 6.4, cam: true } }); P('gatePosts', gx, z1, { args: [5] }); /* v18.55 a palace gate of plastered brick (no pylons, no obelisks) */
     for (let row = 0; row < 3; row++) for (const s of [1, -1]) { const x = gx + s * 7.5, z = -150 - row * 7; P('column', x, z, { args: [6.5], col: { r: 0.85, h: 7, cam: true } }); }
     for (const s of [1, -1]) { P('pool', gx + s * 14, -152, { args: [6, 9] }); GG.wade(W, gx + s * 14, -152, 6, 9); }
-    P('dais', gx, -176, { args: [10, 6, 1.1], col: { w: 10, d: 6, h: 1.1 } }); P('throne', gx, -177.4, { y: padH(gx, -176) + 1.1 }); P('brazier', gx - 6, -172); P('brazier', gx + 6, -172);
+    P('dais', gx, -176, { args: [10, 6, 1.1], col: { w: 10, d: 6, h: 1.1 } }); P('throne', gx, -177.4, { y: padH(gx, -176) + 1.1 });
+    { const yb = W.heightAt(gx, -170); for (const [x, z] of [[gx - 6.4, -170.2], [gx + 6.4, -170.2], [gx - 6.4, -180.2], [gx + 6.4, -180.2]]) P('pillarEg', x, z, { args: [6.4], col: { r: 0.42, h: 6.4, cam: false } }); P('slab', gx, -175.2, { args: [14.6, 11.6, 6.4], col: null, y: yb }); for (const z of [-170.2, -180.2]) P((g, M) => { g.box(14.4, 0.5, 0.6, { m: M, at: [0, 6.15, 0], c: GOLD }); g.box(14.4, 0.12, 0.62, { m: M, at: [0, 5.86, 0], c: LAPIS, j: 0 }); }, gx, z, { y: yb }); if (W.addRoof) W.addRoof({ x: gx, z: -175.2, w: 14.2, d: 11.2, y: yb + 6.4, k: 'phThrone' }); } /* v18.55 the throne under a roof on four pillars and two beams (it stood under the open sky) */ P('brazier', gx - 6, -172); P('brazier', gx + 6, -172);
     P('hieroWall', gx, -181.3, { args: [29.6, 5] }); P('hieroWall', -50.1, -181.3, { args: [5.8, 5] }); P('hieroWall', -9.9, -181.3, { args: [5.8, 5] }); P('palmRow', -52, -158, { args: [3] }); }
   // the vizier's house
   P('egHouse', 10, -144, { args: [{ w: 12, d: 8, h: 4.2, awning: LAPIS }], col: { w: 12, d: 8, h: 4.4, cam: true } }); P('pool', 4, -134, { args: [5, 3] }); GG.wade(W, 4, -134, 5, 3); P('palmRow', 14, -132, { args: [2] }); P('datePalm', -2, -139);
@@ -1078,6 +1079,9 @@ const WARD = {
   wRed: { n: '붉은 겉옷', d: '붉게 물들인 양털 겉옷. 밤바람이 찬 날에 좋아요.', need: { wool: 2, cloth: 1 } },
   wField: { n: '들판 차림', d: '수수한 겉옷과 가죽 띠. 사냥하고 낚시할 때 편해요.', need: { wool: 2, thread: 1 } },
   wCoat: { n: '채색옷 (그리움)', d: '아버지가 지어 주신 채색옷을 떠올리며 새로 지었어요.', need: { cloth: 3, thread: 2 } },
+  wNight: { n: '밤하늘 겉옷', d: '쪽빛으로 물들인 긴 겉옷에 금실 별무늬.', need: null, silver: 160 }, /* v18.55 clothes bought with silver */
+  wDesert: { n: '광야 나그네 차림', d: '흙빛 겉옷과 머리 두건. 먼 길을 갈 때 편해요.', need: null, silver: 90 },
+  wGold: { n: '금빛 예복', d: '금박을 두른 흰 세마포 예복. 바로의 잔치에나 입을 만한 귀한 옷이에요.', need: null, silver: 320 },
   josephShaved: { n: '겉옷 벗기', d: '겉옷을 벗고 아마 치마만 입어요.', need: null } };
 const WARD_LOOKS = {
   wLinen: Object.assign({}, JO, { skin: 0xd09868, bare: true, kilt: true, kiltLong: true, bottom: LINEN, collar: TURQ, collar2: GOLD, hairStyle: 'wig', hair: 0x15100c, build: 0.95, jaw: 0.05, sandal: 0x8a6a40 }),
@@ -1085,7 +1089,10 @@ const WARD_LOOKS = {
   wFeast: Object.assign({}, LOOK.josephVizier, { mantle: LINEN, mantleTrim: GOLD, collar: GOLD, collar2: TURQ }),
   wRed: Object.assign({}, LOOK.josephVizier, { mantle: 0x9a2a22, mantleTrim: GOLD }),
   wField: Object.assign({}, JO, { skin: 0xd09868, top: 0xc8a878, trim: 0x6a4a30, belt: 0x5a3a22, mantle: 0x6a5a48, hairStyle: 'short', build: 0.95, jaw: 0.05 }),
-  wCoat: Object.assign({}, LOOK.josephCoat, { skin: 0xd09868, build: 0.95, jaw: 0.05 }) };
+  wCoat: Object.assign({}, LOOK.josephCoat, { skin: 0xd09868, build: 0.95, jaw: 0.05 }),
+  wNight: Object.assign({}, LOOK.josephVizier, { mantle: 0x1e2a5a, mantleTrim: GOLD, collar: GOLD, collar2: LAPIS }),
+  wDesert: Object.assign({}, JO, { skin: 0xd09868, top: 0xb89868, trim: 0x7a5a38, belt: 0x5a3a22, mantle: 0x8a7050, hairStyle: 'short', build: 0.95, jaw: 0.05 }),
+  wGold: Object.assign({}, LOOK.josephVizier, { mantle: LINEN, mantleTrim: GOLD, collar: GOLD, collar2: GOLD, sash: GOLD, trim: GOLD, trim2: GOLD }) };
 function wardState(S) { const w = S.flags.ward = S.flags.ward || { own: { josephVizier: 1, josephShaved: 1 }, sel: null }; return w; }
 function openWardrobe(S, G2) { const UI = GG.UI, w = wardState(S); let el = document.getElementById('wardUI');
   if (!el) { el = document.createElement('div'); el.className = 'overlay sheet'; el.id = 'wardUI'; el.hidden = true; document.body.appendChild(el);
@@ -1987,10 +1994,14 @@ function cinFeast(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 4);
 }
 function cinMarvel(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 4);
   cine([
+    /* v18.55 three tables (창 43:32): Joseph alone, the brothers together, the Egyptians who ate with him apart */
+    { fn: () => { BRO11.forEach((id, i) => showAt(id, hx - 6 + i * 1.2, hz + 7, Math.PI, { sit: true, act: 'eat' })); G.teleport(hx, hz + 3.4, 0); cpose('sitg', 40, true); showAt('steward2', hx + 8, hz + 4.6, -Math.PI / 2, { sit: true, act: 'eat' }); },
+      cam: [hx - 9, hh + 3.2, hz + 2.6], look: [hx + 1, hh + 0.8, hz + 5.4], dur: 9, music: 'j_finale',
+      t: '그들이 요셉에게 따로 하고 그 형제들에게 따로 하고 배식하는 애굽 사람에게도 따로 하니 애굽 사람은 히브리 사람과 같이 먹으면 부정을 입음이었더라.', ref: '창세기 43:32' },
     { fn: () => BRO11.forEach((id, i) => showAt(id, hx - 6 + i * 1.2, hz + 7, Math.PI, { sit: true, act: 'eat' })), cam: [hx + 8, hh + 2.6, hz + 11], look: [hx, hh + 0.9, hz + 7], dur: 8, music: 'j_finale',
       t: '그들이 요셉의 앞에 앉되 그 장유의 차서대로 앉히운바 되니 그들이 서로 이상히 여겼더라.', ref: '창세기 43:33' },
     { cam: [hx + 6.6, hh + 1.3, hz + 5], look: [hx + 6, hh + 0.9, hz + 7], dur: 8, t: '요셉이 자기 식물로 그들에게 주되 베냐민에게는 다른 사람보다 오배나 주매, 그들이 마시며 요셉과 함께 즐거워하였더라.', ref: '창세기 43:34' },
-  ], () => { BRO11.forEach(id => { const n = G.npc(id); if (n) { n.sit = false; n.act = null; } }); next && next(); });
+  ], () => { cpose(null); BRO11.forEach(id => { const n = G.npc(id); if (n) { n.sit = false; n.act = null; } }); { const st = G.npc('steward2'); if (st) { st.sit = false; st.act = null; } } next && next(); });
 }
 function cinCup(S, G, next) { const cx = 34, cz = -30, ch = hAt(cx, cz), [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 4);
   cine([
@@ -2509,7 +2520,7 @@ function worldFacts(S) {
 }
 function rumors(S) { if (between(S, 'c6_open')) return ['곳간 문이 열렸습니다! 총리님 덕분에 우리 아이들이 살았습니다.', '가나안에서도 곡식을 사러 사람들이 온다고 합니다.']; /* v18.42 said to the vizier himself: polite */
   if (between(S, 'c5_patrol')) return ['총리님이 각 성마다 곳간을 짓게 하셨대요.', '버금 수레를 탄 총리님을 봤소? 히브리 사람이라던데.', '올해는 밀이 사람 키만큼 자랐어요!'];
-  return ['나일 강이 불어날 철이 다가오오.', '바로의 궁에 새 오벨리스크를 세운다더군요.']; }
+  return ['나일 강이 불어날 철이 다가오오.', '온의 신전 앞에 새 오벨리스크를 세운다더군요.']; }
 const chatter = [
   { a: 'cook', b: 'gardener', when: S => between(S, 'c2_arrive', 'c2_tempt2'), lines: [[0, '앙쿠! 연못 물 좀 쓰자니까.'], [1, '연꽃이 다 죽는다고 몇 번을 말해!']] },
   { a: 'neb', b: 'ameni', when: S => between(S, 'c2_arrive', 'c2_quiz'), lines: [[0, '저 히브리 녀석, 말 한마디 못 알아듣던데.'], [1, '두고 보게. 눈빛이 다른 아이야.']] },

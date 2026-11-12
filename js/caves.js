@@ -94,7 +94,7 @@ function course() { const out = [], B = [0, 22], GAPS = [1.0, 1.3, 0.8, 1.5, 1.1
 const PILL = course();
 const DEF = id => CAVES.find(c => c.id === id);
 const cur = () => { const s = S(); return s && s.flags && s.flags.caveIn ? DEF(s.flags.caveIn) : null; };
-const Cs = G.Caves = { inside: () => !!cur(), list: CAVES, course: () => PILL }; for (const c of CAVES) if (c.id !== 'hidden' && c.mouth) (EP.places = EP.places || []).push({ n: c.n, x: c.mouth.x, z: c.mouth.z, when: s => c.when(s) }); /* v18.38 on the map */
+const Cs = G.Caves = { inside: () => !!cur(), list: CAVES, course: () => PILL }; for (const c of CAVES) if (c.id !== 'hidden' && c.mouth && !(EP.places || []).some(q => q.n === c.n)) (EP.places = EP.places || []).push({ n: c.n, x: c.mouth.x, z: c.mouth.z, when: s => c.when(s) }); /* v18.38 on the map */
 const segD = (px, pz, ax, az, bx, bz) => { const dx = bx - ax, dz = bz - az, L = dx * dx + dz * dz, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / L)); return Math.hypot(px - ax - dx * t, pz - az - dz * t); };
 function walkable(c, x, z, sh) { sh = sh || 0; for (const k in c.CH) { const [cx, cz, r] = c.CH[k]; if (Math.hypot(x - cx, z - cz) < r - sh) return true; }
   for (const [a, b, w] of c.TU) { const A = c.CH[a], B = c.CH[b]; if (segD(x, z, A[0], A[1], B[0], B[1]) < w / 2 - sh) return true; } return false; }
@@ -168,7 +168,7 @@ function buildMouth(W, c) { const { x, z, f } = c.mouth, y = W.heightAt(x, z), R
   W.addCol({ x: x - fx * 4.4, z: z - fz * 4.4, w: 11, d: 7, a: f, y0: y - 2, y1: y + 6, cam: true }); }
 const pb = EP.build; EP.build = function (W) { if (pb) pb.apply(this, arguments); for (const k in STG) { if (G.R.free) { STG[k].statics.forEach(m => G.R.free(m)); if (STG[k].moss) G.R.free(STG[k].moss); } delete STG[k]; } /* v18.34 free the old meshes (GPU memory grew with every return to the title) */ for (const c of CAVES) try { buildMouth(W, c); const st = (EP.stations || []).find(q => q.id === 'fM_' + c.id); if (st) W.place('campfire', st.x, st.z, { kind: 'campfire', col: { r: 0.75, h: 0.5 } }); /* v18.34 a real campfire under the flames */ } catch (e) { console.error('caves build', c.id, e); } }; /* v18.30 insides are built on the first visit */
 const ensure = c => { if (c && !STG[c.id] && Game.W()) try { build(Game.W(), c); } catch (e) { console.error('caves build', c.id, e); } };
-for (const c of CAVES) { (EP.places = EP.places || []).push({ n: c.n, x: c.mouth.x, z: c.mouth.z, when: s => c.when(s) });
+for (const c of CAVES) { EP.places = EP.places || []; if (!EP.places.some(q => q.n === c.n)) EP.places.push({ n: c.n, x: c.mouth.x, z: c.mouth.z, when: s => c.when(s) }); /* v18.53 each cave once on the map (four were listed twice) */
   EP.stations.push({ id: 'fM_' + c.id, type: 'fire', x: c.mouth.x + Math.sin(c.mouth.f) * 3 + Math.cos(c.mouth.f) * 2.6, z: c.mouth.z + Math.cos(c.mouth.f) * 3 - Math.sin(c.mouth.f) * 2.6, r: 2.4, on: s => c.when(s) });
   (c.braz || []).forEach(([x, z], i) => EP.stations.push({ id: 'fB_' + c.id + i, type: 'fire', torchOnly: true, x: c.st.x + x, z: c.st.z + z, r: 2.2, on: s => !!(cur() === c) })); }
 // ------------------------------------------------------------------ going in and out
