@@ -305,7 +305,7 @@ function worldFacts(S) {
 }
 function rumors(S) { if (between(S, 'c6_open')) return ['곳간 문이 열렸습니다! 총리님 덕분에 우리 아이들이 살았습니다.', '가나안에서도 곡식을 사러 사람들이 온다고 합니다.']; /* v18.42 said to the vizier himself: polite */
   if (between(S, 'c5_patrol')) return ['총리님이 각 성마다 곳간을 짓게 하셨대요.', '버금 수레를 탄 총리님을 봤소? 히브리 사람이라던데.', '올해는 밀이 사람 키만큼 자랐어요!'];
-  return ['나일 강이 불어날 철이 다가오오.', '바로의 궁에 새 오벨리스크를 세운다더군요.']; }
+  return ['나일 강이 불어날 철이 다가오오.', '온의 신전 앞에 새 오벨리스크를 세운다더군요.']; }
 const chatter = [
   { a: 'cook', b: 'gardener', when: S => between(S, 'c2_arrive', 'c2_tempt2'), lines: [[0, '앙쿠! 연못 물 좀 쓰자니까.'], [1, '연꽃이 다 죽는다고 몇 번을 말해!']] },
   { a: 'neb', b: 'ameni', when: S => between(S, 'c2_arrive', 'c2_quiz'), lines: [[0, '저 히브리 녀석, 말 한마디 못 알아듣던데.'], [1, '두고 보게. 눈빛이 다른 아이야.']] },

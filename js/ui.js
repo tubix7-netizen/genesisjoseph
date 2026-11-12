@@ -680,7 +680,7 @@ $('bmClr').onclick = () => { Game.S().wp = null; $('bmClr').hidden = true; UI.to
     p[0] = e.clientX; p[1] = e.clientY;
     if (BM.ptr.size === 2) { const [a, b] = [...BM.ptr.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (BM.pd) BM.k = Math.max(0.6, Math.min(14, BM.k * d / BM.pd)); BM.pd = d; BM.moved = 99; } });
   const up = e => { const had = BM.ptr.has(e.pointerId); BM.ptr.delete(e.pointerId); BM.pd = null; if (!had || BM.moved > 8 || e.type !== 'pointerup') return;
-    const r = cv.getBoundingClientRect(), wx = BM.cx + (e.clientX - r.left - r.width / 2) / BM.k, wz = BM.cz + (e.clientY - r.top - r.height / 2) / BM.k; const S = Game.S(); const pl = (Game.EP().places || []).find(p => Math.hypot(p.x - wx, p.z - wz) < 9 / BM.k * 2 + 4);
+    const r = cv.getBoundingClientRect(), wx = BM.cx + (e.clientX - r.left - r.width / 2) / BM.k, wz = BM.cz + (e.clientY - r.top - r.height / 2) / BM.k; const S = Game.S(); const pl = (Game.EP().places || []).find(p => (!p.when || p.when(S)) && (!UI.placeKnown || UI.placeKnown(p, S)) && Math.hypot(p.x - wx, p.z - wz) < 9 / BM.k * 2 + 4);
     S.wp = pl ? { x: pl.x, z: pl.z, n: pl.n } : { x: wx, z: wz, n: '표시한 곳' }; $('bmClr').hidden = false; UI.toast(`${S.wp.n}을(를) 표시했어요 · 나침반이 길을 알려 줘요`); G.Audio && G.Audio.sfx('click'); };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
   cv.addEventListener('wheel', e => { e.preventDefault(); BM.k = Math.max(0.6, Math.min(14, BM.k * (e.deltaY > 0 ? 0.88 : 1.14))); }, { passive: false }); }
@@ -693,9 +693,9 @@ function drawBig() {
   c.drawImage(bigImg, sx(-W.half), sz(-W.half), W.size * k, W.size * k);
   // places
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  for (const p of EP.places || []) { if (p.when && !p.when(S)) continue; const x = sx(p.x), y = sz(p.z); if (x < -40 || y < -20 || x > w + 40 || y > h + 20) continue; const big = p.k === 'town';
-    c.fillStyle = big ? '#ffd98a' : '#f4e8cc'; c.strokeStyle = '#1a1208'; c.lineWidth = 2; c.beginPath(); c.arc(x, y, big ? 5 : 3.5, 0, 7); c.fill(); c.stroke();
-    c.font = `${big ? 700 : 600} ${big ? 14 : 12}px "IBM Plex Sans KR",sans-serif`; c.lineWidth = 3.5; c.strokeStyle = 'rgba(10,14,28,.85)'; c.strokeText(p.n, x, y - (big ? 14 : 11)); c.fillStyle = big ? '#ffe9b0' : '#f4e8cc'; c.fillText(p.n, x, y - (big ? 14 : 11)); }
+  for (const p of EP.places || []) { if (p.when && !p.when(S)) continue; const kn = UI.placeKnown ? UI.placeKnown(p, S) : 'seen'; if (!kn) continue; /* v18.54 only the places Joseph has been to or heard of */ const x = sx(p.x), y = sz(p.z); if (x < -40 || y < -20 || x > w + 40 || y > h + 20) continue; const big = p.k === 'town', hd = kn === 'heard';
+    c.globalAlpha = hd ? 0.75 : 1; c.fillStyle = hd ? '#9ec8ff' : big ? '#ffd98a' : '#f4e8cc'; c.strokeStyle = '#1a1208'; c.lineWidth = 2; c.beginPath(); c.arc(x, y, big ? 5 : 3.5, 0, 7); c.fill(); c.stroke();
+    c.font = `${big ? 700 : 600} ${big ? 14 : 12}px "IBM Plex Sans KR",sans-serif`; c.lineWidth = 3.5; c.strokeStyle = 'rgba(10,14,28,.85)'; const lab = hd ? p.n + ' ?' : p.n; c.strokeText(lab, x, y - (big ? 14 : 11)); c.fillStyle = hd ? '#cfe4ff' : big ? '#ffe9b0' : '#f4e8cc'; c.fillText(lab, x, y - (big ? 14 : 11)); c.globalAlpha = 1; }
   // wells, shops & fires
   if (k > 1.2) for (const st of EP.stations || []) { if (st.on && !st.on(S, Game)) continue; const col = st.type === 'well' ? '#63c3e6' : st.type === 'shop' ? '#e5b552' : st.type === 'fire' ? '#ff8a4a' : st.type === 'bed' ? '#c8a0f0' : null; if (!col) continue;
     c.fillStyle = col; c.beginPath(); c.arc(sx(st.x), sz(st.z), 3, 0, 7); c.fill(); }

@@ -93,10 +93,10 @@ function tones(notes) {
   return out;
 }
 /* pos: { x, y, z, npc } — a voice from someone in the world goes through the surround space (audio.js Au.space): distance, left/right, echo; at most three at once */
-function playBuf(data, dest, when, vol, pan, pos) {
+function playBuf(data, dest, when, vol, pan, pos, rate) {
   const A = Au && Au.core && Au.core(); if (!A || !data || !data.length) return 0; const c = A.ctx, SPc = Au.space;
   try { const b = c.createBuffer(1, data.length, SR); b.getChannelData(0).set(data);
-    const s = c.createBufferSource(); s.buffer = b; const g = c.createGain(); g.gain.value = vol === undefined ? 1 : vol; s.connect(g);
+    const s = c.createBufferSource(); s.buffer = b; if (rate) s.playbackRate.value = rate; const g = c.createGain(); g.gain.value = vol === undefined ? 1 : vol; s.connect(g);
     if (pos && !dest && SPc && c.createPanner) { const d = SPc.dist(pos.x, pos.y, pos.z); if (d > 40) return 0; const a = SPc.claim('voice', d, data.length / SR + 0.1, g, pos.npc); if (!a) return 0;
       const ch = SPc.chain(A.bus, pos.x, pos.y, pos.z, { ref: 2.5, ttl: data.length / SR + 1 }); a.pn = ch.pn; g.connect(ch.inp); s.start(Math.max(c.currentTime + 0.02, when || 0)); s.onended = () => { try { g.disconnect(); } catch (e) { } }; return data.length / SR; }
     let nd = g; if (pan && c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); g.connect(p); nd = p; }
@@ -387,11 +387,22 @@ const AN = {
     else if (r < 0.8) { const n = ri(4, 6); let f = R_(1500, 2100) * p; for (let i = 0; i < n; i++) { const f2 = clamp(f * R_(0.8, 1.35), 1300, 3200); t.push({ d: R_(0.08, 0.16), f: [f, f2], att: 0.2, rel: 0.3, h2: 0.15, gap: R_(0.02, 0.06) }); f = f2; } }
     else { const n = ri(3, 5); for (let i = 0; i < n; i++) t.push({ d: R_(0.03, 0.05), f: [R_(5200, 6000) * p, R_(5000, 5800) * p], fm: [R_(60, 90), 0.06], att: 0.2, rel: 0.3, gap: 0.02 }); }
     return { tone: t, vol: 0.45 }; } };
-V.animal = function (k, o, dest, when) { const f = AN[k]; if (!f) return 0; o = o || {}; const p = o.p || 1, c = f(o); let data;
+/* v18.53 a few takes of each call are made once and reused, a touch higher or lower each time (a lion's roar took ~90 ms to compute:
+   on a phone, a visible hitch in the middle of a walk). The everyday ones (sheep, goats, cattle, camels, birds) are made ahead in idle moments. */
+const TAKES = {}, MAXT = 3;
+const takeKey = (k, o) => k + (o.soft ? 's' : '') + (o.pos ? 'p' : '') + (k === 'roar' && o.x !== undefined ? 'x' : '') + Math.round((o.p || 1) * 10);
+function makeTake(k, o) { const p = o.p || 1, c = AN[k](o); let data;
   if (c.tone) data = tones(c.tone);
   else { if (!c.raw && p !== 1) { const fs = 1 + (p - 1) * 0.5; for (const s of c.segs) { s.p = s.p.map(x => x * p); if (s.F) s.F = s.F.map(x => x * fs); if (s.Fe) s.Fe = s.Fe.map(x => x * fs); } }
     data = render(c.segs, Object.assign({ f0: 1, fk: 1, whMix: c.whMix }, c.vo)); }
-  V.stats.beasts++; return playBuf(data, dest, when, (c.vol || 1) * 0.6 * (dest ? 1 : o.vol || 1), dest ? 0 : o.pan || 0); };
+  return { data, vol: c.vol || 1 }; }
+V.animal = function (k, o, dest, when) { if (!AN[k]) return 0; o = o || {}; const key = takeKey(k, o), L = TAKES[key] || (TAKES[key] = []);
+  const tk = L.length >= MAXT || (L.length && Math.random() < 0.65) ? pick(L) : (L[L.length] = makeTake(k, o));
+  V.stats.beasts++; return playBuf(tk.data, dest, when, tk.vol * 0.6 * (dest ? 1 : o.vol || 1), dest ? 0 : o.pan || 0, null, 0.95 + Math.random() * 0.1); };
+{ const WARM = [['bleat', {}], ['bleat', { p: 1.4 }], ['goat', {}], ['moo', {}], ['camel', {}], ['coo', {}], ['chirp', { p: 0.9 }], ['chirp', { p: 1.1 }], ['growl', {}], ['roar', { x: 0, p: 0.8 }], ['roar', { x: 0, p: 1.1 }], ['grunt', {}]]; /* v18.55 + the beasts that attack (a lion's first roar hitched) */ let wi = 0;
+  const warm = () => { if (wi >= WARM.length * 2) return; const [k, o] = WARM[wi % WARM.length]; wi++; const L = TAKES[takeKey(k, o)] || (TAKES[takeKey(k, o)] = []); if (L.length < 2) try { L.push(makeTake(k, Object.assign({}, o))); } catch (e) { }
+    if (window.requestIdleCallback) requestIdleCallback(warm, { timeout: 3000 }); else setTimeout(warm, 500); };
+  addEventListener('pointerdown', () => setTimeout(warm, 3000), { once: true }); addEventListener('keydown', () => setTimeout(warm, 3000), { once: true }); }
 
 // ------------------------------------------------------------------ plug into the sound effects (audio.js looks in Au.ext first)
 if (Au) { const X0 = Au.ext = Au.ext || {}, sub = (d, v) => { const g = d.context.createGain(); g.gain.value = v; g.connect(d); return g; };

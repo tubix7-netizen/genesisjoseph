@@ -60,6 +60,9 @@ const WARD = {
   wRed: { n: '붉은 겉옷', d: '붉게 물들인 양털 겉옷. 밤바람이 찬 날에 좋아요.', need: { wool: 2, cloth: 1 } },
   wField: { n: '들판 차림', d: '수수한 겉옷과 가죽 띠. 사냥하고 낚시할 때 편해요.', need: { wool: 2, thread: 1 } },
   wCoat: { n: '채색옷 (그리움)', d: '아버지가 지어 주신 채색옷을 떠올리며 새로 지었어요.', need: { cloth: 3, thread: 2 } },
+  wNight: { n: '밤하늘 겉옷', d: '쪽빛으로 물들인 긴 겉옷에 금실 별무늬.', need: null, silver: 160 }, /* v18.55 clothes bought with silver */
+  wDesert: { n: '광야 나그네 차림', d: '흙빛 겉옷과 머리 두건. 먼 길을 갈 때 편해요.', need: null, silver: 90 },
+  wGold: { n: '금빛 예복', d: '금박을 두른 흰 세마포 예복. 바로의 잔치에나 입을 만한 귀한 옷이에요.', need: null, silver: 320 },
   josephShaved: { n: '겉옷 벗기', d: '겉옷을 벗고 아마 치마만 입어요.', need: null } };
 const WARD_LOOKS = {
   wLinen: Object.assign({}, JO, { skin: 0xd09868, bare: true, kilt: true, kiltLong: true, bottom: LINEN, collar: TURQ, collar2: GOLD, hairStyle: 'wig', hair: 0x15100c, build: 0.95, jaw: 0.05, sandal: 0x8a6a40 }),
@@ -67,7 +70,10 @@ const WARD_LOOKS = {
   wFeast: Object.assign({}, LOOK.josephVizier, { mantle: LINEN, mantleTrim: GOLD, collar: GOLD, collar2: TURQ }),
   wRed: Object.assign({}, LOOK.josephVizier, { mantle: 0x9a2a22, mantleTrim: GOLD }),
   wField: Object.assign({}, JO, { skin: 0xd09868, top: 0xc8a878, trim: 0x6a4a30, belt: 0x5a3a22, mantle: 0x6a5a48, hairStyle: 'short', build: 0.95, jaw: 0.05 }),
-  wCoat: Object.assign({}, LOOK.josephCoat, { skin: 0xd09868, build: 0.95, jaw: 0.05 }) };
+  wCoat: Object.assign({}, LOOK.josephCoat, { skin: 0xd09868, build: 0.95, jaw: 0.05 }),
+  wNight: Object.assign({}, LOOK.josephVizier, { mantle: 0x1e2a5a, mantleTrim: GOLD, collar: GOLD, collar2: LAPIS }),
+  wDesert: Object.assign({}, JO, { skin: 0xd09868, top: 0xb89868, trim: 0x7a5a38, belt: 0x5a3a22, mantle: 0x8a7050, hairStyle: 'short', build: 0.95, jaw: 0.05 }),
+  wGold: Object.assign({}, LOOK.josephVizier, { mantle: LINEN, mantleTrim: GOLD, collar: GOLD, collar2: GOLD, sash: GOLD, trim: GOLD, trim2: GOLD }) };
 function wardState(S) { const w = S.flags.ward = S.flags.ward || { own: { josephVizier: 1, josephShaved: 1 }, sel: null }; return w; }
 function openWardrobe(S, G2) { const UI = GG.UI, w = wardState(S); let el = document.getElementById('wardUI');
   if (!el) { el = document.createElement('div'); el.className = 'overlay sheet'; el.id = 'wardUI'; el.hidden = true; document.body.appendChild(el);

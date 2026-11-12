@@ -1,6 +1,6 @@
 /* 약속의 길 — 총리의 마구간 (v18.33)
    요셉이 총리가 된 뒤(수레를 받은 뒤), 총리의 집 가까이에 마구간이 있어요. 마구간지기 케티에게 말하면:
-   · 말 사기 — 흰 말(은 300) · 갈색 말(은 200) · 검은 말(은 250) (v18.45 값 올림) · 이야기가 끝난 뒤 소달구지(은 360) · 사이드 퀘스트로 유람 마차. 산 말은 마구간에서 기다려요(마구간 덕분에 탈것을 셋까지 둘 수 있어요).
+   · 말 사기 — 흰 말(은 650) · 갈색 말(은 480) · 검은 말(은 560) (v18.55 값 올림) · 이야기가 끝난 뒤 소달구지(은 820) · 사이드 퀘스트로 유람 마차. 산 말은 마구간에서 기다려요(마구간 덕분에 탈것을 셋까지 둘 수 있어요).
    · 다닐 탈것 고르기 — 「수레로 다니기」 또는 「말 타고 다니기」. 둘 중 하나만 써요.
        수레: 왼쪽 「수레 부르기」 · 말은 마구간에서 쉬어요.   말: 「말 부르기」(휘파람) · 수레는 마구간 옆에 세워 둬요.
    · 말 돌보기 — 은 3으로 지친 말들을 쉬게 해요. */
@@ -13,8 +13,8 @@ const ok = s => !!(s && s.q && s.q.chariotOk);
 const mode = s => (s && s.flags && s.flags.travel) || 'cart';
 let ST = null; /* { x, z, f } the stable yard */
 /* v18.35 a horse cost about 150 shekels of silver (왕상 10:29) — forty sacks of wheat, not ten */
-const HORSES = [{ k: 'white', n: '흰 말', hide: 0xf2ece2, mane: 0xe6d6b0, price: 300 }, { k: 'bay', n: '갈색 말', hide: 0x8a5a36, mane: 0x2a1e16, price: 200 }, { k: 'black', n: '검은 말', hide: 0x2e2a28, mane: 0x141010, price: 250 }]; /* v18.45 prices up a quarter (240/150/190 → 300/200/250): a horse is a great man's thing */
-const OX_PRICE = 360; /* v18.45 the ox cart, after the story */
+const HORSES = [{ k: 'white', n: '흰 말', hide: 0xf2ece2, mane: 0xe6d6b0, price: 650 }, { k: 'bay', n: '갈색 말', hide: 0x8a5a36, mane: 0x2a1e16, price: 480 }, { k: 'black', n: '검은 말', hide: 0x2e2a28, mane: 0x141010, price: 560 }]; /* v18.45 prices up a quarter (240/150/190 → 300/200/250): a horse is a great man's thing */
+const OX_PRICE = 820; /* v18.55 rides and carts cost much more (was 360) */ /* v18.45 the ox cart, after the story */
 /* the yard: open ground a little way from the vizier's house, outside the house grounds */
 function findSpot(W) { const hx = 10, hz = -140; let best = null;
   for (const r of [26, 30, 34, 38]) { for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, x = hx + Math.cos(a) * r, z = hz + Math.sin(a) * r; if (G.Cart && G.Cart.town && G.Cart.town(x, z)) continue;

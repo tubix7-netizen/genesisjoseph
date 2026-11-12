@@ -63,10 +63,14 @@ function cinFeast(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 4);
 }
 function cinMarvel(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 4);
   cine([
+    /* v18.55 three tables (창 43:32): Joseph alone, the brothers together, the Egyptians who ate with him apart */
+    { fn: () => { BRO11.forEach((id, i) => showAt(id, hx - 6 + i * 1.2, hz + 7, Math.PI, { sit: true, act: 'eat' })); G.teleport(hx, hz + 3.4, 0); cpose('sitg', 40, true); showAt('steward2', hx + 8, hz + 4.6, -Math.PI / 2, { sit: true, act: 'eat' }); },
+      cam: [hx - 9, hh + 3.2, hz + 2.6], look: [hx + 1, hh + 0.8, hz + 5.4], dur: 9, music: 'j_finale',
+      t: '그들이 요셉에게 따로 하고 그 형제들에게 따로 하고 배식하는 애굽 사람에게도 따로 하니 애굽 사람은 히브리 사람과 같이 먹으면 부정을 입음이었더라.', ref: '창세기 43:32' },
     { fn: () => BRO11.forEach((id, i) => showAt(id, hx - 6 + i * 1.2, hz + 7, Math.PI, { sit: true, act: 'eat' })), cam: [hx + 8, hh + 2.6, hz + 11], look: [hx, hh + 0.9, hz + 7], dur: 8, music: 'j_finale',
       t: '그들이 요셉의 앞에 앉되 그 장유의 차서대로 앉히운바 되니 그들이 서로 이상히 여겼더라.', ref: '창세기 43:33' },
     { cam: [hx + 6.6, hh + 1.3, hz + 5], look: [hx + 6, hh + 0.9, hz + 7], dur: 8, t: '요셉이 자기 식물로 그들에게 주되 베냐민에게는 다른 사람보다 오배나 주매, 그들이 마시며 요셉과 함께 즐거워하였더라.', ref: '창세기 43:34' },
-  ], () => { BRO11.forEach(id => { const n = G.npc(id); if (n) { n.sit = false; n.act = null; } }); next && next(); });
+  ], () => { cpose(null); BRO11.forEach(id => { const n = G.npc(id); if (n) { n.sit = false; n.act = null; } }); { const st = G.npc('steward2'); if (st) { st.sit = false; st.act = null; } } next && next(); });
 }
 function cinCup(S, G, next) { const cx = 34, cz = -30, ch = hAt(cx, cz), [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 4);
   cine([
