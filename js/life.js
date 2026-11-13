@@ -133,7 +133,7 @@ L.talk = function (npcId) {
   // 2) offer: story-critical requests first, then a reminder of one in progress, then other requests
   const avail = Object.keys(QS()).filter(qid => QS()[qid].giver === npcId && L.avail(S, qid)).sort((a, b) => (QS()[b].main ? 1 : 0) - (QS()[a].main ? 1 : 0));
   const offer = qid => { const q = QS()[qid]; const lines = (typeof q.offer === 'function' ? q.offer(S, Game) : q.offer).map(l => fix(l, nm));
-    const other = Game.EP().talk && Game.EP().talk[npcId];
+    const other = (Game.EP().talk && Game.EP().talk[npcId]) || (G.Bond && N && !N.d.animal && !N.d.noBond ? () => { N.id = npcId; N.talking = true; G.Bond.talk(N, null, done); } : null); /* v18.56 an errand never shuts out a plain talk (a father is not only someone who sends you on errands) */
     lines.push({ n: Game.EP().hero, t: '어떻게 할까?', choices: [{ t: `맡겠습니다 · ${q.title}`, then: () => L.accept(qid) }, { t: '다음에 하겠습니다' }].concat(other ? [{ t: '다른 이야기를 나눈다', then: () => setTimeout(() => other(S, Game), 40) }] : []) });
     G.UI.say(lines, done); return true; };
   if (avail.length && QS()[avail[0]].main) return offer(avail[0]);

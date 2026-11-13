@@ -69,7 +69,7 @@ const MAIN = {
   benjamin: { mbti: 'ESFP', tp: '해맑은', lines: { canaan: ['형! 이번엔 언제 돌아와? 꼭 금방 와야 해!', '형이 준 매끈한 돌멩이, 내 보물 상자에 넣어 뒀어.', '아버지가 형만 예뻐한대. 그래도 난 형이 제일 좋아!'] } },
   benjamin2: { mbti: 'ENFJ', tp: '다정한', lines: { brothers: ['…총리님, 제 형 요셉도 살아 있었다면 지금쯤 이 나이였을 거예요.', '아버지는 저를 품에서 놓지 않으셨어요. 저까지 잃을까 봐서요.'], goshen: ['형! 어릴 때처럼 같이 별 세러 가자. 이번엔 내가 더 많이 셀 거야.', '내 아이들 이름에 형 이야기를 담았어. 다시는 잃지 않으려고.'] } },
   leah: { mbti: 'ISFJ', tp: '속 깊은', lines: { canaan: ['요셉, 길 떠나기 전에 빵 좀 더 챙기렴. 형들 먹을 것도.', '네 어미 라헬과 나는 자매였단다. 너를 보면 그 아이 생각이 나.', '아버지 마음을 너무 아프게 하지 말아라.'] } },
-  dinah: { mbti: 'INFP', tp: '조용한', lines: { canaan: ['요셉 오라버니, 세겜 쪽 길은 조심해요. 그곳엔… 아픈 기억이 많아요.', '들꽃 물로 천을 물들여 봤어요. 오라버니 옷처럼 고운 색은 안 나네요.'] } },
+  dinah: { mbti: 'INFP', tp: '조용한', lines: { canaan: ['요셉아, 세겜 쪽 길은 조심해. 그곳엔… 아픈 기억이 많아.', '들꽃 물로 천을 물들여 봤어. 네 옷처럼 고운 색은 안 나네.'] } }, /* v18.56 older sister */
   hServ: { mbti: 'ISTJ', tp: '성실한', lines: { canaan: ['도련님, 형님들은 세겜 쪽으로 양을 몰고 가셨습니다.', '야곱 어르신 장막 끈은 제가 아침마다 다시 맵니다.'] } },
   shepBoy: { mbti: 'ESTP', tp: '날쌘', lines: { canaan: ['형, 그 알록달록한 옷 어디서 났어? 엄청 멋지다!', '우리 양들 중에 제일 말썽쟁이는 꼬리 까만 녀석이야.'] } },
   man: { mbti: 'INTJ', tp: '말수 적은', lines: { canaan: ['네 형들은 도단으로 간다더구나. 내가 들었다.', '찾는 이를 찾는 자는 결국 찾게 되지.'] } },
@@ -222,7 +222,7 @@ Pe.describe = id => { const p = Pe.of(id); return p ? `${p.mbti} · ${p.temper} 
 
 // hook the talk paths: named people (Bond), villagers (NpcAI small talk), plain greetings
 if (G.Bond && G.Bond.talk) { const t0 = G.Bond.talk; G.Bond.talk = function (n, lines, done) { try { const S2 = S(), id = n.id || n.d.id, b = (S2.flags.plDay = S2.flags.plDay || {});
-    const story = lines && lines.length && b[id] !== S2.day; b[id] = S2.day; // the story's line once a day, then their own words
+    if (lines && lines[0] && lines[0].keep) return t0.call(this, n, lines, done); /* v18.56 「또 무슨 이야기를…」 stays as it is */ const story = lines && lines.length && b[id] !== S2.day; b[id] = S2.day; // the story's line once a day, then their own words
     if (!story && !isFam(id)) { const L = Pe.lines(Object.assign(n, { id })); if (L) lines = L; } } catch (e) { console.error('persona', e); } return t0.call(this, n, lines, done); }; }
 if (G.Greet && G.Greet.lines) { const g0 = G.Greet.lines; G.Greet.lines = function (n) { try { const L = Pe.lines(n); if (L) return L; } catch (e) { } return g0.apply(this, arguments); }; }
 

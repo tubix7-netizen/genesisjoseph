@@ -411,10 +411,13 @@ function villageChatter(dt, S) {
   const P = Game.P;
   if (chatQ.run) { const r = chatQ.run; r.t -= dt; if (r.t <= 0) { if (r.i >= r.lines.length) { if (r.a) r.a._chatFace = undefined; if (r.b) r.b._chatFace = undefined; chatQ.run = null; return; } const [w, txt] = r.lines[r.i]; const id = w === 0 ? r.a.id : r.b.id; const n = w === 0 ? r.a : r.b, o = w === 0 ? r.b : r.a;
     const tx = txt.replace('야곱', callOf(S)), rt = G.Life.readT ? G.Life.readT(tx) : 3.4; G.Life.bubble(id, tx, rt); if (!n.walk) { n._chatFace = Math.atan2(o.x - n.x, o.z - n.z); o._chatFace = Math.atan2(n.x - o.x, n.z - o.z); } r.i++; /* v18.34 turn smoothly and keep facing while talking */ r.t = rt * 0.9 + 0.3; } return; }
-  ctT -= dt; if (ctT > 0) return; ctT = 8 + Math.random() * 9; if (G.UI.busy() || Game.cineOn) return; if (G.Street && G.Street.on()) return; /* v18.25 the street scenes (street.js) speak for the villagers now */
+  ctT -= dt; if (ctT > 0) return; ctT = 8 + Math.random() * 9; if (G.UI.busy() || Game.cineOn || (G.DW && G.DW.on && G.DW.on())) return; /* v18.56 quiet while Joseph prays and dreams */ if (G.Street && G.Street.on()) return; /* v18.25 the street scenes (street.js) speak for the villagers now */
   const list = Object.values(Game.ENT.npcs).filter(n => n.vis && n.near && n.d.folk && !n.talking && !n.walk && !n.schedHidden && Math.hypot(n.x - P.x, n.z - P.z) < 24);
   const pairs = []; for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) if (Math.hypot(list[i].x - list[j].x, list[i].z - list[j].z) < 5) pairs.push([list[i], list[j]]);
-  if (pairs.length && Math.random() < 0.75) { const [a, b] = rnd(pairs); const pool = (EPf().villageChat ? EPf().villageChat(S) : []).concat(CHAT2); chatQ.run = { a, b, lines: rnd(pool), i: 0, t: 0 }; return; }
+  if (pairs.length && Math.random() < 0.75) { /* v18.56 people who belong together (a mother and her boy, two old neighbours) talk as who they are (js/cast.js) */
+    const Cs = G.Cast, own = Cs && Cs.folkPair ? pairs.map(([a, b]) => [a, b, Cs.folkPair(a.id, b.id)]).filter(q => q[2]) : [];
+    if (own.length && Math.random() < 0.7) { const [a, b, lines] = rnd(own); chatQ.run = { a, b, lines, i: 0, t: 0 }; return; }
+    const [a, b] = rnd(pairs); const eg = Game.P.x < 112, pool = (EPf().villageChat ? EPf().villageChat(S) : []).concat(CHAT2.filter(l => !eg || !/야곱|하몰|하란|늑대|양 우리|양을 몰아/.test(l[0][1] + l[1][1]))); /* (no Hebron gossip in Egypt) */ chatQ.run = { a, b, lines: rnd(pool), i: 0, t: 0 }; return; }
   if (list.length) { const n = rnd(list); const pool = SOLO[n.d.folk.role]; if (pool) G.Life.bubble(n.id, rnd(pool), 2.6); }
 }
 const ap = { t: 35, cur: null, cool: {} };

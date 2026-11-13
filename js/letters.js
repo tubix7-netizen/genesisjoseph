@@ -33,7 +33,7 @@ const GIFT = { fisher: ['carp', 1], baker: ['bread', 2], farmer: ['onion', 2], p
 const CLOSE = ['평안을 빌며,', '늘 고마운 마음으로,', '다음에 또 만나요!', '건강하세요.'];
 const roleOf = n => (n.d.folk && n.d.folk.role) || (/어부/.test(n.name) ? 'fisher' : /빵/.test(n.name) ? 'baker' : /농부/.test(n.name) ? 'farmer' : /아이|소년|소녀/.test(n.name) ? 'child' : /노인|장로/.test(n.name) ? 'elder' : '');
 function compose(n, lv, s) { const t = title(s), r = roleOf(n), fill = x => x.replace(/\{t\}/g, t);
-  const lines = [fill(rnd(OPEN)), fill(rnd(BODY[Math.min(4, Math.max(1, lv))]))]; if (lv >= 2 && ROLE[r]) lines.push(fill(rnd(ROLE[r]))); lines.push(rnd(CLOSE) + ' — ' + n.name);
+  const kid = r === 'child' || (n.d.folk && n.d.folk.age === 'kid'); const lines = kid ? [fill(rnd(['{t}께!', '{t}, 안녕하세요!'])), rnd(['저 글씨 배웠어요! 서기 아저씨가 도와줬어요.', '어제 {t} 수레 지나가는 거 봤어요!'].map(fill))] : [fill(rnd(OPEN)), fill(rnd(BODY[Math.min(4, Math.max(1, lv))]))]; /* v18.56 a child writes like a child */ if (lv >= 2 && ROLE[r]) lines.push(fill(rnd(ROLE[r]))); lines.push(rnd(CLOSE) + ' — ' + n.name);
   const gift = lv >= 2 ? (GIFT[r] || ['fig', 2]) : null; return { text: lines.join('\n'), gift }; }
 // ------------------------------------------------------------------ the post: queue, the running child, the box
 Lt.send = function (from, text, gift, kind) { const b = box(); b.wait.push({ from, text, gift: gift || null, kind: kind || 'letter', day: S().day }); };
@@ -63,7 +63,9 @@ function morning(s) { const b = box(); if (b.last === s.day) return; const h = s
   const fe = G.Feast && G.Feast.today && G.Feast.today(); if (fe && G.Bond) { const v = (EP.villages || []).find(x => x.id === fe.v); const fr = v && v.folk.map(f => Game.ENT.npcs[f.id]).filter(n => n && G.Bond.level(n.id).i >= 1).sort((a, c) => G.Bond.get(c.id).p - G.Bond.get(a.id).p)[0];
     if (fr) { const R = G.Feast.reasons[fe.why]; Lt.send(fr.name, `${title(s)}께,\n오늘 저녁 우리 ${v.n}에서 ${R.n}${jj(R.n) ? '이' : '가'} 열려요. ${R.d.replace(/!$/, '')}${jj(R.d.replace(/!$/, '')) ? '이에요' : '예요'}.\n꼭 오셔서 함께 먹고 기뻐해 주세요! — ${fr.name}`, null, 'invite'); return; } }
   if (!G.Bond || Math.random() > 0.55) return; const pool = [];
-  for (const id in (s.bond || {})) { const n = Game.ENT.npcs[id]; if (!n || n.d.animal || n.d.noBond) continue; const lv = G.Bond.level(id).i; if (lv < 1 || (b.cool[id] || -9) > s.day - 3) continue; for (let i = 0; i < lv; i++) pool.push([n, lv]); }
+  /* v18.56 only villagers write, and only once Joseph is the vizier: no letters from Hebron to a slave, nor from the people of the story (js/cast.js) */
+  { const e = G.Cast ? G.Cast.era() : 'vizier'; if (!/vizier|brothers|goshen/.test(e)) return; }
+  for (const id in (s.bond || {})) { const n = Game.ENT.npcs[id]; if (!n || n.d.animal || n.d.noBond || !n.d.folk || (G.Cast && G.Cast.of(id)) || n.x > 112) continue; const lv = G.Bond.level(id).i; if (lv < 1 || (b.cool[id] || -9) > s.day - 3) continue; for (let i = 0; i < lv; i++) pool.push([n, lv]); }
   if (!pool.length) return; const [n, lv] = rnd(pool); b.cool[n.id] = s.day; const c = compose(n, lv, s); Lt.send(n.name, c.text, c.gift, 'letter'); }
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; const s = S(); if (Game.mode !== 'play' || !s || !s.flags) return r; const d = typeof dt === 'number' && dt < 1 ? dt : 1 / 60;
   try { runTick(d); if ((tick -= d) > 0) return r; tick = 2.5; if (chap(s) < 2) return r; morning(s); const b = box();

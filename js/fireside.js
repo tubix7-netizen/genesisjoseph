@@ -63,9 +63,16 @@ const ALONE = ['(타닥타닥 타는 불을 보며 헤브론 장막 앞 모닥�
 
 // ------------------------------------------------------------------ sitting by the fire
 const near = (x, z, r) => Object.keys(Game.ENT.npcs).filter(id => { const n = npc(id); return n && n.vis && !n.d.animal && !n.talking && !n.walk && Math.hypot(n.x - x, n.z - z) < r; });
+const Cs = () => G.Cast;
+const silent = id => { const n = npc(id), nt = n && n.d.noTalk; return typeof nt === 'function' ? !!nt(Game.S(), Game) : !!nt; };
+const castFire = id => Cs() ? Cs().fire(id) : undefined; /* v18.56 who this person is, by the fire (js/cast.js) */
+const kinNow = id => FAM.includes(id) || !!(Cs() && Cs().kin(id));
 function companions(f, S) { const P = Game.P, out = [];
   for (const id of FAM) { const n = npc(id); if (n && n.vis && (n.follow || Math.hypot(n.x - P.x, n.z - P.z) < 25)) out.push(id); }
-  if (out.length < 3) { const B = G.Bond, others = near(P.x, P.z, 22).filter(id => !FAM.includes(id) && !kidOf(npc(id)) && (Math.hypot(npc(id).x - P.x, npc(id).z - P.z) < 10 || (B && B.level(id).i >= 1)));
+  /* v18.56 Joseph's own people come first: in Hebron his father, Benjamin, Leah and Dinah; in Goshen his father and brothers */
+  const PRI = ['jacob', 'benjamin', 'benjamin2', 'leah', 'dinah', 'reuben', 'judah']; /* father and Benjamin first, then the others */
+  for (const id of near(P.x, P.z, 25).sort((a, b) => ((PRI.indexOf(a) + 1) || 99) - ((PRI.indexOf(b) + 1) || 99))) { if (out.length >= 3) break; if (out.includes(id) || !kinNow(id) || (silent(id) && !castFire(id)) || castFire(id) === false) continue; out.push(id); } /* v18.56b (the brothers and Benjamin are 「noTalk」 between errands in Goshen, but they still come to the fire) */
+  if (out.length < 3) { const B = G.Bond, others = near(P.x, P.z, 22).filter(id => !out.includes(id) && !FAM.includes(id) && !silent(id) && castFire(id) !== false && (castFire(id) || !kidOf(npc(id))) && (Math.hypot(npc(id).x - P.x, npc(id).z - P.z) < 10 || (B && B.level(id).i >= 1)));
     others.sort((a, b) => (B ? B.get(b).p - B.get(a).p : 0)); for (const id of others) { if (out.length >= 3) break; out.push(id); } }
   return out.slice(0, 3); }
 let ring = null; // { f, ids, key }
@@ -86,29 +93,69 @@ F.sit = function (f, back) { const S = Game.S(), P = Game.P, C = G.Climate; if (
     if (back) { menu(); return; } /* back from cooking: straight to the menu */
     const wetNow = C && (C.wet > 0.2 || C.cold), w = G.Weather && G.Weather.rainy() ? '빗소리 사이로 불이 타닥타닥 탑니다.' : !isNight(S) && !wetNow ? rnd(['모닥불 곁에 앉았어요. 장작이 타닥타닥 탑니다.', '불가에 앉으니 마음이 느긋해져요.']) : isNight(S) ? rnd(['밤하늘에 별이 쏟아질 듯합니다. 불꽃이 타닥타닥 튀어 오릅니다.', '나일 쪽에서 서늘한 바람이 불어오고, 모닥불이 따뜻하게 일렁입니다.']) : '젖은 옷에서 김이 피어오릅니다. 불기운이 몸을 녹입니다.';
     const intro = [{ n: '', t: w }]; if (first) intro.push({ n: '', t: (wetNow ? '몸이 마르고 따뜻해졌어요' : '몸이 따뜻해졌어요') + ' · 정신력 +15' });
-    if (ids.length) intro.push({ n: npc(ids[0]).name, t: ids[0] === 'asenath' ? rnd(Game.S().q.born1 ? ['여기 계셨네요. 저도 같이 앉을게요.', '불 피워 두셨네요. 아이들도 데려올게요.'] : ['여기 계셨네요. 저도 같이 앉을게요.']) : FAM.includes(ids[0]) ? rnd(['아빠! 나도 불 쬘래요!', '아빠 옆자리는 내 거예요!']) : rnd(['불 좀 같이 쬐어도 되겠소?', '아, 당신도 불 쬐러 오셨구려. 앉으시오.', '이 불은 우리 마을 사람 누구나 쬐는 불이라오.']) });
+    const cf0 = ids.length && castFire(ids[0]);
+    if (cf0 && cf0.join) intro.push({ n: npc(ids[0]).name, t: rnd(cf0.join) });
+    else if (ids.length) intro.push({ n: npc(ids[0]).name, t: ids[0] === 'asenath' ? rnd(Game.S().q.born1 ? ['여기 계셨네요. 저도 같이 앉을게요.', '불 피워 두셨네요. 아이들도 데려올게요.'] : ['여기 계셨네요. 저도 같이 앉을게요.']) : FAM.includes(ids[0]) ? rnd(['아빠! 나도 불 쬘래요!', '아빠 옆자리는 내 거예요!']) : rnd(['불 좀 같이 쬐어도 되겠소?', '아, 당신도 불 쬐러 오셨구려. 앉으시오.', '이 불은 우리 마을 사람 누구나 쬐는 불이라오.']) });
+    /* v18.56 the others settle in too, and people who belong together talk to each other */
+    for (const id of ids.slice(1)) { const cf = castFire(id); if (cf && cf.join) intro.push({ n: npc(id).name, t: rnd(cf.join) }); }
+    if (ids.length >= 2 && Cs()) { outer: for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const pl = Cs().pair(ids[i], ids[j]); if (pl) { for (const [w, t] of pl) intro.push({ n: npc(w ? ids[j] : ids[i]).name, t }); break outer; } } }
+    if (era() === 'canaan' && ids.includes('jacob') && !Game.S().flags.jBless) { Game.S().flags.jBless = 1; /* v18.56 a father's word before the road (heard once, at the Hebron fire) */
+      intro.push({ n: npc('jacob').name, t: '요셉아, 하나만 기억하거라. 하나님이 네게 꿈을 주셨다면, 그 꿈은 네 것이 아니라 그분 것이다.' }, { n: npc('jacob').name, t: '높아질수록 낮게 걸어라. 그리고 어디로 가든지… 그분이 너와 함께 계신다.', e: 'tender' }, { n: '요셉', t: '…네, 아버지. 잊지 않을게요.' }); }
+    /* v18.56 「아버지와 저녁 이야기」 ends here at the fire, not after getting up and speaking to him again */
+    const L = G.Life, S0 = Game.S(), QS = Game.EP().quests || {}; if (L && L.active && ids.includes('jacob')) for (const qid of L.active(S0)) { const q = QS[qid]; if (!q || q.giver !== 'jacob' || !L.qOk || !L.qOk(S0, qid) || !q.done) continue; const dl = typeof q.done === 'function' ? q.done(S0, Game) : q.done; for (const l of dl) intro.push(typeof l === 'string' ? { n: npc('jacob').name, t: l } : l); intro.push({ n: '', t: '__done:' + qid }); break; }
+    const doneQ = intro.find(l => /^__done:/.test(l.t)); if (doneQ) { const qid = doneQ.t.slice(7); intro.splice(intro.indexOf(doneQ), 1); G.UI.say(intro, () => { L.complete(qid); setTimeout(menu, 400); }); return; }
     G.UI.say(intro, () => menu()); }); };
 function menu() { const S = Game.S(), r = ring; if (!r) return; const ch = [];
   if (G.Hearth) ch.push({ t: '요리하기', then: () => setTimeout(cook, 30) });
-  if (r.ids.length) { ch.push({ t: '옛이야기 들려주기', then: () => setTimeout(tellPick, 30) }); for (const id of r.ids) ch.push({ t: `${npc(id).name}의 이야기 듣기`, then: () => setTimeout(() => listen(id), 30) }); }
-  else ch.push({ t: '불을 바라보며 생각하기', then: () => setTimeout(() => G.UI.say([{ n: '요셉', t: rnd(Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast') ? ALONE.slice(2) : ALONE) }], menu) /* v18.34 no longing for Benjamin after he has come */, 30) });
+  if (r.ids.length) { ch.push({ t: teller() ? '아버지께 옛이야기 청하기' : '옛이야기 들려주기', then: () => setTimeout(tellPick, 30) }); for (const id of r.ids) ch.push({ t: `${Cs() ? Cs().me(id) : npc(id).name}의 이야기 듣기`, then: () => setTimeout(() => listen(id), 30) }); }
+  else ch.push({ t: '불을 바라보며 생각하기', then: () => setTimeout(() => G.UI.say([{ n: '요셉', t: rnd(alone()) }], menu), 30) });
   ch.push({ t: r.ids.length ? '함께 기도하기' : '기도하기', then: () => setTimeout(pray, 30) }); ch.push({ t: '일어나기', then: () => setTimeout(stand, 30) });
   G.UI.say([{ n: '', t: r.ids.length ? '무엇을 할까요?' : '홀로 불가에 앉아 있습니다.', choices: ch }], null); }
-function tellPick() { const S = Game.S(), told = S.flags.told = S.flags.told || {};
-  G.UI.say([{ n: '요셉', t: '어떤 이야기를 해 줄까…', choices: STORIES.map(s => ({ t: (told[s.k] ? '' : '✦ ') + s.n, then: () => setTimeout(() => tell(s), 30) })).concat([{ t: '다음에', then: () => setTimeout(menu, 30) }]) }], null); }
-function tell(s) { const S = Game.S(), r = ring, told = S.flags.told = S.flags.told || {}, B = G.Bond; const lines = s.t.map(t => ({ n: '요셉', t }));
-  for (const id of r.ids) { const n = npc(id); lines.push({ n: n.name, t: kidOf(n) ? rnd(s.kid) : id === 'asenath' ? s.wife : s.man }); }
-  G.UI.say(lines, () => { const fresh = !told[s.k]; told[s.k] = 1;
+/* v18.56 who tells the old stories: in Hebron and in Goshen, Jacob tells his own fathers' stories (and his own), not his son */
+function teller() { const r = ring; if (!r) return null; for (const id of r.ids) { const cf = castFire(id); if (cf && cf.tell) return id; } return null; }
+function tellOf(id, k) { const cf = castFire(id); if (!cf) return null; let t = cf.tell; if (typeof t === 'string') { const c = Cs().of(id); t = c && c.fire && c.fire[t] && c.fire[t].tell; } return t && t[k] || null; }
+const era = () => Cs() ? Cs().era() : 'vizier';
+/* what Joseph himself can say: before the pit his dreams are only dreams; in Goshen he tells them to the brothers who sold him */
+function josephText(s) { const t = josephText0(s), kids = ring && ring.ids.some(id => id === 'manasseh' || id === 'ephraim') && !ring.ids.includes('jacob');
+  return kids ? t.map(x => x.replace(/우리 증조할아버지 아브라함/g, '너희 할아버지의 할아버지 아브라함').replace(/증조할아버지 아브라함/g, '너희 할아버지의 할아버지 아브라함').replace(/할아버지 이삭/g, '증조할아버지 이삭').replace(/우리 아버지 야곱/g, '너희 할아버지 야곱').replace(/(?<![할큰])아버지가/g, '할아버지가').replace(/(?<![할큰])아버지는/g, '할아버지는').replace(/(?<![할큰])아버지 이름/g, '할아버지 이름').replace(/에서 큰아버지/g, '에서 큰할아버지')) : t; } /* v18.56 to his sons, Jacob is 「할아버지」 */
+function josephText0(s) { const e = era(); if (s.k === 'dreams') { if (e === 'canaan') return (Game.S().flags.told || {}).dreams ? ['그 꿈 이야기 기억하세요? 곡식단들이 제 단에 절을 하던 꿈이요.', '해와 달과 열한 별 꿈도요. …저는 아직도 그 뜻이 궁금해요.'] : ['어젯밤에 꿈을 꾸었어요. 우리가 밭에서 곡식단을 묶는데, 제 단은 일어서고 형들의 단이 둘러서서 제 단에 절을 했어요.', '또 꿈을 꾸었어요. 해와 달과 열한 별이 제게 절을 했어요. …이게 무슨 뜻일까요?'];
+    if (e === 'goshen') return ['열일곱 살 때 꾼 두 꿈 이야기를, 이제는 웃으며 할 수 있겠어요. 곡식단과 해와 달과 열한 별.', '당신들이 나를 이곳에 팔므로 근심하지 마소서 한탄하지 마소서. 하나님이 생명을 구원하시려고 나를 당신들보다 먼저 보내셨나이다.'];
+    if (e === 'slave') return ['어릴 적 저는 꿈을 꾸었어요. 형들의 곡식단이 제 단에 절을 하는 꿈, 해와 달과 열한 별이 제게 절하는 꿈.', '그 꿈을 자랑하다 형들의 미움을 샀지요. 구덩이에 던져지고 여기까지 팔려 왔어요. …그래도 하나님이 그 꿈을 주셨다면, 아직 끝난 이야기가 아니겠지요.']; }
+  if (e === 'canaan' || e === 'goshen') { const fam = { stars: ['증조할아버지 아브라함께 자식이 없던 밤, 하나님이 그분을 밖으로 데리고 나가 말씀하셨대요.', '「하늘을 우러러 뭇별을 셀 수 있나 보라. 네 자손이 이와 같으리라.」'], ladder: ['아버지가 형을 피해 홀로 길을 떠나셨을 때, 돌을 베개 삼아 주무시다 하늘에 닿는 사다리를 보셨대요.', '「내가 너와 함께 있어 네가 어디로 가든지 너를 지키며…」 아버지는 그 말씀을 붙들고 하란까지 가셨어요.'], jabbok: ['에서 큰아버지를 만나기 전날 밤, 아버지는 얍복 나루에서 어떤 분과 밤새 씨름하셨대요.', '그분이 아버지 이름을 이스라엘로 바꿔 주셨어요. 그래서 아버지는 지금도 다리를 저세요.'] }; if (fam[s.k]) return fam[s.k]; }
+  return s.t; }
+/* how each listener takes the story: their own words first (js/cast.js), then the old defaults */
+function reactOf(id, k) { const n = npc(id), cf = castFire(id); if (cf && cf.react) { const r = cf.react[k] || cf.react['*']; if (r) return r.map(x => typeof x === 'string' ? { n: n.name, t: x } : Object.assign({ n: x.n === '' ? '' : n.name }, x)); }
+  if (cf && Cs().kin(id)) return []; /* Joseph's own family with nothing to add just listens */
+  const s = STORIES.find(q => q.k === k), p = G.Persona && G.Persona.of && G.Persona.of(id);
+  if (FAM.includes(id) && kidOf(n)) return [{ n: n.name, t: s.kid[id === 'ephraim' ? 1 : 0] }]; /* v18.56 the two boys don't say the same thing */
+  return [{ n: n.name, t: id === 'asenath' ? s.wife : p && p.age === 'kid' ? EGK[k] : p && p.fem ? EGW[k] : s.man }]; }
+/* v18.56 Egyptian women and children hear the old stories too (no 「…들어 보오」 from a girl) */
+const EGW = { stars: '별만큼 많은 자손이라니… 그런 약속을 해 주는 신도 있군요.', moriah: '아들을 아끼는 신이라니, 마음이 놓여요.', ladder: '어디로 가든 함께해 준다니… 그런 말 한 번 들어 보고 싶네요.', jabbok: '신과 씨름을 하다니, 무서웠겠어요.', rainbow: '나일이 넘칠 때마다 무서웠는데… 그런 약속이 있었군요.', dreams: '그런 길을 걸어오셨군요. 그래서 그렇게 다정하신가 봐요.' };
+const EGK = { stars: '별을 다 셀 수 있어요? 나도 세 볼래요!', moriah: '휴… 다행이다! 양이 숨어 있었어요?', ladder: '하늘까지 닿는 사다리요? 나도 올라가 보고 싶다!', jabbok: '밤새 씨름을요? 우와, 힘세다!', rainbow: '하마도 배에 탔어요? 진짜요?', dreams: '꿈이 진짜가 됐어요? 우와!' };
+function alone() { const e = era(), late = Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast');
+  if (e === 'canaan') return ['(타닥타닥 타는 불을 보며 어머니 라헬을 떠올린다. 에브랏 길가, 아버지가 세운 돌기둥…)', '(형들은 왜 나를 그렇게 볼까. 그 꿈 이야기를 괜히 했나…)', '(베냐민은 지금쯤 아버지 품에서 잠들었겠지.)', '(불똥이 하늘로 올라가 별 사이로 사라진다. 「네 자손이 이와 같으리라」… 아버지가 늘 하시던 말씀.)'];
+  if (e === 'goshen') return ['(장막 쪽에서 아버지의 기침 소리가 들린다. 살아 계신 아버지의 소리다.)', '(구덩이의 밤, 옥의 밤, 그리고 오늘 밤. 어느 밤에도 하나님은 나를 떠나지 않으셨다.)', '(형들의 장막에서 웃음소리가 들린다. 꿈에서도 바라던 소리다.)'];
+  return late ? ALONE.slice(2) : ALONE; } /* v18.34 no longing for Benjamin after he has come */
+function tellPick() { const S = Game.S(), told = S.flags.told = S.flags.told || {}, tl = teller();
+  G.UI.say([{ n: '요셉', t: tl ? '아버지, 그 이야기 해 주세요…' : '어떤 이야기를 해 줄까…', choices: STORIES.map(s => ({ t: (told[s.k] ? '' : '✦ ') + s.n, then: () => setTimeout(() => tell(s), 30) })).concat([{ t: '다음에', then: () => setTimeout(menu, 30) }]) }], null); }
+function tell(s) { const S = Game.S(), r = ring, told = S.flags.told = S.flags.told || {}, B = G.Bond; const tl = teller(), byDad = tl && tellOf(tl, s.k);
+  const lines = byDad ? byDad.map(t => ({ n: npc(tl).name, t })) : josephText(s).map(t => ({ n: '요셉', t }));
+  for (const id of r.ids) { if (byDad && id === tl) continue; lines.push(...reactOf(id, s.k)); }
+  if (byDad) lines.push({ n: '요셉', t: rnd(['(아버지의 목소리를 마음에 새긴다)', '아버지, 그 이야기는 들을 때마다 새로워요.', '(불빛에 비친 아버지의 주름을 바라본다)']) });
+  G.UI.say(lines, () => { const fresh = !byDad && !told[s.k]; if (!byDad) told[s.k] = 1;
     for (const id of r.ids) { const b = B && B.get(id); if (b && b.fire !== r.key) { b.fire = r.key; B.add(id, 4, '모닥불 이야기'); } }
     if (fresh) { G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(8); if (Object.keys(told).length === STORIES.length && !S.flags.storyteller) { S.flags.storyteller = 1; sfx('quest');
       G.UI.featCard && G.UI.featCard('story', { kick: '모닥불 이야기꾼', n: '여섯 이야기를 모두 들려주었어요', ic: 'star', d: '조상들의 하나님 이야기가 애굽 사람들의 불가로 퍼져 나가요. 깨달음 +2' }); Game.insight && Game.insight(2, '모닥불 이야기꾼'); } }
     menu(); }); }
-function listen(id) { const n = npc(id), B = G.Bond; const lv = B ? B.level(id).i : 0, pool = talkOf(n);
+function listen(id) { const n = npc(id), B = G.Bond, cf = castFire(id); const lv = B ? B.level(id).i : 0, pool = talkOf(n);
+  if (cf && cf.listen) { const ls = [{ n: n.name, t: Cs().next(id, 'fire:' + era(), cf.listen) }, { n: '요셉', t: rnd(cf.reply || ['(고개를 끄덕이며 귀 기울인다)']) }];
+    G.UI.say(ls, () => { const b = B && B.get(id); if (b && ring && b.fire !== ring.key) { b.fire = ring.key; B.add(id, 4, '불가의 이야기'); } menu(); }); return; }
   const ls = [{ n: n.name, t: rnd(pool) }]; if (lv >= 2 && !FAM.includes(id)) ls.push({ n: n.name, t: rnd(['당신이랑 이렇게 앉아 있으니 오래된 친구 같구려.', '이건 아무한테나 하는 얘기가 아니오. 당신이니까 하는 거요.']) });
   ls.push({ n: '요셉', t: rnd(['(고개를 끄덕이며 귀 기울인다)', '그랬군요. 들려줘서 고마워요.', '하나님이 그 마음을 아실 거예요.']) });
   G.UI.say(ls, () => { const b = B && B.get(id); if (b && b.fire !== ring.key) { b.fire = ring.key; B.add(id, 4, '불가의 이야기'); } menu(); }); }
-function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.emote = { k: 'pray', t: 0, dur: 4 }; const ls = [{ n: '요셉', t: rnd(['조상들의 하나님, 오늘 하루도 지켜 주셔서 감사합니다. 이 불가에 앉은 이들의 집에도 평안을 주세요.', (Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast') ? '하나님, 아버지와 형제들을 지켜 주세요.' : '하나님, 멀리 가나안에 계신 아버지와 베냐민을 지켜 주세요.') + ' 그리고 이 땅의 사람들도요.']) }];
-  if (r.ids.length) ls.push({ n: npc(r.ids[0]).name, t: FAM.includes(r.ids[0]) ? '아멘!' : rnd(['…아멘. 당신 하나님께 나도 인사드리오.', '(조용히 눈을 감고 따라 한다)']) });
+function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.emote = { k: 'pray', t: 0, dur: 4 }; const ls = [{ n: '요셉', t: rnd(['조상들의 하나님, 오늘 하루도 지켜 주셔서 감사합니다. 이 불가에 앉은 이들의 집에도 평안을 주세요.', era() === 'canaan' ? '하나님, 세겜에 있는 형들을 지켜 주세요. 형들과 제 사이에도 평화를 주세요.' : era() === 'goshen' ? '조상들의 하나님, 아버지를 제 곁에 다시 두셔서 감사합니다. 형님들의 장막에도 평안을 주세요.' : (Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast') ? '하나님, 아버지와 형제들을 지켜 주세요.' : '하나님, 멀리 가나안에 계신 아버지와 베냐민을 지켜 주세요.') + ' 그리고 이 땅의 사람들도요.']) }];
+  for (const id of r.ids) { const cf = castFire(id); if (cf && cf.amen) ls.push({ n: npc(id).name, t: cf.amen }); }
+  if (r.ids.length && !r.ids.some(id => castFire(id) && castFire(id).amen)) ls.push({ n: npc(r.ids[0]).name, t: FAM.includes(r.ids[0]) ? '아멘!' : rnd(['…아멘. 당신 하나님께 나도 인사드리오.', '(조용히 눈을 감고 따라 한다)']) });
   G.UI.say(ls, () => { P.emote = null; P.emote = { k: 'sitg', t: 0, dur: 1e4 }; if (S.flags.fsPray !== r.key) { S.flags.fsPray = r.key; G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(20); G.UI.toast('마음이 고요해졌어요 · 정신력 +20'); } menu(); }); }
 /* 요리하기: get up quietly, open the cooking sheet; when the dish is done (or the sheet is closed) sit back down by the same fire */
 function cook() { const r = ring; if (!r) return; const f = r.f; stand(true); G.Hearth.open(f); let n = 0;
@@ -120,7 +167,7 @@ function stand(quiet) { const P = Game.P, r = ring; ring = null; P.emote = null;
 // the action by the fire
 Game.CTX.push(function (S) { const P = Game.P, C = G.Climate; if (S.step === 'p_wake') return null; /* v18.38 the first goal is Jacob: nothing else on A yet */ if (ring || P.ride || P.swim || P.act || Game.cineOn) return null; const E = Game.EP(); if (!E || E !== EPJ()) return null;
   for (const st of E.stations || []) { if (st.type !== 'fire' || st.oven || (st.on && !st.on(S, Game))) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d > 3.4) continue;
-    return [{ d: d - 1.2, label: '모닥불가에 앉기', x: st.x, z: st.z, y: 0.8, key: 'fireside:' + st.id, reach: 1.7, use: () => F.sit(st) }]; }
+    return [{ d: /^(fM_|fCave)/.test(st.id || '') ? d : d - 1.2, /* v18.57 at a cave mouth, 「들어가기」 wins unless you stand right at the fire */ label: '모닥불가에 앉기', x: st.x, z: st.z, y: 0.8, key: 'fireside:' + st.id, reach: 1.7, use: () => F.sit(st) }]; }
   return null; });
 
 // ------------------------------------------------------------------ midday thirst

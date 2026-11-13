@@ -688,6 +688,7 @@ let needT = -1, needSet = new Set();
 Game.questNeeds = function () { if (!S) return needSet; if (needT === tAll) return needSet; needT = tAll; needSet = new Set(); const st = EP.steps[S.step];
   if (st) { if (st.talk) for (const k in st.talk) needSet.add(k); if (st.need) for (const k of (typeof st.need === 'function' ? st.need(S, Game) : st.need)) needSet.add(k); let t = null; try { t = typeof st.target === 'function' ? st.target(S, Game) : st.target; } catch (e) { } if (typeof t === 'string' && t.startsWith('npc:')) needSet.add(t.slice(4)); }
   if (G.Life) for (const id of G.Life.active(S)) { const q = (EP.quests || {})[id]; if (q && q.giver) needSet.add(q.giver); if (q && q.needs) for (const k of q.needs) needSet.add(k); }
+  if (G.Life && G.Life.avail) for (const id in (EP.quests || {})) { const q = EP.quests[id]; if (q && q.main && q.giver && !needSet.has(q.giver)) { try { if (G.Life.avail(S, id)) needSet.add(q.giver); } catch (e) { } } } /* v18.57 someone with an important request waiting (the 「!」 over the head) stays out where you can find them (이네트 at her oven) */
   if (Game.curTarget && Game.curTarget.npc) needSet.add(Game.curTarget.npc); return needSet; };
 Game.questNeed = id => Game.questNeeds().has(id);
 /* v18.35 free time: the years of plenty and the free journey. Anything else counts as the story being on: no side errands, no strolling with company */
@@ -723,7 +724,10 @@ function resolveT(t) {
     if (k === 'npc') { const n = ENT.npcs[id]; return n ? { x: n.x, z: n.z, npc: id } : null; }
     if (k === 'site') { const s = ENT.sites.find(x => x.id === id); return s ? { x: s.x, z: s.z } : null; }
     if (k === 'pen') { const p = pen(id); return p ? { x: p.gx === undefined ? p.x : p.gx, z: p.gz === undefined ? p.z : p.gz } : null; }
-    if (k === 'field') { const f = (EP.fields || []).find(x => x.id === id); return f ? { x: f.x, z: f.z } : null; }
+    if (k === 'field') { const f = (EP.fields || []).find(x => x.id === id); if (!f) return null; /* v18.56 point at the nearest ripe plot (the middle of the field was a plot waiting for water) */
+      const ts = f.ts || 1.6, ca = Math.cos(f.ry || 0), sa = Math.sin(f.ry || 0); let best = null, bd = 1e9;
+      for (let i = 0; i < f.cols; i++) for (let j = 0; j < f.rows; j++) { const p = S.plots[f.id + ':' + i + ',' + j]; if (!p || p.s !== 2 || !CROPS[p.c] || p.st < cropStages(p.c) - 1) continue; const cx = -f.cols * ts / 2 + (i + 0.5) * ts, cz = -f.rows * ts / 2 + (j + 0.5) * ts, x = f.x + cx * ca + cz * sa, z = f.z - cx * sa + cz * ca, d = Math.hypot(x - P.x, z - P.z); if (d < bd) { bd = d; best = { x, z }; } }
+      return best || { x: f.x, z: f.z }; }
     if (k === 'spot') { const s = EP.spots[id]; return s ? { x: s[0], z: s[1] } : null; }
     if (k === 'node') { let b = null, bd = 1e9; for (const n of ENT.nodes) { if (!id.split(',').includes(n.type)) continue; if (S.nodes[n.id] > S.day) continue; const d = Math.hypot(n.x - P.x, n.z - P.z); if (d < bd) { bd = d; b = n; } } return b; }
   }

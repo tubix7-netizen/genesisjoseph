@@ -1,6 +1,6 @@
 /* 약속의 길 — 갈대 어촌 (v18.50)
    도성 남쪽, 나일 강 동쪽 기슭의 빈 들에 작은 어부 마을이 생겼어요. 갈대배를 묶어 두고, 그물을 깁고, 잡은 고기를 볕에 말리는 마을이에요.
-   · 여섯 집: 어부 우나스(마을 어른), 그물 깁는 할머니 메르티, 갈대배 짓는 페피, 고기 말리는 여인 이세트, 어부 아들 케티, 물 긷는 여인 누트.
+   · 여섯 집: 어부 우나스(마을 어른), 그물 깁는 할머니 메르티, 갈대배 짓는 페피, 고기 말리는 여인 이세트, 어부 아들 투티, 물 긷는 여인 누트.
    · 할 일: 그물 깁기 돕기(하루 한 번 · 생선), 갈대배 짓는 페피에게 갈대 다섯 다발 건네기(한 번 · 은과 생선 · 「갈대 어촌」 발자취),
      말린 생선 맛보기(하루 한 번 · 기력), 우나스의 강 이야기(사람들에게 「이 마을은 어떤 곳이에요?」). */
 'use strict';
@@ -24,7 +24,7 @@ const FOLK = [
   { id: 'fv_merti', name: '그물 깁는 할머니 메르티', role: 'weaver', home: 1, age: 'old', look: tw(OW, { skin: 0xa86a40 }), persona: '마을 그물을 모두 깁는 할머니. 손이 빠르고 잔소리도 빠르다.' },
   { id: 'fv_pepi', name: '갈대배 짓는 페피', role: 'potter', home: 2, look: tw(M1, { skin: 0x9a6038, build: 1.1 }), persona: '파피루스 갈대를 묶어 배를 짓는 장인. 손에 늘 갈대 물이 들어 있다.' },
   { id: 'fv_iset', name: '고기 말리는 이세트', role: 'weaver', home: 3, look: tw(W0, { skin: 0xb07848, top: 0xe8dcc0 }), persona: '잡은 고기를 소금에 절여 볕에 말리는 여인.' },
-  { id: 'fv_keti', name: '어부 아들 케티', role: 'child', home: 0, age: 'kid', look: K0, persona: '우나스의 손자. 악어를 한 번도 무서워한 적이 없다고 우긴다.' },
+  { id: 'fv_keti', name: '어부 아들 투티' /* v18.56 four 케티s were too many */, role: 'child', home: 0, age: 'kid', look: K0, persona: '우나스의 손자. 악어를 한 번도 무서워한 적이 없다고 우긴다.' },
   { id: 'fv_nut', name: '물 긷는 누트', role: 'water', home: 4, look: tw(W0, { skin: 0xc08a58 }), persona: '강물을 길어 마을 항아리를 채우는 여인. 노래를 잘 부른다.' },
   { id: 'fv_fish', name: '어부 세트나', role: 'fisher', home: 5, look: tw(M0, { skin: 0x8a5a32 }), prop: 'fishrod', persona: '마을에서 고기를 제일 잘 잡는 젊은 어부.' }];
 for (const f of FOLK) if (f.look) AI.addFolk(EP, V, f);

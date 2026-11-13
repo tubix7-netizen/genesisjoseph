@@ -96,7 +96,7 @@ Game.CTX.push(function (s) { const bn = s.flags && s.flags.bnt; if (!bn || bn.st
 let tk = 0;
 const up0 = EP.update; EP.update = function (dt) { const r = up0 ? up0.apply(this, arguments) : undefined; tk -= (typeof dt === 'number' && dt < 1 ? dt : 1 / 60); if (tk > 0 || Game.mode !== 'play') return r; tk = 0.5;
   try { const s = S(), bn = s.flags && s.flags.bnt; if (bn && bn.st !== 'done') { if (!Game.npc(FUG) && !(G.DW && G.DW.on && G.DW.on())) spawnFug(); const n = Game.npc(FUG), p = P();
-      if (n && bn.st === 'post' && Math.hypot(n.x - p.x, n.z - p.z) < 24 && !bn.seen) { bn.seen = 1; s.wp = { x: n.x, z: n.z, n: bn.name }; UI.toast(`${bn.name}이(가) 보여요! 다가가 말을 걸어요`); } } } catch (e) { console.error('notice', e); } return r; };
+      if (n && bn.st === 'post' && Math.hypot(n.x - p.x, n.z - p.z) < 24 && !bn.seen) { bn.seen = 1; s.wp = { x: n.x, z: n.z, n: bn.name }; UI.toast(`${bn.name}${(c => c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '이' : '가')(bn.name.charCodeAt(bn.name.length - 1))} 보여요! 다가가 말을 걸어요`); } } } catch (e) { console.error('notice', e); } return r; };
 // ------------------------------------------------------------------ v18.55 a board once read stays on the big map; and how much of the land Joseph knows
 { const mx0 = UI.mapExtra; UI.mapExtra = function (c, sx, sz, k, w, h) { if (mx0) try { mx0.apply(this, arguments); } catch (e) { }
   const s = S(), seen = (s && s.flags && s.flags.nbSeen) || {}; for (const b of NB.boards) { if (!seen[b.id]) continue; const x = sx(b.x), y = sz(b.z); c.fillStyle = '#e6dcc2'; c.strokeStyle = '#5a3a1a'; c.lineWidth = 1.5; c.fillRect(x - 5, y - 4, 10, 8); c.strokeRect(x - 5, y - 4, 10, 8); c.fillStyle = '#a83a2a'; c.fillRect(x - 3, y - 2, 6, 1.5); }

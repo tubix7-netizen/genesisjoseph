@@ -28,7 +28,8 @@ Ca.cycle = function () { const L = Ca.liquids(), i = L.indexOf(jarK()), k = L[(i
   G.UI.toast(k === 'water' ? `항아리 · 물 ${S().water}` : `항아리 · ${Game.ITEMS[k].n} ${Game.inv(k)}`); G.UI.hud(); };
 Game.CTX.push(function () { const p = P(), h = Game.hand(), s0 = S(); if (s0.step === 'c2_work' && !s0.q.w1) return null; /* v18.38 this water is for the kitchen: A must not spend it by accident */ if (!(h === 'jar' || h === 'bigjar') || p.ride || p.swim || p.act || p.climb || Game.cineOn || (G.Phys && G.Phys.held)) return null;
   const k = jarK(), n = k === 'water' ? S().water : Game.inv(k); /* v18.21 A just says 「마시기」 (what is in the jar shows on B); lowest priority, so a well's 「물 긷기」 wins */
-  return [{ d: 5, label: n > 0 ? '마시기' : '항아리가 비었어요', disabled: n <= 0, x: p.x + Math.sin(p.face) * 0.5, z: p.z + Math.cos(p.face) * 0.5, y: 1.4, use: Ca.drink, key: 'jarDrink', noMagnet: true, noTag: true }]; });
+  if (n <= 0) return null; /* v18.56 an empty jar no longer takes over the A button everywhere */
+  return [{ d: 5, label: '마시기', disabled: false, x: p.x + Math.sin(p.face) * 0.5, z: p.z + Math.cos(p.face) * 0.5, y: 1.4, use: Ca.drink, key: 'jarDrink', noMagnet: true, noTag: true }]; });
 // the left 「물 마시기」 button goes; the water pill shows (and switches) what the jar holds
 setTimeout(() => { const EP = G.EP && G.EP.joseph; if (EP && EP.extra) EP.extra = EP.extra.filter(e => e.id !== 'drink'); const b = document.getElementById('xb_drink'); if (b) b.remove(); }, 60);
 if ($('waterBtn')) $('waterBtn').onclick = () => { if (G.UI.busy()) return; if (!hasJar()) { G.UI.toast('물항아리가 있어야 해요'); return; } Ca.cycle(); };

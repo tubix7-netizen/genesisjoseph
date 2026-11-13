@@ -14,7 +14,7 @@
 (function (G) {
 const Game = G.Game, clamp = (v, a, b) => v < a ? a : v > b ? b : v, rnd = a => a[Math.floor(Math.random() * a.length)];
 const D = G.Deeds = { on: !/[?&]deeds=0\b/.test(location.search), stats: { rec: 0, seen: 0, unseen: 0, told: 0, remarks: 0 } };
-const S = () => Game.S(), hero = () => (Game.EP() && Game.EP().hero) || '요셉';
+const S = () => Game.S(), hero = () => { const e = G.Cast && G.Cast.era(); if (e && /vizier|brothers|goshen/.test(e) && Game.P.x < 112) return '총리님'; return (Game.EP() && Game.EP().hero) || '요셉'; }; /* v18.56 Egyptians don't call the vizier by his Hebrew name */
 const hasJong = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return c >= 0 && c % 28 !== 0; }, J = (w, a, b) => w + (hasJong(w) ? a : b); // Korean particles follow the last sound: 요셉이/가, 은/는, 을/를
 const store = () => { const s = S(); if (!s) return null; s.deeds = s.deeds || []; s.rep = s.rep || {}; return s; };
 

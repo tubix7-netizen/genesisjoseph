@@ -54,7 +54,7 @@ const STORY = [
 B.talk = function (n, lines, done) { const id = n.id || Object.keys(Game.ENT.npcs).find(k => Game.ENT.npcs[k] === n); n.id = id; const S = Game.S(), b = B.get(id), F = fam(id), first = b.day !== S.day;
   if (first) { b.day = S.day; setTimeout(() => B.add(id, F ? 3 : 2, '오늘 이야기'), 50); }
   const ls = (lines && lines.length ? lines : G.Greet ? G.Greet.lines(n) : [{ n: n.name, t: '평안하시오.' }]).map(l => typeof l === 'string' ? { n: n.name, t: l } : l);
-  const ch = [{ t: '안부 묻기', then: () => setTimeout(() => G.UI.say([{ n: n.name, t: F ? pk(F.talk(S, B.level(id).i)) : (G.Persona && G.Persona.story(n, B.level(id).i)) || rnd(STORY[B.level(id).i]) }], () => B.talk(n, [{ n: n.name, t: '또 무슨 이야기를 할까요?' }], done)), 30) },
+  const ch = [{ t: '안부 묻기', then: () => setTimeout(() => G.UI.say([{ n: n.name, t: F ? famAsk(id, F.talk(S, B.level(id).i)) : (G.Persona && G.Persona.story(n, B.level(id).i)) || rnd(STORY[B.level(id).i]) }], () => B.talk(n, [{ n: n.name, keep: 1, t: (G.Cast && G.Cast.of(id) && G.Cast.of(id).more) || '또 무슨 이야기를 할까요?' }], done) /* v18.56 in their own voice */), 30) },
     { t: '선물 주기', then: () => setTimeout(() => B.giftPick(n, done), 30) }];
   if (F && F.meal && b.meal !== S.day) ch.push({ t: '함께 식사하기', then: () => setTimeout(() => B.meal(n, done), 30) });
   if (F && F.walk && (n.follow || !(Game.questBusy && Game.questBusy()))) ch.push({ t: n.follow ? '여기서 기다려 줘요' : '같이 걸어요', then: () => { n.follow = !n.follow; G.UI.toast(n.follow ? `${n.name}이(가) 함께 걸어요` : `${n.name}이(가) 여기서 기다려요`); done && done(); } });
@@ -67,9 +67,15 @@ B.giftPick = function (n, done) { const S = Game.S(), id = n.id, b = B.get(id), 
   const ks = Object.keys(S.inv).filter(k => S.inv[k] > 0 && I[k] && ['food', 'good', 'crop', 'fish', 'mat'].includes(I[k].cat) && !Game.ITEMS[k].tool).sort((a, c) => (likes(n).includes(c) ? 1 : 0) - (likes(n).includes(a) ? 1 : 0)).slice(0, 6);
   if (!ks.length) { G.UI.say([{ n: '요셉', t: '(줄 만한 것이 없다…)' }], done); return; }
   G.UI.say([{ n: '요셉', t: '무엇을 줄까?', choices: ks.map(k => ({ t: `${I[k].n} (${S.inv[k]})`, then: () => { Game.take(k, 1); b.gift = S.day; G.Deeds && G.Deeds.rec('share', n); const like = likes(n).includes(k), sto = ['stone', 'branch', 'clay', 'straw', 'reed'].includes(k);
-      setTimeout(() => G.UI.say([{ n: n.name, t: like ? rnd(['어머, 이거 정말 좋아하는 거예요! 고마워요!', '어떻게 알았소? 내가 이걸 제일 좋아하는데!', '와아! 최고예요!']) : sto ? rnd(['…이걸 왜 주시오? 허허.', '음… 고마워요. (어리둥절)']) : rnd(['고마워요. 잘 쓸게요.', '정성이 고맙구려.']) }], () => { B.add(id, like ? 6 : sto ? 0 : 2, '선물'); done && done(); }), 30); } })).concat([{ t: '그만두기', then: () => done && done() }]) }], null); };
+      setTimeout(() => G.UI.say([{ n: n.name, t: (() => { const R = giftVoice(n); return rnd(like ? R[0] : sto ? R[2] : R[1]); })() }], () => { B.add(id, like ? 6 : sto ? 0 : 2, '선물'); done && done(); }), 30); } })).concat([{ t: '그만두기', then: () => done && done() }]) }], null); };
+/* v18.56 a thank-you in the giver's own voice: a child, a woman, a man, an old man or woman (no 「어떻게 알았소?」 from a little boy) */
+const GV = { kid: [['와아! 이거 제일 좋아하는 거예요!', '헤헤, 진짜요? 고마워요!'], ['고마워요!'], ['…이걸로 뭐 해요? 헤헤.']], kidF: [['와아, 이거 제일 좋아해요!', '정말요? 고마워요!'], ['고마워요!'], ['…이건 뭐예요?']],
+  man: [['어떻게 알았소? 내가 이걸 제일 좋아하는데!', '이거 귀한 걸 주는구려. 고맙소!'], ['고맙소. 잘 쓰리다.', '정성이 고맙구려.'], ['…이걸 왜 주시오? 허허.']], woman: [['어머, 이거 정말 좋아하는 거예요! 고마워요!'], ['고마워요. 잘 쓸게요.'], ['음… 고마워요. (어리둥절)']],
+  oldM: [['허허, 늙은이 입맛을 어찌 알았는가!'], ['고맙구먼.'], ['허허, 이걸 다…']], oldF: [['아이고, 이걸 어찌 알고! 고맙다오.'], ['고맙다오.'], ['아이고, 이건 어디 쓰는 거라우?']] };
+function giftVoice(n) { const p = G.Persona && G.Persona.of && G.Persona.of(n.id); return GV[(p && p.reg) || 'man'] || GV.man; }
 // family time
 /* v18.34 no talk of the children before they are born (c5_manasseh / c5_ephraim) */
+const famAsk = (id, a) => { const f = (a || []).filter(kidOK), L = f.length ? f : a; return G.Cast && G.Cast.next ? G.Cast.next(id, 'famAsk', L) : pk(L); }; /* v18.56 go through the lines in turn (no same line three times) */
 const kidOK = t => { const q = (Game.S() && Game.S().q) || {}; return q.born2 ? true : q.born1 ? !/에브라임/.test(t) : !/아이|므낫세|에브라임/.test(t); }, pk = a => { const f = (a || []).filter(kidOK); return rnd(f.length ? f : a); };
 B.meal = function (n, done) { const S = Game.S(), P = Game.P, b = B.get(n.id); b.meal = S.day; const F = fam(n.id);
   G.UI.fade(() => { P.emote = { k: 'sitg', t: 0, dur: 1e4 }; /* v18.34 on the floor mat, not on an invisible chair */ const H = S.hero; if (H) H.hp = H.hpMax; P.stam = (H && H.stamMax) || 100; if (G.Vitals && G.Vitals.mindGain) G.Vitals.mindGain(25); if (S.surv) S.surv.food = 100; }, () => {
