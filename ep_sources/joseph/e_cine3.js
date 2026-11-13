@@ -56,7 +56,7 @@ function cinFeast(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 4);
       cam: [hx + 7, hh + 2.6, hz + 12], look: [hx, hh + 1.2, hz + 6], dur: 7, music: 'j_finale', t: '요셉이 베냐민이 그들과 함께 있음을 보고 그 청지기에게 이르되, 「이 사람들을 집으로 인도해 들이고 짐승을 잡고 준비하라. 이 사람들이 오정에 나와 함께 먹을 것이니라」', ref: '창세기 43:16' },
     { cam: [hx + 1.8, hh + 1.6, hz + 3.2], look: [hx + 0.4, hh + 1.4, hz + 6.2], dur: 7, fov: 0.55, n: '요셉', t: '너희 아버지 너희가 말하던 그 노인이 안녕하시냐? 지금까지 생존하셨느냐?', ref: '창세기 43:27' },
     { fn: () => { BRO11.forEach((id, i) => { const n = G.npc(id); if (n) n.emote = { k: 'prostrate', t: -i * 0.1, dur: 7, amb: true }; }); }, cam: [hx - 4, hh + 2.4, hz + 2], look: [hx - 1, hh + 0.5, hz + 6.5], dur: 7, n: '유다', t: '주의 종 우리 아비가 평안하고 지금까지 생존하였나이다.', ref: '창세기 43:28' },
-    { fn: () => BRO11.forEach(id => { const n = G.npc(id); if (n) n.emote = null; }), cam: [hx + 4.2, hh + 1.5, hz + 8.8], look: [hx + 4.4, hh + 1.3, hz + 8], dur: 7, n: '요셉', t: '너희가 내게 말하던 너희 작은 동생이 이냐 그가 또 가로되 소자여, 하나님이 네게 은혜 베푸시기를 원하노라.', ref: '창세기 43:29' },
+    { fn: () => BRO11.forEach(id => { const n = G.npc(id); if (n) n.emote = null; }), cam: [hx + 4.2, hh + 1.5, hz + 8.8], look: [hx + 4.4, hh + 1.3, hz + 8], dur: 7, n: '요셉', t: '너희가 내게 말하던 너희 작은 동생이 이냐? …소자여, 하나님이 네게 은혜 베푸시기를 원하노라.', ref: '창세기 43:29' },
     { fn: () => { G.teleport(hx + 13, hz - 1, -Math.PI / 2); cpose('weep', 8); }, cam: [hx + 10.8, hAt(hx + 13, hz - 1) + 1.5, hz + 0.6], look: [hx + 13, hAt(hx + 13, hz - 1) + 1.4, hz - 1], dur: 8, fadeIn: 0.6,
       t: '요셉이 아우를 인하여 마음이 타는듯 하므로 급히 울곳을 찾아 안방으로 들어가서 울고, 얼굴을 씻고 나와서 그 정을 억제하고 음식을 차리라 하매', ref: '창세기 43:30–31' },
   ], () => { cpose(null); G.teleport(hx, hz + 1.2, 0); next && next(); });
@@ -105,6 +105,14 @@ function cinIAmJoseph(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 
     /* v18.34 the promise made at Hebron (p_provision: 「형, 꼭 빨리 와야 해. 약속!」) is answered at last */
     { cam: [hx + 1.5, hh + 1.5, hz - 0.9], look: [hx + 0.5, hh + 1.5, hz + 0.9], dur: 5.5, n: '베냐민', t: '형… 금방 온다고 약속했잖아. 스무 해가 넘게 기다렸어.', e: 'cry' },
     { cam: [hx + 2.3, hh + 1.55, hz + 0.2], look: [hx + 0.2, hh + 1.5, hz + 0.45], dur: 6, n: '요셉', t: '늦어서 미안해, 베냐민. 오늘 밤엔 별 이야기 해 줄게. 이제는 날마다. 하나님이 우리 약속을 잊지 않으셨어.', e: 'cry' },
+    /* v18.56 Benjamin's stone comes home, and the two brothers who carry that day the most each say their word */
+    { cam: [hx + 1.2, hh + 1.2, hz + 0.1], look: [hx + 0.3, hh + 1.0, hz + 0.6], dur: 6, fov: 0.5, t: '요셉이 품에서 닳고 닳은 작은 돌멩이를 꺼냈습니다. 헤브론을 떠나던 날, 어린 베냐민이 쥐여 준 그 돌이었습니다.' },
+    { cam: [hx + 2.0, hh + 1.5, hz - 0.6], look: [hx + 0.5, hh + 1.5, hz + 0.9], dur: 6, n: '베냐민', t: '그거… 아직 가지고 있었어? 형, 그거 내 보물이었는데…', e: 'cry' },
+    { cam: [hx + 1.4, hh + 1.6, hz + 1.6], look: [hx, hh + 1.6, hz], dur: 6, n: '요셉', t: '구덩이에서도, 옥에서도 이걸 쥐고 있었어. 무서우면 꼭 쥐라며.', e: 'cry' },
+    { cam: [hx + 1.8, hh + 1.25, hz + 1.7], look: [hx + 0.8, hh + 0.85, hz + 4], dur: 7, n: '유다', t: '…요셉아. 그날 은 이십 개를 받고 너를 넘기자고 한 건 나였다. 나를 벌해라.', e: 'cry' },
+    { cam: [hx - 0.6, hh + 1.6, hz + 1.4], look: [hx, hh + 1.6, hz], dur: 7, n: '요셉', t: '유다 형님은 베냐민 대신 종이 되겠다고 하셨어요. 그날, 형님은 이미 다른 사람이었어요.', e: 'tender' },
+    { cam: [hx - 4.8, hh + 1.25, hz + 1.6], look: [hx - 4, hh + 0.85, hz + 4], dur: 7, n: '르우벤', t: '그날 밤 구덩이에 돌아갔을 때 네가 없었다. 스무 해 동안, 나는 날마다 그 빈 구덩이를 들여다보며 살았다.', e: 'cry' },
+    { cam: [hx + 1, hh + 1.7, hz + 1.2], look: [hx, hh + 1.6, hz], dur: 7, fov: 0.5, n: '요셉', t: '르우벤 형님… 이제 그 구덩이는 비어 있어도 괜찮아요. 제가 여기 있잖아요.', e: 'cry' },
   ], () => { cpose(null); BRO11.forEach(id => { const n = G.npc(id); if (n) { n.act = null; n.emote = null; } }); next && next(); });
 }
 function cinSendOff(S, G, next) { const cx = 34, cz = -30, ch = hAt(cx, cz), hh = hAt(G7HEB[0], G7HEB[1]);
@@ -141,7 +149,13 @@ function cinReunion(S, G, next) { const [x0, z0] = GOSHEN, gh = GH();
     { fn: () => { G.teleport(x0, z0 + 4.8, 0); cpose('weep', 12); const j = G.npc('jacob'); if (j) j.emote = { k: 'weep', t: 0, dur: 12, amb: true }; }, cam: [x0 + 2.4, gh + 1.6, z0 + 5.6], look: [x0, gh + 1.5, z0 + 5.4], dur: 9, fov: 0.6,
       t: '그에게 보이고 그 목을 어긋맞겨 안고 얼마 동안 울매', ref: '창세기 46:29' },
     { cam: [x0 - 1.4, gh + 1.6, z0 + 7.4], look: [x0, gh + 1.6, z0 + 6], dur: 9, n: '야곱', t: '네가 지금까지 살아 있고 내가 네 얼굴을 보았으니 지금 죽어도 가하도다.', ref: '창세기 46:30', e: 'cry' },
+    { cam: [x0 + 0.9, gh + 1.55, z0 + 5.9], look: [x0, gh + 1.6, z0 + 5.0], dur: 8, fov: 0.5, t: '피 묻은 채색옷을 스무 해 넘게 품고 살던 늙은 손이, 살아 있는 아들의 얼굴을 천천히 더듬었습니다.' }, /* v18.56 the reunion, given time */
+    { cam: [x0 - 1.0, gh + 1.6, z0 + 7.0], look: [x0, gh + 1.6, z0 + 5.2], dur: 7, n: '야곱', t: '어디 보자… 이 눈, 이 이마… 네 어미를 꼭 닮았구나. 내 아들 요셉이구나.', e: 'cry' },
     { cam: [x0 + 1.4, gh + 1.6, z0 + 4], look: [x0, gh + 1.6, z0 + 4.8], dur: 7, n: '요셉', t: '아버지… 스무 해 남짓, 하나님은 하루도 저를 떠나지 않으셨어요.', e: 'cry' },
+    { cam: [x0 + 6, gh + 1.7, z0 + 6], look: [x0 - 2, gh + 1.2, z0 + 10.5], dur: 7, t: '형들은 멀찍이 선 채 고개를 들지 못했습니다. 그날 헤브론에서 아버지께 피 묻은 옷을 내밀던 손들이었습니다.' },
+    { cam: [x0 + 3.0, gh + 1.6, z0 + 8.0], look: [x0 + 1, gh + 1.5, z0 + 10.5], dur: 6, n: '베냐민', t: '아버지가 웃으셔… 형, 스무 해 만에 처음이야.', e: 'cry' },
+    { cam: [x0 - 1.4, gh + 1.6, z0 + 7.4], look: [x0, gh + 1.6, z0 + 6], dur: 7, n: '야곱', t: '요셉아, 네 아이들은 어디 있느냐. 이 늙은 아비가 손주들 얼굴을 보고 싶구나.', e: 'tender' },
+    { cam: [x0 + 1.4, gh + 1.6, z0 + 4], look: [x0, gh + 1.6, z0 + 4.8], dur: 6, n: '요셉', t: '므낫세와 에브라임이에요, 아버지. 곧 데려올게요. 아버지 무릎에 앉혀 드릴게요.', e: 'tender' },
     { fn: () => { cpose(null); const j = G.npc('jacob'); if (j) j.emote = null; }, cam: [x0 + 18, gh + 9, z0 + 18], cam2: [x0 + 22, gh + 14, z0 + 22], look: [x0, gh + 1, z0 + 3], dur: 9, fadeOut: 1.2,
       t: '야곱의 집 사람으로 애굽에 이른 자의 도합이 칠십명이었더라.', ref: '창세기 46:27' },
   ], () => { placeGoshen(S); G.teleport(x0 + 2, z0 - 4, 0); next && next(); });
@@ -182,7 +196,7 @@ const STEPS7 = {
     enter(S, G) { S.q.broShow = 0; ageBrothers(); showAt('simeon', G7YARD[0] + 1.4, G7YARD[1] + 1.4, 0.4, { sit: true }); },
     talk: { simeon(S, G) { if (S.q.visitS) return false; say([N('simeon', '…총리께서 이 옥까지 무슨 일이십니까. 형제들은 반드시 돌아올 것입니다. 막내를 데리고요.', '', 'fear'),
       N('simeon', '밤마다 꿈에 한 소년이 보입니다. 구덩이 속에서 우리를 올려다보던 눈… 이 옥은 그 값인지도 모르지요.', '', 'sad'),
-      { n: '요셉', t: '(무엇이라 답할까?)', choices: [{ t: '"이곳 간수장은 내가 아는 이요. 너를 잘 대하라 일러 두겠다."' }, { t: '"…네 하나님이 너를 잊지 않으셨을 것이다."' }] },
+      { n: '요셉', t: '(무엇이라 답할까?)', choices: [{ t: '"이곳 간수장은 내가 아는 이다. 너를 잘 대하라 일러 두겠다."' }, { t: '"…네 하나님이 너를 잊지 않으셨을 것이다."' }] },
       T('요셉은 시므온에게 빵과 물을 넣어 주게 하고 옥을 나섰습니다. 문을 나서자마자 눈시울이 붉어졌습니다.'), T('(이 만남은 성경에 기록되지 않은 「IF」 장면이에요.)')], () => tick(S, 'visitS')); } },
     check: S => qd(S, 'visitS'), done(S, G, next) { hide(['simeon']); cinJudahPledge(S, G, next); }, next: 'g3_feast' },
   g3_feast: { ch: 8, obj: '형들을 집으로 맞아 나이 순서대로 자리 정하기', target: { x: SPOTS.josephHouse[0], z: SPOTS.josephHouse[1] + 10 },
@@ -203,7 +217,7 @@ const STEPS7 = {
   // =============================================================== 8장 · 고센 땅
   g6_wagons: { ch: 9, obj: '아버지께 보낼 수레 채비', list: S => [{ t: '성읍 곳간에서 곡식 자루 싣기', ok: qd(S, 'wGrain') }, { t: '장터에서 애굽의 좋은 물품 고르기', ok: qd(S, 'wGoods') }, { t: '형들에게 옷 나눠 주기 (청지기)', ok: qd(S, 'wClothes') }],
     target: S => !qd(S, 'wGrain') ? { x: G7GRAN[0], z: G7GRAN[1] - 2 } : !qd(S, 'wGoods') ? { x: -22, z: -71 } : 'npc:steward2',
-    enter(S, G, re) { S.q.broShow = 0; S.q.famShow = 0; BRO11.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); showAt('steward2', 15, -138.6, -0.6); /* v18.22 the steward is back at the house (the cup scene left him out on the road, so 「옷 나눠 주기」 pointed at an empty spot) */ if (!re) narr([{ kick: '창세기 45:17–20', title: '바로의 명령', t: '바로가 요셉에게 이르되 「너희는 애굽 땅에서 수레를 가져다가 너희 자녀와 아내를 태우고 너희 아비를 데려오라. 온 애굽 땅의 좋은 것이 너희 것임이니라」', ref: '창세기 45:17–20' }]); },
+    enter(S, G, re) { S.q.broShow = 0; S.q.famShow = 0; BRO11.forEach(id => { const n = G.npc(id); if (n) n.forceVis = undefined; }); { const a = G.npc('asenath'); if (a) a.forceVis = undefined; } /* v18.56 Asenath comes back after the reveal (she was sent out for 45:1) */ showAt('steward2', 15, -138.6, -0.6); /* v18.22 the steward is back at the house (the cup scene left him out on the road, so 「옷 나눠 주기」 pointed at an empty spot) */ if (!re) narr([{ kick: '창세기 45:17–20', title: '바로의 명령', t: '바로가 요셉에게 이르되 「너희는 애굽 땅에서 수레를 가져다가 너희 자녀와 아내를 태우고 너희 아비를 데려오라. 온 애굽 땅의 좋은 것이 너희 것임이니라」', ref: '창세기 45:17–20' }]); },
     talk: { steward2(S, G) { if (S.q.wClothes || !S.q.wGrain || !S.q.wGoods) return false; say([N('steward2', '형제분들께 드릴 옷을 마련해 두었습니다. 어떻게 나누어 드릴까요?'),
       { n: '요셉', t: '(창세기 45:22)', choices: [{ t: '모두에게 한 벌씩, 베냐민에게는 은 삼백과 옷 다섯 벌', then: () => setTimeout(() => say([N('steward2', '알겠습니다. 막내분께는 각별히요.', '', 'happy')], () => tick(S, 'wClothes')), 30) },
         { t: '모두 똑같이 한 벌씩', then: () => setTimeout(() => say([N('steward2', '알겠습니다. 모두 같게 준비하겠습니다.'), T('성경은 베냐민에게 은 삼백과 옷 다섯 벌을 주었다고 기록해요. 그리고 요셉은 형들에게 「길에서 다투지 말라」고 당부했어요.', '창세기 45:22, 24')], () => tick(S, 'wClothes')), 30) } /* v18.42 both answers are accepted: equal gifts are not 'wrong' after a story about favouritism */] }], null); } },
@@ -272,7 +286,7 @@ const QUESTS = {
     reward: { insight: 1, items: { jacobGift: 1 } } },
   g_benj: { giver: 'benjamin2', title: '베냐민과 별 세기', when: goshenOn, repeat: 3, offer: ['형! 어릴 때 형이 별 이야기 해 줬던 거 기억나? 오늘 밤 모래 언덕에서 같이 별 보자.'],
     obj: [{ t: '남쪽 모래 언덕에서 별 바라보기 (밤)', ok: S => { const r = (S.flags.sev || {}).stars; return !!(r && r.n && r.n > (S.q.gbStars || 0)); } }], loc: () => ({ x: -6, z: 198 }),
-    start(S) { const r = (S.flags.sev || {}).stars; S.q.gbStars = r ? r.n : 0; }, prog: '남쪽 모래 언덕이야. 밤에!', done: ['형, 별이 정말 셀 수 없이 많더라. 아브라함 할아버지 약속 이야기, 이제 나도 내 아이들한테 해 줄 거야.'],
+    start(S) { const r = (S.flags.sev || {}).stars; S.q.gbStars = r ? r.n : 0; const b = Gm().ENT.npcs.benjamin2; if (b) b.follow = true; GG.UI.toast('베냐민이 함께 걸어요 · 남쪽 모래 언덕으로'); }, finish(S) { const b = Gm().ENT.npcs.benjamin2; if (b) b.follow = false; }, /* v18.56 he comes along: 「같이 별 보자」 */ prog: '형, 같이 가자! 남쪽 모래 언덕이야. 밤에!', done: ['형, 별이 정말 셀 수 없이 많더라. 아브라함 할아버지 약속 이야기, 이제 나도 내 아이들한테 해 줄 거야.'],
     reward: { heart: 1, items: { raisins: 2 } } },
 };
 // the lamb is picked up by talking to it

@@ -8,12 +8,12 @@ LOOK.benjaminAdult = { skin: 0xe2ab7c, top: 0xe0c8a0, trim: 0x3e8a66, sash: 0x3e
 LOOK.ameniOld = Object.assign({}, LOOK.ameni, { build: 0.4, bottom: 0x9a8a6a });
 const npcs = [
   // ---- Hebron valley
-  { id: 'jacob', name: '야곱', look: LOOK.jacob, x: 170.6, z: 150.8, face: 0.9, show: S => before(S, 'p_road') || S.q.heb, talkR: 3.2 },
-  { id: 'benjamin', name: '베냐민', look: LOOK.benjamin, scale: 0.62, x: 173.4, z: 156.6, face: 2.2, show: S => before(S, 'p_road') || S.q.heb, chat: ['형, 별 이야기 해 줘!', '나도 크면 형처럼 채색옷 입을 거야!'] },
-  { id: 'leah', name: '레아', look: LOOK.leah, x: 165.2, z: 158.2, face: 0.8, sit: true, show: S => before(S, 'p_road') || S.q.heb, chat: ['요셉아, 형들을 만나거든 어서 돌아오라고 전하렴.', '네 아버지가 너를 얼마나 아끼시는지…'] },
-  { id: 'dinah', name: '디나', look: LOOK.dinah, x: 161.8, z: 151.6, face: 0.6, act: 'gather', show: S => before(S, 'p_road') || S.q.heb, chat: ['요셉 오라버니, 그 옷 정말 곱다!', '아버지가 오라버니만 찾으셔.'] },
-  { id: 'hServ', name: '야곱의 종', look: LOOK.servantH, x: 188, z: 168, prop: 'staff', wander: 3, show: S => before(S, 'p_road'), chat: ['형님들은 세겜 쪽으로 양을 몰고 가신 지 꽤 되었지요.', '도련님, 길에서 들짐승 조심하십시오.'] },
-  { id: 'shepBoy', name: '길가의 목동', look: KID({ top: 0xc8b890, hairStyle: 'short' }), scale: 0.72, x: 186, z: 104, prop: 'staff', wander: 3, show: S => before(S, 'p_night'), chat: ['세겜이요? 저 북쪽으로 쭉 가면 돼요.', '그 옷 진짜 예쁘다! 무지개 같아요!'] },
+  { id: 'jacob', name: '야곱', look: LOOK.jacob, x: 170.6, z: 150.8, face: 0.9, show: S => before(S, 'p_night') || S.q.heb, talkR: 3.2 },
+  { id: 'benjamin', name: '베냐민', look: LOOK.benjamin, scale: 0.62, x: 173.4, z: 156.6, face: 2.2, show: S => before(S, 'p_night') || S.q.heb, chat: ['형, 별 이야기 해 줘!', '나도 크면 형처럼 채색옷 입을 거야!'] },
+  { id: 'leah', name: '레아', look: LOOK.leah, x: 165.2, z: 158.2, face: 0.8, sit: true, show: S => before(S, 'p_night') || S.q.heb, chat: S => S.step === 'p_wake' ? ['일어났구나, 요셉아. 아버지가 아까부터 너를 찾으시더라.', '아침 이슬이 차다. 불 곁에서 손 좀 녹이렴.'] : ['요셉아, 형들을 만나거든 어서 돌아오라고 전하렴.', '네 아버지가 너를 얼마나 아끼시는지…'] } /* v18.56 not before Jacob sends him */,
+  { id: 'dinah', name: '디나', look: LOOK.dinah, x: 161.8, z: 151.6, face: 0.6, act: 'gather', show: S => before(S, 'p_night') || S.q.heb, chat: ['요셉아, 그 옷 정말 곱다! 누나도 한 번만 입어 보자.', '아버지가 또 너만 찾으셔.'] /* v18.56 Dinah is Joseph's older sister (창 30:21–24) */ },
+  { id: 'hServ', name: '야곱의 종', look: LOOK.servantH, x: 188, z: 168, prop: 'staff', wander: 3, show: S => before(S, 'p_night'), chat: ['형님들은 세겜 쪽으로 양을 몰고 가신 지 꽤 되었지요.', '도련님, 길에서 들짐승 조심하십시오.'] },
+  { id: 'shepBoy', name: '길가의 목동', look: KID({ top: 0xc8b890, hairStyle: 'short' }), scale: 0.72, x: 186, z: 104, prop: 'staff', wander: 3, show: S => before(S, 'p_night'), chat: ['세겜? 저 북쪽으로 쭉 가면 돼, 형.', '형, 그 옷 진짜 예쁘다! 무지개 같아!'] /* v18.56 a village boy to an older boy: 반말 */ },
   // ---- Shechem: the man in the field (창 37:15)
   { id: 'man', name: '들의 사람', look: LOOK.man, x: SPOTS.manSpot[0], z: SPOTS.manSpot[1], face: -2.6, talkR: 3.4, show: S => S.step === 'p_man' },
   // ---- the ten brothers (Dothan; Hebron in the mourning scene; Egypt at the end)
@@ -32,7 +32,7 @@ const npcs = [
   // ---- Potiphar's household
   { id: 'potiphar', name: '보디발', look: LOOK.potiphar, x: -28, z: 39.4, face: 0, sit: true, talkR: 3.2, show: S => between(S, 'c1_market', 'c2_flee') && !S.q.empty, sched: S => S.step === 'c2_store' ? [[0, -12.6, 59.2, -1.6, 'wander:0.5']] : null },
   { id: 'wife', name: '보디발의 아내', look: LOOK.wife, x: -20.6, z: 61.6, face: Math.PI, talkR: 3, noTalk: S => S.step === 'c2_tempt3' || S.step === 'c2_flee', show: S => between(S, 'c2_arrive', 'c2_flee') && S.step !== 'c2_tempt2', sched: S => S.step === 'c2_tempt3' ? [[0, -25, 39.2, 0.6, 'wander:0.2']] : null },
-  { id: 'ameni', name: NM.ameni, look: LOOK.ameni, x: -44, z: 55.4, face: 1.6, show: S => inEgyptHouse(S) && (!S.q.empty || !!RT.alarm), chat: ['네 하나님 이야기를 또 들려다오.', '애굽 말이 많이 늘었구나.', '엠 헤테프, 요셉. 평안히.'] },
+  { id: 'ameni', name: NM.ameni, look: LOOK.ameni, x: -44, z: 55.4, face: 1.6, show: S => inEgyptHouse(S) && (!S.q.empty || !!RT.alarm), chat: S => before(S, 'c2_field') ? ['엠 헤테프, 요셉. 평안히. …따라 해 보거라.', '이 집에선 해 뜨기 전에 일어나야 한단다.'] : ['네 하나님 이야기를 또 들려다오.', '애굽 말이 많이 늘었구나.', '엠 헤테프, 요셉. 평안히.'] } /* v18.56 not 「많이 늘었구나」 on his first day */,
   { id: 'neb', name: NM.neb, look: LOOK.neb, x: -25.4, z: 66.6, face: Math.PI, show: S => inEgyptHouse(S) && !S.q.empty, chat: S => S.q.nebOk ? ['대문은 내가 지키겠소, 총무.', '손님이 오시면 바로 알리리다.'] : ['…일이나 하라, 히브리 종.'] },
   { id: 'cook', name: NM.cook, look: LOOK.cook, x: -10.8, z: 43.8, face: Math.PI, act: 'gather', show: S => inEgyptHouse(S) && (!S.q.empty || !!RT.alarm), chat: ['타! 갓 구운 타가 최고지!', '오늘은 손님상에 낼 거위를 굽는다네.'] },
   { id: 'gardener', name: NM.gardener, look: LOOK.gardener, x: -18.4, z: 61.2, face: -1.6, act: 'water', show: S => inEgyptHouse(S) && (!S.q.empty || !!RT.alarm), chat: ['연꽃이 올해는 유난히 많이 피었어.', '종려나무는 발은 물에, 머리는 불에 두어야 열매를 맺지.'] },
@@ -84,7 +84,7 @@ const npcs = [
   { id: 'byAmeni', name: NM.ameni, look: LOOK.ameniOld, x: 19.4, z: -53.6, /* v18.34 not inside the clerk Ipi */ face: -2.2, show: show('c6_sell') },
   { id: 'benjamin2', name: '베냐민', look: LOOK.benjaminAdult, x: 172, z: 150, face: 0, noTalk: true, show: S => !!S.q.heb2 },
 ];
-for (const n of npcs) if (n.id === 'jacob') n.show = S => before(S, 'p_road') || !!S.q.heb || !!S.q.heb2;
+for (const n of npcs) if (n.id === 'jacob') n.show = S => before(S, 'p_night') || !!S.q.heb || !!S.q.heb2; /* v18.56 the family stays at home while Joseph sets out (they no longer vanish the moment he is ready) */
 const BUYERS = [{ id: 'byFarmer' }, { id: 'byWoman' }, { id: 'buyElder' }, { id: 'bySidon' }, { id: 'byEdom' }, { id: 'byAmeni', last: true }];
 
 // ------------------------------------------------------------------ villages (people going about their days)
@@ -98,7 +98,7 @@ const villages = [
     spots: { hub: [-22, -74, 3], well: [-21, -87.6, 2], market: [-22, -71, 3], fire: [-30, -80, 2], play: [-14, -80, 3.5], gate: [-24, -50, 2], work: [-40, -66, 3], shade: [-48, -110, 3] },
     homes: [[-40, -60, 0], [-12, -58, 0], [-42, -72, 0], [-6, -74, 0], [-30, -88, 0], [-12, -88, 0]], about: ['바로의 도성은 나일 강 동쪽에 있다오.', '궁 앞 오벨리스크는 해가 뜨면 금빛으로 빛나지요.'],
     folk: [FK('ct_mer', '도성 상인 세네브', 'merchant', 'merchant', 2, { work: [-27.4, -76, Math.PI / 2, 0.2], persona: '도성 장터의 상인. 흥정을 좋아하고 소식에 밝다.' }), FK('ct_wat', '물 긷는 여인 네페르', 'water', 'waterA', 1, { persona: '나일 강에서 물을 긷는 상냥한 여인.' }),
-      FK('ct_pot', '토기장이 아메니', 'potter', 'potter', 3, { work: [-40, -66, 0, 1], persona: '물동이와 곡식 항아리를 빚는 토기장이.' }), FK('ct_kid', '아이 케티', 'child', 'kidA', 1, { age: 'kid', persona: '네페르의 아들. 수레 구경을 좋아한다.' }),
+      FK('ct_pot', '토기장이 아문', 'potter', 'potter', 3, { work: [-40, -66, 0, 1], persona: '물동이와 곡식 항아리를 빚는 토기장이.' }), FK('ct_kid', '아이 케티', 'child', 'kidA', 1, { age: 'kid', persona: '네페르의 아들. 수레 구경을 좋아한다.' }),
       FK('ct_eld', '노인 이푸', 'elder', 'elder', 4, { age: 'old', persona: '도성 성문에 앉아 옛이야기를 하는 노인.' }), FK('ct_wea', '베 짜는 여인 메리트', 'weaver', 'waterB', 5, { work: [-10, -86, 0, 0.6], persona: '세마포를 짜는 솜씨 좋은 여인.' })] },
   { id: 'west', n: '서쪽 마을', x: -140, z: -40, r: 22, when: S => between(S, 'c2_arrive'),
     spots: { hub: [-140, -40, 2.5], well: [-140, -40, 3.2], market: [-136, -46, 2], fire: [-146, -44, 2], play: [-134, -36, 3], fold: [-122, -36, 2], pasture: [-118, -30, 8], field: [-118, -50, 4], work: [-118, -50, 3] },
@@ -124,7 +124,7 @@ const SP = (id, x, z, label, on, use, o) => Object.assign({ id, x, z, r: 2.3, la
 const cellIds = ['prisA', 'prisB', 'oldP', 'cell4'];
 const specials = [
   SP('skin', 182.2, 155.2, '물가죽 부대 챙기기', S => S.step === 'p_provision' && !S.q.skin, (S, G) => { G.give('skin', 1); pick(); G.UI.hint('잘했어요! 이번엔 모닥불 곁의 빵을 챙겨요', 'items2', 'bag'); tick(S, 'skin'); }),
-  SP('bread', 177.15, 153.5, '빵과 무화과 챙기기', S => S.step === 'p_provision' && !S.q.bread, (S, G) => { G.give('bread', 2); G.give('fig', 2); pick(); G.UI.hint(null); tick(S, 'bread'); }),
+  SP('bread', 178.9, 152.2, '빵과 무화과 챙기기', S => S.step === 'p_provision' && !S.q.bread, (S, G) => { G.give('bread', 2); G.give('fig', 2); pick(); G.UI.hint(null); tick(S, 'bread'); }),
   SP('restBed', SPOTS.restBed[0], SPOTS.restBed[1], '누워서 별 보기', S => S.step === 'p_night', (S, G) => cinNight(S, G), { r: 2.8 }),
   ...['clue1', 'clue2', 'clue3'].map((k, i) => SP(k, SPOTS[k][0], SPOTS[k][1], ['식은 모닥불 자리 살피기', '양 떼 발자국 살피기', '돌무더기 표시 살피기'][i], S => S.step === 'p_shechem' && !(S.q.cl || {})[k], (S, G) => clue(S, G, k, i), { r: 2.6 })),
   SP('pitShout', PIT.x, PIT.z, '형들을 부르기', S => S.step === 'c1_pit' && !S.q.shout, (S, G) => pitShout(S, G), { r: 2.6, y: 1.2 }),

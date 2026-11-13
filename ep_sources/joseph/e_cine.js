@@ -330,6 +330,7 @@ function cinCaravanNight(S, G, then) {
     { cam: [cx - 0.2, h + 0.5, cz - 3.2], look: [cx - 6, h + 30, cz + 14], dur: 8, n: '요셉', t: '하나님… 아버지가 들려주셨던 벧엘 이야기를 기억해요. 형을 피해 도망치던 밤, 돌을 베고 누운 아버지에게 하나님이 말씀하셨다고.', e: 'pray' },
     { cam: [cx + 0.6, h + 0.7, cz - 4.2], look: [cx - 0.4, h + 0.9, cz - 2.6], dur: 8, n: '요셉', t: '「내가 너와 함께 있어 네가 어디로 가든지 너를 지키며…」', ref: '창세기 28:15', e: 'pray' },
     { cam: [cx - 1.2, h + 0.8, cz - 3.4], look: [cx - 0.4, h + 0.9, cz - 2.6], dur: 6, fov: 0.6, n: '요셉', t: '저도… 지켜 주실 거죠? 이렇게 멀리 가도요.', e: 'cry' },
+    { cam: [cx - 0.6, h + 0.55, cz - 3.0], look: [cx - 0.4, h + 0.75, cz - 2.6], dur: 6, fov: 0.55, t: '요셉은 품 안의 매끈한 돌멩이를 꼭 쥐었습니다. 「형, 약속!」 베냐민의 목소리가 들리는 것 같았습니다.' }, /* v18.56 */
     { cam: [cx, h + 2, cz], cam2: [cx, h + 3, cz], look: [cx + 10, h + 40, cz - 30], look2: [cx - 10, h + 44, cz - 30], dur: 8, t: '그날 밤 광야의 하늘에도, 헤브론에서 보던 그 별들이 떠 있었습니다.', fadeOut: 2 },
     { black: true, title: '여러 날 후', sub: '광야를 건너 애굽으로', cam: [cx, h + 2, cz], look: [cx, h, cz - 3], dur: 3.6,
       fn: () => { cpose(null); S.q.night = 1; S.day += 4; S.time = GG.Game.clockTo(S, 8.4, 1); if (!then) caravanStart(S, G, false); } },
@@ -429,7 +430,7 @@ function banquetEnd(S, G, next) {
 }
 // c2_manage
 function assignPuzzle(S, G) {
-  GG.UI.puzzle({ title: '일꾼들에게 일 맡기기', hint: '왼쪽의 일꾼을 고르고, 그 사람에게 가장 잘 맞는 일(오른쪽)을 고르세요',
+  GG.UI.puzzle({ title: '일꾼들에게 일 맡기기', okText: '이대로 일 맡기기', doneMsg: '모두에게 알맞은 일을 찾았어요!', hint: '왼쪽의 일꾼을 고르고, 그 사람에게 가장 잘 맞는 일(오른쪽)을 고르세요',
     syms: [{ id: 'cook', t: '요리사 헤누 · 혀가 예민해 맛을 잘 본다', m: 'feast', h: '헤누는 맛을 잘 봐요. 음식과 관계된 일이 좋겠지요?' },
       { id: 'gard', t: '정원지기 앙쿠 · 물길을 손금 보듯 안다', m: 'water', h: '앙쿠는 물길을 잘 알아요.' },
       { id: 'boy', t: '소 치는 아이 파이 · 소들이 졸졸 따른다', m: 'cattle', h: '소들이 따르는 아이에게는…' },

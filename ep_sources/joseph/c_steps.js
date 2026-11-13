@@ -26,9 +26,10 @@ const steps = {
       J('걱정 마세요, 아버지. 형들 소식을 가지고 금방 돌아올게요.', '', 'happy'),
       T('먼 길을 떠날 채비를 하세요. 장막 곁의 물건 가까이 가서 A를 누르면 챙길 수 있어요.')], () => { S.q.tut = 'items'; G.go('p_provision'); }); } } },
   p_provision: { ch: 1, obj: '길 떠날 채비', list: S => [{ t: '물가죽 부대 챙기기', ok: qd(S, 'skin') }, { t: '빵과 무화과 챙기기', ok: qd(S, 'bread') }, { t: '동생 베냐민에게 인사하기', ok: qd(S, 'benj') }],
-    target: S => !qd(S, 'skin') ? { x: 182.2, z: 155.2 } : !qd(S, 'bread') ? { x: 177.15, z: 153.5 } : 'npc:benjamin', check: S => qd(S, 'skin') && qd(S, 'bread') && qd(S, 'benj'),
+    target: S => !qd(S, 'skin') ? { x: 182.2, z: 155.2 } : !qd(S, 'bread') ? { x: 178.9, z: 152.2 } : 'npc:benjamin', check: S => qd(S, 'skin') && qd(S, 'bread') && qd(S, 'benj'),
     talk: { benjamin(S, G) { if (S.q.benj) return false; say([N('benjamin', '형! 어디 가? 나도 갈래!', '', 'happy'), J('세겜에 형들 보러 가. 너는 아버지 곁에 있어야지.'),
       N('benjamin', '치이… 그럼 형, 꼭 빨리 와야 해. 약속!'), J('그래, 약속할게. 돌아오면 별 이야기 또 해 줄게.', '', 'tender'),
+      N('benjamin', '아, 잠깐! 이거 가져가, 형. 내 보물 돌멩이 중에 제일 반짝이는 거야. 길에서 무서우면 꼭 쥐어.', '', 'tender'), J('…고마워, 베냐민. 형이 잘 간직할게.', '', 'tender'), /* v18.56 Benjamin's stone (it comes back on the caravan night) */
       T('요셉은 동생의 곱슬머리를 쓰다듬어 주었습니다. 이 약속이 지켜지기까지 얼마나 오랜 세월이 걸릴지, 그때는 아무도 알지 못했습니다.', '', 'sad')], () => tick(S, 'benj')); } },
     done(S, G, next) { GG.Life.bubble('benjamin', '형, 약속!', 3); S.q.tut = 'run'; next(); }, next: 'p_road' },
   p_road: { ch: 1, obj: '북쪽 세겜으로 · 큰길 따라가기', target: S => Gm().P.z > SPOTS.log[1] + 1 ? { x: SPOTS.log[0], z: SPOTS.log[1] - 3 } : 'spot:restOak',
@@ -157,7 +158,7 @@ const steps = {
       baker(S, G) { if (S.q.bakeW) return false; say([J('나리, 떡을 드십시오.'), N('baker', '흥, 이걸 떡이라고… 왕궁에서는 이런 건 상에 올리지도 않는다.', '', 'cold'), N('baker', '…그래도 배는 고프구나. 고맙네.', '', 'weary')], () => tick(S, 'bakeW')); } },
     done(S, G, next) { narr([{ kick: '창세기 40:4', title: '여러 날', t: '그들이 갇힌 지 여러 날이라. 그리고 어느 날 밤, 두 사람이 한꺼번에 꿈을 꾸었습니다.', ref: '창세기 40:4–5' }], () => { G.newDay(''); next(); }); }, next: 'c3_dreams' },
   c3_dreams: { ch: 4, obj: S => S.q.dreamGo ? (GG.DW && GG.DW.on() ? '꿈속의 빛나는 곳으로 걸어가기' : '「꿈의 세계」 단추를 눌러 꿈속으로 들어가기') : !qd(S, 'cupDone') ? '근심하는 술 맡은 관원장에게 말 걸기' : '떡 굽는 관원장의 꿈 듣기', target: S => S.q.dreamGo ? (GG.DW && GG.DW.on() ? { x: DREAM.x, z: DREAM.z } : null) : !qd(S, 'cupDone') ? 'npc:cupbearer' : 'npc:baker', need: ['cupbearer', 'baker'], check: S => qd(S, 'bakeDone'),
-    talk: { cupbearer(S, G) { if (S.q.cupDone || S.q.dreamGo) return false; cupDream(S, G); }, baker(S, G) { if (!S.q.cupDone || S.q.bakeDone || S.q.dreamGo) return false; bakerDream(S, G); } },
+    talk: { cupbearer(S, G) { if (S.q.cupDone || S.q.dreamGo) return false; if (S.q.cupSeen) { cupTell(S, G); return; } cupDream(S, G); }, baker(S, G) { if (!S.q.cupDone || S.q.bakeDone || S.q.dreamGo) return false; if (S.q.bakeSeen) { bakerTell(S, G); return; } bakerDream(S, G); } }, /* v18.57 a dream already seen is not dreamt again (if the game stopped on the way out of the dream) */
     done(S, G, next) { cinBirthday(S, G, next); }, next: 'c3_wait' },
   c3_wait: { ch: 4, obj: S => WAIT[S.q.wait || 0] ? WAIT[S.q.wait || 0].obj : '', list: S => [{ t: `잊힌 시간 (${Math.min(4, S.q.wait || 0)}/4)`, ok: false }].concat(WAIT[S.q.wait || 0] && WAIT[S.q.wait || 0].list ? WAIT[S.q.wait || 0].list(S) : []),
     enter(S, G, re) { waitSetup(S, G, re); }, target: S => WAIT[S.q.wait || 0] ? WAIT[S.q.wait || 0].target(S) : null },

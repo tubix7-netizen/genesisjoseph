@@ -212,7 +212,7 @@ function dyn(list, S, G, t) {
   if (S.step === 'p_provision' || S.step === 'p_wake' || S.step === 'p_jacob') {
     if (!S.q.bread) list.push({ mesh: mk('provBread', g => { g.cyl(0.26, 0.2, 0.16, 12, { at: [0, 0.08, 0], c: 0xa57a3c }); g.cyl(0.25, 0.25, 0.02, 12, { at: [0, 0.17, 0], c: 0x7a5530 });
       for (let i = 0; i < 4; i++) g.sph(0.085, 8, 5, { at: [Math.cos(i * 1.6) * 0.11, 0.21, Math.sin(i * 1.6) * 0.11], s: [1, 0.55, 1], c: 0xd8a860 });
-      for (let i = 0; i < 3; i++) g.sph(0.045, 6, 4, { at: [Math.cos(i * 2.1 + 0.6) * 0.06, 0.27, Math.sin(i * 2.1 + 0.6) * 0.06], c: 0x6a3a52 }); }), m: mat('provBread', 177.15, hAt(177.15, 153.5), 153.5, 0.4), outline: true });
+      for (let i = 0; i < 3; i++) g.sph(0.045, 6, 4, { at: [Math.cos(i * 2.1 + 0.6) * 0.06, 0.27, Math.sin(i * 2.1 + 0.6) * 0.06], c: 0x6a3a52 }); }), m: mat('provBread', 178.9, hAt(178.9, 152.2), 152.2, 0.4) /* v18.57 a step away from the fire */, outline: true });
     if (!S.q.skin) list.push({ mesh: mk('provSkin', g => { g.sph(0.2, 10, 8, { at: [0, 0.16, 0], s: [1.25, 0.75, 0.85], c: 0x7a5034 }); g.cyl(0.035, 0.045, 0.12, 6, { at: [0.26, 0.24, 0], rz: -1.1, c: 0x6a4228 });
       g.cyl(0.012, 0.012, 0.5, 4, { at: [0, 0.3, 0], rz: 1.5708, c: 0x3a2a1a }); }), m: mat('provSkin', 182.2, hAt(182.2, 155.2), 155.2, 1.1), outline: true }); }
   // the rope: last camel → Joseph's hands
@@ -362,7 +362,7 @@ const OPENING = {
       { cam: [bx - 0.7, h + 1.35, bz + 1.4], look: [jx, hAt(jx, jz) + 1.5, jz], dur: 4.5, fov: 0.62, n: '야곱', t: '요셉아! 이리 오너라!', e: 'tender' },
       { fn: () => { cpose(null); G.P.face = Math.atan2(jx - bx, jz - bz); }, cam: [bx + 2.2, h + 1.45, bz + 1.6], look: [bx, h + 1.1, bz], dur: 4.2, fov: 0.8, n: '요셉', t: '네, 아버지! 지금 가요!', e: 'happy' },
       { cam: [jx + 3, hAt(jx, jz) + 1.7, jz + 4], look: [jx, hAt(jx, jz) + 1.4, jz], dur: 3.6, t: '아버지 야곱이 장막 앞에서 요셉을 기다리고 있었습니다.' }],
-    () => { GG.Game.musicOverride = null; { const C = GG.Game.CAM, f = Math.atan2(jx - G.P.x, jz - G.P.z); G.P.face = f; if (C) { C.yaw = f + 0.95; C.yv = 0; C.hold = 1; } } /* v18.40 the first look at Joseph: from the front-left, face and coat in view, not his back */ narr([{ kick: '조작 안내', title: '프롤로그 · 형들을 찾아서', t: '왼쪽 아래를 끌어 걷고, 오른쪽 화면을 끌어 둘러봐요. 사람이나 물건 가까이에서 A를 누르면 말하거나 챙길 수 있어요. 갈 곳은 오른쪽 위 미니맵의 노란 길과 화살표가 알려 줘요.', ref: '' }]); }, { noSkip: false });
+    () => { GG.Game.musicOverride = null; { const C = GG.Game.CAM, f = Math.atan2(jx - G.P.x, jz - G.P.z); G.P.face = f; if (C) { C.yaw = f + Math.PI; C.yv = 0; C.hold = 1; } } /* v18.56 the first look: from behind Joseph, toward his father (as before v18.40) */ narr([{ kick: '조작 안내', title: '프롤로그 · 형들을 찾아서', t: '왼쪽 아래를 끌어 걷고, 오른쪽 화면을 끌어 둘러봐요. 사람이나 물건 가까이에서 A를 누르면 말하거나 챙길 수 있어요. 갈 곳은 오른쪽 위 미니맵의 노란 길과 화살표가 알려 줘요.', ref: '' }]); }, { noSkip: false });
   },
 };
 

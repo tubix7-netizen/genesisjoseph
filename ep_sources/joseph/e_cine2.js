@@ -82,7 +82,7 @@ function vineVision(S, G) { const x = DREAM.x, z = DREAM.z, h = hAt(x, z); G.P.f
     { fn: () => { RT.godRay = 0.01; G.sfx('insight', { pitch: 0.6 }); }, cam: [x + 8, h + 1.1, z + 9], cam2: [x + 9, h + 3, z + 10], look: [x, h + 4, z], dur: 6.5, t: '그때 고요한 음성이 요셉의 마음에 들려왔습니다.', e: 'solemn', each: t => { RT.godRay = Math.min(1, t / 3); } },
     { cam: [x + 6, h + 2, z + 7], look: [x, h + 2, z], dur: 9, t: '「세 가지는 사흘이라.」', e: 'solemn', each: t => { dawn(t, 0.4, 2.8); dawn2(t); } },
     { cam: [x + 2.4, h + 1.6, z + 3], look: [x, h + 1.6, z], dur: 7.5, fadeOut: 1.4, t: '「사흘 안에 바로가 그의 머리를 들고, 그는 다시 바로의 잔을 받들게 되리라.」', e: 'solemn', each: t => { GG.DW.dawn = 0; RT.godRay = 1 - t / 7.5 * 0.6; } },
-  ], () => { RT.dreamFx = null; RT.godRay = 0; GG.DW.dawn = 0; S.q.dreamGo = null; GG.DW.exit(() => cupTell(S, G)); }); function dawn2(t) { if (t > 3 && t < 5.5) dawn(t, 3, 5.5); else if (t > 6 && t < 8.6) dawn(t, 6, 8.6); } }
+  ], () => { RT.dreamFx = null; RT.godRay = 0; GG.DW.dawn = 0; S.q.dreamGo = null; S.q.cupSeen = 1; GG.DW.exit(() => cupTell(S, G)); }); function dawn2(t) { if (t > 3 && t < 5.5) dawn(t, 3, 5.5); else if (t > 6 && t < 8.6) dawn(t, 6, 8.6); } }
 function cupTell(S, G) { say([T('요셉은 눈을 떴습니다. 꿈의 뜻이 마음에 또렷이 남아 있었습니다.')], () => { say([
     { n: '요셉', t: '세 가지는 무엇을 뜻할까?', choices: [{ t: '사흘', ok: true }, { t: '세 해', ok: false, fb: '고요한 음성이 무엇이라 하셨나요? 해석은 하나님께 있습니다 (창세기 40:8).' }, { t: '세 사람', ok: false, fb: '가지가 자라 열매 맺기까지의 「때」를 생각해 보세요.' }] },
     J('그 해석이 이러하니, 세 가지는 사흘이라. 지금부터 사흘 안에 바로가 당신의 머리를 들고 당신의 전직을 회복하리니, 당신이 이왕에 술 맡은 자가 되었을 때에 하던것 같이 바로의 잔을 그 손에 받들게 되리이다.', '창세기 40:12–13'),
@@ -100,7 +100,7 @@ function basketVision(S, G) { const x = DREAM.x, z = DREAM.z, h = hAt(x, z); G.P
     { cam: [x - 3, h + 1.2, z + 3.4], look: [x, h + 2.8, z], dur: 8, shake: 0.1, sfx: 'flap', n: '떡 굽는 관원장', t: '새들이 내 머리의 광주리에서 그것을 먹더라.', ref: '창세기 40:17', each: t => { RT.dreamK = Math.min(1, t / 6); if (Math.random() < 0.3) G.FX.burst(x + (Math.random() - 0.5) * 1, h + 2.2, z + (Math.random() - 0.5) * 1, 2, { c: [0.1, 0.09, 0.1], sp: 0.8, up: 0.6, size: 0.1, g: 3, life: 0.9 }); } },
     { fn: () => { RT.godRay = 0.01; G.sfx('insight', { pitch: 0.45 }); }, cam: [x + 8, h + 1.1, z + 9], look: [x, h + 3.4, z], dur: 6.5, t: '요셉의 마음에 다시 그 음성이 들려왔습니다. 이번에는 무겁고 슬픈 말씀이었습니다.', e: 'solemn', each: t => { RT.godRay = Math.min(0.6, t / 4); } },
     { cam: [x + 2.4, h + 1.7, z + 3], look: [x, h + 2, z], dur: 8, fadeOut: 1.4, t: '「세 광주리는 사흘이라. 사흘 안에 바로가 그의 머리를 들고, 그를 나무에 달리니 새들이 그의 고기를 뜯어 먹으리라.」', e: 'solemn' },
-  ], () => { RT.dreamFx = null; RT.godRay = 0; S.q.dreamGo = null; GG.DW.exit(() => bakerTell(S, G)); }); }
+  ], () => { RT.dreamFx = null; RT.godRay = 0; S.q.dreamGo = null; S.q.bakeSeen = 1; GG.DW.exit(() => bakerTell(S, G)); }); }
 function bakerTell(S, G) { say([T('요셉은 한참을 말없이 앉아 있었습니다. 그래도 하나님이 보이신 것을 거짓으로 말할 수는 없었습니다.')], () => { say([
     T('요셉의 얼굴이 굳어졌습니다. 하나님이 보이신 뜻은 좋은 소식이 아니었습니다.'),
     { n: '요셉', t: '어떻게 할까?', choices: [{ t: '하나님이 보이신 대로 정직하게 말한다', ok: true }, { t: '좋은 꿈이라고 둘러댄다', ok: false, fb: '듣기 좋은 거짓말은 그 사람을 준비하지 못하게 해요. 하나님이 보이신 것을 요셉은 바꿀 수 없었습니다.' }] },
