@@ -38,7 +38,7 @@ Sv.coverTick = function () { // how well something overhead shelters the hero (0
 Sv.heatAt = function (x, z) {
   const EP = Game.EP(), S = Game.S(); let heat = 0, roof = 0, src = '';
   for (const s of EP.stations || []) { if (s.on && !s.on(S, Game)) continue; const d = Math.hypot(s.x - x, s.z - z);
-    if (s.type === 'fire' && d < 5.5) { const k = 1 - d / 5.5; if (k * 46 > heat) { heat = k * 46; src = '모닥불'; } }
+    if (s.type === 'fire' && !s.torchOnly && d < 5.5) { const k = 1 - d / 5.5; if (k * 46 > heat) { heat = k * 46; src = '모닥불'; } }
     if (s.type === 'bed' && d < (s.shelter || 4)) { roof = Math.max(roof, 1 - d / ((s.shelter || 4) * 1.3)); if (!src) src = '지붕 아래'; } }
   if (G.Build) { const b = G.Build.shelterAt(x, z); if (b > roof) { roof = b; if (!src) src = '지붕 아래'; } }
   if (EP.shelterAt) { const e = EP.shelterAt(x, z, S); if (e > roof) { roof = e; if (!src) src = '지붕 아래'; } }

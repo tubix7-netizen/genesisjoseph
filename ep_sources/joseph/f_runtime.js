@@ -55,12 +55,15 @@ function chase(dt, S, G) { const c = RT.chase || (RT.chase = { t: 0, w: 0, b: 0,
   if (c.held > 0) { P.x = GRAB.x; P.z = GRAB.z; P.vx = P.vz = 0; P.sprint = false; n.face = n.homeFace = 1.5; if (!n.emote || n.emote.k !== 'grabCloth') n.emote = { k: 'grabCloth', t: 0, dur: 60 }; return; } /* v18.35 held by the robe */
   c.t += dt; if (c.t < (c.stun || 1.3)) return; if (n.act === 'fallen') { n.act = null; n.emote = { k: 'stretch', t: 0, dur: 0.4, amb: true }; } // she falls back and gets up
   n.walk = null; n.sit = false; n.wander = null; n.face = n.homeFace = Math.atan2(P.x - n.x, P.z - n.z); if (!n.emote || n.emote.k !== 'grabCloth') n.emote = { k: 'grabCloth', t: 0, dur: 60 }; /* v18.42 she stays, his cloak in her hand, and calls out */
-  /* v18.47 the household comes running at her cry: be out of the gate before they reach the room, or it is back to the ledger */
-  { const left = Math.max(0, Math.ceil(FLEE_T - c.t)); if (left !== c.left) { c.left = left; GG.UI.quest(); }
-    if (c.t > 6 && !c.alarm) { c.alarm = RT.alarm = 1; G.sfx('door'); GG.UI.toast('사람들이 달려와요! 어서 대문 밖으로!'); }
-    if (c.alarm && !c.sent && c.t > 6.4) { c.sent = 1; FLEE_FOLK.forEach(([id, x, z], i) => { const m = G.npc(id); if (!m) return; m.sit = false; m.act = null; m.wander = null; G.npcWalk(id, x, z, null, 3.4, GG.NpcAI && GG.NpcAI.pathTo ? GG.NpcAI.pathTo(m.x, m.z, x, z) : null); setTimeout(() => bubble(id, ['마님 목소리다!', '무슨 일이오!', '안채에서 소리가!', '어서 가 보자!'][i % 4], 2.4), 300 + i * 700); }); }
+  /* v18.58 창 39:12–15: for a moment she only stares at the cloak in her hand. Then she cries out, and the household comes running.
+     From the cry on: go back to her and it is over; be seen by anyone running in and it is over. So: wrench free and RUN. */
+  { const left = Math.max(0, Math.ceil(FLEE_T - c.t)); if (left !== c.left) { c.left = left; GG.UI.quest(); } const dw = Math.hypot(n.x - P.x, n.z - P.z); if (dw > 3.4) c.away = 1;
+    if (c.t > CRY_T && !c.alarm) { c.alarm = RT.alarm = 1; c.b = RT.t; G.sfx('door'); bubble('wife', '여봐라! 게 아무도 없느냐! 이 히브리 종이…!', 2.8); GG.haptic && GG.haptic('thud'); GG.UI.toast('여인이 소리쳤어요! 사람들이 달려와요 · 들키지 말고 대문 밖으로!'); }
+    if (c.alarm) { c.sent = c.sent || {}; FLEE_FOLK.forEach(([id, x, z, dl], i) => { if (c.sent[id] || c.t < CRY_T + dl) return; c.sent[id] = 1; const m = G.npc(id); if (!m) return; m.sit = false; m.act = null; m.wander = null; G.npcWalk(id, x, z, null, 3.4, GG.NpcAI && GG.NpcAI.pathTo ? GG.NpcAI.pathTo(m.x, m.z, x, z) : null); bubble(id, ['마님 목소리다!', '무슨 일이오!', '안채에서 소리가!', '어서 가 보자!', '청지기가 간다! 비켜라!'][i % 5], 2.4); }); }
+    if (c.alarm && ((c.away && dw < 2.3) || (!c.away && c.t > CRY_T + 2.6))) { fleeFail(S, G, n, 'back'); return; } /* turned back to her (or never left her side) */
+    if (c.sent) { const W = GG.Game.W(); for (const [id] of FLEE_FOLK) { const m = G.npc(id); if (!m || !m.vis || !c.sent[id]) continue; /* only someone already running to the cry */ const d2 = Math.hypot(m.x - P.x, m.z - P.z); if (d2 > 3.4) continue; if (d2 > 1.6 && W && W.ray && W.ray(m.x, m.y + 1.5, m.z, P.x, P.y + 1.3, P.z) < 1) continue; /* a wall between them: not seen */ m.walk = null; m.face = Math.atan2(P.x - m.x, P.z - m.z); m.emote = { k: 'point', t: 0, dur: 3 }; fleeFail(S, G, n, 'seen', m); return; } }
     if (c.t > FLEE_T) { fleeFail(S, G, n); return; } }
-  if (RT.t - c.b > 2.6) { c.b = RT.t; bubble('wife', CHASE_L[Math.floor(Math.random() * CHASE_L.length)], 2.2); } return;
+  if (c.alarm && RT.t - c.b > 2.6) { c.b = RT.t; bubble('wife', CHASE_L[Math.floor(Math.random() * CHASE_L.length)], 2.2); } return;
   const d = Math.hypot(n.x - P.x, n.z - P.z);
   if (d < 1.05) { caught(S, G, n); return; }
   if ((c.w -= dt) <= 0) { c.w = 0.22; n.sit = false; n.act = null; n.wander = null; const path = [];
@@ -71,9 +74,12 @@ function caught(S, G, n) { const c = RT.chase; c.caught = true; n.walk = null; n
   say([N('wife', '(요셉의 팔을 붙잡으며) …어디로 가려느냐.', '', 'cold'), T('여종 하나가 그 모습을 보고 말았습니다. 저녁이 되기도 전에, 집 안에 이상한 소문이 퍼지기 시작했습니다.')],
     () => narr([{ kick: '다시 하기', title: '소문이 퍼졌어요', t: '요셉은 유혹 앞에서 「밖으로 나가」 피했습니다(창 39:12). 붙잡히지 않도록 달리기로 뛰어 대문 밖까지 피하세요. 뿌리친 뒤로 돌아가요.', ref: '창세기 39:12', e: 'solemn' }],
       () => GG.UI.fade(() => { n.walk = null; G.P.sprint = false; G.teleport(GRAB.x, GRAB.z, 2.6); place('wife', GRAB.x - 0.9, GRAB.z + 0.1, 1.5); n.act = 'fallen'; RT.chase = { t: 0, w: 0, b: 0, caught: false, held: 0, stun: 2.6 }; }, () => { GG.UI.hint('달리기 버튼으로 뛰어요! 대문 밖까지!', 'flee', 'run'); }))); }
-const FLEE_T = 22, FLEE_FOLK = [['ameni', -29.6, 35.6], ['cook', -31.4, 35.2], ['gardener', -30.4, 36.6], ['weaver', -28.6, 36.4]];
-function fleeFail(S, G, n) { const c = RT.chase; c.caught = true; G.P.vx = G.P.vz = 0; G.P.sprint = false; G.sfx('thud');
-  narr([{ kick: '다시 하기', title: '사람들이 몰려왔어요', t: '여인의 외침에 집 사람들이 달려왔습니다. 요셉은 「밖으로 나가」 피했습니다(창 39:12). 사람들이 오기 전에 달려서 대문 밖까지 나가세요. 장부를 정리하기 전으로 돌아가요.', ref: '창세기 39:12', e: 'solemn' }],
+const FLEE_T = 22, CRY_T = 3.4, FLEE_FOLK = [['ameni', -29.6, 35.6, 0.5], ['cook', -31.4, 35.2, 0.9], ['weaver', -28.6, 36.4, 1.3], ['gardener', -30.4, 36.6, 2.4], ['neb', -30.5, 34.6, 4.6]]; /* [who, where they run to, seconds after the cry]: those who stand along the way out (the gardener, the steward at the gate) turn last, so a Joseph who runs at once is already past them */
+function fleeFail(S, G, n, why, who) { const c = RT.chase; c.caught = true; G.P.vx = G.P.vz = 0; G.P.sprint = false; G.sfx('thud'); if (who) bubble(who.id, '저기다! 히브리 종이 저기 있다!', 2.6);
+  const card = why === 'back' ? { title: '돌아가면 안 돼요', t: '여인이 소리친 뒤에 그 곁에 머물거나 되돌아가면, 달려온 사람들 앞에서 꼼짝없이 붙들려요. 요셉은 옷을 버려두고 「도망하여 밖으로 나갔습니다」(창 39:12). 뿌리치자마자 달리세요. 장부를 정리하기 전으로 돌아가요.' }
+    : why === 'seen' ? { title: `${who ? who.name + '에게 ' : ''}들켰어요`, t: '여인의 외침에 달려오던 집 사람이 요셉을 보고 말았습니다. 요셉은 「도망하여 밖으로 나갔습니다」(창 39:12). 여인이 소리치기 전에, 사람들과 마주치지 않게 곧장 대문으로 달리세요. 장부를 정리하기 전으로 돌아가요.' }
+    : { title: '사람들이 몰려왔어요', t: '여인의 외침에 집 사람들이 달려왔습니다. 요셉은 「밖으로 나가」 피했습니다(창 39:12). 사람들이 오기 전에 달려서 대문 밖까지 나가세요. 장부를 정리하기 전으로 돌아가요.' };
+  narr([{ kick: '다시 하기', title: card.title, t: card.t, ref: '창세기 39:12', e: 'solemn' }],
     () => GG.UI.fade(() => { RT.alarm = 0; RT.chase = null; S.q.called = 0; S.q.grab = 0; S.q.robe = 0; S.q.flee = 0; S.q.empty = 1; if (n) { n.walk = null; n.emote = null; n.act = null; } FLEE_FOLK.forEach(([id]) => { const m = G.npc(id); if (m) m.walk = null; }); G.setOutfit('josephSteward'); G.go('c2_tempt3', true); G.teleport(-26.4, 42.3, 1.57); place('wife', -33.6, 30.4, 1.5); }, () => { GG.UI.quest(); GG.UI.toast('장부방에서 다시 시작해요 · 이번엔 달리기로!'); })); }
 const SCENE_ONLY = { c1_market: 1, c4_answer: 1, c5_years: 1 };
 /* v18.35 the cook and the gardener argue by the pool path where the player can find them (no teleporting once he talks to them) */

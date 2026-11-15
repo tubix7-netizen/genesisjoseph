@@ -66,7 +66,7 @@ const npcs = [
   { id: 'ephraim', name: '에브라임', look: LOOK.ephraim, scale: 0.42, x: 11.5, z: -136.6, face: 0, wander: 1.5, show: S => !!S.q.born2 && !S.q.finale, chat: ['(방긋 웃는다)', '아빠!'] },
   { id: 'steward2', name: NM.steward2, look: Object.assign({}, LOOK.neb, { collar: GOLD }), x: 15, z: -138.6, face: -0.6, show: S => between(S, 'c5_patrol'), chat: ['총리님, 집안일은 염려 마십시오.', '은잔은 늘 깨끗이 닦아 두었습니다.'] },
   { id: 'cartMan', name: '왕궁 수레지기 호리', look: LOOK.official, x: -23, z: -24.4, face: 1.8, talkR: 3, show: S => S.step === 'c5_patrol', chat: ['전진 두 번이면 말이 지치지 않습니다.', '말에게 곡식을 주시면 금세 기운을 차립니다.'] },
-  { id: 'kaiClerk', name: '서기 카이', look: LOOK.scribe, x: -13, z: -33, face: -1.6, talkR: 2.6, show: S => S.step === 'c5_patrol' && !S.q.metC, chat: ['성읍 감독관께 장부를 전해야 해요. 수레에 태워 주시면 좋겠어요.'] },
+  { id: 'kaiClerk', name: '서기 카이', look: LOOK.scribe, x: -13, z: -33, face: -1.6, talkR: 2.6, show: S => S.step === 'c5_patrol' && (!S.q.metC || !!S.q.tPax), chat: S => S.q.metC ? ['총리님 덕분에 편히 왔습니다. 오늘 들어온 곡식부터 적고 있어요.', '곳간에 들어오는 곡식은 한 톨도 빠짐없이 적겠습니다.'] : ['성읍 감독관께 장부를 전해야 해요. 수레에 태워 주시면 좋겠어요.'] },
   { id: 'overseerC', name: NM.overseerC, look: LOOK.official, x: 12, z: -70, face: 1.2, show: show('c5_patrol'), chat: ['곳간 기록은 서기관이 맡고 있습니다.'] },
   { id: 'overseerW', name: NM.overseerW, look: LOOK.elder, x: -136, z: -35, face: 2.8, show: show('c5_patrol'), chat: ['손녀가 총리님 이야기를 하면 눈이 반짝인답니다.'] },
   { id: 'overseerS', name: NM.overseerS, look: Object.assign({}, LOOK.farmer, { collar: TURQ, top: LINEN, bare: false, sleeveless: true }), x: -141, z: 123, face: 0.3, show: show('c5_patrol'), chat: ['언덕 위 곳간은 물 한 방울 들지 않습니다!'] },

@@ -19,7 +19,7 @@ const VL = {
   city: { intro: [
       '바로의 도성이라오. 나일 강 동쪽, 해 뜨는 쪽에 세운 성이지.',
       '온의 신전 앞 오벨리스크 보았소? 내 아버지가 젊을 적 그 돌을 세우는 데 끌려가셨다오. 밧줄 천 개가 한꺼번에 울던 소리를 평생 잊지 못하셨지.',
-      '장터는 해 뜰 녘이 제일 붐비오. 아마포는 메리트네, 항아리는 아메니네, 소식은 상인 세네브에게 물으면 다 나오지.',
+      '장터는 해 뜰 녘이 제일 붐비오. 아마포는 메리트네, 항아리는 아문네, 소식은 상인 세네브에게 물으면 다 나오지.',
       '성문 옆에 앉은 이푸 영감님은 이 도성에서 제일 오래 산 분이오. 옛이야기가 궁금하거든 찾아가 보시오.'],
     ep: ['요즘 장터가 시끄럽소. 저울추를 깎아 파는 장사꾼이 있다는 소문이 돌아서 다들 서로 의심하는 중이라오.',
       '저울 소동 말이오? 서기들이 와서 저울추를 모두 달아 보기로 했다오. 정직한 상인들은 오히려 반기는 눈치요.',
@@ -93,7 +93,7 @@ const EPS = [
       { peace: ['먼저 미안하다고 했더니 형도 울면서 미안하대요. 형이 울 줄 몰랐어요.'], make: ['형이랑 같이 나무 깎아서 팽이를 만들었어요. 전 거보다 더 잘 돌아요!'] },
       ['요즘은 형이 나를 데리고 강가에 낚시 가요. 형이 있어서 좋아요.']] },
   { id: 'flood', g: ['old'], title: '그해의 큰물',
-    s: [['내가 어릴 적, 나일 물이 지붕까지 차오른 해가 있었다오. 그 이야기 해 줄까?'],
+    s: [['내가 어릴 적, 나일 물이 지붕까지 차오른 해가 있었다오. 그 이야기는 다음에 들르면 마저 해 주리다.'],
       ['우리 아버지가 나를 항아리에 태워 둔덕까지 밀고 헤엄쳤지. 그때 항아리 안에서 본 별이 참 많았어.'],
       { t: '할머니(할아버지)께 무엇을 여쭐까?', o: [['그 뒤로 어떻게 사셨는지 묻는다', 'after'], ['무섭지 않으셨는지 묻는다', 'fear']] },
       { after: ['물이 빠지니 온 들이 검게 반짝였어. 그해 농사가 평생 제일 잘됐지. 큰물이 꼭 재앙만은 아니더라.'], fear: ['무서웠지. 그래도 아버지 숨소리가 들려서 괜찮았어. 사람은 곁에 누가 있으면 견딘다오.'] }] },
@@ -124,7 +124,8 @@ const EPS = [
       ['이제 아이들도 두레박을 거뜬히 올리오. 우물가가 다시 시끌벅적하다오.']] },
 ];
 const grp = n => { const p = G.Persona && G.Persona.of(n.id); const f = n.d.folk || {}; if (f.age === 'kid' || (p && p.age === 'kid')) return 'kid'; if (f.age === 'old' || (p && p.age === 'old')) return 'old'; return (p ? p.fem : /여인|할머니|어머니|딸/.test(n.name)) ? 'woman' : 'man'; };
-function pickEp(n) { const g = grp(n), role = n.d.folk && n.d.folk.role; let L = EPS.filter(e => (e.g.includes(g) || e.g.includes('any')) && (!e.roles || e.roles.includes(role))); if (!L.length) L = EPS.filter(e => e.g.includes(g) || e.g.includes('any')); return L[Math.floor(hash(n.id + 'ep') * L.length)] || EPS[EPS.length - 1]; }
+function pickEp(n) { const g = grp(n), role = n.d.folk && n.d.folk.role; let L = EPS.filter(e => (e.g.includes(g) || e.g.includes('any')) && (!e.roles || e.roles.includes(role))); if (!L.length) L = EPS.filter(e => e.g.includes(g) || e.g.includes('any')); if (EPOF[n.id]) return EPOF[n.id]; const i0 = Math.floor(hash(n.id + 'ep') * L.length); let e = L[i0]; for (let k = 0; k < L.length; k++) { const c = L[(i0 + k) % L.length]; if (!EPUSED.has(c.id)) { e = c; break; } } e = e || EPS[EPS.length - 1]; EPUSED.add(e.id); EPOF[n.id] = e; return e; }
+const EPOF = {}, EPUSED = new Set(); /* v18.56 no two people tell the same story while there are other stories left */
 Tl.of = n => pickEp(n);
 /* one step a day: talking again the same day repeats where the story stands */
 Tl.npcTalk = function (n, back) { const s = S(), M = s.flags.tale || (s.flags.tale = {}), e = pickEp(n), st = M[n.id] || (M[n.id] = { i: 0, day: -1, k: null });

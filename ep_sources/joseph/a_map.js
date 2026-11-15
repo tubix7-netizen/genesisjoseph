@@ -16,7 +16,8 @@ const NM = {
   weaver: '베 짜는 여인 타뮈', scribe: '서기관 이피', guest1: '왕궁 관리', guest2: '신전 제사장', guest3: '군대 장교', keeper: '간수장', cupbearer: '술 맡은 관원장', baker: '떡 굽는 관원장',
   oldP: '늙은 죄수', youngP: '어린 죄수', prisA: '죄수 케티', prisB: '죄수 메루', messenger: '바로의 사자', pharaoh: '바로', magician: '애굽의 점술가', sage: '애굽의 현인',
   asenath: '아스낫', manasseh: '므낫세', ephraim: '에브라임', overseerW: '서쪽 마을 촌장', overseerS: '남쪽 마을 촌장', overseerC: '성읍 감독관', brick: '벽돌 굽는 이 우니',
-  farmer: '애굽 농부', woman: '애굽 여인', elder: '애굽 노인', sidon: '시돈의 상인', edom: '에돔의 목자', canaan: '가나안의 나그네', steward2: '요셉의 청지기' };
+  farmer: '애굽 농부', woman: '애굽 여인', elder: '애굽 노인', sidon: '시돈의 상인', edom: '에돔의 목자', canaan: '가나안의 나그네', steward2: '요셉의 청지기',
+  cartMan: '왕궁 수레지기 호리', kaiClerk: '서기 카이' /* v18.58 these two spoke under their code names */ };
 const J = (t, ref, e) => ({ n: '요셉', t, ref, e });
 const N = (id, t, ref, e) => ({ n: NM[id] || id, t, ref, e });
 const T = (t, ref, e) => ({ n: '', t, ref, e });
