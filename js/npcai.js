@@ -306,20 +306,22 @@ function folkTalk(n) {
   const vil = n.village || (G.Tales && G.Tales.villageOf(n)); const vz = callOf(S) === '총리님', intro = daily && friend(n.id) < 1 ? (f.role === 'child' ? (vz ? ` 총리님이다! 내 이름은 ${n.name.split(' ').pop()}예요!` : ` 내 이름은 ${n.name.split(' ').pop()}예요!`) : vz ? ` 총리님을 뵙다니요! 저는 ${vil ? vil.n + '에 사는 ' : ''}${n.name.split(' ').pop()}${(n.name.split(' ').pop().charCodeAt(n.name.split(' ').pop().length - 1) - 0xac00) % 28 > 0 ? '이라' : '라'} 합니다.` : ` 나는 ${vil ? vil.n + '에 사는 ' : ''}${n.name.split(' ').pop()}라 하오.`) : ''; /* v18.42 they know who stands before them */
   say([{ n: n.name, t: greet(S, n) + intro + (G.Deeds ? G.Deeds.remark(n) : '') }], () => folkMenu(n)); // v18.0 P6: a neighbour mentions what they saw or heard
 }
-function folkMenu(n) {
-  const S = Sf(), f = n.d.folk, fin = endTalk(n);
-  const opts = [
-    { t: '요즘 어떻게 지내요?', then: () => setTimeout(() => say([{ n: n.name, t: (G.Persona && G.Persona.line(n)) || rnd(SMALL[f.role] || SMALL.farmer) }], () => folkMenu(n)), 30) },
-    { t: '무슨 소식 있어요?', then: () => setTimeout(() => say([{ n: n.name, t: rumor(S, n) }], () => folkMenu(n)), 30) },
-  ];
-  if (freeOK()) opts.unshift({ t: '자유롭게 이야기하기 ✦', then: () => setTimeout(() => AI.freeTalk(n), 30) });
-  else opts.push({ t: '이 마을은 어떤 곳이에요?', then: () => setTimeout(() => say((G.Tales && G.Tales.villageLines(n, n.village)) || (n.village && n.village.about ? n.village.about.map(t => ({ n: n.name, t })) : [{ n: n.name, t: '조용하고 살기 좋은 곳이라오.' }]), () => folkMenu(n)), 30) }); /* v18.40 the whole story of the place, not one line */
-  if (G.Tales && G.Tales.has(n)) opts.splice(1, 0, { t: f.age === 'kid' ? '요즘 무슨 일 있어?' : '요즘 무슨 일 있어요?', then: () => setTimeout(() => G.Tales.npcTalk(n, () => folkMenu(n)), 30) });
-  opts.push({ t: '선물 주기', then: () => setTimeout(() => giftChoice(n, () => folkMenu(n)), 30) });
-  if (!Object.values(dq(S)).some(q => q.giver === n.id) && Object.keys(dq(S)).length < 2) opts.push({ t: '도울 일 있어요?', then: () => setTimeout(() => offerReq(n, () => folkMenu(n)), 30) });
-  opts.push({ t: '잘 지내요!', then: () => setTimeout(fin, 10) });
-  say([{ n: hero(S), t: '(무슨 이야기를 할까?)', choices: opts }]);
-}
+/* v18.60 three ways at first (talk · (free talk) · goodbye); inside the talk two topics at a time open up as you go */
+function folkMenu(n) { const S = Sf(), f = n.d.folk, fin = endTalk(n);
+  const ch = [{ t: '이야기 나누기', then: () => folkChat(n) }];
+  if (freeOK()) ch.push({ t: '자유롭게 이야기하기 ✦', then: () => setTimeout(() => AI.freeTalk(n), 30) });
+  ch.push({ t: f.age === 'kid' ? '잘 지내!' : '잘 지내요!', then: () => setTimeout(fin, 10) });
+  say([{ n: hero(S), t: '(무슨 이야기를 할까?)', choices: ch }]); }
+AI.folkChat = n => folkChat(n); /* v18.60 「이야기 나누기」 under a villager's errand (life.js) */
+function folkChat(n) { const S = Sf(), f = n.d.folk, fin = endTalk(n), kid = f.age === 'kid', back = next => () => next();
+  const topics = [
+    { k: 'tale', t: kid ? '요즘 무슨 일 있어?' : '요즘 무슨 일 있어요?', when: () => !!(G.Tales && G.Tales.has(n)), run: next => G.Tales.npcTalk(n, back(next)) },
+    { k: 'help', t: kid ? '도와줄 거 있어?' : '도울 일 있어요?', when: () => !Object.values(dq(S)).some(q => q.giver === n.id) && Object.keys(dq(S)).length < 2, run: next => offerReq(n, back(next)) },
+    { k: 'news', t: kid ? '재미있는 소식 있어?' : '무슨 소식 있어요?', run: next => say([{ n: n.name, t: rumor(S, n) }], next) },
+    { k: 'place', t: '이 마을은 어떤 곳이에요?', when: () => !kid, run: next => say((G.Tales && G.Tales.villageLines(n, n.village)) || (n.village && n.village.about ? n.village.about.map(t => ({ n: n.name, t })) : [{ n: n.name, t: '조용하고 살기 좋은 곳이라오.' }]), next) },
+    { k: 'gift', t: kid ? '이거 줄까?' : '드리고 싶은 게 있어요', run: next => giftChoice(n, next) }];
+  const go = () => G.Talk ? G.Talk.flow({ topics, exit: { t: kid ? '잘 지내!' : '잘 지내요!', then: () => setTimeout(fin, 10) } }) : fin();
+  say([{ n: n.name, t: (G.Persona && G.Persona.line(n)) || rnd(SMALL[f.role] || SMALL.farmer) }], () => setTimeout(go, 30)); }
 function offerReq(n, after) {
   const S = Sf(), rq = makeRequest(n, S);
   if (!rq) { say([{ n: n.name, t: rnd(['지금은 괜찮소. 마음만이라도 고맙구려.', '도와줄 일이 생기면 꼭 부르리다.']) }], after); return; }
@@ -331,49 +333,54 @@ function strangerTalk(n) {
   const S = Sf(), type = n.d.stranger, s = AI.strangers.find(x => x.id === n.id) || {}, fin = () => { endTalk(n)(); }, T = ST[type], nm = callOf(S);
   n.talking = true; if (n.walk && !n.d.sit) { s.resume = { x: n.walk.x, z: n.walk.z, path: n.walk.path, sp: n.walk.sp }; n.walk = null; }
   const back = () => { fin(); if (s.resume && !s.done) { const r = s.resume; s.resume = null; Game.npcWalk(n.id, r.x, r.z, () => { s.arrived = true; }, r.sp, r.path); } };
-  const free = freeOK() ? [{ t: '자유롭게 이야기하기 ✦', then: () => setTimeout(() => AI.freeTalk(n, back), 30) }] : [];
   const bye = { t: '평안히 가세요', then: () => setTimeout(back, 10) };
   const food = Object.keys(S.inv).filter(k => S.inv[k] > 0 && G.Surv && G.Surv.food(k) > 0).sort((a, b) => G.Surv.food(a) - G.Surv.food(b));
   const kind = (msg) => { S.stats.kind = (S.stats.kind || 0) + 1; if (S.stats.kind % 3 === 0 && Game.insight) setTimeout(() => Game.insight(1, '나그네를 대접함'), 600); s.done = true; G.UI.toast(msg || '따뜻한 마음을 나눴어요'); };
+  const gentile = !!(G.Cast && G.Cast.gentile && G.Cast.gentile(n));
+  /* v18.60 three ways at most: the one thing this traveller is about · 「이야기 나누기」 (the rest opens up as you talk) · goodbye */
+  const top = (line, act, topics) => { const tp = (topics || []).concat(freeOK() ? [{ k: 'free', t: '자유롭게 이야기하기 ✦', run: () => setTimeout(() => AI.freeTalk(n, back), 30) }] : []);
+    const ch = [].concat(act ? [act] : [], tp.length ? [{ t: '이야기 나누기', then: () => G.Talk ? G.Talk.flow({ topics: tp, exit: bye }) : back() }] : [], [bye]);
+    say([Object.assign({}, line, { choices: ch })]); };
+  const line = (t, next) => say([{ n: n.name, t }], next);
   if (type === 'beggar') {
-    say([{ n: n.name, t: rnd(['젊은이… 가뭄에 밭도 양도 다 잃었다오. 먹을 것이 있거든 조금만 나눠 주시오.', '사흘을 굶었소… 부끄럽지만 도움을 청하오.']), choices: [].concat(
-      food.length ? [{ t: `${Game.ITEMS[food[0]].n}을(를) 나눠 주기`, then: () => { Game.take(food[0]); setTimeout(() => say([{ n: n.name, t: `아… 고맙소, 정말 고맙소. 여호와께서 ${nm}에게 복을 주시기를!` }], () => { kind('가난한 이웃을 도왔어요'); back(); }), 30); } }] : [],
-      S.silver >= 2 ? [{ t: '은 2세겔 주기', then: () => { Game.silver(-2); setTimeout(() => say([{ n: n.name, t: '이 은으로 빵을 사겠소. 이 은혜를 잊지 않으리다.' }], () => { kind(); back(); }), 30); } }] : [],
-      [{ t: '어쩌다 이렇게 되셨어요?', then: () => setTimeout(() => say([{ n: n.name, t: '비가 세 해 동안 오지 않았소. 우물이 마르고 양들이 하나둘 쓰러졌지. 그래도 아직 숨이 붙어 있으니 감사할 일이오.' }], () => strangerTalk(n)), 30) }], free, [bye]) }]);
+    const help = food.length || S.silver >= 2 ? { t: '도와드릴게요', then: () => setTimeout(() => say([{ n: hero(S), t: '(무엇을 나눌까?)', choices: [].concat(
+      food.length ? [{ t: `${Game.ITEMS[food[0]].n}을(를) 나눠 주기`, then: () => { Game.take(food[0]); setTimeout(() => line(gentile ? `아… 고맙소, 정말 고맙소. ${nm}께 좋은 일만 있기를!` : `아… 고맙소, 정말 고맙소. 여호와께서 ${nm}에게 복을 주시기를!`, () => { kind('가난한 이웃을 도왔어요'); back(); }), 30); } }] : [],
+      S.silver >= 2 ? [{ t: '은 2세겔 주기', then: () => { Game.silver(-2); setTimeout(() => line('이 은으로 빵을 사겠소. 이 은혜를 잊지 않으리다.', () => { kind(); back(); }), 30); } }] : [],
+      [{ t: '(가진 게 마땅치 않다)', then: () => setTimeout(back, 10) }]) }]), 30) } : null;
+    top({ n: n.name, t: rnd(['젊은이… 가뭄에 밭도 양도 다 잃었다오. 먹을 것이 있거든 조금만 나눠 주시오.', '사흘을 굶었소… 부끄럽지만 도움을 청하오.']) }, help,
+      [{ k: 'why', t: '어쩌다 이렇게 되셨어요?', run: next => line('비가 세 해 동안 오지 않았소. 우물이 마르고 양들이 하나둘 쓰러졌지. 그래도 아직 숨이 붙어 있으니 감사할 일이오.', next) }]);
   } else if (type === 'wounded') {
     const heal = ['herb', 'bread', 'roast', 'stew', 'cheese'].filter(k => Game.have(k));
-    say([{ n: n.name, t: '돌부리에 걸려 넘어졌는데 다리가 퉁퉁 부었소. 약초나 먹을 것이 있다면…', choices: [].concat(
-      heal.length ? [{ t: `${Game.ITEMS[heal[0]].n}을(를) 주고 다리를 싸매 주기`, then: () => { Game.take(heal[0]); Game.P.act = 'gather'; Game.P.actT = 0; Game.P.actDur = 0.9; Game.P.actHits = 1; Game.P.fired = true;
-        setTimeout(() => say([{ n: n.name, t: '훨씬 낫소! 당신은 참 좋은 사람이구려. 얼마 안 되지만 받아 주시오.' }], () => { Game.silver(8 + Math.floor(Math.random() * 8)); kind('다친 나그네를 도왔어요'); n.act = null; back(); }), 900); } }] : [{ t: '(약초를 찾아서 다시 와야겠다)', then: () => setTimeout(back, 10) }], free, [bye]) }]);
+    top({ n: n.name, t: '돌부리에 걸려 넘어졌는데 다리가 퉁퉁 부었소. 약초나 먹을 것이 있다면…' }, heal.length ? { t: `${Game.ITEMS[heal[0]].n}을(를) 주고 다리를 싸매 주기`, then: () => { Game.take(heal[0]); Game.P.act = 'gather'; Game.P.actT = 0; Game.P.actDur = 0.9; Game.P.actHits = 1; Game.P.fired = true;
+        setTimeout(() => line('훨씬 낫소! 당신은 참 좋은 사람이구려. 얼마 안 되지만 받아 주시오.', () => { Game.silver(8 + Math.floor(Math.random() * 8)); kind('다친 나그네를 도왔어요'); n.act = null; back(); }), 900); } } : { t: '(약초를 찾아서 다시 와야겠다)', then: () => setTimeout(back, 10) },
+      [{ k: 'where', t: '어디로 가시던 길이에요?', run: next => line(rnd(['장터에 양털을 팔러 가던 길이었소. 이 다리로는 오늘 안에 못 가겠구려.', '딸네 집에 가던 길이오. 손주가 태어났다지 뭐요.']), next) }]);
   } else if (type === 'traveler') {
     const pl = (EPf().places || []).filter(p => Math.hypot(p.x - Game.P.x, p.z - Game.P.z) > 50); const q = pl.length ? rnd(pl) : null;
-    say([{ n: n.name, t: rnd(['먼 길을 왔더니 다리가 다 저리오.', '평안하시오! 이 길로 사흘을 왔소.']), choices: [].concat(
-      [{ t: '어디서 오셨어요? (소식 듣기)', then: () => setTimeout(() => say([{ n: n.name, t: rnd(NEWS) }], () => strangerTalk(n)), 30) }],
-      q && !s.asked ? [{ t: '길을 물어보신다고요?', then: () => { s.asked = true; setTimeout(() => askWay(n, q, () => strangerTalk(n)), 30); } }] : [],
-      [{ t: '물건을 좀 보여 주세요', then: () => setTimeout(() => { regShops(); G.UI.shop('stg_trav'); fin(); }, 30) }], free, [bye]) }]);
+    top({ n: n.name, t: rnd(['먼 길을 왔더니 다리가 다 저리오.', '평안하시오! 이 길로 사흘을 왔소.']) }, { t: '물건을 좀 보여 주세요', then: () => setTimeout(() => { regShops(); G.UI.shop('stg_trav'); fin(); }, 30) },
+      [{ k: 'news', t: '어디서 오셨어요? (소식 듣기)', run: next => line(rnd(NEWS), next) }, { k: 'way', t: '길을 물어보신다고요?', when: () => !!q && !s.asked, run: next => { s.asked = true; askWay(n, q, next); } }]);
   } else if (type === 'caravan') {
-    say([{ n: n.name, t: '길르앗에서 이집트로 가는 길이오. 향품과 유향과 몰약을 싣고 가지! 좋은 값에 사고팔리다.', ref: '창세기 37:25 참고', choices: [].concat(
-      [{ t: '물건 보기 (사고팔기)', then: () => setTimeout(() => { regShops(); G.UI.shop('stg_car'); fin(); }, 30) }, { t: '이집트는 어떤 곳이에요?', then: () => setTimeout(() => say([{ n: n.name, t: '큰 강 나일이 해마다 넘쳐 땅이 기름지다오. 흉년이 들면 온 세상이 곡식을 사러 이집트로 간다지.' }], () => strangerTalk(n)), 30) }], free, [bye]) }]);
+    top({ n: n.name, t: '길르앗에서 애굽으로 가는 길이오. 향품과 유향과 몰약을 싣고 가지! 좋은 값에 사고팔리다.', ref: '창세기 37:25 참고' }, { t: '물건 보기 (사고팔기)', then: () => setTimeout(() => { regShops(); G.UI.shop('stg_car'); fin(); }, 30) },
+      [{ k: 'egypt', t: '애굽은 어떤 곳이에요?', run: next => line('큰 강 나일이 해마다 넘쳐 땅이 기름지다오. 흉년이 들면 온 세상이 곡식을 사러 애굽으로 간다지.', next) }]);
   } else if (type === 'hunter') {
-    const z = nearestWild(); say([{ n: n.name, t: rnd(['조용히 하시오. 짐승은 귀가 밝소.', '오늘은 발자국이 많구려.']), choices: [].concat(
-      [{ t: '사냥 비결이 있나요?', then: () => setTimeout(() => say([{ n: n.name, t: z ? `여기서 ${z.dir}쪽 ${z.d}걸음쯤 가면 ${z.names}이(가) 다니는 곳이 있소. 바람을 등지고 살금살금 다가가시오.` : '바람을 등지고 다가가고, 물매는 짐승이 멈췄을 때 쏘는 거요.' }], () => strangerTalk(n)), 30) }],
-      [{ t: '거래해요', then: () => setTimeout(() => { regShops(); G.UI.shop('stg_hunt'); fin(); }, 30) }], [{ t: '도울 일 있어요?', then: () => setTimeout(() => offerReq(n, () => strangerTalk(n)), 30) }], free, [bye]) }]);
+    const z = nearestWild();
+    top({ n: n.name, t: rnd(['조용히 하시오. 짐승은 귀가 밝소.', '오늘은 발자국이 많구려.']) }, { t: '거래해요', then: () => setTimeout(() => { regShops(); G.UI.shop('stg_hunt'); fin(); }, 30) },
+      [{ k: 'tip', t: '사냥 비결이 있나요?', run: next => line(z ? `여기서 ${z.dir}쪽 ${z.d}걸음쯤 가면 ${z.names}이(가) 다니는 곳이 있소. 바람을 등지고 살금살금 다가가시오.` : '바람을 등지고 다가가고, 물매는 짐승이 멈췄을 때 쏘는 거요.', next) },
+       { k: 'help', t: '도울 일 있어요?', run: next => offerReq(n, () => next()) }]);
   } else if (type === 'shepherd') {
     const lost = s.lamb && Game.ENT.npcs[s.lamb];
-    say([{ n: n.name, t: lost ? (lost.follow ? '아이고, 내 어린양! 찾아 주었구려!' : '어린양 한 마리가 아직 안 보이오…') : rnd(['풀이 좋은 곳을 찾아 이리저리 다니는 중이오.', '양들이 물을 마실 샘을 찾고 있소.']), choices: [].concat(
-      lost && lost.follow ? [{ t: '여기 있어요!', then: () => { G.Deeds && G.Deeds.rec('honest', n); Game.removeNPC(s.lamb); s.lamb = null; Game.silver(10); kind('잃은 양을 찾아 주었어요'); setTimeout(() => say([{ n: n.name, t: '아흔아홉 마리보다 이 한 마리가 더 기쁘구려. 고맙소!' }], back), 30); } }] : [],
-      !s.lamb && !s.lambDone ? [{ t: '양을 잃어버리셨어요?', then: () => { s.lambDone = true; spawnLamb(n, s); setTimeout(() => say([{ n: n.name, t: '어린양 한 마리가 무리에서 떨어졌소. 저쪽 덤불 근처에서 울음소리가 났는데… 찾아서 안아다 주겠소?' }], back), 30); } }] : [],
-      [{ t: '양 치는 건 어때요?', then: () => setTimeout(() => say([{ n: n.name, t: rnd(SMALL.shepherd) }], () => strangerTalk(n)), 30) }], free, [bye]) }]);
+    const act = lost && lost.follow ? { t: '여기 있어요!', then: () => { G.Deeds && G.Deeds.rec('honest', n); Game.removeNPC(s.lamb); s.lamb = null; Game.silver(10); kind('잃은 양을 찾아 주었어요'); setTimeout(() => line('아흔아홉 마리보다 이 한 마리가 더 기쁘구려. 고맙소!', back), 30); } }
+      : !s.lamb && !s.lambDone ? { t: '양을 잃어버리셨어요?', then: () => { s.lambDone = true; spawnLamb(n, s); setTimeout(() => line('어린양 한 마리가 무리에서 떨어졌소. 저쪽 덤불 근처에서 울음소리가 났는데… 찾아서 안아다 주겠소?', back), 30); } } : null;
+    top({ n: n.name, t: lost ? (lost.follow ? '아이고, 내 어린양! 찾아 주었구려!' : '어린양 한 마리가 아직 안 보이오…') : rnd(['풀이 좋은 곳을 찾아 이리저리 다니는 중이오.', '양들이 물을 마실 샘을 찾고 있소.']) }, act,
+      [{ k: 'sheep', t: '양 치는 건 어때요?', run: next => line(rnd(SMALL.shepherd), next) }]);
   } else if (type === 'elder') {
     const i = S.flags.taleN || 0, tale = TALES[i % TALES.length];
-    say([{ n: n.name, t: i >= TALES.length ? '내 이야기를 다 들었구려. 이제 그대가 아이들에게 전해 주시오.' : '앉으시오. 우리 조상 아브라함 이야기를 들려주리다.', choices: [].concat(
-      [{ t: i >= TALES.length ? '한 번 더 들려주세요' : '이야기 듣기', then: () => setTimeout(() => { Game.P.emote = { k: 'sitg', t: 0, dur: 1e4 }; G.UI.narr([{ kick: '노인의 옛이야기', title: tale.title, t: tale.t, ref: tale.ref }], () => { Game.P.emote = null; if (i < TALES.length) { S.flags.taleN = i + 1; if (Game.insight) Game.insight(1, tale.title); } say([{ n: n.name, t: '하나님은 약속하신 것을 반드시 지키신다오. 잊지 마시오.' }], back); }); }, 30) }], free, [bye]) }]);
+    top({ n: n.name, t: i >= TALES.length ? '내 이야기를 다 들었구려. 이제 그대가 아이들에게 전해 주시오.' : '앉으시오. 우리 조상 아브라함 이야기를 들려주리다.' },
+      { t: i >= TALES.length ? '한 번 더 들려주세요' : '이야기 듣기', then: () => setTimeout(() => { Game.P.emote = { k: 'sitg', t: 0, dur: 1e4 }; G.UI.narr([{ kick: '노인의 옛이야기', title: tale.title, t: tale.t, ref: tale.ref }], () => { Game.P.emote = null; if (i < TALES.length) { S.flags.taleN = i + 1; if (Game.insight) Game.insight(1, tale.title); } line('하나님은 약속하신 것을 반드시 지키신다오. 잊지 마시오.', back); }); }, 30) }, []);
   } else if (type === 'waterwoman') {
     const jar = Game.tool('jar') || Game.tool('bigjar');
-    say([{ n: n.name, t: '먼 우물에서 물을 길어 오는 길이에요. 목마르지 않으세요?', choices: [].concat(
-      [{ t: '물 한 모금 얻어 마시기', then: () => { const P = Game.P, H = S.hero; P.stam = (H && H.stamMax) || 100; if (S.surv) S.surv.food = Math.min(100, S.surv.food + 3); setTimeout(() => say([{ n: n.name, t: '천천히 드세요. 물은 생명이지요.' }], () => strangerTalk(n)), 30); } }],
-      jar && S.water < S.jarMax ? [{ t: '항아리에 물 좀 나눠 주세요', then: () => { S.water = Math.min(S.jarMax, S.water + 4); G.UI.hud(); setTimeout(() => say([{ n: n.name, t: '조금이지만 보태 드릴게요.' }], () => strangerTalk(n)), 30); } }] : [],
-      [{ t: '가까운 우물이 어디예요?', then: () => { const w = nearestWell(); setTimeout(() => say([{ n: n.name, t: w ? `여기서 ${w.dir}쪽으로 ${w.d}걸음쯤 가면 우물이 있어요. 지도에 표시해 드릴게요.` : '이 근처엔 우물이 없어요. 강가로 가 보세요.' }], () => { if (w) { S.wp = { x: w.x, z: w.z, n: '우물' }; G.UI.toast('지도에 우물을 표시했어요'); } strangerTalk(n); }), 30); } }], free, [bye]) }]);
+    top({ n: n.name, t: '먼 우물에서 물을 길어 오는 길이에요. 목마르지 않으세요?' }, { t: '물 한 모금 얻어 마시기', then: () => { const P = Game.P, H = S.hero; P.stam = (H && H.stamMax) || 100; if (S.surv) S.surv.food = Math.min(100, S.surv.food + 3); setTimeout(() => line('천천히 드세요. 물은 생명이지요.', back), 30); } },
+      [{ k: 'jar', t: '항아리에 물 좀 나눠 주세요', when: () => !!jar && S.water < S.jarMax, run: next => { S.water = Math.min(S.jarMax, S.water + 4); G.UI.hud(); line('조금이지만 보태 드릴게요.', next); } },
+       { k: 'well', t: '가까운 우물이 어디예요?', run: next => { const w = nearestWell(); line(w ? `여기서 ${w.dir}쪽으로 ${w.d}걸음쯤 가면 우물이 있어요. 지도에 표시해 드릴게요.` : '이 근처엔 우물이 없어요. 강가로 가 보세요.', () => { if (w) { S.wp = { x: w.x, z: w.z, n: '우물' }; G.UI.toast('지도에 우물을 표시했어요'); } next(); }); } }]);
   } else say([{ n: n.name, t: '평안하시오.' }], back);
 }
 const DIRN = (dx, dz) => { const a = Math.atan2(dx, -dz); const i = Math.round(a / (PI / 4)); return ['북', '북동', '동', '남동', '남', '남서', '서', '북서'][(i + 8) % 8]; };
@@ -392,7 +399,7 @@ function lambs() { }
 // shops of strangers
 const SHOPS = {
   stg_trav: { n: '나그네의 짐 보따리', sells: ['crop', 'food', 'mat'], mul: { crop: 1.1 }, buy: [{ n: '빵 ×2', item: 'bread', qty: 2, price: 18 }, { n: '무화과 ×4', item: 'fig', qty: 4, price: 10 }, { n: '밀 씨앗 ×5', item: 's_wheat', qty: 5, price: 12 }, { n: '양파 씨앗 ×5', item: 's_onion', qty: 5, price: 13 }] },
-  stg_car: { n: '이스마엘 대상', sells: ['good', 'crop', 'hunt', 'rare'], mul: { good: 1.35, rare: 1.2, hunt: 1.1 }, buy: [{ n: '향품', item: 'spice', qty: 1, price: 40, d: '장터에 비싸게 팔 수 있어요' }, { n: '유향', item: 'balm', qty: 1, price: 55, d: '길르앗의 귀한 향유' }, { n: '몰약', item: 'myrrh', qty: 1, price: 70 }, { n: '석청 ×2', item: 'honey', qty: 2, price: 30 }, { n: '모직 천', item: 'cloth', qty: 1, price: 46 }] },
+  stg_car: { n: '이스마엘 대상', sells: ['good', 'crop', 'hunt', 'rare'], mul: { good: 1.35, rare: 1.2, hunt: 1.1 }, buy: [{ n: '향품', item: 'spice', qty: 1, price: 40, d: '장터에 비싸게 팔 수 있어요' }, { n: '유향', item: 'balm', qty: 1, price: 55, d: '길르앗의 귀한 향유' }, { n: '몰약', item: 'myrrh', qty: 1, price: 70 }, { n: '석청 ×2', item: 'honey', qty: 2, price: 30 }, { n: '모직 천', item: 'cloth', qty: 1, price: 46 }, { n: '청금석', item: 'lapis', qty: 1, price: 90, d: '먼 동쪽 산에서 낙타로 실어 온 푸른 돌' }] }, /* v18.60 the coach (총리의 유람 마차) needs one: the quarry cave's chest opens only once */
   stg_hunt: { n: '떠돌이 사냥꾼', sells: ['hunt', 'food'], mul: { hunt: 1.25, food: 1.1 }, buy: [{ n: '화살 ×10', item: 'arrow', qty: 10, price: 15 }, { n: '구운 고기 ×2', item: 'roast', qty: 2, price: 26 }, { n: '힘줄 ×2', item: 'sinew', qty: 2, price: 12 }] },
 };
 function regShops() { const EP = EPf(); EP.shops = EP.shops || {}; for (const k in SHOPS) EP.shops[k] = SHOPS[k]; }

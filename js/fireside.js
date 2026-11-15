@@ -76,7 +76,7 @@ function companions(f, S) { const P = Game.P, out = [];
     others.sort((a, b) => (B ? B.get(b).p - B.get(a).p : 0)); for (const id of others) { if (out.length >= 3) break; out.push(id); } }
   return out.slice(0, 3); }
 let ring = null; // { f, ids, key }
-F.sit = function (f, back) { const S = Game.S(), P = Game.P, C = G.Climate; if (ring || calm()) return; const key = nightKey(S), first = S.flags.fsNight !== key;
+F.sit = function (f, back) { const S = Game.S(), P = Game.P, C = G.Climate; if (ring || calm()) return; inTalk = 0; const key = nightKey(S), first = S.flags.fsNight !== key;
   const ids = companions(f, S); ring = { f, ids, key, told: 0 };
   G.UI.fade(() => { const W = Game.W(), y = W.heightAt(f.x, f.z) + 1.1; let a0 = Math.atan2(P.x - f.x, P.z - f.z), best = -1;
     // pick the side with room for Joseph behind him and for the camera across the fire
@@ -105,12 +105,20 @@ F.sit = function (f, back) { const S = Game.S(), P = Game.P, C = G.Climate; if (
     const L = G.Life, S0 = Game.S(), QS = Game.EP().quests || {}; if (L && L.active && ids.includes('jacob')) for (const qid of L.active(S0)) { const q = QS[qid]; if (!q || q.giver !== 'jacob' || !L.qOk || !L.qOk(S0, qid) || !q.done) continue; const dl = typeof q.done === 'function' ? q.done(S0, Game) : q.done; for (const l of dl) intro.push(typeof l === 'string' ? { n: npc('jacob').name, t: l } : l); intro.push({ n: '', t: '__done:' + qid }); break; }
     const doneQ = intro.find(l => /^__done:/.test(l.t)); if (doneQ) { const qid = doneQ.t.slice(7); intro.splice(intro.indexOf(doneQ), 1); G.UI.say(intro, () => { L.complete(qid); setTimeout(menu, 400); }); return; }
     G.UI.say(intro, () => menu()); }); };
-function menu() { const S = Game.S(), r = ring; if (!r) return; const ch = [];
-  if (G.Hearth) ch.push({ t: '요리하기', then: () => setTimeout(cook, 30) });
-  if (r.ids.length) { ch.push({ t: teller() ? '아버지께 옛이야기 청하기' : '옛이야기 들려주기', then: () => setTimeout(tellPick, 30) }); for (const id of r.ids) ch.push({ t: `${Cs() ? Cs().me(id) : npc(id).name}의 이야기 듣기`, then: () => setTimeout(() => listen(id), 30) }); }
-  else ch.push({ t: '불을 바라보며 생각하기', then: () => setTimeout(() => G.UI.say([{ n: '요셉', t: rnd(alone()) }], menu), 30) });
-  ch.push({ t: r.ids.length ? '함께 기도하기' : '기도하기', then: () => setTimeout(pray, 30) }); ch.push({ t: '일어나기', then: () => setTimeout(stand, 30) });
+let inTalk = 0; /* after a story, back to the talk (not the top menu) */
+function menu() { const S = Game.S(), r = ring; if (!r) return; if (inTalk && r.ids.length) { talkMenu(); return; } /* v18.60 three ways at most: talk (stories in and out, one by one), pray, get up — cooking sits inside 「불가에서 하기」 */
+  const ch = [];
+  if (r.ids.length) ch.push({ t: '이야기 나누기', then: () => setTimeout(talkMenu, 30) });
+  else ch.push({ t: '불가에서 하기', then: () => setTimeout(soloMenu, 30) });
+  ch.push({ t: r.ids.length ? '함께 기도하기' : '기도하기', then: () => setTimeout(pray, 30) }); ch.push({ t: '일어나기', then: () => { inTalk = 0; setTimeout(stand, 30); } });
   G.UI.say([{ n: '', t: r.ids.length ? '무엇을 할까요?' : '홀로 불가에 앉아 있습니다.', choices: ch }], null); }
+/* stories by the fire: two choices at a time, the next one opens after each — always a way back */
+let tk = 0;
+function talkMenu() { const r = ring; if (!r) return; inTalk = 1; const opts = [{ t: teller() ? '아버지께 옛이야기 청하기' : '옛이야기 들려주기', f: tellPick }].concat(r.ids.map(id => ({ t: `${Cs() ? Cs().me(id) : npc(id).name}의 이야기 듣기`, f: () => listen(id) })));
+  if (G.Hearth) opts.push({ t: '함께 먹을 것 요리하기', f: cook });
+  const two = []; for (let k = 0; k < Math.min(2, opts.length); k++) two.push(opts[(tk + k) % opts.length]); tk = (tk + 1) % Math.max(1, opts.length);
+  G.UI.say([{ n: '요셉', t: '(무슨 이야기를 할까?)', choices: two.map(o => ({ t: o.t, then: () => setTimeout(o.f, 30) })).concat([{ t: '그만 이야기하기', then: () => { inTalk = 0; setTimeout(menu, 30); } }]) }], null); }
+function soloMenu() { const ch = []; if (G.Hearth) ch.push({ t: '요리하기', then: () => setTimeout(cook, 30) }); ch.push({ t: '불을 바라보며 생각하기', then: () => setTimeout(() => G.UI.say([{ n: '요셉', t: rnd(alone()) }], menu), 30) }); ch.push({ t: '돌아가기', then: () => setTimeout(menu, 30) }); G.UI.say([{ n: '', t: '(무엇을 할까?)', choices: ch }], null); }
 /* v18.56 who tells the old stories: in Hebron and in Goshen, Jacob tells his own fathers' stories (and his own), not his son */
 function teller() { const r = ring; if (!r) return null; for (const id of r.ids) { const cf = castFire(id); if (cf && cf.tell) return id; } return null; }
 function tellOf(id, k) { const cf = castFire(id); if (!cf) return null; let t = cf.tell; if (typeof t === 'string') { const c = Cs().of(id); t = c && c.fire && c.fire[t] && c.fire[t].tell; } return t && t[k] || null; }

@@ -17,7 +17,7 @@ D.cur = () => { const s = S(); return (s && s.flags && s.flags.dlc && s.flags.dl
 D.st = key => { const s = S(), a = s.flags.dlcSt || (s.flags.dlcSt = {}); return a[key] || (a[key] = {}); };
 D.add = function (def) { D.defs[def.key] = def; };
 /* a finished story can be heard again from the start (what was earned stays) */
-D.restart = key => { const s = S(), a = s.flags.dlcSt || (s.flags.dlcSt = {}), o = a[key] || {}; a[key] = { done: o.done, best: o.best, again: (o.again | 0) + 1 }; };
+D.restart = key => { const s = S(), a = s.flags.dlcSt || (s.flags.dlcSt = {}), o = a[key] || {}; a[key] = { done: o.done, best: o.best, again: (o.again | 0) + 1 }; }; /* (its kit too: a fresh start gets the story's first belongings) */
 const land = key => (Ls.list || []).find(l => l.key === D.defs[key].land);
 const FLAGS = () => ['byblos', 'kaftor'].concat((Ls.list || []).map(l => 'land_' + l.key));
 function apply(def) { EP.hero = def ? (typeof def.hero === 'function' ? def.hero(D.st(def.key)) : def.hero) : HERO0; }
@@ -25,15 +25,48 @@ D.rename = n => { if (D.cur()) EP.hero = n; };
 D.enter = function (key) { const def = D.defs[key], s = S(), p = P(), L = land(key); if (!def || !L || D.cur()) return;
   if (p.ride || (s.q && s.q.riding)) { G.UI.toast('탈것에서 먼저 내려 주세요'); return; } if ((G.Phys && G.Phys.held) || p.carry) { G.UI.toast('들고 있는 것을 먼저 내려놓아요'); return; }
   Game.save(true);
-  G.UI.fade(() => { s.flags.dlc = { key, x: p.x, z: p.z, f: p.face, o: s.outfit, t: s.time, h: s.hand || null, w: s.wx ? s.wx.k : 'clear' }; s.hand = null;
+  G.UI.fade(() => { s.flags.dlc = { key, x: p.x, z: p.z, f: p.face, o: s.outfit, t: s.time, day: s.day, h: s.hand || null, w: s.wx ? s.wx.k : 'clear', bag: stash(s) }; giveKit(s, def);
     for (const f of FLAGS()) s.flags[f] = 0; s.flags['land_' + L.key] = 1; apply(def); Game.setOutfit(def.outfit);
     const st = L.stage(), sp = (def.spawn && def.spawn(D.st(key))) || [0, 0, 0]; Game.teleport(st.x + sp[0], st.z + sp[1], sp[2] || 0); p.y = p.airTop = st.y + (sp[3] || 0); sfx('insight', { pitch: 0.8, vol: 0.6 });
     if (def.onEnter) try { def.onEnter(D.st(key)); } catch (e) { console.error('dlc', e); } }, () => { if (def.intro) try { def.intro(D.st(key)); } catch (e) { console.error('dlc', e); } G.UI.quest && G.UI.quest(); }); };
 D.leave = function (cb) { const s = S(), d = s.flags.dlc; if (!d) { cb && cb(); return; } const def = D.defs[d.key], L = land(d.key);
-  G.UI.fade(() => { if (def && def.onLeave) try { def.onLeave(D.st(d.key)); } catch (e) { console.error('dlc', e); } s.flags['land_' + L.key] = 0; s.flags.dlc = null; apply(null); Game.setOutfit(d.o); s.time = d.t; s.hand = d.h; P().emote = null; P().cpose = null;
+  G.UI.fade(() => { if (def && def.onLeave) try { def.onLeave(D.st(d.key)); } catch (e) { console.error('dlc', e); } s.flags['land_' + L.key] = 0; keepKit(s, d.key); unstash(s, d.bag); s.flags.dlc = null; apply(null); Game.setOutfit(d.o); s.time = d.t; if (d.day) s.day = d.day; s.hand = d.h; P().emote = null; P().cpose = null; G.UI.hud && G.UI.hud();
     Game.teleport(d.x, d.z, d.f); if (G.Weather && G.Weather.set) try { G.Weather.set(d.w || 'clear', 3); } catch (e) { } }, () => { G.UI.quest && G.UI.quest(); Game.save(true); cb && cb(); }); };
+/* v18.60 이야기에 들어가 있는 동안
+   · 요셉의 가방 · 도구 · 은 · 물 · 장비와 진행 중인 부탁은 맡겨 두고(S.flags.dlc.bag), 이야기의 소지품(def.kit)으로 지내요. 나오면 그대로 돌려받아요.
+   · 요셉 세계의 알림(pop · featCard · dayCard)과 하루가 바뀌는 일, 밤샘 피로, 요셉의 목표 상자와 길 안내가 멈춰요. 이야기의 알림은 D.pop / D.toast로.
+   · def.title: 목표 상자 위 제목 · def.target(st) → [무대 x, 무대 z] | null: 길 안내 */
+function stash(s) { const H = s.hero || {}, sd = s.side || {}; return { inv: s.inv, tools: s.tools, silver: s.silver, water: s.water, jarMax: s.jarMax, quick: s.quick || null, seedSel: s.seedSel || null,
+  weapon: H.weapon || null, ranged: H.ranged || null, armor: H.armor || null, gear: H.gear || {}, act: sd.act || {}, track: sd.track || null, goal: sd.goal || null, wp: s.wp || null }; }
+function giveKit(s, def) { const st = D.st(def.key), H = s.hero || (s.hero = {}); let k = st.kit;
+  if (!k) { const k0 = (def.kit && def.kit(st)) || {}; k = { inv: Object.assign({}, k0.inv || {}), tools: {}, silver: k0.silver | 0, water: k0.water | 0, hand: k0.hand || null, weapon: null }; for (const x of k0.tools || []) k.tools[x] = true; }
+  s.inv = Object.assign({}, k.inv); s.tools = Object.assign({}, k.tools); s.silver = k.silver | 0; s.water = k.water | 0; s.jarMax = 12; s.quick = null; s.seedSel = null; s.hand = k.hand && s.tools[k.hand] ? k.hand : null;
+  H.weapon = k.weapon || null; H.ranged = null; H.armor = null; H.gear = {}; if (s.side) { s.side.act = {}; s.side.track = null; s.side.goal = null; } s.wp = null; }
+function keepKit(s, key) { const st = D.st(key); st.kit = { inv: Object.assign({}, s.inv), tools: Object.assign({}, s.tools), silver: s.silver | 0, water: s.water | 0, hand: s.hand || null, weapon: (s.hero && s.hero.weapon) || null }; }
+function unstash(s, b) { if (!b) return; const H = s.hero || (s.hero = {}); s.inv = b.inv || {}; s.tools = b.tools || {}; s.silver = b.silver | 0; s.water = b.water | 0; s.jarMax = b.jarMax || 12; s.quick = b.quick; s.seedSel = b.seedSel;
+  H.weapon = b.weapon; H.ranged = b.ranged; H.armor = b.armor; H.gear = b.gear || {}; const sd = s.side || (s.side = { act: {}, done: {}, track: null }); sd.act = b.act || {}; sd.track = b.track; sd.goal = b.goal; s.wp = b.wp; }
+/* the story's own messages get through; the rest of Joseph's world keeps quiet */
+let allow = 0; D.pop = (a, b, c) => { allow++; try { (G.UI.pop || G.UI.toast)(a, b, c); } finally { allow--; } }; D.toast = (a, x) => G.UI.toast(a, x);
+if (G.UI.pop) { const p0 = G.UI.pop; G.UI.pop = function () { if (D.cur() && !allow) return; return p0.apply(this, arguments); }; }
+if (G.UI.featCard) { const f0 = G.UI.featCard; G.UI.featCard = function () { if (D.cur()) return; return f0.apply(this, arguments); }; }
+if (G.UI.dayCard) { const d0 = G.UI.dayCard; G.UI.dayCard = function () { if (D.cur()) return; return d0.apply(this, arguments); }; }
+/* the clock never runs into a new day inside a story (that would grow Joseph's crops and send his letters): it turns back a day instead */
+{ const up1 = EP.update; EP.update = function (dt, s) { if (s && D.cur() && s.time > 28.6) s.time -= 24; return up1 ? up1.apply(this, arguments) : undefined; }; }
+{ const sl0 = Game.sleep; Game.sleep = function () { if (D.cur()) { const s = S(); G.UI.fade(() => { s.time = 6.5; P().stam = (G.Vitals && G.Vitals.cap) || 140; if (s.hero) s.hero.hp = s.hero.hpMax; }, () => D.toast('푹 자고 일어났어요')); return; } return sl0.apply(this, arguments); }; }
+/* Joseph's sleepless nights do not follow him into a story */
+if (G.Rest) { const k0 = G.Rest.k, n0 = G.Rest.n; G.Rest.k = function () { return D.cur() ? 0 : k0.apply(this, arguments); }; G.Rest.n = function () { return D.cur() ? 0 : n0.apply(this, arguments); }; }
+/* the outfit: whatever re-dresses Joseph for his step (a load, a stage refresh) leaves the story's hero as he is */
+{ const so0 = Game.setOutfit; Game.setOutfit = function (k) { const c = D.cur(); if (c && D.defs[c] && !/^dlc/.test(k || '')) k = D.defs[c].outfit; return so0.call(this, k); }; }
+/* the quest box: the story's title and its own rows; no side errand under it */
+/* (installed once every script has loaded: the two story stages are made after this file, and their own quest-row wrapper would otherwise add the rows a second time) */
+setTimeout(() => { if (G.UI.quest) { const uq = G.UI.quest; G.UI.quest = function () { const r = uq.apply(this, arguments); const c = D.cur(); if (!c) return r; try { const def = D.defs[c], L = land(c), s = S(), rows = (L && L.spec.quest && L.spec.quest(s, {})) || [], $ = id => document.getElementById(id);
+    $('qCh').textContent = def.title || ''; $('qObj').textContent = rows[0] ? rows[0].t : ''; $('qList').innerHTML = rows.slice(1).map(q => `<div class="${q.ok ? 'ok' : ''}"><i>${q.ok ? '✓' : '·'}</i><span>${String(q.t).replace(/[<>&]/g, '')}</span></div>`).join('');
+    const qs = $('qSide'); if (qs) qs.hidden = true; const qb = $('questBox'); if (qb) qb.classList.remove('sideGoal'); } catch (e) { console.error('dlc quest', e); } return r; }; } }, 0);
+/* the arrow: where the story wants him, or nowhere */
+{ const tg0 = Game.target; Game.target = function () { const c = D.cur(); if (!c) return tg0.apply(this, arguments); try { const def = D.defs[c], L = land(c), v = def.target && def.target(D.st(c)); if (!v || !L) return null; const st0 = L.stage(); return { x: st0.x + v[0], z: st0.z + v[1], dlc: true }; } catch (e) { return null; } }; }
+
 /* a loaded save that is inside a story: the hero's name again */
-{ const ol = EP.onLoad; EP.onLoad = function () { const r = ol ? ol.apply(this, arguments) : undefined; try { const k = D.cur(); apply(k ? D.defs[k] : null); } catch (e) { } return r; }; }
+{ const ol = EP.onLoad; EP.onLoad = function () { const r = ol ? ol.apply(this, arguments) : undefined; try { const k = D.cur(); apply(k ? D.defs[k] : null); if (k && D.defs[k]) { Game.setOutfit(D.defs[k].outfit); const def = D.defs[k]; if (def.onEnter) def.onEnter(D.st(k)); setTimeout(() => G.UI.quest && G.UI.quest(), 300); } } catch (e) { console.error('dlc load', e); } return r; }; }
 /* inside a story nothing wears him down, and the dream button stays shut */
 { const cs = EP.calmSurv; EP.calmSurv = function (s) { return !!D.cur() || (cs ? cs.apply(this, arguments) : false); }; }
 if (G.DW && G.DW.enter) { const e0 = G.DW.enter; G.DW.enter = function () { if (D.cur()) { G.UI.toast('이야기 속에서는 꿈의 세계에 들어갈 수 없어요'); return; } return e0.apply(this, arguments); }; }

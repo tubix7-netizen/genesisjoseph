@@ -50,11 +50,11 @@ Rd.cap = (cap0 => s => cap0(s) + (ok(s) ? 2 : 0))(Rd.cap); /* the vizier's stabl
 if (G.Build) { const ss0 = G.Build.stableSpot; G.Build.stableSpot = function (s) { const r = ss0 ? ss0.apply(this, arguments) : null; if (r) return r; return ST && ok(s) ? [ST.yard[0] + (Math.random() - 0.5) * 6, ST.yard[1] + (Math.random() - 0.5) * 4] : null; }; }
 // ------------------------------------------------------------------ talking to Keti
 const KN = '마구간지기 케티';
-function menu(done) { const s = S(), own = Rd.list.filter(r => r.m.sp === 'horse'), m = mode(s);
-  const ch = [{ t: '말 사기', then: () => setTimeout(buy, 40) }]; if (own.length || m !== 'cart') ch.push({ t: m === 'cart' ? '이제 말 타고 다니기' : '이제 수레로 다니기', then: () => setTimeout(() => setMode(m === 'cart' ? 'horse' : 'cart'), 40) });
+function menu(done) { const s = S(), own = Rd.list.filter(r => r.m.sp === 'horse'), m = mode(s), own2 = s.flags.vehOwn || {};
+  const kinds = ['chariot'].concat(Object.keys(own2).filter(k => own2[k] && G.Cart && G.Cart.VEH && G.Cart.VEH[k]));
+  const ch = [{ t: s.flags.free && !own2.ox ? '말이나 소달구지 사기' : '말 사기', then: () => setTimeout(s.flags.free && !own2.ox ? buyWhich : buy, 40) }];
+  if (own.length || m !== 'cart' || kinds.length > 1) ch.push({ t: '탈것 바꾸기', then: () => setTimeout(() => G.UI.say([{ n: KN, t: '무엇으로 다니시겠어요?', choices: [].concat(own.length || m !== 'cart' ? [{ t: m === 'cart' ? '이제 말 타고 다니기' : '이제 수레로 다니기', then: () => setTimeout(() => setMode(m === 'cart' ? 'horse' : 'cart'), 40) }] : [], kinds.length > 1 ? [{ t: '탈 수레 고르기', then: () => setTimeout(pickVeh, 40) }] : [], [{ t: '그대로 두겠소' }]) }], done), 40) });
   if (Rd.list.length) ch.push({ t: '말 돌보기 (은 5)', then: () => { if (s.silver < 5) { G.UI.toast('은이 모자라요'); return; } Game.silver(-5); for (const r of Rd.list) { r.m.st = 100; r.tired = false; } pop('말들이 푹 쉬었어요', '기운이 가득해요', 'donkey'); } });
-  { const own2 = s.flags.vehOwn || {}; if (s.flags.free && !own2.ox) ch.splice(1, 0, { t: `소달구지 사기 · 은 ${OX_PRICE}`, then: () => setTimeout(buyOx, 40) }); /* v18.45 */
-    const kinds = ['chariot'].concat(Object.keys(own2).filter(k => own2[k] && G.Cart && G.Cart.VEH && G.Cart.VEH[k])); if (kinds.length > 1) ch.splice(1, 0, { t: '탈 수레 고르기', then: () => setTimeout(pickVeh, 40) }); }
   ch.push({ t: '그만 이야기하기' });
   G.UI.say([{ n: KN, t: `총리님! 지금은 ${m === 'cart' ? (G.Cart && G.Cart.VEH ? G.Cart.VEH[G.Cart.veh()].n : '수레') : '말'}로 다니시지요.${own.length ? ` 마구간엔 ${own.map(r => r.m.name).join(', ')}이(가) 있어요.` : ' 아직 총리님 말은 없어요.'} 무엇을 할까요?`, choices: ch }], done); }
 /* v18.45 the ox cart (창 45:19 「수레」): slow, but four can ride and it carries twice as much */
@@ -68,7 +68,7 @@ function pickVeh() { const s = S(), own2 = s.flags.vehOwn || {}, V = G.Cart && G
      has not been back since the flood and the famine. Joseph carries his greeting; the father, whose hands now shake, sends back his adze
      and the drawing of the coach he always wanted to build. Father and son are reconciled (Joseph speaks of his own father).
    2 「총리의 유람 마차」 — Keti builds his father's coach for the vizier; afterwards the old man comes to the stable to see it. */
-const DAD = '늙은 수레장이 네브세니', KID = 'ketiDad';
+const DAD = '늙은 수레장이 네브세니', KID = 'ketiDad', DADAT = [-141.5, 131.5];
 Object.assign(Game.ITEMS, { kTools: { n: '아버지의 자귀와 마차 그림', cat: 'quest', p: 0, ic: 'tool', c: '#c8a070', d: '네브세니가 아들 케티에게 보내는 것 · 퀘스트 물건' } });
 const Q = EP.quests = EP.quests || {};
 Q.ketiQ = { giver: 'stKeeper', title: '케티의 작은 바퀴', when: s => !!(s.flags && s.flags.free) && !s.flags.ketiStory,
@@ -78,6 +78,7 @@ Q.ketiQ = { giver: 'stKeeper', title: '케티의 작은 바퀴', when: s => !!(s
     { n: KN, t: '아버지가 아직 저를 서운해하실까 봐 겁이 나요. 총리님, 남쪽 마을에 가시거든 아버지 안부만 좀 여쭤 주시겠어요?' }],
   prog: s => Game.inv('kTools') > 0 ? { n: KN, t: '아버지를 만나셨어요? …무슨 말씀을 하시던가요?' } : { n: KN, t: '아버지 이름은 네브세니예요. 남쪽 마을 우물가 가까이에 사세요.' },
   obj: [{ t: '남쪽 마을의 늙은 수레장이 네브세니 만나기', ok: s => !!s.flags.ketiMet }, { t: '아버지가 보낸 것을 케티에게 전하기', ok: s => Game.inv('kTools') > 0 }],
+  loc: s => s.flags.ketiMet ? 'npc:stKeeper' : Game.npc(KID) ? 'npc:' + KID : { x: DADAT[0], z: DADAT[1] }, /* v18.60 the way pointed at Keti the whole time: now to his father in the south village */
   take: { kTools: 1 },
   done: [{ n: '요셉', t: '케티, 아버님께서 이것을 전해 달라 하셨소.' },
     { n: KN, t: '이건… 아버지의 자귀! 그리고 이 그림은, 어릴 때 아버지가 밤마다 그리시던 그 마차예요.', e: 'tender' },
@@ -91,7 +92,8 @@ Q.coachQ = { giver: 'stKeeper', title: '총리의 유람 마차', when: s => !!(
   offer: [{ n: KN, t: '총리님, 아버지가 남기신 그 마차 그림 말이에요. 매일 밤 펼쳐 보고 있어요.' },
     { n: KN, t: '흰 회칠에 금 테를 두르고, 세마포 차양을 단 큰 유람 마차예요. 장인들과 함께 이 마차를 총리님을 위해 꼭 만들어 드리고 싶어요.', e: 'happy' },
     { n: KN, t: '그발의 백향목 넷, 세마포 셋, 청금석 하나를 구해 주세요. 장인들 품삯으로 은 120도 필요해요.' }],
-  prog: { n: KN, t: '백향목은 그발의 백향목 장수 하람에게, 세마포는 장터에, 청금석은 동굴 깊은 곳에 있어요. 품삯 은 120도 잊지 마세요!' },
+  prog: { n: KN, t: '백향목은 그발의 백향목 장수 하람에게, 세마포는 장터에, 청금석은 옛 채석장 굴 깊은 곳이나 지나가는 이스마엘 대상에게 있어요. 품삯 은 120도 잊지 마세요!' },
+  loc: s => Game.inv('cedar') < 4 ? { x: -99.6, z: -70.3 } : Game.inv('linen') < 3 ? { x: -24, z: -70 } : Game.inv('lapis') < 1 ? { x: -200, z: -90 } : s.silver < 120 ? null : 'npc:stKeeper', /* v18.60 the way to what is still missing: the Byblos boat · the market · the quarry cave */
   obj: [{ t: s => `백향목 (${Math.min(4, Game.inv('cedar'))}/4) · 그발`, ok: s => Game.inv('cedar') >= 4 }, { t: s => `세마포 (${Math.min(3, Game.inv('linen'))}/3)`, ok: s => Game.inv('linen') >= 3 },
     { t: s => `청금석 (${Math.min(1, Game.inv('lapis'))}/1) · 동굴`, ok: s => Game.inv('lapis') >= 1 }, { t: '장인 품삯 은 120', ok: s => s.silver >= 120 }],
   take: { cedar: 4, linen: 3, lapis: 1 },
@@ -103,21 +105,28 @@ Q.coachQ = { giver: 'stKeeper', title: '총리의 유람 마차', when: s => !!(
   finish: s => { Game.silver(-120); (s.flags.vehOwn = s.flags.vehOwn || {}).coach = 1; sfx('levelup'); setTimeout(() => pop('총리의 유람 마차를 얻었어요', '케티에게 「탈 수레 고르기」로 바꿔 타요', 'donkey'), 900); } };
 /* the old wheelwright: in the south village while Keti's story is open, at the stable once the coach is built */
 const DADLOOK = { skin: 0x9a6a40, top: 0xe8dcc0, bottom: 0xd8c8a8, age: 'old', hair: 0xd8d0c0, hairStyle: 'short', belt: 0x6a4a30 };
-function dadSpot(s) { if (s.flags.vehOwn && s.flags.vehOwn.coach && ST && ST.keeper) return [ST.keeper[0] + 1.8, ST.keeper[1] + 1.2]; if (s.side && s.side.act && s.side.act.ketiQ && !s.flags.ketiMet) return [-141.5, 131.5]; if (s.side && s.side.act && s.side.act.ketiQ) return [-141.5, 131.5]; return null; }
+function dadSpot(s) { if (s.flags.vehOwn && s.flags.vehOwn.coach && ST && ST.keeper) return [ST.keeper[0] + 1.8, ST.keeper[1] + 1.2]; if (s.side && s.side.act && s.side.act.ketiQ) return DADAT; if (s.flags.ketiStory && !(s.flags.vehOwn && s.flags.vehOwn.coach)) return DADAT; return null; } /* v18.60 he stays at home in the south village after the errand too (he has things to say) */
 let dadT = 0; const upD = EP.update; EP.update = function (dt) { const r = upD ? upD.apply(this, arguments) : undefined; if (Game.mode !== 'play') return r; if ((dadT -= (typeof dt === 'number' && dt < 1 ? dt : 1 / 60)) > 0) return r; dadT = 1;
   try { const s = S(), at = dadSpot(s), n = Game.npc(KID);
     if (at && !n) Game.spawnNPC({ id: KID, name: DAD, look: DADLOOK, x: at[0], z: at[1], face: 0.4, talkR: 2.6 });
     else if (!at && n) Game.removeNPC(KID);
     else if (at && n && Math.hypot(n.d.x - at[0], n.d.z - at[1]) > 3) { Game.removeNPC(KID); } } catch (e) { console.error('ketiDad', e); } return r; };
-const tk0 = Game.talkTo; Game.talkTo = function (id) { if (id !== KID) return tk0.apply(this, arguments); const s = S(), n = Game.npc(id); if (n) { n.talking = true; const P0 = P(); P0.face = Math.atan2(n.x - P0.x, n.z - P0.z); }
+/* v18.60 the father: A-button talks go to G.Life.talk (the Game.talkTo wrapper here was never reached, so he only offered 「안부 묻기」) */
+function dadTalk(id) { const s = S(), n = Game.npc(id); if (n) { n.talking = true; const P0 = P(); P0.face = Math.atan2(n.x - P0.x, n.z - P0.z); }
   const end = () => { if (n) n.talking = false; };
   if (s.flags.vehOwn && s.flags.vehOwn.coach) { G.UI.say([{ n: DAD, t: '총리님! 내 아들이 만든 마차, 보셨습니까? 내 그림보다 훨씬 낫지요!', e: 'happy' }, { n: DAD, t: '그 녀석이 장날마다 집에 와요. 늘그막에 이런 복을 다 누립니다. 총리님 덕분이에요.' }], end); return; }
-  if (!s.flags.ketiMet) { G.UI.say([{ n: DAD, t: '아이고, 총리님께서 이 늙은이를 다 찾아오시다니요!' }, { n: '요셉', t: '도성 마구간지기 케티가 아버님 안부를 여쭈어 달라 했소.' },
-      { n: DAD, t: '…케티가요? (한참 말이 없다가) 그 녀석, 말 다루는 솜씨는 나를 닮았지요. 내가 바퀴만 고집해서 그 아이 마음을 몰라준 거예요.', e: 'sad' },
-      { n: DAD, t: '큰물과 흉년이 지나는 동안 총리님 곳간 덕분에 우리 마을이 살았습니다. 그 아이가 총리님 곁에 있다니, 이제야 마음이 놓이네요.' },
+  if (s.flags.ketiStory) { const L = s.flags.ketiBack ? ['지난 장날에 그 녀석이 왔다 갔소. 말 이야기만 하더이다. 허허, 그래도 좋았소.', '그 아이가 내 그림으로 마차를 만든다지요? 이 손이 떨려도, 바퀴 깎는 법은 다 가르쳐 줄 거요.'] : ['그 아이가 다음 장날에 온다더이다. 이 늙은이가 잠을 다 설치오.', '총리님도 아버님이 계시다고요? …자주 찾아뵈시오. 기다리는 쪽은 하루가 일 년이라오.'];
+    G.UI.say([{ n: DAD, t: L[(s.day + (s.flags.ketiBack ? 1 : 0)) % L.length], e: 'tender' }], end); s.flags.ketiBack = s.day > (s.flags.ketiDay || s.day) ? 1 : s.flags.ketiBack; return; }
+  if (!s.flags.ketiMet) {
+    G.UI.say([{ n: DAD, t: '(바퀴살을 깎던 손을 멈추고) 아이고, 총리님께서 이 늙은이를 다 찾아오시다니요!', e: 'awe' }, { n: '요셉', t: '도성 마구간지기 케티가 아버님 안부를 여쭈어 달라 했소.' },
+      { n: DAD, t: '…케티가요? (한참 말이 없다가) 그 녀석이 나를 기억하기나 한답디까?', e: 'sad', choices: [
+        { t: '"날마다 아버님이 깎아 주신 작은 바퀴를 만지작거리오."', lines: [{ n: DAD, t: '그 장난감 바퀴를… 아직도요? (눈시울이 붉어진다) 내가 바퀴만 고집해서 그 아이 마음을 몰라준 거요.', e: 'cry' }] },
+        { t: '"아버님이 아직 서운해하실까 봐 겁을 내고 있소."', lines: [{ n: DAD, t: '서운하다니… 서운한 건 그 아이 쪽이겠지요. 말이 좋다는 아이를 붙잡고 바퀴만 깎으라 했으니.', e: 'sad' }] }] },
+      { n: DAD, t: '큰물과 흉년이 지나는 동안 총리님 곳간 덕분에 우리 마을이 살았소. 그 아이가 총리님 곁에 있다니, 이제야 마음이 놓이네요.' },
       { n: DAD, t: '이걸 그 아이에게 전해 주시겠소? 내 자귀와, 평생 만들고 싶었던 마차 그림이오. 손이 떨려 이제 나는 못 만드니, 그 아이가 꼭 완성해 주면 좋겠소.', e: 'tender' },
-      { n: '요셉', t: '꼭 전하겠소.' }], () => { s.flags.ketiMet = 1; Game.give('kTools', 1, true); pop('받았어요', '아버지의 자귀와 마차 그림', 'tool'); G.UI.quest(); end(); }); return; }
-  G.UI.say([{ n: DAD, t: '그 아이에게 잘 전해 주시오. 언제든 얼굴 보러 오라고요.' }], end); };
+      { n: '요셉', t: '꼭 전하겠소. 그리고 아버님 말씀도 그대로 전하겠소.' }], () => { s.flags.ketiMet = 1; Game.give('kTools', 1, true); pop('받았어요', '아버지의 자귀와 마차 그림 · 케티에게 가요', 'tool'); G.UI.quest(); end(); }); return; }
+  G.UI.say([{ n: DAD, t: '그 아이에게 잘 전해 주시오. 언제든 얼굴 보러 오라고요.' }], end); }
+function buyWhich() { G.UI.say([{ n: KN, t: '말을 보시겠어요, 소달구지를 보시겠어요?', choices: [{ t: '말', then: () => setTimeout(buy, 40) }, { t: `소달구지 · 은 ${OX_PRICE}`, then: () => setTimeout(buyOx, 40) }, { t: '다음에요' }] }]); }
 function buy() { const s = S(); G.UI.say([{ n: KN, t: '어느 말이 마음에 드세요? 다들 착하고 튼튼한 녀석들이에요.', choices: HORSES.map(h => ({ t: `${h.n} · 은 ${h.price}`, then: () => setTimeout(() => buyOne(h), 40) })).concat([{ t: '다음에요' }]) }]); }
 function buyOne(h) { const s = S(); if (s.silver < h.price) { G.UI.say([{ n: KN, t: `${h.n}은 은 ${h.price}이에요. 조금 더 모아 오세요!` }]); return; }
   const ok2 = Rd.buy({ mount: 'horse', mname: h.n }); if (!ok2) return; Game.silver(-h.price); const r = Rd.list[Rd.list.length - 1]; r.m.hide = h.hide; r.m.mane = h.mane; r.mesh = Game.animalMesh('horse', 'plain', { saddle: Rd.MT.horse.saddle, hide: h.hide, mane: h.mane });
@@ -130,9 +139,21 @@ function setMode(m) { const s = S(); s.flags.travel = m; const p = P();
   else { if (p.ride && Rd.dismount) Rd.dismount(true); if (ST) for (const r of Rd.list) { r.x = ST.yard[0] + (Math.random() - 0.5) * 5; r.z = ST.yard[1] + (Math.random() - 0.5) * 3; r.called = false; r.tx = null; }
     pop('이제 수레로 다녀요', '「수레 부르기」 · 말들은 마구간에서 쉬어요', 'donkey'); }
   G.UI.hud(); }
-const lt0 = G.Life.talk; G.Life.talk = function (id) { if (id === 'stKeeper') { const n = Game.npc('stKeeper'), done = () => { if (n) n.talking = false; }; if (n) n.talking = true;
-    const s = S(); if (!s.flags.stMet) { s.flags.stMet = 1; G.UI.say([{ n: KN, t: '총리님! 저는 마구간지기 케티예요. 총리님 수레 말들도 제가 돌보지요.' }, { n: KN, t: '말을 사서 직접 타고 다니셔도 돼요. 수레랑 말, 둘 중 하나로 다니시면 돼요. 언제든 저에게 바꿔 달라고 하세요!' }], () => setTimeout(() => menu(done), 40)); } else menu(done); return true; }
+const lt0 = G.Life.talk; G.Life.talk = function (id) { if (id === KID) { dadTalk(id); return true; }
+  if (id === 'stKeeper') { const n = Game.npc('stKeeper'), done = () => { if (n) n.talking = false; }; if (n) n.talking = true;
+    const s = S(); if (!s.flags.stMet) { s.flags.stMet = 1; G.UI.say([{ n: KN, t: '총리님! 저는 마구간지기 케티예요. 총리님 수레 말들도 제가 돌보지요.' }, { n: KN, t: '말을 사서 직접 타고 다니셔도 돼요. 수레랑 말, 둘 중 하나로 다니시면 돼요. 언제든 저에게 바꿔 달라고 하세요!' }], () => setTimeout(() => G.Life.talk('stKeeper'), 40)); return true; }
+    /* v18.60 his errands first (they never came up: this menu answered before the request engine), then three ways */
+    if (G.Life.questTalk && G.Life.questTalk('stKeeper')) return true;
+    top(done); return true; }
   return lt0.apply(this, arguments); };
+if (G.Life.mark) { const mk0 = G.Life.mark; G.Life.mark = function (id) { if (id === KID) { const s = S(); return s && s.side && s.side.act && s.side.act.ketiQ && !s.flags.ketiMet ? '!' : null; } return mk0.apply(this, arguments); }; } /* v18.60 the father shows he has something for you */
+EP.talk = EP.talk || {}; EP.talk.stKeeper = () => { const n = Game.npc('stKeeper'), done = () => { if (n) n.talking = false; }; if (n) n.talking = true; top(done); }; /* 「이야기 나누기」 under one of his errands */
+function top(done) { const s = S(), n = Game.npc('stKeeper'); const line = s.flags.ketiStory && !s.flags.ketiTold ? (s.flags.ketiTold = 1, { n: KN, t: '총리님! 지난 장날에 아버지를 뵈었어요. 둘이서 한참 울다가… 결국 말 이야기로 밤을 새웠어요. 헤헤.', e: 'happy' })
+    : { n: KN, t: rnd2(['총리님, 오셨어요? 말들이 총리님 발소리를 알아들어요.', '오늘은 말들 기분이 아주 좋아요. 무엇을 도와드릴까요?', s.flags.ketiStory ? '아버지 그림 속 마차, 밤마다 조금씩 깎고 있어요.' : '마구간 일이라면 뭐든 말씀하세요.']) };
+  if (s.flags.ketiStory) s.flags.ketiDay = s.flags.ketiDay || s.day;
+  const chat = n && G.Bond && G.Bond.chat ? () => { n.id = 'stKeeper'; G.Bond.chat(n, done); } : null;
+  if (G.Talk) G.Talk.top([line], { act: { t: '마구간 일 보기', then: () => setTimeout(() => menu(done), 30) }, chat, bye: done }); else menu(done); }
+const rnd2 = a => a[Math.floor(Math.random() * a.length)];
 // ------------------------------------------------------------------ one way of travel at a time
 if (G.Cart) { const m0 = G.Cart.mount; G.Cart.mount = function () { const s = S(); if (ok(s) && mode(s) === 'horse') { pop('지금은 말로 다녀요', '마구간지기 케티에게 「수레로 다니기」를 말해요', 'donkey'); return; } return m0.apply(this, arguments); }; }
 const e = (EP.extra || []).find(x => x.id === 'chariot'); if (e) { const on0 = e.on; e.on = (s, g) => (on0 ? on0(s, g) : true) && !(ok(s) && mode(s) === 'horse'); }

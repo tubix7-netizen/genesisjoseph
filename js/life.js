@@ -124,6 +124,7 @@ L.complete = function (id) {
   if (rw.insight) setTimeout(() => Game.insight(rw.insight, q.title), 400);
   if (q.finish) q.finish(S, Game); Game.stat('quests'); sfx('quest'); if (G.UI.pop) G.UI.pop('부탁 완료!', q.title + (rw.silver ? ` · 은 ${rw.silver}` : ''), 'coin'); G.UI.quest(); Game.save(true); Game.checkStep();
 };
+const sideDone = (S, id) => !!(S.side && S.side.done && S.side.done[id] !== undefined);
 L.talk = function (npcId) {
   const S = Game.S(), N = Game.ENT.npcs[npcId], nm = N ? N.name : '';
   const done = () => { if (N) N.talking = false; };
@@ -131,16 +132,23 @@ L.talk = function (npcId) {
   // 1) hand in finished requests
   for (const qid of mine) { const q = QS()[qid]; if (L.qOk(S, qid)) { G.UI.say((typeof q.done === 'function' ? q.done(S, Game) : q.done).map(l => fix(l, nm)), () => { L.complete(qid); done(); }); return true; } }
   // 2) offer: story-critical requests first, then a reminder of one in progress, then other requests
-  const avail = Object.keys(QS()).filter(qid => QS()[qid].giver === npcId && L.avail(S, qid)).sort((a, b) => (QS()[b].main ? 1 : 0) - (QS()[a].main ? 1 : 0));
-  const offer = qid => { const q = QS()[qid]; const lines = (typeof q.offer === 'function' ? q.offer(S, Game) : q.offer).map(l => fix(l, nm));
-    const other = (Game.EP().talk && Game.EP().talk[npcId]) || (G.Bond && N && !N.d.animal && !N.d.noBond ? () => { N.id = npcId; N.talking = true; G.Bond.talk(N, null, done); } : null); /* v18.56 an errand never shuts out a plain talk (a father is not only someone who sends you on errands) */
-    lines.push({ n: Game.EP().hero, t: '어떻게 할까?', choices: [{ t: `맡겠습니다 · ${q.title}`, then: () => L.accept(qid) }, { t: '다음에 하겠습니다' }].concat(other ? [{ t: '다른 이야기를 나눈다', then: () => setTimeout(() => other(S, Game), 40) }] : []) });
+  const avail = Object.keys(QS()).filter(qid => QS()[qid].giver === npcId && L.avail(S, qid)).sort((a, b) => ((QS()[b].main ? 2 : 0) + (sideDone(S, b) ? 0 : 1)) - ((QS()[a].main ? 2 : 0) + (sideDone(S, a) ? 0 : 1))); /* v18.62 story first, then a request never done before, then the repeatable ones */
+  const offer = qid => { const q = QS()[qid]; let lines = (typeof q.offer === 'function' ? q.offer(S, Game) : q.offer).map(l => fix(l, nm));
+    { const sn = S.flags.qSeen || (S.flags.qSeen = {}); if (sn[qid] && lines.length > 1) lines = [lines[lines.length - 1]]; sn[qid] = 1; } /* v18.60 heard once: next time only the ask itself, not the whole story again */
+    const oc = L.chatWith(npcId, done), other = oc ? () => oc() : null; /* v18.56 an errand never shuts out a plain talk (a father is not only someone who sends you on errands) · v18.60 straight into the talk */
+    lines.push({ n: Game.EP().hero, t: '어떻게 할까?', choices: [{ t: `맡겠습니다 · ${q.title}`, then: () => L.accept(qid) }].concat(other ? [{ t: '이야기 나누기', then: other }] : []).concat([{ t: '다음에 하겠습니다' }]) }); /* v18.60 three at most: take it on · just talk · later */
     G.UI.say(lines, done); return true; };
   if (avail.length && QS()[avail[0]].main) return offer(avail[0]);
-  for (const qid of mine) { const q = QS()[qid]; if (q.prog) { G.UI.say([fix(typeof q.prog === 'function' ? q.prog(S, Game) : q.prog, nm)], done); return true; } }
+  for (const qid of mine) { const q = QS()[qid]; if (q.prog) { /* v18.60 a reminder of the errand, then the person is still someone to talk with (it used to end there every time) */
+      const pl = fix(typeof q.prog === 'function' ? q.prog(S, Game) : q.prog, nm), chatF = L.chatWith(npcId, done);
+      G.UI.say([Object.assign({}, pl, { choices: [].concat(chatF ? [{ t: '이야기 나누기', then: chatF }] : [], [{ t: chatF ? '작별 인사' : '알겠어요', then: done }]) })], null); return true; } }
   if (avail.length) return offer(avail[0]);
   return false;
 };
+/* v18.60 the plain talk with someone (their own menu if the story gave them one, else the 친밀도 talk) — for 「이야기 나누기」 under an errand */
+L.chatWith = function (npcId, done) { const N = Game.ENT.npcs[npcId], E = Game.EP(); if (!N || N.d.animal) return null; if (E.talk && E.talk[npcId]) return () => setTimeout(() => E.talk[npcId](Game.S(), Game), 40);
+  if (N.d.folk && G.NpcAI && G.NpcAI.folkChat) return () => { N.talking = true; G.NpcAI.folkChat(N); };
+  if (G.Bond && !N.d.noBond) return () => { N.id = npcId; N.talking = true; if (G.Bond.chat) G.Bond.chat(N, done); else G.Bond.talk(N, null, done); }; return null; };
 L.questTalk = L.talk; /* v18.51 the request engine itself, for wrappers that answer some people first (js/sagas.js) */
 function fix(l, nm) { return typeof l === 'string' ? { n: nm, t: l } : l; }
 L.tracked = function (S) { const sd = side(S); const id = sd.track && sd.act[sd.track] ? sd.track : L.active(S)[0]; return id ? { id, q: QS()[id], st: sd.act[id] } : null; };
