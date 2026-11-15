@@ -654,7 +654,8 @@ function newDay(msg) {
   if (G.Combat) G.Combat.onDay(); if (G.Loot) G.Loot.onDay(); if (G.Stones) G.Stones.onDay(S); if (S.hero) { S.hero.hp = S.hero.hpMax; }
   if (EP.onDay) EP.onDay(S, Game);
   if (G.Surv) G.Surv.onDay(S); if (G.Ride) G.Ride.onDay(S); if (G.NpcAI) G.NpcAI.onDay(S);
-  P.stam = (S.hero && S.hero.stamMax) || 100; Game.save(true);
+  if (G.Rest && G.Rest.onDay) { try { G.Rest.onDay(S); } catch (e) { console.error('rest', e); } } /* v18.58 how well he slept (a house or tent clears the sleepless nights) */
+  P.stam = ((S.hero && S.hero.stamMax) || 100) * (G.Rest && G.Rest.k ? 1 - G.Rest.k() : 1); if (S.hero && G.Rest && G.Rest.k) S.hero.hp = S.hero.hpMax * (1 - G.Rest.k()); Game.save(true);
   G.UI.dayCard(S.day, S.weather, msg);
   checkStep();
 }
@@ -1213,7 +1214,7 @@ Game.frame = function (now) {
   perfTick(rawMs, dt); // adaptive resolution / frame lock / shadow rate (below)
   if (Game.mode === 'play' && W) {
     const modal = G.UI.modal();
-    if (!modal) { const hh = S.time % 24, slowK = (hh > 4.2 && hh < 7) || (hh > 17.6 && hh < 21) ? 0.6 : 1; /* v18.35 dawn and dusk pass more slowly */ S.time += dt / SEC_PER_HOUR * (EP.timeScale || 1) * slowK; if (S.time >= 30) { newDay(); /* v18.48 not while the story holds him (the pit, the caravan, a scene): he could not have gone to bed */ if (!(Game.cineOn || (G.Cine && G.Cine.on) || (S.q && S.q.inPit) || S.step === 'c1_caravan')) { P.stam = Math.min(P.stam, 40); setTimeout(() => { if (!(Game.cineOn || (G.Cine && G.Cine.on))) G.UI.toast('밤을 꼬박 새웠어요… 기력이 떨어졌어요 · 침대나 캠프에서 자요'); }, 2400); } } } /* v18.35 you sleep in a bed or a tent, never where you stand */ /* v18.34 after the day card, not on top of it */
+    if (!modal) { const hh = S.time % 24, slowK = (hh > 4.2 && hh < 7) || (hh > 17.6 && hh < 21) ? 0.6 : 1; /* v18.35 dawn and dusk pass more slowly */ S.time += dt / SEC_PER_HOUR * (EP.timeScale || 1) * slowK; if (S.time >= 30) { const held = Game.cineOn || (G.Cine && G.Cine.on) || (S.q && S.q.inPit) || S.step === 'c1_caravan' || (EP.calmSurv && EP.calmSurv(S)); /* v18.48 not while the story holds him (the pit, the caravan, a scene): he could not have gone to bed */ if (G.Rest) G.Rest.pending = held ? { q: 'story' } : { q: 'vigil' }; /* v18.58 a sleepless night: rest.js shrinks his maximum health, stamina and mind until he sleeps under a roof */ newDay(); if (!held && !G.Rest) { P.stam = Math.min(P.stam, 40); setTimeout(() => { if (!(Game.cineOn || (G.Cine && G.Cine.on))) G.UI.toast('밤을 꼬박 새웠어요… 기력이 떨어졌어요 · 침대나 캠프에서 자요'); }, 2400); } } } /* v18.35 you sleep in a bed or a tent, never where you stand */ /* v18.34 after the day card, not on top of it */
     if (G.Combat && G.Combat.hitStop > 0) { G.Combat.hitStop -= dt; dt *= 0.2; }
     PM.b('player'); if (!Game.cineOn) updatePlayer(dt * (Game.worldScale || 1)); else { P.vx = P.vz = 0; P.spd = 0; }
     if (G.Vitals) G.Vitals.update(dt, S); PM.e('player');
@@ -1281,7 +1282,9 @@ function render(dt) {
   if (G.Chem && G.Chem.dyn) G.Chem.dyn(scene.dyn);
   scene.skinned.length = 0;
   // player
-  const pst = P.pst || (P.pst = {}); const spk = G.UI.speaker && G.UI.speaker(); Object.assign(pst, { talk: !!spk && (spk === EP.hero || spk === '이스라엘'), face: P.face, speed: P.spd, phase: P.phase, air: !P.grounded && !P.swim, act: P.act, actT: P.act ? (P.actT % P.actDur) / P.actDur : 0, idle: 1, limp: P.limp, carry: P.carry ? (P.carryArms ? 'arms' : 'head') : G.Phys && G.Phys.held ? (G.Phys.heavy(G.Phys.held) ? 'arms' : 'one') : null, staff: (hand() === 'staff' || hand() === 'hoe') && !P.act && !P.ride && !P.carry && !P.sit && !P.kneel && !P.sleeping && !Game.cineOn && !(G.Combat && G.Combat.heldProp()), long: P.look.long, kneel: P.kneel, sleep: P.sleeping, sit: P.sit, ride: !!P.ride, rideSp: P.spd, ridePh: P.ride ? P.ride.ph || 0 : 0, shiver: G.Surv ? G.Surv.shiver : 0 });
+  const pst = P.pst || (P.pst = {}); const spk = G.UI.speaker && G.UI.speaker();
+  { /* v18.58 Joseph looks down at a child he is talking with */ let want = 0; const dn = Game.dlgNpc; if (dn && dn.talking && dn.vis && !dn.d.animal && G.UI.inDialog && G.UI.inDialog() && !P.sit && !P.kneel) { const sc = dn.scale || (dn.d && dn.d.scale) || 1, low = dn.sit || (dn.d && dn.d.sit) ? 0.55 : 0, hh = 1.55 * sc - low, d = Math.max(0.8, Math.hypot(dn.x - P.x, dn.z - P.z)); if (hh < 1.3) want = clamp(Math.atan2(1.55 - hh, d) * 0.85, 0, 0.6); } pst.lookDn = (pst.lookDn || 0) + (want - (pst.lookDn || 0)) * Math.min(1, dt * 5); if (pst.lookDn < 0.005) pst.lookDn = 0; }
+  Object.assign(pst, { talk: !!spk && (spk === EP.hero || spk === '이스라엘'), face: P.face, speed: P.spd, phase: P.phase, air: !P.grounded && !P.swim, act: P.act, actT: P.act ? (P.actT % P.actDur) / P.actDur : 0, idle: 1, limp: P.limp, carry: P.carry ? (P.carryArms ? 'arms' : 'head') : G.Phys && G.Phys.held ? (G.Phys.heavy(G.Phys.held) ? 'arms' : 'one') : null, staff: (hand() === 'staff' || hand() === 'hoe') && !P.act && !P.ride && !P.carry && !P.sit && !P.kneel && !P.sleeping && !Game.cineOn && !(G.Combat && G.Combat.heldProp()), long: P.look.long, kneel: P.kneel, sleep: P.sleeping, sit: P.sit, ride: !!P.ride, rideSp: P.spd, ridePh: P.ride ? P.ride.ph || 0 : 0, shiver: G.Surv ? G.Surv.shiver : 0 });
   { pst.vy = P.vy; pst.hero = true; pst.sprint = P.sprint && P.spd > 5.8; // v16.7 야숨: the hero glances at what he could use / who he could talk to
     let lk = 0; const c = ctx; if (c && c.x !== undefined && !P.act && !P.ride && !Game.cineOn && !G.UI.busy()) { const d = Math.hypot(c.x - P.x, c.z - P.z); if (d > 0.4 && d < 7) lk = clamp(angDiff(P.face, Math.atan2(c.x - P.x, c.z - P.z)), -1.05, 1.05); }
     P.lookS = lerp(P.lookS || 0, lk, 0.1); if (Math.abs(P.lookS) > 0.02) pst.look = P.lookS; else delete pst.look; }

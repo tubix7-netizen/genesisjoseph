@@ -48,7 +48,7 @@ const now = () => performance.now() / 1000;
 const GEARV = [0, 3.2, 6, 8.4, 10.6, 13], GEARN = ['', '걷기', '보통', '빠르게', '달리기', '질주'];
 const inTown = () => { const p = P(); return !!Ct.town(p.x, p.z); }, topGear = () => D.tired ? 1 : Math.min(VH().top, inTown() ? 2 : 5); /* v18.45 an ox cart never runs */
 D.gear = 0; Ct.gear = () => D.gear; Ct.gearName = () => GEARN[D.gear] || '';
-function tapGo() { const s = S(), gap = now() - D.last; D.last = now(); D.idle = 0; D.brake = null;
+function tapGo() { const s = S(), gap = now() - D.last; if (gap < 1 && D.gear >= 1) return; /* v18.58 one crack of the reins a second: no hammering the button */ D.last = now(); D.idle = 0; D.brake = null;
   if (s.q.cartTut && !s.q.tG2 && D.gear >= 1) { s.q.tG2 = 1; G.UI.quest(); pop('보통 걸음이에요', '이 걸음은 말이 지치지 않아요 · 「정지」로 세워 보세요', 'donkey'); } const top = topGear(); if (D.gear >= top && top === 2) { if (!s.flags.cartTown) { s.flags.cartTown = 1; pop('마을 안이에요', '마을에서는 보통 걸음까지만 가요', 'donkey'); } } D.gear = Math.min(D.gear + 1, top);
   D.pend = GEARV[D.gear]; D.whipT = 0.001; /* the pace changes when the reins land on the horses' backs, not before */ sfx('whoosh', { pitch: 1.5 + Math.random() * 0.2, vol: 0.5 }); if (D.tired && gap < 0.8) G.UI.toast('말이 지쳤어요 · 먹이를 주거나 천천히 쉬게 해요');
   if (D.gear >= 3 && !s.flags.cartFast) { s.flags.cartFast = 1; help('cartFast', '힘차게 달려요', '세 번째 탭부터는 말이 지쳐요 · 두 번 탭한 보통 걸음은 지치지 않아요 · 요셉 옆 금색 고리가 말의 기력이에요'); } G.UI.hud(); }
@@ -248,6 +248,13 @@ function hopOff(n, sg) { const c = cartPos(); n.act = null; if (!c) { unseat(n, 
 function dropLast() { const s = S(), l2 = s.q.cartPax2 || []; let id = l2.length ? l2[l2.length - 1] : s.q.cartPax; if (!id) return false;
   if (id === 'kaiClerk' && !s.q.metC) { G.UI.toast('카이는 성읍 감독관에게 가는 길이에요'); return true; }
   if (l2.length) l2.pop(); else s.q.cartPax = null; const n = Game.npc(id); if (n) { say1(n, '태워 주셔서 고맙습니다, 총리님!'); hopOff(n, l2.length % 2 ? -1 : 1); pop('내려 주었어요', n.name, 'donkey'); } G.UI.hud(); return true; }
+/* v18.58 Kai has been brought to the overseer: he hops down with a bow and walks to his desk beside the overseer */
+const KAI_AT = [13.8, -68.4];
+Ct.kaiOff = function () { const s = S(), n = Game.npc('kaiClerk'); if (!n) return; const l2 = s.q.cartPax2 || [], i = l2.indexOf('kaiClerk'); if (i >= 0) l2.splice(i, 1); if (s.q.cartPax === 'kaiClerk') s.q.cartPax = null;
+  n.d.x = KAI_AT[0]; n.d.z = KAI_AT[1]; n.d.face = -2.2; if (n._inCart || n.pass) hopOff(n, 1); n.emote = { k: 'bow', t: -0.6, dur: 1.6 };
+  setTimeout(() => { if (Game.npc('kaiClerk') === n) Game.npcWalk('kaiClerk', KAI_AT[0], KAI_AT[1], () => { n.face = n.homeFace = -2.2; }, 1.4); }, 1900); G.UI.hud(); };
+Ct.kaiHome = function () { const s = S(), n = Game.npc('kaiClerk'); if (!n || !s.q.metC || !s.q.tPax || n._inCart || n.pass || n.walk || n._hop) return; if (n.d.x !== KAI_AT[0]) { n.d.x = KAI_AT[0]; n.d.z = KAI_AT[1]; n.d.face = -2.2; }
+  if (Math.hypot(n.x - KAI_AT[0], n.z - KAI_AT[1]) > 30) { n.x = KAI_AT[0]; n.z = KAI_AT[1]; n.y = hAt(n.x, n.z); n.face = n.homeFace = -2.2; } }; /* after a reload he is at his desk, not back at the palace gate */
 Ct.dropPax = function () { const s = S(); for (let i = 0; i < 6 && (s.q.cartPax || (s.q.cartPax2 || []).length); i++) { const l2 = s.q.cartPax2 || [], id = l2.length ? l2.pop() : s.q.cartPax; if (!l2.length && id === s.q.cartPax) s.q.cartPax = null; const n = Game.npc(id); if (n) { unseat(n, 1.4); goHome(n); } } };
 const paxCount = () => { const s = S(); return (s.q.cartPax ? 1 : 0) + (s.q.cartPax2 || []).length; };
 function boardTick(dd) { const s = S(), c = cartPos();
@@ -279,8 +286,7 @@ function act(k, dur, fn) { const p = P(), c = parked(); if (!c || p.act) return;
   p.face = Math.atan2(hx - p.x, hz - p.z); p.vx = p.vz = 0; Object.assign(p, { act: k, actT: 0, actDur: dur, actHits: 1, actFn: fn, actProp: null, fired: false, actRepeat: false }); }
 /* what to feed: pick when there is more than one kind (grain first in the list) */
 function chooseFeed(go) { const ks = FEED.filter(x => Game.inv(x) > 0); if (!ks.length) { G.UI.toast('말 먹이가 없어요 · 꼴·짚·보리·밀 같은 곡식을 주어요'); return; }
-  if (ks.length === 1) { go(ks[0]); return; }
-  G.UI.choose('무엇을 먹일까요?', ks.map(k => `${Game.ITEMS[k] ? Game.ITEMS[k].n : k} (${Game.inv(k)}) · 말 기력 +${FD[k][0]} · ${FD[k][1]}초 덜 지쳐요`), i => go(ks[i])); }
+  /* v18.58 always a way out: 「그만두기」 even when there is only one kind of feed */ G.UI.choose('무엇을 먹일까요?', ks.map(k => `${Game.ITEMS[k] ? Game.ITEMS[k].n : k} (${Game.inv(k)}) · 말 기력 +${FD[k][0]} · ${FD[k][1]}초 덜 지쳐요`).concat(['그만두기']), i => { if (i < ks.length) go(ks[i]); }); }
 Ct.chooseFeed = chooseFeed;
 function feed() { chooseFeed(k => { S().flags.horseEat = Date.now() + 5200; sfx('pickup', { pitch: 0.8 }); act('reach', 1.9, () => feedDone(k)); }); }
 /* from the bench (the 달리기 button while riding): no motion, but the same wait before it takes effect */
@@ -421,12 +427,16 @@ function wheelMesh(r, n) { const g = new G.GB(44 + n), PI = Math.PI, GOLD = 0xe2
   g.cyl(0.1, 0.1, 0.16, 12, { at: [0, 0, 0], rz: PI / 2, c: GOLD, j: 0 }); g.cyl(0.055, 0.055, 0.2, 10, { at: [0, 0, 0], rz: PI / 2, c: GOLDH, j: 0 }); return G.R.mesh(g); }
 let WHEELS = [[0.84, -0.42, 0.55, 3], [-0.84, -0.42, 0.55, 3]]; const WMs = [G.m4(), G.m4(), G.m4(), G.m4()]; /* v18.43 two six-spoked wheels (3 diameters = 6 spokes) */
 let wheelMs = null;
+/* v18.58 cutscenes: Joseph steps down before the scene starts, and the wagon (with its horses) stays out of the picture so its cover can never fill the frame.
+   A scene that really needs the wagon passes opt.cart = true to Cine.play. */
+Ct.cineHide = false; const cineHid = () => { if (Ct.cineHide && !(Game.cineOn || (G.Cine && G.Cine.on))) Ct.cineHide = false; return Ct.cineHide; };
+if (G.Cine && G.Cine.play) { const cp0 = G.Cine.play; G.Cine.play = function (shots, done, opt) { try { const s = S(); if (s && s.q) { if (s.q.riding) { if (AUTO.on) { AUTO.on = false; syncAuto(); } const p = P(), px = p.x, pz = p.z, pf = p.face, [fx, fz] = fwd(pf); dismount(true); /* Joseph stays exactly where the scene expects him; the wagon is left a few steps behind */ let cx = px - fx * 4.2, cz = pz - fz * 4.2; if (Game.solidAt(cx, cz, 0.6)) { cx = px; cz = pz; } s.q.cartAt = { x: cx, z: cz, f: pf }; Game.teleport(px, pz, pf); } Ct.cineHide = !(opt && opt.cart); } } catch (e) { console.error('cart cine', e); } return cp0.apply(this, arguments); }; }
 // ------------------------------------------------------------------ drawing the parked (or coming) cart, its horses and its load
-const sk0 = EP.skinned; EP.skinned = function (list, s, g, t) { if (sk0) sk0.apply(this, arguments); const c = s.q.cartAt; if (s.q.riding || !c || !s.q.chariotOk || Math.hypot(c.x - P().x, c.z - P().z) > 70) return;
+const sk0 = EP.skinned; EP.skinned = function (list, s, g, t) { if (sk0) sk0.apply(this, arguments); const c = s.q.cartAt; if (cineHid() || s.q.riding || !c || !s.q.chariotOk || Math.hypot(c.x - P().x, c.z - P().z) > 70) return;
   const bk = VH().beast; if (!HR['r' + bk]) HR['r' + bk] = [new G.Rig(G.AB[bk]), new G.Rig(G.AB[bk])]; if (!drive) HR.ph += 0.01;
   HR['r' + bk].forEach((rig, i) => { const [hx, hz] = horsePos(c, i); G.animAnimal(rig, { speed: drive ? HR.spd * 0.55 : 0, phase: HR.ph + i * 0.4, graze: !drive && (s.flags.horseEat || 0) > Date.now() }, t); rig.update(G.m4trs(HM[i], hx, hAt(hx, hz), hz, c.f));
     list.push({ mesh: bk === 'horse' ? Game.animalMesh('horse', 'plain', { royal: 1 }) /* a matched pair of white horses */ : Game.animalMesh(bk, 'plain'), bones: rig.bones, outline: true }); }); };
-const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, arguments); if (!s) return; const c = cartPos(); if (!c || !s.q.chariotOk || Math.hypot(c.x - P().x, c.z - P().z) > 70) return;
+const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, arguments); if (!s) return; const c = cartPos(); if (cineHid() || !c || !s.q.chariotOk || Math.hypot(c.x - P().x, c.z - P().z) > 70) return;
   const vkk = vk(), cartMesh = VMESH[vkk] || (VMESH[vkk] = G.R.mesh(VEH[vkk].model()));
   const y0 = hAt(c.x, c.z), rid = s.q.riding; G.m4trs(CM, c.x, y0, c.z, c.f, rid ? D.pitch : 0, 0, 1, 1, 1); list.push({ mesh: cartMesh, m: CM, outline: true });
   WHEELS.forEach(([lx, lz, r], i) => { const x = c.x + Math.cos(c.f) * lx + Math.sin(c.f) * lz, z = c.z - Math.sin(c.f) * lx + Math.cos(c.f) * lz; /* each wheel turns by distance ÷ its own radius: the small front ones spin faster */

@@ -50,7 +50,7 @@ const STORY = [
   ['사실 고향에 두고 온 동생이 있소. 잘 지내는지…', '어릴 적엔 나일 강에서 하루 종일 헤엄쳤다오.'],
   ['당신을 만나고 나서 하루가 덜 고되오. 정말이오.', '내가 힘들 때 당신의 하나님 이야기가 떠오르더군요.'],
   ['당신이라면 내 속마음을 털어놓을 수 있겠소. 언젠가 내 이야기를 끝까지 들어 주시오.', '우리 집 문은 늘 열려 있소. 언제든 오시오.'],
-  ['당신은 내게 형제나 다름없소. 이 땅이 굶주릴 때 당신이 우리를 살렸지.', '내 아이들에게 당신 이야기를 들려준다오. 하나님이 함께하신 사람이라고.']];
+  ['당신은 내게 형제나 다름없소. 이 땅이 굶주릴 때 당신이 우리를 살렸지.', '내 아이들에게 당신 이야기를 들려준다오. 굶주린 해에 우리를 살린 사람이라고.']];
 B.talk = function (n, lines, done) { const id = n.id || Object.keys(Game.ENT.npcs).find(k => Game.ENT.npcs[k] === n); n.id = id; const S = Game.S(), b = B.get(id), F = fam(id), first = b.day !== S.day;
   if (first) { b.day = S.day; setTimeout(() => B.add(id, F ? 3 : 2, '오늘 이야기'), 50); }
   const ls = (lines && lines.length ? lines : G.Greet ? G.Greet.lines(n) : [{ n: n.name, t: '평안하시오.' }]).map(l => typeof l === 'string' ? { n: n.name, t: l } : l);
@@ -67,7 +67,7 @@ B.giftPick = function (n, done) { const S = Game.S(), id = n.id, b = B.get(id), 
   const ks = Object.keys(S.inv).filter(k => S.inv[k] > 0 && I[k] && ['food', 'good', 'crop', 'fish', 'mat'].includes(I[k].cat) && !Game.ITEMS[k].tool).sort((a, c) => (likes(n).includes(c) ? 1 : 0) - (likes(n).includes(a) ? 1 : 0)).slice(0, 6);
   if (!ks.length) { G.UI.say([{ n: '요셉', t: '(줄 만한 것이 없다…)' }], done); return; }
   G.UI.say([{ n: '요셉', t: '무엇을 줄까?', choices: ks.map(k => ({ t: `${I[k].n} (${S.inv[k]})`, then: () => { Game.take(k, 1); b.gift = S.day; G.Deeds && G.Deeds.rec('share', n); const like = likes(n).includes(k), sto = ['stone', 'branch', 'clay', 'straw', 'reed'].includes(k);
-      setTimeout(() => G.UI.say([{ n: n.name, t: (() => { const R = giftVoice(n); return rnd(like ? R[0] : sto ? R[2] : R[1]); })() }], () => { B.add(id, like ? 6 : sto ? 0 : 2, '선물'); done && done(); }), 30); } })).concat([{ t: '그만두기', then: () => done && done() }]) }], null); };
+      setTimeout(() => G.UI.say([{ n: n.name, t: (() => { const R = giftVoice(n); return rnd(like ? R[0] : sto ? R[2] : R[1]); })() }], () => { B.add(id, like ? 6 : sto ? 0 : 2, '선물'); done && done(); }), 30); } })).concat([{ t: '좀 더 생각해 보기', then: () => done && done() }]) }], null); };
 /* v18.56 a thank-you in the giver's own voice: a child, a woman, a man, an old man or woman (no 「어떻게 알았소?」 from a little boy) */
 const GV = { kid: [['와아! 이거 제일 좋아하는 거예요!', '헤헤, 진짜요? 고마워요!'], ['고마워요!'], ['…이걸로 뭐 해요? 헤헤.']], kidF: [['와아, 이거 제일 좋아해요!', '정말요? 고마워요!'], ['고마워요!'], ['…이건 뭐예요?']],
   man: [['어떻게 알았소? 내가 이걸 제일 좋아하는데!', '이거 귀한 걸 주는구려. 고맙소!'], ['고맙소. 잘 쓰리다.', '정성이 고맙구려.'], ['…이걸 왜 주시오? 허허.']], woman: [['어머, 이거 정말 좋아하는 거예요! 고마워요!'], ['고마워요. 잘 쓸게요.'], ['음… 고마워요. (어리둥절)']],

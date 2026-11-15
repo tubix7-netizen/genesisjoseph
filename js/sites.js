@@ -90,7 +90,7 @@ SI.clear = clear;
 
 // talking to the people (and goats) of an event
 const talk0 = G.Life && G.Life.talk;
-if (G.Life) G.Life.talk = function (id) { const c = SI.cur; if (c && c.ids.includes(id) && !c.fin) { const r = EV[c.key].talk(c, id); if (r) return true; } if (c && c.fin && c.ids.includes(id)) { const n = npc(id); if (n && !n.d.animal) { G.UI.say([{ n: n.name, t: rnd(['고마웠소. 하나님이 당신과 함께하시길.', '이 은혜 잊지 않으리다.', '조심히 가시오!']) }], () => done(id)); return true; } } return talk0 ? talk0.apply(this, arguments) : false; };
+if (G.Life) G.Life.talk = function (id) { const c = SI.cur; if (c && c.ids.includes(id) && !c.fin) { const r = EV[c.key].talk(c, id); if (r) return true; } if (c && c.fin && c.ids.includes(id)) { const n = npc(id); if (n && !n.d.animal) { G.UI.say([{ n: n.name, t: rnd(['고마웠소. 가는 길이 평탄하길 빌겠소.', '이 은혜 잊지 않으리다.', '조심히 가시오!']) }], () => done(id)); return true; } } return talk0 ? talk0.apply(this, arguments) : false; };
 
 // the stars: an action on the dune top at night
 Game.CTX.push(function (S) { const P = Game.P; if (!mine() || P.ride || P.swim || P.act || Game.cineOn) return null; const p = site('dune'); if (!p || !isNight(S) || !egypt(S)) return null;

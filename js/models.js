@@ -665,18 +665,21 @@ function faceAnim(rig, st, t) {
 }
 /* secondary motion for the cape bone: a damped spring that keeps the cloth hanging under gravity,
    flares it back with speed and acceleration, and swings it sideways when turning */
-const LOWC = { warmHands: 0.62, kneelRest: 0.62, kneel: 0.62, kneelPray: 0.62, pray: 0.55, beg: 0.62, weep: 0.6, tearClothes: 0.55, squat: 0.7, sitg: 0.75, sitHug: 0.75, gather: 0.7, pick: 0.6, plant: 0.62, water: 0.55, harvest: 0.5, bow: 0.4, prostrate: 0.15, lie: 0.05 };
+const LOWC = { warmHands: 0.3, kneelRest: 0.36, kneel: 0.36, kneelPray: 0.36, pray: 0.34, beg: 0.36, weep: 0.36, tearClothes: 0.34, squat: 0.34, sitg: 0.26, sitHug: 0.26, gather: 0.4, pick: 0.4, plant: 0.4, water: 0.4, harvest: 0.4, bow: 0.3, prostrate: 0.15, lie: 0.05 };
+/* v18.58 seated or kneeling, the coat used to fan straight out behind (a metre of cloth on the ground). Now it hangs: a small swing back, and the hem gathers up (the cape bone shortens) so it folds at the ground instead of trailing */
+const LOWS = { warmHands: 0.5, kneelRest: 0.56, kneel: 0.56, kneelPray: 0.56, pray: 0.58, beg: 0.56, weep: 0.56, tearClothes: 0.58, squat: 0.5, sitg: 0.44, sitHug: 0.44, gather: 0.6, pick: 0.66, plant: 0.62, water: 0.7, harvest: 0.75 };
 function clothSim(rig, st, t) {
   const c = rig.cl || (rig.cl = { a: 0, v: 0, z: 0, zv: 0, t, sp: 0, face: st.face || 0 });
   let dt = t - c.t; c.t = t; if (!(dt > 0) || dt > 0.1) dt = 1 / 60;
   const sp = st.speed || 0, acc = clamp((sp - c.sp) / dt, -25, 25); c.sp = sp;
   const lean = rig.rot[B.chest * 3] + rig.rot[B.pelvis * 3];
   const low = LOWC[st.act] !== undefined ? LOWC[st.act] : st.crouch ? 0.12 - lean * 0.15 : undefined; /* v18.41 kneeling / squatting / sitting on the ground: the coat swings back over the hips and heels instead of the legs coming through it */
-  let target = st.sleep ? 0 : low !== undefined ? low : (st.kneel || st.sit || st.ride) ? -lean * 0.5 + 0.35 : -lean + Math.min(0.8, sp * 0.08) + (st.air ? 0.4 : 0) + (st.act === 'dodge' ? 0.6 : 0);
+  let target = st.sleep ? 0 : low !== undefined ? low : (st.kneel || st.sit) ? -lean * 0.5 + 0.2 : st.ride ? -lean * 0.5 + 0.35 : -lean + Math.min(0.8, sp * 0.08) + (st.air ? 0.4 : 0) + (st.act === 'dodge' ? 0.6 : 0);
   c.v += acc * 0.01 + ((target - c.a) * 55 - c.v * 7.5) * dt; c.a = clamp(c.a + c.v * dt, -0.7, 1.35);
   let turn = 0; if (st.face !== undefined) { turn = angDiff(c.face, st.face) / dt; c.face = st.face; }
   c.zv += ((clamp(-turn * 0.07, -0.45, 0.45) - c.z) * 38 - c.zv * 6) * dt; c.z = clamp(c.z + c.zv * dt, -0.5, 0.5);
   rig.set(14, c.a, 0, c.z);
+  { const want = st.sleep ? 1 : LOWS[st.act] !== undefined ? LOWS[st.act] : st.crouch ? 0.6 : (st.kneel || st.sit) ? 0.5 : 1; c.s = c.s === undefined ? want : c.s + (want - c.s) * Math.min(1, dt * 7); if (rig.scl && c.s < 0.995) rig.scl[14 * 3 + 1] = c.s; }
 }
 // gait keyframes (cycle fraction 0 = this foot's heel strike): [u, hip flexion (+ forward), knee flexion]
 const GAIT_W = [[0, 0.42, 0.06], [0.1, 0.38, 0.28], [0.25, 0.16, 0.1], [0.45, -0.14, 0.12], [0.58, -0.2, 0.55], [0.7, 0.05, 1.05], [0.82, 0.38, 0.62], [0.93, 0.46, 0.12], [1, 0.42, 0.06]];

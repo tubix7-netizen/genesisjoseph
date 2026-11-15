@@ -69,6 +69,7 @@ const bld = S => S.bld || (S.bld = []);
 Bd.check = (k, x, z, ry, size, pre) => check(k, x, z, ry || 0, size === undefined ? 1 : size, pre);
 // v16.7 the village fires the world lights by itself (fixed records in S.bld marked pre:1, never charged for)
 Bd.prebuild = function (S, k, x, z, ry, name) { const b = { id: 'b' + (S.bldN = (S.bldN || 0) + 1), k, x: +x.toFixed(2), z: +z.toFixed(2), ry: +(ry || 0).toFixed(3), day: S.day, size: 1, tint: 0, pre: 1, name }; bld(S).push(b); attachOne(b, S, Game.W()); Game.ENT.plotsDirty = true; return b; };
+Bd.detach1 = b => detachOne(b); /* v18.58 rest.js strikes the old tent */
 Bd.count = (S, k) => bld(S).filter(b => b.k === k).length;
 Bd.avail = (k, S) => { const b = bps()[k]; return b && Game.feat(b.feat) && (!b.feat2 || Game.feat(b.feat2)); };
 const meshes = {};

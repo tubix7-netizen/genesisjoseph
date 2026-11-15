@@ -29,12 +29,12 @@ function ui() { if (el) return el; el = document.createElement('div'); el.id = '
 #puzUI .bins{display:flex;gap:10px}#puzUI .bin{width:92px;height:96px;border-radius:12px;border:2px dashed #8a7a5a;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:6px;font-size:12px;font-weight:700;background:rgba(0,0,0,.25);box-sizing:border-box}
 #puzUI .bin.binOver{border-color:#e5b552;background:rgba(229,181,82,.15)}#puzUI .sacks{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:320px;min-height:56px}
 #puzUI .sack{width:46px;height:50px;border-radius:40% 40% 30% 30%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#3a2a14;touch-action:none;box-shadow:inset 0 -4px 0 #0002}
-#puzUI .sack.shake{animation:pzShake .3s}@keyframes pzShake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#puzUI .sack.shake{animation:pzShake .3s}#puzUI .cnt.shake{animation:pzShake .3s;color:#ff9a7a}#puzUI .bins{flex-wrap:wrap;justify-content:center;max-width:350px}@keyframes pzShake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 #puzUI .roof{display:grid;grid-template-columns:repeat(4,64px);gap:6px;padding:10px;border-radius:12px;background:repeating-linear-gradient(90deg,#9a6a3a 0 30px,#8a5a30 30px 34px)}
 #puzUI .nail{width:64px;height:54px;border-radius:8px;display:grid;place-items:center;background:rgba(0,0,0,.12)}#puzUI .nail b{width:14px;height:36px;border-radius:3px 3px 1px 1px;background:linear-gradient(#e8e8f0,#8a8a9a);transform:translateY(18px) scaleY(.2);transition:transform .12s;display:block}
 #puzUI .nail.up b{transform:none}#puzUI .nail.hit b{background:#6a6a7a;transform:translateY(20px) scaleY(.15)}#puzUI .cnt{font-size:15px;font-weight:800;color:#ffe9a8}`;
   document.head.appendChild(css); return el; }
-function frame(inner) { const st = STAGES[cur.k]; el.innerHTML = `<div class="pt">${cur.site.n}</div><div class="steps">${STAGES.map((s, i) => `<span class="${i < cur.k ? 'done' : i === cur.k ? 'on' : ''}"></span>`).join('')}</div><h3>${st.n}</h3><div class="pd">${st.d}</div>${inner}<div class="prow"><button data-b="later">나중에</button></div>`;
+function frame(inner) { const st = STAGES[cur.k]; el.innerHTML = `<div class="pt">${cur.site.n}</div><div class="steps">${STAGES.map((s, i) => `<span class="${i < cur.k ? 'done' : i === cur.k ? 'on' : ''}"></span>`).join('')}</div><h3>${st.n}${cur.lv ? ` <small style="font-size:12px;color:#e5b552">${cur.lv === 1 ? '· 조금 어렵게' : '· 어렵게'}</small>` : ''}</h3><div class="pd">${cur.pd || st.d}</div>${inner}<div class="prow"><button data-b="later">나중에</button></div>`;
   el.querySelector('[data-b="later"]').onclick = () => { close(); UI.toast('끝낸 단계는 그대로 남아요'); }; }
 function close() { if (el) el.hidden = true; if (cur && cur.stop) cur.stop(); cur = null; UI.setBusy('puz', false); document.querySelectorAll('#puzUI .ghost').forEach(g => g.remove()); }
 function win() { if (!cur || cur.won) return; cur.won = true; const site = cur.site, k = cur.k; sfx('craft'); close(); const last = k >= STAGES.length - 1;
@@ -51,7 +51,7 @@ function cut(W, H, holes) { for (let tries = 0; tries < 80; tries++) { const gri
         cells.forEach(([x, y]) => { grid[y * W + x] = pieces.length; }); pieces.push(c); if (fill()) return true; pieces.pop(); cells.forEach(([x, y]) => { grid[y * W + x] = -1; }); } return false; };
     if (fill()) return { W, H, fixed: [...fixed], pieces: pieces.map(p => { let c = p; for (let k = Math.floor(Math.random() * 4); k > 0; k--) c = rot(c); return { cells: c, at: null }; }).sort(() => Math.random() - 0.5) }; } return null; }
 const COL = ['#c8864a', '#b0703a', '#d89a5a', '#a86a40', '#c07a48', '#d8a868', '#9a6038', '#b8804e'];
-function gameFit() { const pz = cut(5, 3, 2); if (!pz) { win(); return; } cur.pz = pz; const cs = Math.min(52, Math.floor((Math.min(innerWidth, 420) - 70) / pz.W));
+function gameFit() { const [bw, bh, holes] = [[5, 3, 2], [6, 3, 2], [6, 4, 3]][cur.lv]; const pz = cut(bw, bh, holes) || cut(5, 3, 2); if (!pz) { win(); return; } cur.pz = pz; const cs = Math.min(52, Math.floor((Math.min(innerWidth, 420) - 70) / pz.W));
   const cellsOf = p => p.at ? p.cells.map(([x, y]) => [x + p.at[0], y + p.at[1]]) : [], occ = i => pz.pieces.findIndex(p => cellsOf(p).some(([x, y]) => y * pz.W + x === i)), free = (x, y) => x >= 0 && y >= 0 && x < pz.W && y < pz.H && !pz.fixed.includes(y * pz.W + x) && occ(y * pz.W + x) < 0;
   const grid = (p, sz, cls, j) => { const w = Math.max(...p.cells.map(c => c[0])) + 1, h = Math.max(...p.cells.map(c => c[1])) + 1; let s = ''; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) s += p.cells.some(c => c[0] === x && c[1] === y) ? `<i style="background:${COL[pz.pieces.indexOf(p) % COL.length]}"></i>` : '<i class="e"></i>';
     return `<div class="${cls}" ${j !== undefined ? `data-p="${j}"` : ''} style="grid-template-columns:repeat(${w},${sz}px);grid-auto-rows:${sz}px">${s}</div>`; };
@@ -71,39 +71,45 @@ function gameFit() { const pz = cut(5, 3, 2); if (!pz) { win(); return; } cur.pz
   addEventListener('pointermove', move); addEventListener('pointerup', up); cur.stop = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); }; draw(); }
 
 // ② 벽돌 쌓기 — tap to drop the sliding brick
-function gameStack() { frame(`<div class="stk" id="pzStk"></div><div class="cnt" id="pzCnt">0 / 6</div>`); const box = el.querySelector('#pzStk'), cnt = el.querySelector('#pzCnt'), W = 280, BH = 26;
+function gameStack() { const NEED = [6, 7, 8][cur.lv], SPD = [1, 1.25, 1.5][cur.lv]; cur.pd = `눌러서 벽돌을 떨어뜨려요 · ${['여섯', '일곱', '여덟'][cur.lv]} 층`; frame(`<div class="stk" id="pzStk" style="${cur.lv ? 'height:' + (NEED + 2) * 26 + 'px' : ''}"></div><div class="cnt" id="pzCnt">0 / ${NEED}</div>`); const box = el.querySelector('#pzStk'), cnt = el.querySelector('#pzCnt'), W = 280, BH = 26;
   const rows = [{ x: 70, w: 140 }]; const mk = (x, y, w) => { const i = document.createElement('i'); i.style.left = x + 'px'; i.style.bottom = y + 'px'; i.style.width = w + 'px'; box.appendChild(i); return i; };
   mk(70, 0, 140); let br = null, dir = 1, t0 = performance.now(), raf = 0, live = true;
   const spawn = () => { const w = rows[rows.length - 1].w; br = { x: 0, w, el: mk(0, rows.length * BH, w) }; dir = 1; };
-  const tick = () => { if (!live) return; const now = performance.now(), dt = Math.min(0.05, (now - t0) / 1000); t0 = now; if (br) { br.x += dir * (140 + rows.length * 16) * dt; if (br.x < 0) { br.x = 0; dir = 1; } if (br.x + br.w > W) { br.x = W - br.w; dir = -1; } br.el.style.left = br.x + 'px'; } raf = requestAnimationFrame(tick); };
+  const tick = () => { if (!live) return; const now = performance.now(), dt = Math.min(0.05, (now - t0) / 1000); t0 = now; if (br) { br.x += dir * (140 + rows.length * 16) * SPD * dt; if (br.x < 0) { br.x = 0; dir = 1; } if (br.x + br.w > W) { br.x = W - br.w; dir = -1; } br.el.style.left = br.x + 'px'; } raf = requestAnimationFrame(tick); };
   box.addEventListener('pointerdown', e => { e.preventDefault(); if (!br) return; const top = rows[rows.length - 1], l = Math.max(br.x, top.x), r = Math.min(br.x + br.w, top.x + top.w), ov = r - l;
     if (ov < Math.min(top.w, br.w) * 0.3) { sfx('thud', { vol: 0.5 }); br.el.remove(); spawn(); return; } // missed: that layer again
-    const w = Math.max(ov, 60), x = ov < 60 ? (l + r) / 2 - 30 : l; br.el.style.left = x + 'px'; br.el.style.width = w + 'px'; rows.push({ x, w }); sfx('step', { surf: 'stone' }); cnt.textContent = `${rows.length - 1} / 6`; br = null;
-    if (rows.length > 6) { live = false; setTimeout(win, 300); return; } spawn(); });
+    const w = Math.max(ov, 60), x = ov < 60 ? (l + r) / 2 - 30 : l; br.el.style.left = x + 'px'; br.el.style.width = w + 'px'; rows.push({ x, w }); sfx('step', { surf: 'stone' }); cnt.textContent = `${rows.length - 1} / ${NEED}`; br = null;
+    if (rows.length > NEED) { live = false; setTimeout(win, 300); return; } spawn(); });
   spawn(); raf = requestAnimationFrame(tick); cur.stop = () => { live = false; cancelAnimationFrame(raf); }; }
 
 // ③ 곡식 칸 세우기 — drag each sack into its bin
-function gameSort() { const K = [['밀', '#e0b040'], ['보리', '#d8c870'], ['렌틸', '#c0603a']], sacks = []; for (let i = 0; i < 9; i++) sacks.push(i % 3); sacks.sort(() => Math.random() - 0.5);
+function gameSort() { const K = [['밀', '#e0b040'], ['보리', '#d8c870'], ['렌틸', '#c0603a']].concat(cur.lv ? [['잠두', '#8a9a4a']] : []).concat(cur.lv > 1 ? [['병아리콩', '#d8b890']] : []), NS = K.length * 3, sacks = []; for (let i = 0; i < NS; i++) sacks.push(i % K.length); sacks.sort(() => Math.random() - 0.5);
   frame(`<div class="bins">${K.map(([n, c], i) => `<div class="bin" data-bin="${i}" style="border-color:${c}">${n}<span class="cnt" data-n="${i}">0</span></div>`).join('')}</div><div class="sacks">${sacks.map((k, i) => `<div class="sack" data-s="${i}" data-k="${k}" style="background:${K[k][1]}">${K[k][0]}</div>`).join('')}</div>`);
-  let drag = null, done = 0; const got = [0, 0, 0];
+  let drag = null, done = 0; const got = K.map(() => 0);
   el.querySelectorAll('.sack').forEach(s => s.addEventListener('pointerdown', e => { e.preventDefault(); const r = s.getBoundingClientRect(); drag = { s, dx: e.clientX - r.left, dy: e.clientY - r.top }; s.style.position = 'fixed'; s.style.zIndex = 231; mv(e); }));
   const binAt = e => [...el.querySelectorAll('.bin')].find(b => { const r = b.getBoundingClientRect(); return e.clientX > r.left && e.clientX < r.right && e.clientY > r.top && e.clientY < r.bottom; });
   const mv = e => { if (!drag) return; drag.s.style.left = e.clientX - drag.dx + 'px'; drag.s.style.top = e.clientY - drag.dy + 'px'; el.querySelectorAll('.bin').forEach(b => b.classList.toggle('binOver', b === binAt(e))); }; /* v18.35 'hot' is the hotbar's class: the bin flew off to the bottom of the screen and back, again and again */
   const up = e => { if (!drag) return; const s = drag.s, b = binAt(e); drag = null; el.querySelectorAll('.bin').forEach(x => x.classList.remove('binOver'));
-    if (b && +b.dataset.bin === +s.dataset.k) { s.remove(); got[+s.dataset.k]++; el.querySelector(`[data-n="${s.dataset.k}"]`).textContent = got[+s.dataset.k]; sfx('rustle', { vol: 0.6 }); if (++done >= 9) setTimeout(win, 250); }
+    if (b && +b.dataset.bin === +s.dataset.k) { s.remove(); got[+s.dataset.k]++; el.querySelector(`[data-n="${s.dataset.k}"]`).textContent = got[+s.dataset.k]; sfx('rustle', { vol: 0.6 }); if (++done >= NS) setTimeout(win, 250); }
     else { s.style.position = ''; s.style.left = s.style.top = ''; s.style.zIndex = ''; s.classList.remove('shake'); void s.offsetWidth; s.classList.add('shake'); if (b) sfx('click', { pitch: 0.6 }); } };
   addEventListener('pointermove', mv); addEventListener('pointerup', up); cur.stop = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; }
 
 // ④ 지붕 덮기 — tap the nails that pop up
-function gameNails() { frame(`<div class="roof">${[...Array(12)].map((_, i) => `<div class="nail" data-i="${i}"><b></b></div>`).join('')}</div><div class="cnt" id="pzCnt">0 / 10</div>`);
+function gameNails() { const NEED = [10, 12, 14][cur.lv], UP = [1500, 1200, 950][cur.lv], GAP = [560, 470, 400][cur.lv]; cur.pd = `솟아오른 못을 늦기 전에 눌러 박아요 · ${NEED}개 · 놓치거나 헛치면 박은 못이 하나 빠져요`;
+  frame(`<div class="roof">${[...Array(12)].map((_, i) => `<div class="nail" data-i="${i}"><b></b></div>`).join('')}</div><div class="cnt" id="pzCnt">0 / ${NEED}</div>`);
   const ns = [...el.querySelectorAll('.nail')], cnt = el.querySelector('#pzCnt'); let hits = 0, live = true, tm = 0;
-  const rise = () => { if (!live) return; const idle = ns.filter(n => !n.classList.contains('up')); if (idle.length) { const n = idle[Math.floor(Math.random() * idle.length)]; n.classList.remove('hit'); n.classList.add('up'); setTimeout(() => n.classList.remove('up'), 1400); } tm = setTimeout(rise, 520); };
-  ns.forEach(n => n.addEventListener('pointerdown', e => { e.preventDefault(); if (!n.classList.contains('up')) return; n.classList.remove('up'); n.classList.add('hit'); sfx('thud', { vol: 0.5, pitch: 1.6 }); hits++; cnt.textContent = `${hits} / 10`; if (hits >= 10) { live = false; setTimeout(win, 300); } }));
-  rise(); cur.stop = () => { live = false; clearTimeout(tm); }; }
+  const show = () => { cnt.textContent = `${hits} / ${NEED}`; };
+  /* v18.58 a nail left standing too long, or a blow on bare roof, works one driven nail loose again */
+  const lose = why => { if (!live) return; if (hits > 0) { hits--; const h = ns.filter(n => n.classList.contains('hit')); if (h.length) h[Math.floor(Math.random() * h.length)].classList.remove('hit'); } show(); cnt.classList.remove('shake'); void cnt.offsetWidth; cnt.classList.add('shake'); sfx('click', { pitch: 0.55, vol: 0.6 }); };
+  const rise = () => { if (!live) return; const idle = ns.filter(n => !n.classList.contains('up') && !n.classList.contains('hit')); if (idle.length) { const n = idle[Math.floor(Math.random() * idle.length)]; n.classList.add('up'); n._t = setTimeout(() => { if (!live || !n.classList.contains('up')) return; n.classList.remove('up'); lose('late'); }, UP); } tm = setTimeout(rise, GAP); };
+  ns.forEach(n => n.addEventListener('pointerdown', e => { e.preventDefault(); if (!live) return; if (!n.classList.contains('up')) { lose('miss'); return; } clearTimeout(n._t); n.classList.remove('up'); n.classList.add('hit'); sfx('thud', { vol: 0.5, pitch: 1.6 }); hits++; show(); if (hits >= NEED) { live = false; setTimeout(win, 300); return; } if (ns.every(q => q.classList.contains('hit') || q.classList.contains('up'))) ns.filter(q => q.classList.contains('hit')).slice(0, 4).forEach(q => q.classList.remove('hit')); /* (more nails than holes: the first rows are counted and cleared) */ }));
+  rise(); cur.stop = () => { live = false; clearTimeout(tm); ns.forEach(n => clearTimeout(n._t)); }; }
 
 const GAMES = [gameFit, gameStack, gameSort, gameNails];
-function start(site, k) { cur = { site, k }; ui().hidden = false; UI.setBusy('puz', true); GAMES[k](); }
-Pz.work = function (site) { if (cur || UI.busy()) return; const s = Game.S(), pr = s.siteWork && s.siteWork[site.id]; if (!pr) return; if (site.id !== 'granA' && pr.n % 2 === 0) { Game.siteWork(site); UI.toast('일꾼들이 첫 곳간에서 배운 대로 해 두었어요'); } /* v18.38 the second and third granary go faster: two games each, not four */ const k = Math.min(STAGES.length - 1, pr.n);
+/* v18.58 each granary is harder than the one before: lv 0 (first) · 1 (second) · 2 (third and later) */
+const levelOf = () => { const b = (Game.S() && Game.S().built) || {}; return Math.min(2, Object.keys(b).filter(k => /^gran/.test(k) && b[k]).length); };
+function start(site, k) { cur = { site, k, lv: levelOf() }; ui().hidden = false; UI.setBusy('puz', true); GAMES[k](); }
+Pz.work = function (site) { if (cur || UI.busy()) return; const s = Game.S(), pr = s.siteWork && s.siteWork[site.id]; if (!pr) return; /* v18.58 every granary has all four games again (the foundation puzzle was being skipped), each a step harder */ const k = Math.min(STAGES.length - 1, pr.n);
   if (UI.help && UI.help('granary', '곳간 짓기', '단계마다 짧은 놀이 하나씩 · 끝낸 단계는 남아요')) { const w = setInterval(() => { if (!UI.busy()) { clearInterval(w); start(site, k); } }, 200); return; } start(site, k); };
 Pz.stageName = k => (STAGES[k] || STAGES[0]).n;
 Pz.cheat = () => { if (!cur) return false; win(); return true; }; // (for testing)

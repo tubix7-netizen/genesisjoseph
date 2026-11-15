@@ -116,12 +116,12 @@ let ACTIVE = null; const FIG = [];
 function startDream(key) { const D = DREAMS[key]; if (!D || DW.on()) return; buildMeshes(); const s = S();
   say(D.intro, () => { DW.enter(D.zone, null, { after: () => { ACTIVE = { key, read: {} }; const [x, z] = DW.zone(D.zone);
     for (const p of D.people || []) { const n = Game.spawnNPC({ id: p.id, name: p.name, look: p.look(), x: x + p.dx, z: z + p.dz, face: p.face || 0, talkR: 3, noBond: true, noTag: false }); FIG.push(p.id); if (n) n.dream = true; }
-    pop(D.title, '꿈속의 세 가지 표징을 살펴요', 'star'); G.UI.quest && G.UI.quest(); } }); }); }
+    pop(D.title, '꿈속의 세 가지 표징을 살펴요', 'star'); { const p = P(); if (Math.hypot(p.x - x, p.z - z) > 8) s.wp = { x, z, n: '꿈의 표징' }; } /* v18.57 a mark on the signs (you may wake a good walk away) */ G.UI.quest && G.UI.quest(); } }); }); }
 function clearFig() { while (FIG.length) { const id = FIG.pop(); if (Game.npc(id)) Game.removeNPC(id); } }
 { const ex0 = DW.exit; DW.exit = function (cb, quiet) { const wasActive = ACTIVE; ACTIVE = null; clearFig(); return ex0.call(this, (...a) => { const p = P(), f = EP.floor ? EP.floor(p.x, p.z, S()) : null; if (f !== null && f !== undefined && p.y < f - 0.5) { p.y = p.airTop = f; p.vy = 0; } cb && cb(...a); }, quiet); }; }
 function wake() { const A = ACTIVE, D = A && DREAMS[A.key]; if (!D) return; const s = S(); s.flags[D.flag] = 1; DW.exit(() => setTimeout(() => say(D.wake, () => { G.UI.quest && G.UI.quest(); pop('꿈을 풀었어요', D.title, 'star'); sfx('insight'); }), 300)); }
 function interpret() { const A = ACTIVE, D = A && DREAMS[A.key]; if (!D) return; const ch = [{ t: D.ask.ok, then: () => setTimeout(() => say([J('해석은 하나님께 있습니다. 다만 이 꿈은 이렇게 말하는 것 같습니다.', 'calm', '창세기 40:8')], wake), 60) }].concat(D.ask.no.map(([t, fb]) => ({ t, ok: false, fb })));
-  for (let i = ch.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ch[i], ch[j]] = [ch[j], ch[i]]; } say([{ n: '요셉', t: D.ask.t, choices: ch }]); }
+  for (let i = ch.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ch[i], ch[j]] = [ch[j], ch[i]]; } say([{ n: '', t: D.ask.t, choices: ch }]); } /* v18.57 a narrator's question, not Joseph speaking of himself */
 Game.CTX.push(function (s) { if (!ACTIVE || !DW.on() || G.UI.busy()) return null; const D = DREAMS[ACTIVE.key], [cx, cz] = DW.zone(D.zone), p = P(), out = [];
   D.sym.forEach((y, i) => { if ((D.people || []).some(q => q.sym === i)) return; /* a symbol with a person of the dream is read by talking with them */ const x = cx + y.dx, z = cz + y.dz, d = Math.hypot(p.x - x, p.z - z); if (d < 2.8) out.push({ d: d - 4, label: `${y.n} 살펴보기${ACTIVE.read[i] ? ' ✓' : ''}`, x, z, yAbs: DW.h(x, z) + 1.2, key: 'sgSym' + i, use: () => say(y.lines, () => { ACTIVE.read[i] = 1; G.UI.quest && G.UI.quest(); }) }); });
   const n = Object.keys(ACTIVE.read).length, d0 = Math.hypot(p.x - cx, p.z - cz); if (d0 < 4.5) out.push(n >= D.sym.length ? { d: d0 - 6, label: '꿈을 풀기', x: cx, z: cz, yAbs: DW.h(cx, cz) + 1, key: 'sgRead', noMagnet: true, use: interpret } : { d: d0 - 3.5, label: `꿈 풀기 · 표징 ${n}/${D.sym.length}`, disabled: true, x: cx, z: cz, yAbs: DW.h(cx, cz) + 1, key: 'sgRead' });
@@ -248,8 +248,8 @@ Q.fvBoat2 = { giver: 'fv_merti', title: '집으로 흐르는 강', when: s => do
   prog: N(ME, '…그물이 다 기워졌는데도 손이 멈추질 않는구려.'),
   obj: [{ t: '켄티에게 어머니의 꿈 전하기', ok: s => !!s.flags.fvB2a }, { t: '갈대배 짓는 페피에게 새 배 값 치르기 (은 60)', ok: s => !!s.flags.fvB2b }],
   loc: s => !s.flags.fvB2a ? 'npc:py_cut2' : !s.flags.fvB2b ? 'npc:fv_pepi' : 'npc:fv_merti',
-  done: [T('저녁 강가, 새 갈대배 곁에 켄티가 서 있었습니다. 메르티의 손에서 그물이 떨어졌습니다.'), N(KE, '어머니… 배를, 아버지 배를 제가…', 'cry'), N(ME, '배는 무슨 배야. 이리 와, 이 녀석아.', 'cry'), N(KE, '…다녀왔습니다.', 'cry'),
-    J('(「요셉이… 그 목을 어긋맞겨 안고 얼마 동안 울매」. 고센에서 아버지를 다시 만나던 그날 강가가 떠올랐습니다.)', 'tender', '창세기 46:29'),
+  done: [T('사흘 뒤 저녁 강가, 새 갈대배 곁에 켄티가 서 있었습니다. 메르티의 손에서 그물이 떨어졌습니다.'), N(KE, '어머니… 배를, 아버지 배를 제가…', 'cry'), N(ME, '배는 무슨 배야. 이리 와, 이 녀석아.', 'cry'), N(KE, '…다녀왔습니다.', 'cry'),
+    J('(「요셉이… 그 목을 어긋맞겨 안고 얼마 동안 울매」. 고센 길에서 아버지를 다시 만나던 그날이 떠올랐습니다.)', 'tender', '창세기 46:29'),
     N(ME, '총리님, 이 작은 그물 받아 주시오. 두 해 동안 기다리며 기운 그물이오. 이제는 기다릴 일이 없으니까.', 'tender')],
   reward: { insight: 2, items: { fvNetS: 1 } }, finish: s => { s.flags.fvBoatDone = 1; } };
 SLEEP.push({ dream: 'merti', at: () => [NETP[0] + 1.6, NETP[1]], ok: s => act('fvBoat1') && s.flags.fvB1a && s.flags.fvB1b && !s.flags.fvB1c && !away(), label: '기도하고 잠들어 메르티의 꿈 보기' });

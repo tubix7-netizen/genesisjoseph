@@ -14,7 +14,8 @@ const C = G.Climate = { wet: 0, cold: false, hot: 0, warmT: 0, umb: false, lastD
 const sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 C.state = () => ({ wet: C.wet, cold: C.cold, hot: C.hot, warmT: C.warmT, umb: C.umb });
 C.warm = s => { C.warmT = Math.max(C.warmT, s); C.cold = false; };
-C.cool = s => { C.coolT = Math.max(C.coolT || 0, s); C.hot *= 0.4; };
+C.cool = s => { C.coolT = Math.max(C.coolT || 0, s); C.hot *= 0.4; C.heat = Math.max(0, (C.heat || 0) - 45); }; /* v18.58 a cool dish or drink knocks the heat down */
+C.COLD_HP = 0.9; C.HEAT_FILL = 120; /* seconds of open midday sun to fill the heat gauge */ C.HEAT_SHADE = 45; C.HEAT_COOL = 25; C.HEAT_HP = 0.35; C.heat = 0;
 const say = (k, t, every) => { const now = performance.now(); if ((C.msgT[k] || 0) > now) return; C.msgT[k] = now + (every || 20000); G.UI.toast(t); };
 const LIGHT = /Shaved|wLinen|Slave|Servant|Fled/; // light clothes: less heat
 let coverT = 0;
@@ -26,7 +27,7 @@ C.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(); if (!S 
   const wl = wO_ ? wO_.level : W.water ? W.water.level : -99, gh = wO_ ? wO_.bed : Math.max(W.heightAt(P.x, P.z), fl_ != null ? fl_ : -1e9);
   if ((P.ride && gh < wl + 0.15) || (S.q && S.q.riding && gh < wl - 0.6)) { /* v18.28 the chariot fords the shallow crossings (나루); only deep water stops it */ if (C.lastDry) { P.x = C.lastDry[0]; P.z = C.lastDry[1]; P.vx = P.vz = 0; } if (S.q && S.q.riding && G.Cart && G.Cart.halt) G.Cart.halt(); /* v18.41 the wagon stops dead instead of rocking on the bank */ say('cart', P.ride ? '탈것은 물에 들어갈 수 없어요' : '수레는 물에 들어갈 수 없어요', 4000); }
   else if (gh > wl + 0.3) C.lastDry = [P.x, P.z];
-  if (S.flags && S.flags.dream) { C.wet = 0; C.cold = false; C.hot = 0; const ch = $('climChip'); if (ch && !ch.hidden) { ch.hidden = true; ch.innerHTML = ''; ch.dataset.h = ''; } return; } /* v18.47 a dream is never cold, hot or wet */
+  if (S.flags && S.flags.dream) { C.wet = 0; C.cold = false; C.hot = 0; C.heat = 0; const ch = $('climChip'); if (ch && !ch.hidden) { ch.hidden = true; ch.innerHTML = ''; ch.dataset.h = ''; } return; } /* v18.47 a dream is never cold, hot or wet */
   if (calm) return;
   const Sv = G.Surv, hs = Sv ? Sv.heatAt(P.x, P.z) : { heat: 0, roof: 0 }, roof = hs.roof > 0.3, fire = hs.heat > 6, rainy = G.Weather && G.Weather.rainy(), inWater = P.swim || (gh < wl && !(S.q && S.q.riding) && !P.ride); /* v18.41 fording on the wagon or a horse keeps him dry */
   const h0 = S.time % 24, dayHeat = P.x < 112 && h0 > 9 && h0 < 17.5 && !rainy && (!G.Weather || G.Weather.cur.cloud < 0.6); /* v18.41 Egyptian midday: water cools, it doesn't chill */
@@ -37,20 +38,30 @@ C.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(); if (!S 
   if (rainy && !roof && !C.umb && C.wet > 0.2 && Game.tool('umbrella')) say('umb', '비가 와요 · 「우산」을 펴면 젖지 않아요');
   // cold
   C.warmT = Math.max(0, C.warmT - dt); const night = (Game.env && Game.env.night) || 0, arid = Game.EP().aridAt ? Game.EP().aridAt(P.x, P.z) : 0;
-  const coldNow = C.warmT <= 0 && !fire && ((C.wet > 0.55 && !dayHeat) || (night > 0.7 && arid > 0.6 && !roof && !P.town && !(G.Surv && G.Surv.insul && G.Surv.insul(S) >= 0.45))); /* v18.34 not in the middle of a town, nor in a fur cloak */
-  if (coldNow && !C.cold) say('cold', C.wet > 0.55 ? '몸이 젖어 추워요 · 체력과 기력이 조금씩 줄어요 (모닥불 · 따뜻한 음식)' : '광야의 밤이 추워요 · 모닥불 곁이나 지붕 아래로 가요');
+  const underC = (G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside()) || (G.Homes && G.Homes.inside && G.Homes.inside()) || (G.Egypt2 && G.Egypt2.inTent && G.Egypt2.inTent());
+  const coldNow = C.warmT <= 0 && !fire && ((C.wet > 0.55 && !dayHeat) || (night > 0.7 && !roof && !underC && !P.town && !(G.Surv && G.Surv.insul && G.Surv.insul(S) >= 0.45))); /* v18.34 not in the middle of a town, nor in a fur cloak */
+  if (coldNow && !C.cold) say('cold', C.wet > 0.55 ? '몸이 젖어 추워요 · 체력과 기력이 빠르게 줄어요 (모닥불 · 따뜻한 음식)' : '밤공기가 차요 · 체력이 빠르게 줄어요 (모닥불 · 따뜻한 음식 · 지붕 아래)');
   C.cold = coldNow;
-  if (C.cold) { H.hp = Math.max(Math.min(H.hp, H.hpMax * 0.25), H.hp - dt * 0.45); P.stam = Math.max(Math.min(P.stam, (H.stamMax || 100) * 0.3), P.stam - dt * 2.2); G.Combat && (G.Combat.hpDirty = 1);
+  if (C.cold) { /* v18.58 the cold bites: about three times as fast as before, down to a tenth of his health (a fire and a hot meal are no longer optional) */ C.coldT = (C.coldT || 0) + dt; const bite = C.COLD_HP * (1 + Math.min(1, C.coldT / 90)) * (C.wet > 0.55 ? 1.3 : 1); H.hp = Math.max(Math.min(H.hp, H.hpMax * 0.1), H.hp - dt * bite); P.stam = Math.max(Math.min(P.stam, (H.stamMax || 100) * 0.2), P.stam - dt * 3.2); G.Combat && (G.Combat.hpDirty = 1);
     C.shT = (C.shT || 0) - dt; if (C.shT <= 0) { C.shT = 2.5; P.emote = P.emote || null; G.FX.burst(P.x, P.y + 1.6, P.z, 2, { c: [0.85, 0.9, 1], sp: 0.2, up: 0.3, size: 0.08, a: 0.5, g: -0.2, life: 0.9 }); } }
   // heat: Egyptian midday sun in the open
   const h = S.time % 24, egypt = P.x < 112, sunny = !rainy && (!G.Weather || G.Weather.cur.cloud < 0.6);
   const under = (G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside()) || (G.Homes && G.Homes.inside && G.Homes.inside()) || (G.Egypt2 && G.Egypt2.inTent && G.Egypt2.inTent()); /* v18.34 no midday sun in a cave, a house or a tent */
   let hot = egypt && sunny && h > 10.5 && h < 16.5 && !roof && !inWater && !under ? 1 : 0;
   C.coolT = Math.max(0, (C.coolT || 0) - dt); // v16.9 a cool dish or drink keeps the heat off for a while
-  if (hot) { if (C.coolT > 0) hot *= 0.25; if (LIGHT.test(S.outfit || '')) hot *= 0.45; if (C.umb) hot *= 0.5; if (C.wet > 0.3) hot *= 0.6; }
-  C.hot += (hot - C.hot) * Math.min(1, dt * 0.5); if (C.hot > 0.5) say('hot', '해가 뜨거워요 · 쉽게 지쳐요 (그늘 · 우산 · 겉옷 벗기)', 60000);
+  if (hot) { if (C.coolT > 0) hot *= 0.25; if (LIGHT.test(S.outfit || '')) hot *= 0.7; if (C.umb) hot *= 0.5; if (C.wet > 0.3) hot *= 0.6; }
+  if (!C.cold) C.coldT = 0;
+  /* v18.58 더위 게이지: 한낮 햇볕에 오래 서 있으면 천천히 차요(추위보다 한참 늦게). 건물·나무 그늘에 들면 내려가고, 시원한 음식·물이면 뚝 떨어져요.
+     많이 차면 기력 한도가 줄고(C.hot), 더 차면 체력도 조금씩 닳아요. */
+  { let shade = roof || under || inWater; if (!shade && hot > 0) { const sd = Game.env && Game.env.sunDir; if (sd && sd[1] > 0.12 && W.ray) { const y0 = P.y + 1.5; shade = W.ray(P.x, y0, P.z, P.x + sd[0] * 16, y0 + sd[1] * 16, P.z + sd[2] * 16) < 1; } } C.shade = !!shade;
+    const g0 = C.heat || 0; let g = g0; if (hot > 0 && !shade) g += dt * hot * (100 / C.HEAT_FILL); else g -= dt * (100 / (shade && egypt && sunny && h > 10.5 && h < 16.5 ? C.HEAT_SHADE : C.HEAT_COOL)); if (C.coolT > 0) g -= dt * 1.2; C.heat = g = clamp(g, 0, 100);
+    if (g >= 40 && g0 < 40) say('hot', '해가 뜨거워요 · 더위가 차오르면 쉽게 지쳐요 (건물 그늘 · 우산 · 시원한 음식)', 30000);
+    if (g >= 75 && g0 < 75) say('hot2', '더위를 먹었어요! 체력이 줄어요 · 그늘로 들어가거나 시원한 것을 먹어요', 30000);
+    if (g > 70) { H.hp = Math.max(Math.min(H.hp, H.hpMax * 0.2), H.hp - dt * C.HEAT_HP * (g - 70) / 30); G.Combat && (G.Combat.hpDirty = 1); }
+    hot = clamp((g - 30) / 60, 0, 1); }
+  C.hot += (hot - C.hot) * Math.min(1, dt * 0.8);
   // HUD chip
-  const chip = $('climChip'); if (chip) { const parts = []; if (C.warmT > 0) parts.push(`<b class="w">따뜻함 ${Math.ceil(C.warmT / 60)}분</b>`); if (C.coolT > 0) parts.push(`<b class="r">시원함 ${Math.ceil(C.coolT / 60)}분</b>`); if (C.cold) parts.push('<b class="c">추위</b>'); else if (C.wet > 0.15) parts.push(`<b class="r">젖음 ${Math.round(C.wet * 100)}%</b>`); if (C.hot > 0.35 && !C.cold) parts.push('<b class="h">더위</b>'); /* v18.41 never 추위 and 더위 at once */ if (C.umb) parts.push('<b class="u">우산</b>');
+  const chip = $('climChip'); if (chip) { const parts = []; if (C.warmT > 0) parts.push(`<b class="w">따뜻함 ${Math.ceil(C.warmT / 60)}분</b>`); if (C.coolT > 0) parts.push(`<b class="r">시원함 ${Math.ceil(C.coolT / 60)}분</b>`); if (C.cold) parts.push('<b class="c">추위</b>'); else if (C.wet > 0.15) parts.push(`<b class="r">젖음 ${Math.round(C.wet * 100)}%</b>`); if ((C.heat || 0) >= 12 && !C.cold) parts.push(`<b class="h">더위 ${Math.round(C.heat)}%${C.shade && C.heat > 0 ? ' · 그늘' : ''}</b>`); if (G.Rest && G.Rest.n && G.Rest.n()) parts.push(`<b class="c">밤샘 ${G.Rest.n()}일</b>`); /* v18.41 never 추위 and 더위 at once */ if (C.umb) parts.push('<b class="u">우산</b>');
     const html = parts.join(''); if (chip.dataset.h !== html) { chip.dataset.h = html; chip.innerHTML = html; chip.hidden = !html; } } };
 // heat shrinks the stamina you can hold
 if (G.Vitals) { const cap0 = G.Vitals.stamCap; G.Vitals.stamCap = function () { const c = cap0.apply(this, arguments); return c * (1 - 0.38 * C.hot); }; }

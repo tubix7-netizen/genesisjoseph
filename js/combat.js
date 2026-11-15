@@ -192,7 +192,7 @@ C.update = function (dt, t) {
   const threat = list.some(a => a.st !== 'dead' && (a.st === 'chase' || a.st === 'windup' || a.st === 'attack' || a.st === 'recover') && Math.hypot(a.x - P.x, a.z - P.z) < 22);
   C.inCombat = threat; C.calmT = threat ? 0 : (C.calmT || 0) + dt;
   // player regen out of combat
-  if (!threat && !(G.Climate && G.Climate.cold) && h.hp < h.hpMax && (C.lastHurt || 0) + 6 < t) { h.hp = Math.min(h.hpMax, h.hp + dt * 1.2); C.hpDirty = 1; }
+  if (!threat && !(G.Climate && (G.Climate.cold || (G.Climate.heat || 0) > 70)) /* v18.58 no mending while heat-struck */ && h.hp < h.hpMax && (C.lastHurt || 0) + 6 < t) { h.hp = Math.min(h.hpMax, h.hp + dt * 1.2); C.hpDirty = 1; }
   // attack timing
   if (P.atk) { P.atk.t += dt; if (!P.atk.fired && P.atk.t >= P.atk.hit) { P.atk.fired = true; fireAttack(P.atk); } if (P.atk.t >= P.atk.dur) { P.lastAtk = { k: P.atk.k, combo: P.atk.combo || 0, end: C.tAll || 0 }; P.atk = null; if (P.dodgeQ) { P.dodgeQ = 0; P.atkQ = false; C.dodge(); } /* v18.34 a roll pressed mid-swing comes right after it */ if (P.atkQ) { P.atkQ = false; C.attack(); } } } else P.atkQ = false;
   C.tAll = t;

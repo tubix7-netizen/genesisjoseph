@@ -219,7 +219,7 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
     asenath: { start: 25, meal: 1, walk: 1,
       talk: (S, lv) => [['오늘 궁에서는 어떠셨어요? 얼굴이 피곤해 보여요.', '아이들이 하루 종일 아빠만 찾았어요.'],
         ['당신의 하나님 이야기를 더 듣고 싶어요. 이 땅의 신들과는 다른 분이시죠.', '당신이 가나안에 두고 온 가족 이야기를 해 줄래요?'],
-        ['처음엔 히브리 사람과 결혼한다니 무서웠어요. 지금은… 하나님께 감사해요.', '므낫세가 어제 「아빠의 하나님」께 기도했어요. 들으셨어요?'],
+        ['처음엔 히브리 사람과 결혼한다니 무서웠어요. 지금은… 당신을 만난 것이 제 복이에요.', '므낫세가 어제 「아빠의 하나님」께 기도했어요. 들으셨어요?'],
         ['언젠가 당신의 아버지를 뵙고 싶어요. 우리 아이들을 보여 드리고 싶어요.', '당신 곁이라 이 집이 늘 따뜻해요.']][Math.min(3, lv)],
       mealTalk: ['오늘은 당신이 좋아하는 렌틸 죽이에요.', '므낫세, 아빠 오셨다! 손 씻고 오렴.', '에브라임이 오늘 처음으로 혼자 숟가락질을 했어요!'] },
     manasseh: { start: 20, play: 1, walk: 1, games: KIDGAMES,
@@ -228,10 +228,15 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
       talk: (S, lv) => [['(방긋 웃는다)', '아빠! 아빠!'], ['므낫세 형이 나 안 놀아 줘요!', '이거 봐요! 돌멩이 주웠어요!'], ['에브라임은 번성한다는 뜻이래요! 나 크게 클 거예요!', '아빠 무릎이 제일 좋아요.'], ['아빠, 내일도 같이 놀아요!', '(아빠 품에 폭 안긴다)']][Math.min(3, lv)] } };
   // coming home: the boys run to their father; at supper time Asenath calls
   let hT = 0; const prevUpd = EP.update;
-  EP.update = function (dt, S) { if (prevUpd) prevUpd.apply(this, arguments); if (!S || !S.flags || (hT -= dt) > 0) return; hT = 1;
+  /* v18.58 the boys run UP TO their father and stop in front of him (they used to aim at where he had been and run straight through him) */
+  const RUN = []; function runTick(dt) { const P = G.Game.P; for (let i = RUN.length - 1; i >= 0; i--) { const r = RUN[i], n = G.Game.ENT.npcs[r.id]; r.t -= dt; if (!n || !n.vis || r.t <= 0 || n.talking || (G.Cine && G.Cine.on)) { if (n) n.walk = null; RUN.splice(i, 1); continue; }
+      const dx = n.x - P.x, dz = n.z - P.z, d = Math.hypot(dx, dz) || 1, stop = 1.25 + r.side * 0.12;
+      if (d <= stop + 0.15) { n.walk = null; n.face = n.homeFace = Math.atan2(P.x - n.x, P.z - n.z); n.emote = { k: 'cheer', t: 0, dur: 2 }; RUN.splice(i, 1); continue; }
+      if ((r.rt -= dt) <= 0) { r.rt = 0.25; const ox = -dz / d * r.side * 0.45, oz = dx / d * r.side * 0.45; G.Game.npcWalk(r.id, P.x + dx / d * stop + ox, P.z + dz / d * stop + oz, null, 3.2); } } }
+  EP.update = function (dt, S) { if (prevUpd) prevUpd.apply(this, arguments); if (S && S.flags && RUN.length) runTick(dt); if (!S || !S.flags || (hT -= dt) > 0) return; hT = 1;
     if ((G.Cine && G.Cine.on) || G.UI.busy() || !(G.EP.joseph.steps.c5_patrol && S.step && G.Game.stepOrder().indexOf(S.step) >= G.Game.stepOrder().indexOf('c5_patrol'))) return; const P = G.Game.P, home = [10, -140], d = Math.hypot(P.x - home[0], P.z - home[1]);
     const f = S.flags.home = S.flags.home || {}; if (d > 22) { f.away = 1; return; }
-    if (f.away && f.greetDay !== S.day) { f.away = 0; f.greetDay = S.day; for (const id of ['manasseh', 'ephraim']) { const n = G.Game.ENT.npcs[id]; if (!n || !n.vis) continue; G.Game.npcWalk(id, P.x + (id === 'ephraim' ? 1 : -1), P.z + 1, () => { n.emote = { k: 'cheer', t: 0, dur: 2 }; }, 3.2); G.Life && G.Life.bubble(id, rnd(['아빠!', '아빠 왔다!', '아빠아!']), 2.6); } }
+    if (f.away && f.greetDay !== S.day) { f.away = 0; f.greetDay = S.day; for (const id of ['manasseh', 'ephraim']) { const n = G.Game.ENT.npcs[id]; if (!n || !n.vis) continue; RUN.push({ id, t: 14, rt: 0, side: id === 'ephraim' ? 1 : -1 }); G.Life && G.Life.bubble(id, rnd(['아빠!', '아빠 왔다!', '아빠아!']), 2.6); } }
     const h = S.time % 24; if (h > 18 && h < 21 && f.supperDay !== S.day && d < 14) { f.supperDay = S.day; G.Life && G.Life.bubble('asenath', '저녁 드세요! 오늘은 생선이에요.', 3.5); G.UI.toast('아스낫에게 말을 걸어 함께 식사할 수 있어요'); } };
   // a button for the people you know
   /* v18.12j the 「사람들」 page (친밀도 hearts) was removed from the menu; Bond.panel() still exists for tests */

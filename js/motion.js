@@ -60,32 +60,33 @@ const pose = (name, up, fn) => { P[name] = fn; fn.up = !!up; };
 // ---- melee: three-hit combos. Anticipation → fast strike (contact ≈ 0.42) → follow-through → recover
 pose('swing', true, (rig, p) => { // forehand diagonal cut, hips lead the shoulders
   const w = ph01(p, 0, 0.3), h = ph01(p, 0.3, 0.44), k = 1 - ph01(p, 0.7, 1);
-  const tw = (0.62 * w - 1.25 * h) * k;
-  set(rig, B.pelvis, 0, (0.22 * w - 0.4 * h) * k, 0);
+  const tw = (0.85 * w - 1.55 * h) * k; /* v18.58 bigger wind-up and follow-through, a low lunging stance */
+  set(rig, B.pelvis, 0, (0.34 * w - 0.6 * h) * k, 0);
   set(rig, B.chest, (0.04 + 0.22 * h) * k, tw - (0.22 * w - 0.4 * h) * k * 0.3, -0.1 * w * k);
   set(rig, B.uArmR, (-0.25 - 2.25 * w + 1.95 * h) * k, 0, (0.15 + 0.55 * w - 0.7 * h) * k); set(rig, B.fArmR, (-0.35 - 0.85 * w + 0.85 * h) * k);
   set(rig, B.uArmL, (-0.35 - 0.3 * w + 0.2 * h) * k, 0, -0.35 * k); set(rig, B.fArmL, -0.8 * k);
-  set(rig, B.thighL, -0.42 * h * k, 0, 0.06); set(rig, B.shinL, 0.25 * h * k); set(rig, B.thighR, 0.28 * h * k, 0, -0.06); set(rig, B.shinR, 0.3 * h * k);
-  set(rig, B.head, 0.05 * h, -tw * 0.6, 0); rig.off[1] = -0.06 * h * k + 0.015 * w * (1 - h);
+  set(rig, B.thighL, (-0.2 * w - 0.75 * h) * k, 0, 0.1); set(rig, B.shinL, (0.25 * w + 0.6 * h) * k); set(rig, B.thighR, (0.1 * w + 0.5 * h) * k, 0, -0.1); set(rig, B.shinR, (0.2 * w + 0.45 * h) * k);
+  set(rig, B.head, 0.05 * h, -tw * 0.6, 0); rig.off[1] = (-0.05 * w - 0.17 * h) * k;
 });
 pose('swing2', true, (rig, p) => { // backhand return cut, right to left
   const w = ph01(p, 0, 0.26), h = ph01(p, 0.26, 0.42), k = 1 - ph01(p, 0.7, 1);
-  const tw = (-0.75 * w + 1.15 * h) * k;
-  set(rig, B.pelvis, 0, (-0.25 * w + 0.35 * h) * k, 0);
+  const tw = (-0.95 * w + 1.45 * h) * k;
+  set(rig, B.pelvis, 0, (-0.38 * w + 0.55 * h) * k, 0);
   set(rig, B.chest, (0.12 + 0.12 * h) * k, tw, 0.08 * w * k);
   set(rig, B.uArmR, (-1.25 - 0.2 * w + 0.15 * h) * k, 0, (-0.75 * w + 1.35 * h) * k); set(rig, B.fArmR, (-1.5 * w + 1.2 * h - 0.2) * k);
   set(rig, B.uArmL, -0.5 * k, 0, -0.45 * k); set(rig, B.fArmL, -0.9 * k);
-  set(rig, B.thighR, -0.35 * h * k, 0, -0.05); set(rig, B.shinR, 0.25 * h * k); set(rig, B.thighL, 0.22 * h * k, 0, 0.05); set(rig, B.shinL, 0.3 * h * k);
-  set(rig, B.head, 0.05, -tw * 0.6, 0); rig.off[1] = -0.05 * h * k;
+  set(rig, B.thighR, (-0.2 * w - 0.65 * h) * k, 0, -0.1); set(rig, B.shinR, (0.25 * w + 0.55 * h) * k); set(rig, B.thighL, (0.1 * w + 0.45 * h) * k, 0, 0.1); set(rig, B.shinL, (0.2 * w + 0.45 * h) * k);
+  set(rig, B.head, 0.05, -tw * 0.6, 0); rig.off[1] = (-0.05 * w - 0.15 * h) * k;
 });
 pose('swing3', true, (rig, p) => { // finisher: two-handed overhead slam with a hop
   const w = ph01(p, 0, 0.38), h = ph01(p, 0.38, 0.5), k = 1 - ph01(p, 0.72, 1);
+  const spin = ph01(p, 0.02, 0.36); set(rig, B.pelvis, 0, 6.2832 * spin * spin * (3 - 2 * spin), 0); /* v18.58 a full turn in the air before the blow lands */
   set(rig, B.chest, (-0.25 * w + 0.75 * h) * k, 0.1 * w * k, 0);
   const ua = (-0.3 - 2.55 * w + 2.05 * h) * k;
   set(rig, B.uArmR, ua, 0, (0.2 - 0.25 * w) * k); set(rig, B.fArmR, (-0.4 - 0.6 * w + 0.7 * h) * k);
   set(rig, B.uArmL, ua, 0, (-0.2 + 0.25 * w) * k); set(rig, B.fArmL, (-0.4 - 0.6 * w + 0.7 * h) * k);
   set(rig, B.thighL, (-0.15 * w - 0.75 * h) * k, 0, 0.08); set(rig, B.shinL, (0.25 * w + 0.7 * h) * k); set(rig, B.thighR, (0.1 * w + 0.45 * h) * k, 0, -0.08); set(rig, B.shinR, (0.3 * w + 0.6 * h) * k);
-  set(rig, B.head, (-0.15 * w + 0.2 * h) * k); rig.off[1] = (0.05 * w * (1 - h) - 0.2 * h) * k;
+  set(rig, B.head, (-0.15 * w + 0.2 * h) * k); rig.off[1] = (0.34 * Math.sin(Math.PI * Math.min(1, w)) * (1 - h) - 0.24 * h) * k;
 });
 pose('thrust', true, (rig, p) => { // chambered two-handed spear thrust, front foot steps in
   const w = ph01(p, 0, 0.3), h = ph01(p, 0.3, 0.44), k = 1 - ph01(p, 0.68, 1);
@@ -315,6 +316,7 @@ function convo(rig, st, t, A) {
     // the base talk pose raises the right forearm; fade it to neutral and lay the new gesture on top
     rig.set(B.uArmR, 0, 0, -0.12); rig.set(B.fArmR, -0.18, 0, 0); g(rig, e * 0.9 + 0.1, t); add(rig, B.head, Math.sin(t * 3.1) * 0.04, Math.sin(t * 0.8 + sd) * 0.12, 0, 1); }
   else if (st.listen) { const n = Math.pow(Math.max(0, Math.sin(t * 1.7 + sd)), 6); add(rig, B.head, 0.14 * n + 0.03, 0, 0.05 * Math.sin(t * 0.4 + sd), 1); }
+  if (st.lookDn) add(rig, B.head, st.lookDn, 0, 0, 1); /* v18.58 talking with a child (or someone seated): look down at them */
 }
 
 // =================================================================== 4. GAIT STYLE, BRAKE, PIVOT, SLOPE

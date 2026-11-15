@@ -62,7 +62,7 @@ QS.x_wrong = { giver: 'nebka', title: '억울한 죄수', when: () => viz() && !
   obj: [{ t: '은잔 주인 하피의 이야기 듣기 (장터)', ok: () => F().wrong >= 1 }, { t: '장터 노점 뒤에서 은잔 찾기', ok: () => F().wrong >= 2 }, { t: '간수장에게 은잔 보여 주기', ok: () => F().wrong >= 3 }],
   loc: () => F().wrong < 1 ? 'npc:hapi' : F().wrong < 2 ? { x: -15.8, z: -77.6 } : F().wrong < 3 ? 'npc:keeper' : 'npc:nebka',
   prog: '…하피 어른은 장터에 계실 겁니다. 그날 일을 저보다 더 잘 아실 거예요.',
-  done: [L('간수장', '네브카, 나오너라. 총리님께서 네 누명을 벗겨 주셨다.'), L('죄수 네브카', '…정말입니까? 아아, 감사합니다! 하나님께서 저를 잊지 않으셨군요!'), L('요셉', '나도 이 옥에서 그렇게 기다렸다네. 하나님은 기다리는 사람을 잊지 않으시지.')],
+  done: [L('간수장', '네브카, 나오너라. 총리님께서 네 누명을 벗겨 주셨다.'), L('죄수 네브카', '…정말입니까? 아아, 감사합니다, 총리님! 저 같은 자를 잊지 않으셨군요!'), L('요셉', '나도 이 옥에서 그렇게 기다렸다네. 하나님은 기다리는 사람을 잊지 않으시지.')],
   reward: { silver: 25, xp: 45, insight: 1 }, finish: () => { F().freed = 1; const n = Game.npc('nebka'); if (n) { Game.npcTo('nebka', -30, -4, Math.PI); Game.npcWalk('nebka', -30, 16.5, () => { F().gone = 1; }, 1.6); } /* he walks out through the prison gate, then is gone */ } };
 
 // ------------------------------------------------------------------ talks that move the requests on

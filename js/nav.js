@@ -43,6 +43,11 @@ function solve(tx, tz) { const W = Game.W(), P = Game.P; if (!W) return null; if
   if (!ks) { /* v18.47 the goal's nearest open cell can be a walled-in pocket (a yard between houses): try the open cells round it, nearest first, before giving up */
     const [gi, gj] = cellOf(tx, tz), alt = []; for (let dj = -7; dj <= 7; dj++) for (let di = -7; di <= 7; di++) { if ((di === g[0] - gi && dj === g[1] - gj) || !open(W, gi + di, gj + dj)) continue; alt.push([di * di + dj * dj, gi + di, gj + dj]); }
     alt.sort((a, b) => a[0] - b[0]); let last = null, tries = 0; for (const [, i, j] of alt) { if (last && Math.abs(i - last[0]) + Math.abs(j - last[1]) < 3) continue; last = [i, j]; ks = astar(W, s, [i, j]); if (ks || ++tries >= 6) break; } }
+  if (!ks) { /* v18.58 the goal is inside walls the wagon cannot enter (Simeon in the prison yard): drive to the reachable spot nearest to it, so 「자동 이동」 still works */
+    const seen = new Uint8Array(N * N), q = new Int32Array(N * N); let qh = 0, qt = 0, best = -1, bd = 1e9; const sk = s[1] * N + s[0], [gi, gj] = cellOf(tx, tz); seen[sk] = 1; q[qt++] = sk;
+    while (qh < qt) { const k = q[qh++], i = k % N, j = (k / N) | 0, d = (i - gi) * (i - gi) + (j - gj) * (j - gj); if (d < bd) { bd = d; best = k; }
+      for (const [a2, b2] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ni = i + a2, nj = j + b2; if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue; const nk = nj * N + ni; if (seen[nk] || !open(W, ni, nj)) continue; seen[nk] = 1; q[qt++] = nk; } }
+    if (best >= 0 && best !== sk && bd < 40 * 40) ks = astar(W, s, [best % N, (best / N) | 0]); }
   if (!ks) return null; const pts = ks.map(k => ctr(k % N, (k / N) | 0)); pts[0] = [P.x, P.z]; return smooth(W, pts); }
 const target = () => { const s = Game.S(), j = s && s.q && s.q.dlJob; if (j && j.go && G.Errands && G.Errands.drop) { const d = G.Errands.drop(j.v); if (d) return { x: d[0], z: d[1] }; } /* a delivery: the whole road to the flag, fords and all */
   const t = Game.curTarget; if (!t || t.x === undefined) { Nv.park = null; return null; } const pk = parkFor(t); Nv.park = pk; return pk || t; };

@@ -284,7 +284,7 @@ function giftChoice(n, after) {
   const items = Object.keys(S.inv).filter(k => S.inv[k] > 0 && Game.ITEMS[k] && ['food', 'gift', 'crop', 'good', 'mat'].includes(Game.ITEMS[k].cat)).sort((a, b) => (likes.includes(b) ? 1 : 0) - (likes.includes(a) ? 1 : 0) || Game.ITEMS[b].p - Game.ITEMS[a].p).slice(0, 4);
   if (!items.length) { say([{ n: '', t: '줄 만한 것이 없어요. 꽃이나 열매, 빵 같은 것을 가져와 보세요.' }], after); return; }
   say([{ n: '', t: '무엇을 줄까요?', choices: items.map(k => ({ t: `${Game.ITEMS[k].n} (${S.inv[k]})`, then: () => { Game.take(k); G.Deeds && G.Deeds.rec('share', n); const liked = likes.includes(k); addFriend(n, liked ? 3 : 1.2);
-    setTimeout(() => say([{ n: n.name, t: liked ? rnd(['어머나, 이건 내가 제일 좋아하는 거예요! 정말 고마워요.', '이걸 어떻게 알았소? 내가 이걸 참 좋아하는데!']) : rnd(['고맙소. 마음 써 줘서.', '이런 것까지… 잘 받겠소.']) }], after), 30); } })).concat([{ t: '그만두기', then: () => setTimeout(after, 30) }]) }]);
+    setTimeout(() => say([{ n: n.name, t: liked ? rnd(['어머나, 이건 내가 제일 좋아하는 거예요! 정말 고마워요.', '이걸 어떻게 알았소? 내가 이걸 참 좋아하는데!']) : rnd(['고맙소. 마음 써 줘서.', '이런 것까지… 잘 받겠소.']) }], after), 30); } })).concat([{ t: '좀 더 생각해 보기', then: () => setTimeout(after, 30) }]) }]);
 }
 /* v18.40 「저녁 먹고 가시오」 is a real invitation now: yes → you sit down at their table (a full stomach, a story from the family);
    no → they ask you to come another day. Once a day, in the evening, by grown-ups who know you a little (or by chance). */
@@ -509,7 +509,7 @@ async function send(text) {
 const clean = t => String(t || '').replace(/^[\s"'“”]+|[\s"'“”]+$/g, '').replace(/^[^:\n]{1,14}:\s*/, '').replace(/[*#_`]/g, '').slice(0, 400);
 function fallback(n, text, S) {
   const f = n.d.folk, role = f ? f.role : n.d.stranger; const t = text;
-  if (/하나님|여호와|기도|믿/.test(t)) return rnd(['하나님은 하늘과 땅을 지으신 분이라오. 그분 앞에서 정직하게 사는 게 제일이지요.', '아브라함의 하나님 말이오? 약속을 지키시는 분이라 들었소.']);
+  if (/하나님|여호와|기도|믿/.test(t)) return G.Cast && G.Cast.gentile && Game.dlgNpc && G.Cast.gentile(Game.dlgNpc) ? rnd(['히브리 사람의 신 말이오? 우리는 잘 모르오. 애굽에는 신이 많아서요.', '보이지 않는 신을 섬긴다니 낯설구려. 그래도 당신이 정직한 사람인 건 알겠소.', '총리께서 섬기는 신이 꿈을 풀게 했다는 소문은 들었소. 우리 신들은 그런 일을 못 했지요.']) : rnd(['하나님은 하늘과 땅을 지으신 분이라오. 그분 앞에서 정직하게 사는 게 제일이지요.', '아브라함의 하나님 말이오? 약속을 지키시는 분이라 들었소.']);
   if (/어디|근처|길|우물/.test(t)) { const w = nearestWell(); return w ? `${w.dir}쪽으로 ${w.d}걸음쯤 가면 우물이 있소.` : '이 근처는 나도 잘 모르오.'; }
   if (/이야기|재미/.test(t)) return rnd(TALES).t.slice(0, 120) + '…';
   if (/소중|가족|사랑/.test(t)) return rnd(['내 가족이지요. 저녁에 함께 둘러앉아 먹는 빵 한 조각이 제일 행복하오.', '건강한 몸과 정직한 마음이오.']);

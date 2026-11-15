@@ -155,7 +155,7 @@ function listen(id) { const n = npc(id), B = G.Bond, cf = castFire(id); const lv
   G.UI.say(ls, () => { const b = B && B.get(id); if (b && b.fire !== ring.key) { b.fire = ring.key; B.add(id, 4, '불가의 이야기'); } menu(); }); }
 function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.emote = { k: 'pray', t: 0, dur: 4 }; const ls = [{ n: '요셉', t: rnd(['조상들의 하나님, 오늘 하루도 지켜 주셔서 감사합니다. 이 불가에 앉은 이들의 집에도 평안을 주세요.', era() === 'canaan' ? '하나님, 세겜에 있는 형들을 지켜 주세요. 형들과 제 사이에도 평화를 주세요.' : era() === 'goshen' ? '조상들의 하나님, 아버지를 제 곁에 다시 두셔서 감사합니다. 형님들의 장막에도 평안을 주세요.' : (Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast') ? '하나님, 아버지와 형제들을 지켜 주세요.' : '하나님, 멀리 가나안에 계신 아버지와 베냐민을 지켜 주세요.') + ' 그리고 이 땅의 사람들도요.']) }];
   for (const id of r.ids) { const cf = castFire(id); if (cf && cf.amen) ls.push({ n: npc(id).name, t: cf.amen }); }
-  if (r.ids.length && !r.ids.some(id => castFire(id) && castFire(id).amen)) ls.push({ n: npc(r.ids[0]).name, t: FAM.includes(r.ids[0]) ? '아멘!' : rnd(['…아멘. 당신 하나님께 나도 인사드리오.', '(조용히 눈을 감고 따라 한다)']) });
+  if (r.ids.length && !r.ids.some(id => castFire(id) && castFire(id).amen)) ls.push({ n: npc(r.ids[0]).name, t: FAM.includes(r.ids[0]) ? '아멘!' : (G.Cast && G.Cast.gentile && G.Cast.gentile(npc(r.ids[0])) ? rnd(['(말없이 불을 바라보며 기도가 끝나기를 기다린다)', '…히브리 사람은 그렇게 비는구려. 처음 보오.', '당신의 신은 이름도 형상도 없다지요. 그런데도 듣는다니, 신기한 일이오.']) : rnd(['…아멘.', '(조용히 눈을 감고 함께 기도한다)'])) });
   G.UI.say(ls, () => { P.emote = null; P.emote = { k: 'sitg', t: 0, dur: 1e4 }; if (S.flags.fsPray !== r.key) { S.flags.fsPray = r.key; G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(20); G.UI.toast('마음이 고요해졌어요 · 정신력 +20'); } menu(); }); }
 /* 요리하기: get up quietly, open the cooking sheet; when the dish is done (or the sheet is closed) sit back down by the same fire */
 function cook() { const r = ring; if (!r) return; const f = r.f; stand(true); G.Hearth.open(f); let n = 0;
@@ -166,7 +166,7 @@ function stand(quiet) { const P = Game.P, r = ring; ring = null; P.emote = null;
 
 // the action by the fire
 Game.CTX.push(function (S) { const P = Game.P, C = G.Climate; if (S.step === 'p_wake') return null; /* v18.38 the first goal is Jacob: nothing else on A yet */ if (ring || P.ride || P.swim || P.act || Game.cineOn) return null; const E = Game.EP(); if (!E || E !== EPJ()) return null;
-  for (const st of E.stations || []) { if (st.type !== 'fire' || st.oven || (st.on && !st.on(S, Game))) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d > 3.4) continue;
+  for (const st of E.stations || []) { if (st.type !== 'fire' || st.oven || st.torchOnly /* v18.58 a cave's torch pillar only lights a torch: nobody sits or rests by it */ || (st.on && !st.on(S, Game))) continue; const d = Math.hypot(st.x - P.x, st.z - P.z); if (d > 3.4) continue;
     return [{ d: /^(fM_|fCave)/.test(st.id || '') ? d : d - 1.2, /* v18.57 at a cave mouth, 「들어가기」 wins unless you stand right at the fire */ label: '모닥불가에 앉기', x: st.x, z: st.z, y: 0.8, key: 'fireside:' + st.id, reach: 1.7, use: () => F.sit(st) }]; }
   return null; });
 

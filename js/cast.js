@@ -211,22 +211,22 @@ const HOUSE = {
 const HT = {
   ameni: { talk: ['히브리 젊은이, 애굽 말은 귀보다 마음으로 배우는 거라네.', '이 집에서 오래 살아남는 법? 정직, 그리고 웃음이지.', '엠 헤테프, 요셉. 평안히. …따라 해 보거라.', '네브 녀석 말은 반만 들어라. 그 애 속은 그렇게 모질지 않단다.'],
     ask: ['나야 늘 이렇지. 무릎이 날씨를 먼저 안다네.', '나도 젊을 때 누비아에서 팔려 왔단다. 그래서 너를 처음 봤을 때 눈을 못 떼겠더구나.', '네브를 내가 길렀지. 그 애가 모질게 구는 건, 자기 자리가 무너질까 무서워서란다.', '얘야, 네 하나님이 정말 너와 함께 계시는구나. 이 늙은이 눈에도 보인다.'],
-    gift: { like: ['bread', 'porridge', 'cheese', 'dates'], yes: '허허, 늙은이 입맛을 어찌 알았느냐.', ok: '고맙다, 얘야.', odd: '허허, 이걸 다… 마음만 받으마.' }, amen: '…아멘. 네 하나님께 이 늙은이도 머리를 숙이마.' },
+    gift: { like: ['bread', 'porridge', 'cheese', 'dates'], yes: '허허, 늙은이 입맛을 어찌 알았느냐.', ok: '고맙다, 얘야.', odd: '허허, 이걸 다… 마음만 받으마.' }, amen: '(말없이 듣고 있다) …네가 비는 신은 종의 말도 들으시는 모양이구나.' },
   neb: { talk: ['…일이나 하라, 히브리 종.', '곳간 숫자는 틀리면 안 된다. 손가락으로 두 번 세라.', '주인님 집은 해 뜨기 전에 깨어 있어야 한다.'],
     ask: ['내 걱정은 네가 할 일이 아니다.', '…아메니 영감이 너를 감싸는 걸 안다. 나도 그 영감 덕에 살았지.', '나도 너만 할 때 팔려 왔다. 그때 나는 고개를 들지 못했지. 너는 들더군.', '…총무, 이 집 대문은 내가 지키겠소. 그건 약속하지.'],
     gift: { like: ['bread', 'onion', 'cheese'], yes: '…흥. 고맙다고는 해 두지.', ok: '…두고 가라.', odd: '이걸 나더러 어쩌라고?' }, amen: '…(눈을 감았다가, 아무 말 없이 고개를 끄덕인다)' },
   cook: { talk: ['타! 오늘은 마늘을 듬뿍 넣었지. 냄새 좋지?', '오늘은 손님상에 낼 거위를 굽는다네.', '앙쿠 녀석이 또 연못 물을 정원에 다 끌어갔어! 부엌 물은 어쩌라고!'],
     ask: ['배고프지? 부엌 뒤로 오게. 누룽지 남았네.', '내 노래가 시끄럽다고? 노래 없이 구운 빵은 맛이 없다네.', '앙쿠랑 나는 고아로 자랐지. 둘이서 이 집에 들어온 지 스무 해야.', '요셉, 자네가 오고부터 이 부엌 곳간이 비지를 않아. 이상한 일이지.'],
-    gift: { like: ['onion', 'herb', 'honey', 'fish'], yes: '오, 이거 좋은 재료로군! 오늘 저녁에 자네 몫으로 내가 구워 주지!', ok: '고맙네!', odd: '이걸로 뭘 만들라고? 하하.' }, amen: '아멘! …이렇게 하는 거 맞나?' },
+    gift: { like: ['onion', 'herb', 'honey', 'fish'], yes: '오, 이거 좋은 재료로군! 오늘 저녁에 자네 몫으로 내가 구워 주지!', ok: '고맙네!', odd: '이걸로 뭘 만들라고? 하하.' }, amen: '…히브리 사람은 밥 앞에서도, 불 앞에서도 비는구먼. 별일이야.' },
   gardener: { talk: ['연꽃이 올해는 유난히 많이 피었어.', '종려나무는 발은 물에, 머리는 불에 두어야 열매를 맺지.', '…(꽃에게) 오늘은 물이 좀 적지? 미안해.'],
     ask: ['…괜찮아.', '…형은 시끄럽지만, 내가 아플 때 밤새 죽을 쑤어 줬어.', '꽃은 말이 없어서 좋아. 그런데 너랑 있으면 말이 좀 하고 싶어.', '…네 하나님은 꽃도 만드셨지? 그럼 좋은 분일 거야.'],
     gift: { like: ['flower', 'herb', 'fig', 'water'], yes: '…(활짝 웃는다) 이거, 좋아해.', ok: '…고마워.', odd: '…흙에 묻어 볼까.' }, amen: '…아멘.' },
   cowboy: { talk: ['형! 송아지가 형만 졸졸 따라다녀요!', '카! 카! (소야! 소야!)', '엄마가 형 옷 기워 준대요. 찢어졌다고.'],
     ask: ['형, 나 오늘 소 세 마리 혼자 몰았어요!', '우리 아빠는 나일 물이 넘치던 해에 돌아오지 않았어요. 엄마는 그 얘기 하면 울어요.', '형도 엄마 보고 싶어요? …형네 엄마는 어디 있어요?', '형, 나 크면 형처럼 일 잘하는 사람 될래요.'],
-    gift: { like: ['dates', 'honey', 'fig', 'sweetCake'], yes: '와아! 형 최고! 엄마한테 반 줘야지!', ok: '고마워요, 형!', odd: '…이거 뭐예요? 헤헤.' }, amen: '아멘! 형, 나도 형 하나님한테 말했어요!' },
+    gift: { like: ['dates', 'honey', 'fig', 'sweetCake'], yes: '와아! 형 최고! 엄마한테 반 줘야지!', ok: '고마워요, 형!', odd: '…이거 뭐예요? 헤헤.' }, amen: '형, 방금 누구한테 말한 거예요? 아무도 안 보이는데.' },
   weaver: { talk: ['아마 세 단이면 세마포 한 필이에요.', '마님은 세마포를 아주 곱게만 입으시죠.', '파이가 송아지 이야기만 해요. 요셉 덕분이래요.'],
-    ask: ['저야 괜찮아요. 손가락만 좀 아프지요.', '실이 엉키면 서두르지 말고 처음부터 풀어야 해요. 마음도 그렇고요.', '남편을 나일이 넘치던 해에 잃었어요. 그 뒤로 실 한 올 한 올이 파이 밥이에요.', '파이가 요즘 밤에 기도를 해요. 요셉처럼 한대요. …고마워요.'],
-    gift: { like: ['thread', 'linen', 'honey', 'flower'], yes: '어머, 이거 정말 쓸모 있겠어요! 고마워요.', ok: '고마워요, 요셉.', odd: '이건… 호호, 마음만 받을게요.' }, amen: '아멘. …파이를 지켜 주세요.' },
+    ask: ['저야 괜찮아요. 손가락만 좀 아프지요.', '실이 엉키면 서두르지 말고 처음부터 풀어야 해요. 마음도 그렇고요.', '남편을 나일이 넘치던 해에 잃었어요. 그 뒤로 실 한 올 한 올이 파이 밥이에요.', '파이가 요즘 밤마다 네 흉내를 내요. 눈을 감고 뭐라 중얼거리지요. …그 애가 웃는 게 고마워요.'],
+    gift: { like: ['thread', 'linen', 'honey', 'flower'], yes: '어머, 이거 정말 쓸모 있겠어요! 고마워요.', ok: '고마워요, 요셉.', odd: '이건… 호호, 마음만 받을게요.' }, amen: '…네 신이 정말 듣는다면, 파이 이야기도 한마디 해 줘요.' },
   scribe: { talk: ['숫자는 거짓말을 하지 않지. 사람이 할 뿐.', '자네 덕분에 눈이 덜 아프구먼.', '파피루스는 귀하네. 한 글자도 헛되이 쓰지 말게.'],
     ask: ['장부가 맞으면 나도 맞네.', '네브가 또 장부를 고치려 들더군. 숫자를 고치면 사람이 틀어지는 법인데.', '자네, 글을 배워 볼 생각 없나? 손이 곧아서 잘 쓸 걸세.', '자네 하나님은 셈도 하시나? 이 집 곳간이 자네 손에서 불어나는 걸 보면 그런 것 같네.'],
     gift: { like: ['linen', 'reed', 'bread'], yes: '오, 이건 쓸모가 있겠군. 고맙네.', ok: '고맙네.', odd: '흠… 장부에 적어 두지. 「알 수 없는 선물 하나」.' }, amen: '…아멘.' },
@@ -249,15 +249,15 @@ const JAIL = {
     gift: { like: ['bread', 'onion'], yes: '오! 이거 진짜 나 줘? 고마워!', ok: '고마워.', odd: '…이걸 옥에서 어디 써?' } },
   prisB: { who: '죄수 메루. 케티와 같은 마을 사람. 우물 다툼 끝에 함께 갇혔다.', call: '요셉', me: '메루', ties: { prisA: '원수 같던 같은 마을 사람' },
     talk: ['밖은 지금 나일 강이 불어났겠지…', '네 하나님은 이 옥에도 계시냐?', '벽에 줄을 그어 날을 세. 오늘이 이백열하루째야.'],
-    ask: ['그럭저럭 버티지.', '케티 녀석이랑 우물 하나 때문에 싸웠어. 지금 생각하면 우물 물보다 아까운 게 많았는데.', '우리 집 애들이 아빠 얼굴 잊었을까 봐 그게 제일 무서워.', '요셉, 네가 기도할 때 나도 몰래 따라 해. 말은 안 해도.'],
+    ask: ['그럭저럭 버티지.', '케티 녀석이랑 우물 하나 때문에 싸웠어. 지금 생각하면 우물 물보다 아까운 게 많았는데.', '우리 집 애들이 아빠 얼굴 잊었을까 봐 그게 제일 무서워.', '요셉, 네가 비는 소리를 나도 몰래 듣는다. 듣고 있으면 이상하게 잠이 와.'],
     gift: { like: ['bread', 'fig'], yes: '이걸 나한테? …고맙다, 요셉.', ok: '고마워.', odd: '허, 이걸 어디다 쓰라고.' } },
   oldP: { who: '옥에서 가장 오래 갇힌 늙은 죄수. 벽돌을 세며 날을 보낸다. 어린 죄수를 손자처럼 아낀다.', call: '젊은이', me: '할아버지', ties: { youngP: '손자처럼 아끼는 아이' },
     talk: ['…고맙다, 히브리 청년.', '이 벽 돌을 다 세어 봤지. 삼백일흔둘. 내일은 다시 세어야지.', '젊은이, 기다림도 일이라네.'],
-    ask: ['살아 있으니 됐지.', '내가 왜 여기 있는지 이제는 나도 잊었네. 허허.', '저 어린것이 밤에 울면 내가 옛날이야기를 해 주지. 다 지어낸 거라네.', '젊은이, 자네 하나님 이야기를 해 다오. 이 늙은이도 마지막엔 뭔가 믿고 싶네.'],
+    ask: ['살아 있으니 됐지.', '내가 왜 여기 있는지 이제는 나도 잊었네. 허허.', '저 어린것이 밤에 울면 내가 옛날이야기를 해 주지. 다 지어낸 거라네.', '젊은이, 자네 하나님 이야기를 해 다오. 애굽의 신들은 이 옥까지 내려와 본 적이 없거든.'],
     gift: { like: ['bread', 'porridge'], yes: '허허, 이 늙은이를 다 챙기는구먼.', ok: '고맙네.', odd: '허허, 이걸 다…' } },
   youngP: { who: '물건을 훔치다 갇힌 어린 죄수. 늙은 죄수를 할아버지처럼 따른다.', call: '형', me: '얘', ties: { oldP: '할아버지처럼 따르는 사람' },
     talk: ['형, 오늘도 기도해요?', '엄마 꿈을 꿨어요.', '형, 여기 쥐가 있어요! …근데 좀 귀엽다.'],
-    ask: ['배고파요… 아, 괜찮아요.', '동생들 먹이려고 빵을 훔쳤어요. 잘못한 거 알아요.', '할아버지가 밤마다 이야기 해 줘요. 다 지어낸 거래요. 그래도 좋아요.', '형, 나 나가면 다시는 안 훔칠 거예요. 형 하나님한테 약속했어요.'],
+    ask: ['배고파요… 아, 괜찮아요.', '동생들 먹이려고 빵을 훔쳤어요. 잘못한 거 알아요.', '할아버지가 밤마다 이야기 해 줘요. 다 지어낸 거래요. 그래도 좋아요.', '형, 나 나가면 다시는 안 훔칠 거예요. 형한테 약속할게요.'],
     gift: { like: ['bread', 'dates', 'fig'], yes: '와아! 진짜요? 형 최고!', ok: '고마워요, 형!', odd: '…이거 먹는 거예요?' } },
   cupbearer: { who: '바로의 술 맡은 관원장. 바로의 노여움을 사 옥에 갇혔다. 사람은 좋지만 잘 잊는다.', call: '자네', me: '관원장님', ties: { baker: '궁에서 함께 일하던 동료' },
     talk: ['포도주 맛은 혀끝이 아니라 코로 먼저 본다네.', '내가 풀려나면 자네를 꼭 기억하겠네! …정말일세.', '떡 굽는 친구는 요즘 통 말이 없군.'],
@@ -281,9 +281,9 @@ CAST.manasseh = { who: '요셉의 맏아들. 「하나님이 나로 내 모든 �
 CAST.ephraim = { who: '요셉의 둘째 아들. 「하나님이 나로 수고한 땅에서 번성하게 하셨다」(창 41:52).', call: '아빠', me: '에브라임', kin: { vizier: 1, brothers: 1, goshen: 1 }, ties: { asenath: '엄마', manasseh: '형', jacob: '할아버지' } };
 CAST.steward2 = { who: '총리 요셉의 집 청지기 메루카. 형들의 자루에 은과 은잔을 넣으라는 분부를 받들었다(창 44:1-2). 아들 하나를 둔 홀아비. 주인의 눈물을 본 유일한 사람.', call: '총리님', me: '청지기', kin: {}, ties: { asenath: '안주인', manasseh: '도련님', ephraim: '도련님' },
   talk: { vizier: ['총리님, 집안일은 염려 마십시오.', '은잔은 늘 깨끗이 닦아 두었습니다.', '도련님들이 오늘도 마당에서 수레 놀이를 하셨습니다.', '오늘 들어온 곡식 장부입니다. 한 톨도 틀림없습니다.'], brothers: ['분부대로 했습니다. …총리님 눈가가 붉으십니다.', '가나안 사람들이 또 문 앞에 와 있습니다. 어떻게 할까요?', '은잔은 제가 직접 넣었습니다. 아무도 보지 못했습니다.'], goshen: ['고센으로 보낼 수레를 손보아 두었습니다, 총리님.', '총리님 가족분들이 오신 뒤로 집이 환해졌습니다.'] },
-  ask: { vizier: ['저야 늘 똑같습니다, 총리님.', '아들놈이 저보다 키가 커졌습니다. 기쁘면서도 허전하더군요.', '저는 총리님 같은 주인을 섬기게 된 것을 날마다 신들께… 아니, 총리님의 하나님께 감사드립니다.', '총리님, 언젠가 가나안 이야기를 들려주십시오. 밤에 홀로 우시는 걸 압니다.'], brothers: ['저는 괜찮습니다. 총리님이 걱정입니다.', '그 가나안 사람들을 보실 때마다 총리님 손이 떨리십니다.', '분부는 따르겠습니다. 다만 그 막내를 보시던 눈빛은 잊지 못하겠습니다.', '총리님, 무슨 일이든 저는 총리님 편입니다.'], goshen: ['좋습니다, 총리님. 모두가 웃는 집은 처음입니다.', '총리님 아버님께서 제게 축복을 해 주셨습니다. 종인 저에게요.'] },
+  ask: { vizier: ['저야 늘 똑같습니다, 총리님.', '아들놈이 저보다 키가 커졌습니다. 기쁘면서도 허전하더군요.', '저는 애굽 사람이라 총리님의 신을 잘 모릅니다. 다만 총리님 같은 주인을 섬기게 된 것이 제 복이라는 것은 압니다.', '총리님, 언젠가 가나안 이야기를 들려주십시오. 밤에 홀로 우시는 걸 압니다.'], brothers: ['저는 괜찮습니다. 총리님이 걱정입니다.', '그 가나안 사람들을 보실 때마다 총리님 손이 떨리십니다.', '분부는 따르겠습니다. 다만 그 막내를 보시던 눈빛은 잊지 못하겠습니다.', '총리님, 무슨 일이든 저는 총리님 편입니다.'], goshen: ['좋습니다, 총리님. 모두가 웃는 집은 처음입니다.', '총리님 아버님께서 제게 축복을 해 주셨습니다. 종인 저에게요.'] },
   gift: { like: ['linen', 'bread', 'cheese'], yes: '총리님께서 제게 이런 것을… 황송합니다.', ok: '감사합니다, 총리님.', odd: '…잘 간수해 두겠습니다, 총리님.', again: '오늘은 이미 받았습니다, 총리님.' }, more: '또 분부하실 것이 있으십니까?',
-  fire: { vizier: { join: ['총리님, 불을 좀 돋워 드리겠습니다.'], listen: ['저는 온에서 태어났습니다. 아버지도 청지기였지요. 「주인의 눈물은 못 본 척하라」 그게 아버지의 가르침이었습니다.', '아내를 역병에 잃고 아들 하나만 남았습니다. 그 아이가 총리님 이야기를 좋아합니다.'], reply: ['고맙소. 그대 같은 사람이 곁에 있어 다행이오.', '(고개를 끄덕인다)'], react: { '*': ['…그런 하나님이시라면, 총리님이 왜 그렇게 견디셨는지 알겠습니다.'] }, amen: '…아멘. 총리님의 하나님께.' } } };
+  fire: { vizier: { join: ['총리님, 불을 좀 돋워 드리겠습니다.'], listen: ['저는 온에서 태어났습니다. 아버지도 청지기였지요. 「주인의 눈물은 못 본 척하라」 그게 아버지의 가르침이었습니다.', '아내를 역병에 잃고 아들 하나만 남았습니다. 그 아이가 총리님 이야기를 좋아합니다.'], reply: ['고맙소. 그대 같은 사람이 곁에 있어 다행이오.', '(고개를 끄덕인다)'], react: { '*': ['…그런 하나님이시라면, 총리님이 왜 그렇게 견디셨는지 알겠습니다.'] }, amen: '(고개를 숙이고 기도가 끝나기를 기다린다)' } } };
 CAST.steward2.fire.brothers = CAST.steward2.fire.vizier; CAST.steward2.fire.goshen = CAST.steward2.fire.vizier;
 CAST.asenath.gift = { like: ['flower', 'linen', 'honey', 'fig', 'milkHoney'], yes: '어머, 여보… 이걸 기억하고 있었어요?', ok: '고마워요, 여보.', odd: '호호, 이건 어디에 쓰라는 거예요?', again: '오늘은 벌써 받았어요. 당신 마음이면 충분해요.' }; CAST.asenath.more = '또 무슨 이야기 할까요, 여보?';
 CAST.manasseh.gift = { like: ['dates', 'honey', 'sweetCake', 'fig'], yes: '와아! 아빠 최고! 에브라임한테 반 줄게요!', ok: '고마워요, 아빠!', odd: '…아빠, 이걸로 뭐 해요?', again: '아빠, 오늘은 벌써 받았잖아요. 헤헤.' }; CAST.manasseh.more = '아빠, 또 뭐 얘기해요?';
@@ -361,10 +361,10 @@ C.next = said;
 
 // 평소 말: 사전에 그 시기 말이 있으면 그 사람 말만(남의 말·지어낸 취미 이야기 없이) 차례로
 const Pe = G.Persona;
-if (Pe && Pe.lines) { const lines0 = Pe.lines; Pe.lines = function (n) { try { const id = n.id || (n.d && n.d.id), c = CAST[id], e = C.era(), pool = c && c.talk && c.talk[e];
+if (Pe && Pe.lines) { const lines0 = Pe.lines; Pe.lines = function (n) { try { const id = n.id || (n.d && n.d.id), c = CAST[id], e = C.era(), pool = c && c.talk && (c.talk[e] || c.talk.any);
     if (pool && pool.length) { const t = said(id, 'talk:' + e, pool); return [{ n: n.name, t }]; } } catch (er) { console.error('cast', er); } return lines0.apply(this, arguments); }; }
 // 안부 묻기: 친한 만큼 깊어지는 그 사람의 진짜 사연
-if (Pe && Pe.story) { const story0 = Pe.story; Pe.story = function (n, lv) { try { const id = n.id || (n.d && n.d.id), c = CAST[id], e = C.era(), a = c && c.ask && c.ask[e];
+if (Pe && Pe.story) { const story0 = Pe.story; Pe.story = function (n, lv) { try { const id = n.id || (n.d && n.d.id), c = CAST[id], e = C.era(), a = c && c.ask && (c.ask[e] || c.ask.any);
     if (a && a.length) { const s = S(), m = s.flags.castAsk = s.flags.castAsk || {}, k = id + ':' + e, cap = C.kin(id) ? a.length - 1 : Math.min(a.length - 1, lv | 0), i = m[k] === undefined ? 0 : (m[k] + 1 > cap ? 0 : m[k] + 1); m[k] = i; return a[i]; /* v18.56 family open up as you keep asking; at the end it goes round again */ } } catch (er) { console.error('cast', er); } return story0.apply(this, arguments); }; }
 
 // 친밀도: 가족은 「처음 보는 사이」가 아니라 그 관계의 이름으로
@@ -377,7 +377,26 @@ if (B && B.level) { const level0 = B.level; B.level = function (id) { const l = 
     const ks = Object.keys(s.inv).filter(k => s.inv[k] > 0 && I[k] && ['food', 'good', 'crop', 'fish', 'mat'].includes(I[k].cat) && !I[k].tool).sort((a, x) => (g.like.includes(x) ? 1 : 0) - (g.like.includes(a) ? 1 : 0)).slice(0, 6);
     if (!ks.length) { G.UI.say([{ n: '요셉', t: '(줄 만한 것이 없다…)' }], done); return; }
     G.UI.say([{ n: '요셉', t: `${C.me(id)}에게 무엇을 줄까?`, choices: ks.map(k => ({ t: `${I[k].n} (${s.inv[k]})`, then: () => { Game.take(k, 1); b.gift = s.day; G.Deeds && G.Deeds.rec && G.Deeds.rec('share', n); const like = g.like.includes(k), odd = ['stone', 'branch', 'clay', 'straw', 'reed'].includes(k);
-      setTimeout(() => G.UI.say([{ n: n.name, t: like ? g.yes : odd ? g.odd : g.ok }], () => { B.add(id, like ? 6 : odd ? 1 : 2, '선물'); done && done(); }), 30); } })).concat([{ t: '그만두기', then: () => done && done() }]) }], null); }; }
+      setTimeout(() => G.UI.say([{ n: n.name, t: like ? g.yes : odd ? g.odd : g.ok }], () => { B.add(id, like ? 6 : odd ? 1 : 2, '선물'); done && done(); }), 30); } })).concat([{ t: '좀 더 생각해 보기', then: () => done && done() }]) }], null); }; }
+
+// =================================================================== v18.58 꿈의 세계 사람들 (요셉의 기억 · 지나가는 마을 사람 말을 하지 않아요)
+const ALLERA = { canaan: 1, slave: 1, prison: 1, vizier: 1, brothers: 1, goshen: 1 };
+CAST.dRachel = { who: '요셉의 어머니 라헬. 베냐민을 낳다 에브랏 길에서 숨을 거두었다. 꿈의 세계에 서 있는 이는 요셉이 간직한 어릴 적 기억이다(죽은 이가 새 말을 하지 않는다).',
+  call: '요셉아', me: '어머니', kin: ALLERA, memory: true, ladder: ['어머니', '어머니', '어머니'],
+  talk: { any: ['(기억 속의 어머니가 웃으신다) 요셉아, 이리 온. 머리에 풀잎이 붙었구나.', '우리 요셉, 간밤엔 무슨 꿈을 꾸었니? 어미에게 들려주렴.', '「하나님이 나의 부끄러움을 씻으셨다.」 너를 낳던 날 내가 한 말이란다. 그래서 네 이름이 요셉이야.', '물가에 서면 하란의 우물이 생각나는구나. 네 아버지를 처음 만난 곳이란다.', '자거라, 내 아들. 어미가 곁에 있단다.'] },
+  ask: { any: ['(어머니는 대답 대신, 어릴 적 그때처럼 요셉의 이마를 가만히 쓸어 주신다.)', '(「요셉아, 넘어져도 괜찮다. 어미가 여기 있잖니.」 걸음마를 떼던 날의 목소리가 떠오른다.)', '(어머니의 얼굴은 요셉이 기억하는 그 나이 그대로다. 요셉은 이제 어머니보다 나이가 많다.)', '(요셉은 마음속으로 말한다. 어머니, 베냐민은 잘 자랐어요. 아버지도 다시 만났어요. …하나님이 다 지키셨어요.)'] },
+  more: '(어머니가 따뜻한 눈으로 바라보신다)' };
+/* v18.58 애굽은 이방이에요: 애굽·갑돌·구스·그발·미디안 사람은 하나님을 믿는다고 고백하지 않아요(「네 하나님」이라 부르며 놀라워할 뿐). 야곱의 집과 하란의 친척은 달라요. */
+const HEB = /^(jacob|benjamin|benjamin2|leah|dinah|hServ|reuben|simeon|levi|judah|dan|naphtali|gad|asher|issachar|zebulun|manasseh|ephraim|dRachel|dAngel\d|hr\w+)$/;
+C.gentile = n => { if (!n) return false; const id = n.id || (n.d && n.d.id) || ''; if (HEB.test(id) || (EP.family && EP.family[id]) || /^sgd|^sgF/.test(id)) return false; const s = S(); if (s && s.flags && s.flags.land_haran) return false; if (G.Byblos && G.Byblos.inBy && G.Byblos.inBy()) return true; if (inDream()) return false; return n.x < 110; };
+C.memory = id => !!(CAST[id] && CAST[id].memory);
+const inDream = () => !!(G.DW && G.DW.on && G.DW.on());
+/* 평소 인사: 사전에 말이 있는 사람은 「총리 나리!」 같은 아무나 인사를 하지 않아요. 꿈의 세계에서 사전에 없는 이는 말없이 미소만 지어요. */
+if (G.Greet && G.Greet.lines) { const gl0 = G.Greet.lines; G.Greet.lines = function (n) { try { const id = n.id || (n.d && n.d.id), c = CAST[id], e = C.era(), pool = c && c.talk && (c.talk[e] || c.talk.any);
+    if (pool && pool.length) return [{ n: n.name, t: said(id, 'talk:' + e, pool) }];
+    if (inDream()) return [{ n: '', t: `(${n.name}이(가) 말없이 미소 짓는다. 꿈속의 사람은 요셉이 기억하는 만큼만 말한다.)` }]; } catch (er) { console.error('cast', er); } return gl0.apply(this, arguments); }; }
+if (Pe && Pe.story) { const story1 = Pe.story; Pe.story = function (n, lv) { const id = n.id || (n.d && n.d.id), c = CAST[id]; if (inDream() && !(c && c.ask)) return '(대답 대신 고요한 물소리만 들린다.)'; return story1.apply(this, arguments); }; }
+if (G.Bond && G.Bond.giftPick) { const gp0 = G.Bond.giftPick; G.Bond.giftPick = function (n, done) { if (C.memory(n.id) || (inDream() && !CAST[n.id])) { G.UI.say([{ n: '', t: C.memory(n.id) ? '(기억 속의 어머니께는 아무것도 건넬 수 없다. 요셉은 대신 두 손을 모아 하나님께 감사드렸다.)' : '(꿈속에서는 손에 든 것을 건넬 수 없다.)' }], done); return; } return gp0.apply(this, arguments); }; }
 
 // 헤브론 · 고센: 가족끼리 나누는 말(말풍선)
 let kT = 9;
@@ -391,6 +410,6 @@ function kinChatter(dt) { const s = S(); if (!s || Game.mode !== 'play' || (kT -
 /* v18.56 Kenti goes home: once he has come back to the reed village, he is no longer in the pyramid village */
 function placeTick() { const s = S(); if (!s || !s.flags) return;
   /* v18.57 a clue for the reed village story: Merti's nets need a hand (the story opens after helping once) */
-  { const m = Game.ENT.npcs.fv_merti, P = Game.P; if (m && m.vis && !s.flags.fvNetN && s.flags.fvHint !== s.day && Math.hypot(m.x - P.x, m.z - P.z) < 9 && !G.UI.busy() && !Game.cineOn && G.Life && G.Life.bubble) { s.flags.fvHint = s.day; G.Life.bubble('fv_merti', '아이고, 이 그물을 언제 다 깁나… 손 하나만 보태 주면 좋으련만.', 4.5); } } const k = Game.ENT.npcs.py_cut2; if (k) { const home = !!(s.flags.fvB2a && s.flags.fvB2b); if (home && k.forceVis !== false) k.forceVis = false; } }
+  { const m = Game.ENT.npcs.fv_merti, P = Game.P; if (m && m.vis && !s.flags.fvNetN && s.flags.fvHint !== s.day && Math.hypot(m.x - P.x, m.z - P.z) < 9 && !G.UI.busy() && !Game.cineOn && G.Life && G.Life.bubble) { s.flags.fvHint = s.day; G.Life.bubble('fv_merti', '아이고, 이 그물을 언제 다 깁나… 손 하나만 보태 주면 좋으련만.', 4.5); } } if (G.Cart && G.Cart.kaiHome) G.Cart.kaiHome(); const k = Game.ENT.npcs.py_cut2; if (k) { const home = !!(s.flags.fvB2a && s.flags.fvB2b); if (home && k.forceVis !== false) k.forceVis = false; } }
 const upd0 = EP.update; EP.update = function (dt, s) { if (upd0) upd0.apply(this, arguments); try { kinChatter(dt); placeTick(); } catch (er) { console.error('cast', er); } };
 })(window.G);

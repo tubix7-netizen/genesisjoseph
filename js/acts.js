@@ -114,8 +114,9 @@ function react(k) {
   for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.vis || !n.near || n.d.animal || n.talking || n.walk || n.pass || n.follow || n.schedHidden || n.sleep || n.d.kneel || n.d.hostile) continue;
     const d = Math.hypot(n.x - P.x, n.z - P.z); if (d > 11 || Math.random() > 0.8) continue;
     const kid = !!(n.d.look && n.d.look.kid) || !!(n.d.folk && n.d.folk.age === 'kid');
-    if (!n.sit && !n.d.sit) n.emote = { k: (kid && a.kidAct) || a.act, t: -(0.25 + Math.random() * 0.7), dur: a.dur + Math.random() };
-    if (said < 2 && G.Life && G.Life.bubble && Math.random() < 0.8) { said++; setTimeout(() => G.Life.bubble(n.id, rnd(kid ? a.kid : a.adult), 2.4), 300 + said * 500); } }
+    const gen = G.Cast && G.Cast.gentile && G.Cast.gentile(n), faith = k === 'pray' || k === 'raiseHands'; /* v18.58 Egypt is a foreign land: its people watch a Hebrew pray, they do not join in */
+    if (!n.sit && !n.d.sit) n.emote = { k: gen && faith ? 'think' : (kid && a.kidAct) || a.act, t: -(0.25 + Math.random() * 0.7), dur: a.dur + Math.random() };
+    if (said < 2 && G.Life && G.Life.bubble && Math.random() < 0.8) { said++; const pool = gen && faith ? (kid ? ['누구한테 말해요?', '…?'] : ['히브리 사람의 기도인가…', '누구에게 비는 거요? 아무 형상도 없는데.', '(낯선 듯 바라본다)']) : (kid ? a.kid : gen ? a.adult.filter(x => !/하나님|여호와/.test(x)) : a.adult); setTimeout(() => G.Life.bubble(n.id, rnd(pool), 2.4), 300 + said * 500); } }
 }
 
 // ------------------------------------------------------------------ the 동작 sheet

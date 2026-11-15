@@ -46,7 +46,7 @@ const prevDynS = EP.dyn; EP.dyn = function (list) { if (prevDynS) prevDynS.apply
   for (const c of ctx) { if (!c.sign || Math.hypot(c.x - P().x, c.z - P().z) > 70 || !c.on()) continue;
     if (!signMesh) { const g = new G.GB(41); g.cyl(0.06, 0.07, 1.7, 6, { at: [0, 0.85, 0], c: 0x7a5a3a }); g.box(0.9, 0.5, 0.06, { at: [0, 1.45, 0.05], c: 0xc8a068 }); g.box(0.96, 0.06, 0.09, { at: [0, 1.73, 0.05], c: 0x7a5a3a }); g.box(0.96, 0.06, 0.09, { at: [0, 1.17, 0.05], c: 0x7a5a3a });
       for (let i = 0; i < 3; i++) g.box(0.55 - i * 0.12, 0.035, 0.07, { at: [0, 1.56 - i * 0.11, 0.06], c: 0x5a3a24 }); g.sph(0.08, 6, 4, { at: [0.33, 1.6, 0.08], c: 0xe5b552 }); signMesh = G.R.mesh(g); }
-    const sx = c.x + (c.sx || 0.9), sz = c.z + (c.sz || 0), m = SIGN[c.id] || (SIGN[c.id] = G.m4()); G.m4trs(m, sx, w.heightAt(sx, sz), sz, Math.atan2(P().x - sx, P().z - sz) * 0 + (c.sry || 0), 0, 0, 1, 1, 1); list.push({ mesh: signMesh, m, outline: true }); } } catch (e) { } };
+    const sx = c.x + (c.sx || 0.9), sz = c.z + (c.sz || 0), m = SIGN[c.id] || (SIGN[c.id] = G.m4()); if ((Game.dlgW || 0) > 0.15 && Math.hypot(sx - P().x, sz - P().z) < 5.5) continue; /* v18.58 a signpost beside the two who are talking hid Joseph's face: it steps out of the shot while they talk */ G.m4trs(m, sx, w.heightAt(sx, sz), sz, Math.atan2(P().x - sx, P().z - sz) * 0 + (c.sry || 0), 0, 0, 1, 1, 1); list.push({ mesh: signMesh, m, outline: true }); } } catch (e) { } };
 
 // =================================================================== 1 양치기 놀이
 C.WILD.sheep = C.WILD.sheep || { n: '양', hp: 9999, speed: 12, flee: 0, beh: 'herd', loot: {}, xp: 0 }; // 'herd': no flee of its own; herdTick steers each sheep (wander toward a point, speed × 0.18)

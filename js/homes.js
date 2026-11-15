@@ -166,7 +166,7 @@ if (G.Combat) { const atk0 = G.Combat.attack; G.Combat.attack = function () { co
 
 // ------------------------------------------------------------------ actions
 Game.CTX.push(function (s) { const p = P(); if (p.ride || p.swim || p.act || p.climb || Game.cineOn || (G.Phys && G.Phys.held) || (s.q && s.q.riding)) return null;
-  const h = cur();
+  const h = cur(); if (!h && ((G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside()) || (G.DW && G.DW.on && G.DW.on()) || (G.Byblos && G.Byblos.inBy && G.Byblos.inBy()))) return null; /* v18.58 a cave (or a far land, or a dream) lies over the map: the doors of the village below are not here */
   if (!h) { // outside: the nearest house door
     const nd = nearDoor(); if (!nd) return null; const [v, i, d, bd] = nd, who = whoOf(v, i);
     if (v.open) return [{ d: bd - 0.6, label: `들어가기 · ${v.n}`, x: d.fx, z: d.fz, y: 1.3, use: () => Ho.enter(v, i), key: 'house', noMagnet: true }]; if (!v.mine && isNightH()) return [{ d: bd - 0.6, label: `문 두드리기 · ${who} (밤)`, x: d.fx, z: d.fz, y: 1.3, noMagnet: true, use: () => knockNight(who), key: 'hDoor' }];
