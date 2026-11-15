@@ -767,7 +767,7 @@ function resolveContext() {
   // nodes
   for (const n of ENT.nodes) { const d = Math.hypot(n.x - P.x, n.z - P.z) - NODE[n.type].r; if (d > 1.6) continue; const a = nodeAction(n); if (a) cands.push(Object.assign({ d: d + 0.1, x: n.x, z: n.z, yAbs: n.y + (NODE[n.type].tree ? 2.4 : 0.9), node: n, key: 'node:' + n.id, repeat: true }, a)); }
   if (G.Combat) for (const c of G.Combat.context()) cands.push(c);
-  for (const pv of Game.CTX) { const cs = pv(S, Game); if (cs) for (const c of cs) if (c) cands.push(c); }
+  for (const pv of Game.CTX) { if (EP.dlc && !pv.dlcOk) continue; /* v18.64 a story's own map: Joseph's fires, doors and beds are not offered there */ const cs = pv(S, Game); if (cs) for (const c of cs) if (c) cands.push(c); }
   if (EP.context) for (const c of EP.context(S, Game) || []) cands.push(c);
   if (S.q && S.q.riding) for (let i = cands.length - 1; i >= 0; i--) if (!cands[i].npc && !cands[i].rideOk) cands.splice(i, 1); /* v18.21 from the chariot you can talk, but not pick things up */
   // between two things at about the same distance, take the one in front of the hero (up to 0.5 m of preference)

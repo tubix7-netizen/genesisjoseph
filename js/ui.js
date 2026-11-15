@@ -270,6 +270,8 @@ $('dialog').addEventListener('click', UI.advance);
 
 // ------------------------------------------------------------------ narration
 let NR = null;
+/* v18.64 switching to another map (a story of the ancestors and back): whatever was being said there is dropped, its callbacks with it */
+UI.hush = function () { clearInterval(typeT); DL = null; NR = null; busyFlags.dialog = false; busyFlags.narr = false; $('dialog').hidden = true; $('narr').hidden = true; };
 UI.narr = function (cards, done) { NR = { cards, i: 0, done }; busyFlags.narr = true; $('narr').hidden = false; showCard(); };
 function showCard() { G.Audio && G.Audio.sfx('page', { vol: 0.7 }); const c = NR.cards[NR.i]; $('nKick').textContent = c.kick || ''; $('nTitle').textContent = c.title || ''; $('nTitle').hidden = !c.title; $('nText').textContent = UI.txt(c.t || ''); $('nRef').textContent = c.ref || ''; NR.lock = performance.now() + (c.anim ? 2600 : 380); if (c.anim) c.anim($('nTitle'), $('nText'), $('nRef')); if (c.fn) c.fn(); }
 function nextCard() { if (!NR || performance.now() < NR.lock) return; NR.i++; if (NR.i >= NR.cards.length) { const d = NR.done; NR = null; busyFlags.narr = false; $('narr').hidden = true; d && d(); } else showCard(); }
