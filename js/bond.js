@@ -54,14 +54,28 @@ const STORY = [
 B.talk = function (n, lines, done) { const id = n.id || Object.keys(Game.ENT.npcs).find(k => Game.ENT.npcs[k] === n); n.id = id; const S = Game.S(), b = B.get(id), F = fam(id), first = b.day !== S.day;
   if (first) { b.day = S.day; setTimeout(() => B.add(id, F ? 3 : 2, '오늘 이야기'), 50); }
   const ls = (lines && lines.length ? lines : G.Greet ? G.Greet.lines(n) : [{ n: n.name, t: '평안하시오.' }]).map(l => typeof l === 'string' ? { n: n.name, t: l } : l);
-  const ch = [{ t: '안부 묻기', then: () => setTimeout(() => G.UI.say([{ n: n.name, t: F ? famAsk(id, F.talk(S, B.level(id).i)) : (G.Persona && G.Persona.story(n, B.level(id).i)) || rnd(STORY[B.level(id).i]) }], () => B.talk(n, [{ n: n.name, keep: 1, t: (G.Cast && G.Cast.of(id) && G.Cast.of(id).more) || '또 무슨 이야기를 할까요?' }], done) /* v18.56 in their own voice */), 30) },
-    { t: '선물 주기', then: () => setTimeout(() => B.giftPick(n, done), 30) }];
-  if (F && F.meal && b.meal !== S.day) ch.push({ t: '함께 식사하기', then: () => setTimeout(() => B.meal(n, done), 30) });
-  if (F && F.walk && (n.follow || !(Game.questBusy && Game.questBusy()))) ch.push({ t: n.follow ? '여기서 기다려 줘요' : '같이 걸어요', then: () => { n.follow = !n.follow; G.UI.toast(n.follow ? `${n.name}이(가) 함께 걸어요` : `${n.name}이(가) 여기서 기다려요`); done && done(); } });
-  if (F && F.play && b.play !== S.day) ch.push({ t: '놀아 주기', then: () => setTimeout(() => B.play(n, done), 30) });
-  ch.push({ t: '작별 인사', then: () => done && done() });
+  if (ls[0] && ls[0].keep) { B.chat(n, done, true); return; } /* (an older 「또 무슨 이야기를…」 call: straight back into the talk) */
+  /* v18.60 at most three ways to go: a family member who walks with you can be asked to wait; 「이야기 나누기」; 작별 */
+  const ch = []; if (F && F.walk && n.follow) ch.push({ t: '여기서 기다려 줘요', then: () => { n.follow = false; G.UI.toast(`${n.name}이(가) 여기서 기다려요`); done && done(); } });
+  ch.push({ t: '이야기 나누기', then: () => B.chat(n, done) }, { t: '작별 인사', then: () => done && done() });
   const last = ls[ls.length - 1]; ls[ls.length - 1] = Object.assign({}, last, { choices: ch });
-  G.UI.say(ls, done); };
+  G.UI.say(ls, null); };
+/* v18.60 the talk itself: how they are first, then the next thing opens up (a gift, a meal, a walk, a game) — two at a time */
+const GIFTCAT = ['food', 'good', 'crop', 'fish', 'mat'];
+const hasGift = () => { const S = Game.S(), I = Game.ITEMS; return Object.keys(S.inv).some(k => S.inv[k] > 0 && I[k] && GIFTCAT.includes(I[k].cat) && !I[k].tool); };
+B.chat = function (n, done, again) { const id = n.id, S = Game.S(), b = B.get(id), F = fam(id), kidN = !!(n.d && ((n.d.look && n.d.look.kid) || (n.d.folk && n.d.folk.age === 'kid'))) || /므낫세|에브라임|아이/.test(n.name);
+  const story = () => F ? famAsk(id, F.talk(S, B.level(id).i)) : (G.Persona && G.Persona.story(n, B.level(id).i)) || rnd(STORY[B.level(id).i]);
+  const said = { k: 0 };
+  const topics = [
+    { k: 'more', t: kidN ? '또 이야기해 줘' : '조금 더 이야기해 주세요', when: () => said.k === 1 && B.level(id).i >= 1, run: next => { said.k++; G.UI.say([{ n: n.name, t: story() }], next); } },
+    { k: 'meal', t: '같이 식사해요', when: () => !!(F && F.meal && b.meal !== S.day), run: () => B.meal(n, done) },
+    { k: 'play', t: '놀아 줄까?', when: () => !!(F && F.play && b.play !== S.day), run: () => B.play(n, done) },
+    { k: 'gift', t: kidN ? '이거 줄까?' : '드리고 싶은 게 있어요', when: () => b.gift !== S.day && hasGift(), run: next => B.giftPick(n, next) },
+    { k: 'walk', t: '같이 걸어요', when: () => !!(F && F.walk && !n.follow && !(Game.questBusy && Game.questBusy())), run: () => { n.follow = true; G.UI.toast(`${n.name}이(가) 함께 걸어요`); done && done(); } }];
+  const flow = () => G.Talk ? G.Talk.flow({ topics, exit: { t: kidN ? '다음에 또 이야기하자' : '그만 이야기하기', then: () => done && done() }, prompt: left => (left ? (G.Talk.more(n, id) || null) : null) })
+    : G.UI.say([{ n: n.name, t: '또 이야기해요.' }], done);
+  if (again) { flow(); return; }
+  said.k = 1; G.UI.say([{ n: n.name, t: story() }], flow); };
 B.giftPick = function (n, done) { const S = Game.S(), id = n.id, b = B.get(id), I = Game.ITEMS;
   if (b.gift === S.day) { G.UI.say([{ n: n.name, t: '오늘은 벌써 받았어요. 마음만으로도 고마워요.' }], done); return; }
   const ks = Object.keys(S.inv).filter(k => S.inv[k] > 0 && I[k] && ['food', 'good', 'crop', 'fish', 'mat'].includes(I[k].cat) && !Game.ITEMS[k].tool).sort((a, c) => (likes(n).includes(c) ? 1 : 0) - (likes(n).includes(a) ? 1 : 0)).slice(0, 6);
