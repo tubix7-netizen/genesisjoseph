@@ -1,13 +1,14 @@
 /* 약속의 길 — v18.63 두 DLC 무대 더 꾸미기 (dlcdeco.js · dlc_abraham.js 다음)
-   두 무대(야곱 편 dlcj · 아브라함 편 dlca)의 짓기(spec.build)를 감싸 숲 띠 · 과수원 · 돌담 · 살림살이 · 바위를 더하고,
-   EP.dyn으로 굴뚝 연기와 하늘을 도는 새 떼를 그려요. 이야기 자리(우물 · 우리 · 길 · 진영 · 산길 …)는 비워 둬요. */
+   두 이야기의 땅(야곱 편 dlcj · 아브라함 편 dlca)에 숲 띠 · 과수원 · 포도원 · 돌담 · 살림살이 · 바위를 더하고(spec.deco),
+   굴뚝 연기와 하늘을 도는 새 떼를 그려요(G.DLCEP.deco). 이야기 자리(우물 · 우리 · 길 · 진영 · 산길 …)는 비워 둬요.
+   v18.64 이야기마다 따로 된 지도가 되어 G.DLCEP 틀에 붙어요. 포도원은 막대 위의 공이 아니라 땅에 낮게 기는 포도나무 줄이에요(창 49:11). */
 'use strict';
 (function (G) {
-const Game = G.Game, EP = G.EP && G.EP.joseph, Ls = G.Lands; if (!Game || !EP || !Ls) return;
-const land = k => (Ls.list || []).find(l => l.key === k);
+const Game = G.Game, XL = G.DLCEP; if (!Game || !XL) return;
+const land = k => (XL.list || []).find(l => l.key === k);
 const away = (keep, x, z) => keep.every(([kx, kz, r]) => Math.hypot(kx - x, kz - z) > r);
 const inRect = (rs, x, z) => rs.some(([x0, x1, z0, z1]) => x > x0 && x < x1 && z > z0 && z < z1);
-function wrap(key, deco) { const L = land(key); if (!L || !L.spec || !L.spec.build) return; const b0 = L.spec.build; L.spec.build = function (B) { const out = b0.apply(this, arguments); try { deco(B); } catch (e) { console.error('dlcdeco ' + key, e); } return out; }; }
+function wrap(key, deco) { const L = land(key); if (!L || !L.spec) return; (L.spec.deco = L.spec.deco || []).push(deco); }
 const tree = (B, k, x, z, y, s) => { B.put(k, x, z, { y, s: s || (0.85 + B.rng() * 0.35), ry: B.rng() * 6.28 }); B.colR(x, z, 0.5, (y || B.BY) + 4); };
 function wall(B, x0, z0, x1, z1, y) { const L = Math.hypot(x1 - x0, z1 - z0), a = Math.atan2(x1 - x0, z1 - z0), n = Math.ceil(L / 1.1); for (let i = 0; i < n; i++) { const k = (i + 0.5) / n; B.sph(0.42 + B.rng() * 0.14, x0 + (x1 - x0) * k, (y || B.BY) + 0.28, z0 + (z1 - z0) * k, [0x9a9284, 0x8a8276, 0xa8a090][i % 3], { s: [1.3, 0.75, 1], flat: true, j: 0.1 }); }
   B.col((x0 + x1) / 2, (z0 + z1) / 2, Math.abs(x1 - x0) + 0.7, Math.abs(z1 - z0) + 0.7, (y || B.BY) - 1, (y || B.BY) + 0.8); void a; }
@@ -45,10 +46,17 @@ const onPath = (x, z) => { const ax = 48, az = 44, bx = 72, bz = 42, dx = bx - a
 wrap('dlca', B => { const { BY, rng } = B, ok = (x, z) => away(AKEEP, x, z) && !inRect(ARECT, x, z) && !onPath(x, z), Y = (x, z) => BY + hy(x, z);
   const X = (fn, x, z, o) => { if (B.E[fn] || (G.env && G.env[fn])) B.put(fn, x, z, Object.assign({ y: Y(x, z), ry: rng() * 6.28 }, o || {})); };
   /* 세겜: vineyard rows on the terraces, an olive grove, terebinths along the hills */
-  for (let x = -86; x <= -74; x += 2.4) for (let z = 18; z <= 34; z += 1.6) if (ok(x, z)) { B.cyl(0.04, 0.05, 1.1, 5, x, BY + 0.55, z, 0x6a4a30); B.sph(0.42, x, BY + 1.05, z, [0x4f7a32, 0x5f8a3a][(x + z) & 1 ? 1 : 0], { s: [1, 0.7, 1], j: 0.1 }); }
+  /* (v18.64) the vines lie low along the rows, propped on a stone here and there, with dark clusters under the leaves: no stakes with balls on top */
+  const OLV = [[-90, 26], [-84, 40], [-76, 42], [-70, 38], [-92, 44]];
+  for (let x = -90.6; x <= -79; x += 2.3) { for (let z = 28.4; z <= 38.2; z += 1.05) { if (!ok(x, z) || OLV.some(([ox, oz]) => Math.hypot(ox - x, oz - z) < 2.4)) continue; const jx = (rng() - 0.5) * 0.25, w = 0.55 + rng() * 0.2;
+      B.sph(w, x + jx, BY + 0.26, z, [0x4a7430, 0x56803a, 0x5e883e][Math.floor(rng() * 3)], { s: [1.05, 0.5, 1.5], flat: true, j: 0.14 });
+      if (rng() < 0.45) B.sph(0.07 + rng() * 0.03, x + jx + (rng() < 0.5 ? -0.42 : 0.42), BY + 0.2, z + (rng() - 0.5) * 0.6, 0x3a2448, { s: [1, 1.4, 1], j: 0.1 });
+      if (rng() < 0.2) B.sph(0.16, x + jx + 0.2, BY + 0.08, z, 0x9a9284, { s: [1.3, 0.6, 1], flat: true, j: 0.1 }); }
+    B.cyl(0.05, 0.07, 0.9, 5, x + 0.1, BY + 0.45, 27.8, 0x6a4a30); }
+  X('booth', -77.4, 36.8, { ry: 0.2 }); /* the watchman's booth over the vineyard (사 1:8) */
   for (let x = -90; x <= -72; x += 4.5) for (let z = -52; z <= -40; z += 4.5) if (ok(x, z)) tree(B, 'olive', x + rng(), z + rng(), BY, 0.85);
   for (let x = -92; x <= -46; x += 6) { const z = -55 + rng() * 2; if (ok(x, z)) tree(B, rng() < 0.6 ? 'oak' : 'acacia', x, z, BY); }
-  wall(B, -88, 15.5, -72, 15.5); X('altar', -80, -46, { s: 0.7 }); /* a Canaanite high place on the edge of the olive grove (12:6 「그때에 가나안 사람이 그 땅에 거하였더라」) */
+  wall(B, -92, 27, -78.5, 27); X('altar', -80, -46, { s: 0.7 }); /* a Canaanite high place on the edge of the olive grove (12:6 「그때에 가나안 사람이 그 땅에 거하였더라」) */
   /* 마므레: a thicker oak grove behind the camp, tent life, a stone fold, camels */
   for (let i = 0; i < 26; i++) { const x = -38 + rng() * 70, z = -54 + rng() * 22; if (ok(x, z)) tree(B, rng() < 0.75 ? 'oak' : 'tamarisk', x, z, BY, 0.9 + rng() * 0.4); }
   for (const [fn, x, z, o] of [['quern', 3, 13], ['jars', -3.5, 12.5], ['baskets', 15, 12], ['woodStack', -11, 17], ['sacks', 17, 11], ['loomX', 9, 22, { ry: 1.2 }], ['pots', 1, 22], ['camelSit', 30, 12, { ry: -1 }], ['camelSit', 33, 15, { ry: -0.6 }], ['trough', 27, 4], ['bales', -20, 24]]) if (ok(x, z) || /quern|jars|baskets|pots|sacks|loomX/.test(fn)) X(fn, x, z, o);
@@ -64,11 +72,11 @@ wrap('dlca', B => { const { BY, rng } = B, ok = (x, z) => away(AKEEP, x, z) && !
 const SMOKE = { dlcj: [[-17, 17.5], [36, -34], [-50, -30], [-56, -20]], dlca: [[6, 17], [-74, -8]] };
 const BIRDS = { dlcj: [[0, 0, 20], [-40, 30, 14]], dlca: [[-10, 10, 22], [72, 42, 16]] };
 let bird = null; const BM = [], sT = { dlcj: 0, dlca: 0 };
-{ const dyn0 = EP.dyn; EP.dyn = function (list) { if (dyn0) dyn0.apply(this, arguments); try { for (const k of ['dlcj', 'dlca']) { const L = land(k); if (!L || !L.on()) continue; const st = L.stage(), t = performance.now() / 1000, s = Game.S(), h = s ? s.time % 24 : 12, night = h < 5.5 || h > 19.5;
-      /* smoke: a thin grey wisp above each hearth */
-      if (G.FX && t - sT[k] > 0.35) { sT[k] = t; for (const [x, z] of SMOKE[k]) G.FX.burst(st.x + x, st.y + (k === 'dlca' ? hy(x, z) : 0) + 1.4, st.z + z, 1, { c: [0.78, 0.76, 0.74], sp: 0.15, up: 0.9, size: 0.45, a: 0.35, g: -0.25, life: 4, drag: 0.2 }); }
-      /* birds: two loose flocks wheeling high over the fields by day */
-      if (night) continue; if (!bird) { const g = new G.GB(733); g.box(0.5, 0.03, 0.12, { at: [0.22, 0, 0], rz: 0.35, c: 0x2a2420 }); g.box(0.5, 0.03, 0.12, { at: [-0.22, 0, 0], rz: -0.35, c: 0x2a2420 }); g.box(0.1, 0.06, 0.28, { at: [0, 0, 0], c: 0x2a2420 }); bird = G.R.mesh(g); }
-      let i = 0; for (const [cx, cz, r] of BIRDS[k]) for (let b = 0; b < 6; b++, i++) { const a = t * (0.18 + b * 0.01) + b * 0.55 + cx, rr = r + Math.sin(t * 0.3 + b) * 3, x = st.x + cx + Math.cos(a) * rr, z = st.z + cz + Math.sin(a) * rr, y = st.y + 16 + Math.sin(t * 0.7 + b * 1.3) * 2 + b * 0.4;
-        const m = BM[i] || (BM[i] = G.m4()), flap = 0.7 + 0.3 * Math.abs(Math.sin(t * 6 + b)); G.m4trs(m, x, y, z, -a, 0, Math.sin(t * 6 + b) * 0.25, 1, flap, 1); list.push({ mesh: bird, m }); } } } catch (e) { } }; }
+XL.deco = function (k, list, t) { if (!SMOKE[k]) return; const s = Game.S(), h = s ? s.time % 24 : 12, night = h < 5.5 || h > 19.5;
+  /* smoke: a thin grey wisp above each hearth */
+  if (G.FX && t - sT[k] > 0.35) { sT[k] = t; for (const [x, z] of SMOKE[k]) G.FX.burst(x, (k === 'dlca' ? hy(x, z) : 0) + 1.4, z, 1, { c: [0.78, 0.76, 0.74], sp: 0.15, up: 0.9, size: 0.45, a: 0.35, g: -0.25, life: 4, drag: 0.2 }); }
+  /* birds: two loose flocks wheeling high over the fields by day */
+  if (night) return; if (!bird) { const g = new G.GB(733); g.box(0.5, 0.03, 0.12, { at: [0.22, 0, 0], rz: 0.35, c: 0x2a2420 }); g.box(0.5, 0.03, 0.12, { at: [-0.22, 0, 0], rz: -0.35, c: 0x2a2420 }); g.box(0.1, 0.06, 0.28, { at: [0, 0, 0], c: 0x2a2420 }); bird = G.R.mesh(g); }
+  let i = 0; for (const [cx, cz, r] of BIRDS[k]) for (let b = 0; b < 6; b++, i++) { const a = t * (0.18 + b * 0.01) + b * 0.55 + cx, rr = r + Math.sin(t * 0.3 + b) * 3, x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr, y = 16 + Math.sin(t * 0.7 + b * 1.3) * 2 + b * 0.4;
+    const m = BM[i] || (BM[i] = G.m4()), flap = 0.7 + 0.3 * Math.abs(Math.sin(t * 6 + b)); G.m4trs(m, x, y, z, -a, 0, Math.sin(t * 6 + b) * 0.25, 1, flap, 1); list.push({ mesh: bird, m }); } };
 })(window.G);

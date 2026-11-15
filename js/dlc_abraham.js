@@ -1,6 +1,6 @@
-/* 약속의 길 — v18.60 창세기 아브라함 편 · 약속의 별 (dlc_abraham.js)   창 12–22장
+/* 약속의 길 — v18.60 (v18.64 따로 된 지도) 창세기 아브라함 편 · 약속의 별 (dlc_abraham.js)   창 12–22장
    세겜의 옛 제단 앞에서 증조할아버지 아브라함의 이야기 속으로 들어가요. 야곱 편이 목장 경영이라면, 이 편은 걷고 숨고 겨루고 올려다보는 체험이에요.
-   무대(무대 기준 좌표, 높이 64)는 네 구역이에요. 장이 바뀌면 페이드로 그 구역에 옮겨 가요.
+   땅(v18.64 따로 된 지도 · dlcep.js · 걷는 곳 x −94…94 · z −56…64, 그 밖은 들판 · 언덕 · 그리심과 에발)은 네 구역이에요. 장이 바뀌면 페이드로 그 구역에 옮겨 가요.
      · 세겜(서쪽, x −94…−44): 모레 상수리나무, 가나안 사람의 집과 계단밭, 그리심·에발 두 산
      · 마므레(가운데, x −40…44): 상수리 수풀, 검은 염소털 장막촌, 우물, 우리, 낙타 · 동쪽에 별을 보는 둔덕
      · 단의 밤 진영(동남, x 44…94, z −54…−6): 동방 왕들의 장막, 모닥불, 전리품, 묶인 포로, 파수꾼 넷
@@ -9,11 +9,11 @@
             ③ 별(15–17장) ④ 세 나그네(18장) ⑤ 소돔을 위한 간구(18장) ⑥ 웃음, 이삭(21장 · 에셀나무 심기) ⑦ 모리아 산(22장)
    · ②는 숨어들기예요: 파수꾼의 눈길(앞쪽 5m)에 들면 겨루기가 벌어져요. 지면 진영 밖으로 밀려나요. 낮게 걷기(앉기 단추)면 눈에 덜 띄어요.
    · ⑦에서 이삭을 묶는 대목은 글로만 전하고, 손에 쥐는 것은 「수풀에 걸린 숫양」을 찾는 일이에요.
-   · 짐승(양·염소·소·나귀·낙타) 사람 칸은 본편 코드가 무대 바닥을 보지 않아서, 여기서 seatY로 무대 높이에 올려 세워요.
+   · 길 · 장막촌 · 밭 · 모리아 산길은 땅에 칠해요(ground). 지도의 장소 이름은 PLACES(진영 · 모리아는 그 장이 되어야 보여요).
    저장: G.DLC.st('abraham') = { ch, ph, stones, altar1, rally, down, lot, got, renamed, planted, asked, altar2, seen, ramAt, done } */
 'use strict';
 (function (G) {
-const Game = G.Game, EP = G.EP && G.EP.joseph, Ls = G.Lands, D = G.DLC; if (!Game || !EP || !Ls || !D) return;
+const Game = G.Game, EP = G.EP && G.EP.joseph, XL = G.DLCEP, D = G.DLC; if (!Game || !EP || !XL || !D) return;
 const S = () => Game.S(), P = () => Game.P, sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const pop = (a, b, c) => (D.pop || G.UI.pop || G.UI.toast)(a, b, c), toast = t => (D.toast || G.UI.toast)(t);
 const st = () => D.st('abraham'), say = (l, cb) => G.UI.say(l, cb), narr = (c, cb) => G.UI.narr(c, cb), Ln = D.Ln, T = D.T, card = D.card;
@@ -49,7 +49,7 @@ const LK = {
     { skin: 0xc8946a, top: 0xb8a070, belt: 0x5a3a24, hair: 0x3a2a20, beard: 'long', beardCol: 0x8a8278, headwear: 'cloth', clothCol: 0xd8ccb0, clothStripe: 0x6a5a40, age: 'old' },
     { skin: 0xc08a5a, fem: true, long: true, top: 0xa86a3a, under: 0xa86a3a, headwear: 'veil', clothCol: 0xe0d4bc, clothStripe: 0xa86a3a, hair: 0x1a1410 }] };
 
-// ------------------------------------------------------------------ the stage (local coordinates; the floor is 64 + hills)
+// ------------------------------------------------------------------ the stage (the middle of the story's own map; the ground is the hills below)
 const XMIN = -94, XMAX = 94, ZMIN = -56, ZMAX = 64;
 const prof = (PR, d) => { if (d >= PR[0][0]) return 0; for (let i = 0; i < PR.length - 1; i++) { const [r0, h0] = PR[i], [r1, h1] = PR[i + 1]; if (d <= r0 && d >= r1) return h0 + (h1 - h0) * ((r0 - d) / ((r0 - r1) || 1)); } return PR[PR.length - 1][1]; };
 const HILL = [72, 42], HPROF = [[20, 0], [16, 1.6], [12, 3.4], [8, 5], [4, 5.9], [0, 6]];
@@ -260,7 +260,43 @@ let M1 = null, M2 = null, MT = null; const MA = G.m4(), MB = G.m4(), MC = G.m4()
 const altarMesh = seed => { const g = new G.GB(seed); for (let ly = 0; ly < 3; ly++) { const n = 6 - ly, rad = 0.9 - ly * 0.18; for (let i = 0; i < n; i++) { const a = i / n * 6.283 + ly * 0.5; g.sph(0.3, 6, 4, { at: [Math.cos(a) * rad, 0.2 + ly * 0.3, Math.sin(a) * rad], s: [1.15, 0.72, 1], c: [0x9a9284, 0x8a8276, 0xa8a090][i % 3], flat: true, j: 0.08 }); } } g.box(1.1, 0.12, 1.1, { at: [0, 1.02, 0], c: 0x8a8276, j: 0.05 }); for (let i = 0; i < 4; i++) g.box(0.9, 0.09, 0.12, { at: [0, 1.14 + (i % 2) * 0.08, -0.3 + i * 0.2], ry: i % 2 ? 0.2 : -0.15, c: 0x5a4028 }); return G.R.mesh(g); };
 const tamMesh = () => { const g = new G.GB(733); let sd = 11; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; if (G.env && G.env.tamarisk) G.env.tamarisk(g, G.m4(), r); else g.sph(1.2, 7, 5, { at: [0, 2, 0], c: 0x7a9478 }); return G.R.mesh(g); };
 function fires(dt) { if (!G.Fire || !G.Fire.emit) return; const p = P(), o = W0(); let k = 0; for (const f of FIRES) { const x = o.x + f[0], z = o.z + f[1]; if (k >= 3 || Math.hypot(x - p.x, z - p.z) > 30) continue; k++; G.Fire.emit(x, o.y + 0.15, z, 0.8, 0.3, dt); } }
-LAND = Ls.make({ key: 'dlca', name: '가나안 (증조할아버지의 이야기)', BX: 40, BZ: 150, BY: 64, hours: 0, seed: 331, spawn: [SPAWN0[0], SPAWN0[1], Math.PI / 2], hello: ['', ''],
+// ------------------------------------------------------------------ 땅 색 (v18.64 길 · 장막촌 · 밭 · 산비탈은 땅에 칠해요 · 판을 깔지 않아요)
+const HX = XL.hex, mixC = XL.mix, smc = XL.sm;
+const ROADS = [[[-210, -2], [-130, -3], [-94, -4], [-80, -6], [-66, -12], [-50, -10], [-36, 2], [-18, 4], [-4, 14]], [[-4, 14], [6, 9], [24, 4]], [[24, 4], [40, -10], [46, -20]], [[-4, 14], [16, 30], [34, 38]], [[34, 38], [44, 44], [52, 44]], [[46, -20], [60, -52], [110, -110], [200, -190]], [[-70, -42], [-74, -30], [-66, -12]]];
+const PATH = [FOOT, [56, 44.8], [63, 43.2], [TOP[0] - 2.5, TOP[1]]];
+const roadD = (x, z) => { let d = 1e9; for (const r of ROADS) d = Math.min(d, XL.segD(r, x, z)); return d; };
+const FIELDS = [[-80, 18, 14, 9, 1], [-62, 22, 12, 8, 0]]; /* (x, z, w, d, ripe) Shechem's wheat and barley */
+const GC = { wheat: HX(0xd4ba66), barley: HX(0x8eaa4c), road: HX(0xc4ae86), road2: HX(0xb29c76), earth: HX(0xa08a62), dust: HX(0xac9a70), soil: HX(0x86704e), lush: HX(0x76a048), west: HX(0x86a452), mid: HX(0xa0a468), east: HX(0xaa9e72), stone: HX(0xa49a82), knoll: HX(0xb4aa70) };
+const inR = (x, z, x0, x1, z0, z1, e) => Math.min(smc(x0 - e, x0 + e, x), 1 - smc(x1 - e, x1 + e, x), smc(z0 - e, z0 + e, z), 1 - smc(z1 - e, z1 + e, z));
+const near = (x, z, q, r0, r1) => 1 - smc(r0, r1, Math.hypot(x - q[0], z - q[1]));
+function ground(x, z, c, gr) { let o = c, g = gr; const lay = (col, k, ga) => { if (!(k > 0)) return; o = mixC(o, col, k); g += (ga - g) * k; };
+  /* the three lands: Shechem's green valley (west), Mamre's oak plain (middle), the drier south-east */
+  lay(GC.west, (1 - smc(-52, -30, x)) * 0.45, 0.9); lay(GC.mid, smc(-40, -20, x) * (1 - smc(36, 52, x)) * 0.3, 0.8); lay(GC.east, smc(40, 58, x) * (1 - smc(10, 24, z)) * 0.6, 0.45);
+  /* Moriah: stony slopes, scrub; the knoll: dry golden grass */
+  { const h = hillH(x, z); if (Math.hypot(x - HILL[0], z - HILL[1]) < 22) lay(GC.stone, smc(0.2, 3.5, h) * 0.8, 0.25); if (Math.hypot(x - KNOLL[0], z - KNOLL[1]) < 10) lay(GC.knoll, smc(0.05, 0.9, h) * 0.6, 0.7); }
+  /* Shechem: the town's packed earth, the fields under the crops, the vineyard soil, the threshing floor */
+  lay(GC.earth, inR(x, z, -93, -58, -53, -33, 2.5) * 0.8, 0.12);
+  for (const [fx, fz, w, d, ripe] of FIELDS) { const k = inR(x, z, fx - w / 2, fx + w / 2, fz - d / 2, fz + d / 2, 0.8); if (k > 0) { const f = 0.86 + 0.14 * Math.cos((z - fz) * 3.6), cc = ripe ? GC.wheat : GC.barley; lay([cc[0] * f, cc[1] * f, cc[2] * f], k * 0.92, 1); } }
+  lay(GC.soil, inR(x, z, -92, -78, 27.6, 38.8, 0.8) * 0.8, 0.2); /* the vineyard's worked soil */ lay(GC.dust, near(x, z, [-66, -40], 1.7, 2.6), 0);
+  lay(GC.lush, near(x, z, OAK, 3, 8) * 0.7, 1); lay(GC.earth, near(x, z, ALT1, 1.6, 3.2) * 0.8, 0.1);
+  /* Mamre: trampled ground among the tents, round the hearth, the well, the fold; the herd's meadow */
+  lay(GC.dust, near(x, z, [4, 14], 8, 17) * 0.4, 0.4); lay(GC.earth, near(x, z, HEARTH, 2, 4.5) * 0.85, 0); lay(GC.earth, near(x, z, WELLM, 2.5, 5.5) * 0.8, 0.1);
+  lay(GC.earth, inR(x, z, FOLD[0] - 6, FOLD[0] + 6, FOLD[1] - 5, FOLD[1] + 5, 0.8) * 0.8, 0.15); lay(GC.lush, inR(x, z, HERD[0] - 9, HERD[0] + 9, HERD[1] - 7, HERD[1] + 7, 3) * 0.7, 1);
+  lay(GC.lush, near(x, z, MOAK, 3, 9) * 0.5, 1); lay(GC.earth, near(x, z, TAMA, 1.2, 2.4) * 0.8, 0);
+  /* the kings' camp: dust and ash */
+  lay(GC.dust, inR(x, z, 52, 96, -50, -8, 4) * 0.7, 0.15); for (const f of DFIRES) lay(GC.soil, near(x, z, f, 1.2, 3), 0);
+  /* roads and the way up Moriah */
+  const rd = roadD(x, z); if (rd < 3) lay(rd < 0.4 ? GC.road2 : GC.road, (1 - smc(0.9, 2.2, rd)) * 0.9, 0);
+  const pd = XL.segD(PATH, x, z); if (pd < 2.4) lay(GC.road2, (1 - smc(0.6, 1.8, pd)) * 0.85, 0);
+  return [o[0], o[1], o[2], g]; }
+/* Gerizim and Ebal on either side of Shechem, the hills of Moriah beyond the east */
+const MOUNTS = [[-66, -104, 52, 30], [-72, 112, 52, 32], [150, 60, 60, 24], [130, -80, 55, 14]];
+const mounts = (x, z) => { let h = 0; for (const [mx, mz, r, mh] of MOUNTS) { const d = Math.hypot(x - mx, z - mz); if (d < r) h += mh * (0.5 + 0.5 * Math.cos(d / r * Math.PI)); } return h; };
+const PLACES = [{ n: '세겜 · 모레 상수리나무', x: OAK[0], z: OAK[1] }, { n: '세겜 성읍', x: -76, z: -44, k: 'town' }, { n: '세겜의 밭', x: -76, z: 24 }, { n: '마므레 상수리나무 숲', x: MOAK[0], z: MOAK[1] }, { n: '아브람의 장막', x: TENT[0], z: TENT[1], k: 'town' },
+  { n: '마므레 우물', x: WELLM[0], z: WELLM[1] }, { n: '양 우리', x: FOLD[0], z: FOLD[1] }, { n: '소 떼 풀밭', x: HERD[0], z: HERD[1] }, { n: '동쪽 둔덕', x: KNOLL[0], z: KNOLL[1] },
+  { n: '그돌라오멜의 진영', x: 74, z: -28, when: () => (st().ch | 0) >= 1 }, { n: '모리아 산', x: TOP[0], z: TOP[1], when: () => (st().ch | 0) >= 6 }];
+LAND = XL.make({ key: 'dlca', story: 'abraham', name: '가나안 (증조할아버지의 이야기)', title: '창세기 아브라함 편 · 약속의 별', hero: '아브람', look: EP.outfits.dlcAbraham, seed: 331, area: [XMIN, XMAX, ZMIN, ZMAX], spawn: [SPAWN0[0], SPAWN0[1], Math.PI / 2],
+  places: PLACES, ground, outFloor: (x, z, h) => h + mounts(x, z), sceneryAvoid: (x, z) => roadD(x, z) < 3, trees: ['oak', 'olive', 'tamarisk', 'oak', 'acacia'], treeN: 460,
   people: PEOPLE,
   chatter: [['양 떼가 또 불었네.', '주인님 장막에 복이 넘쳐.'], ['오늘 밤도 별이 많겠지?', '주인님은 또 밖에 나가 하늘을 보시겠지.'], ['화덕 불 좀 봐 줘.', '나그네가 오면 금방 떡을 구울 수 있게!'], ['우물가에서 블레셋 사람들 소문 들었어?', '물 때문에 다투는 일은 없었으면 좋겠어.']],
   talk: {
@@ -289,7 +325,7 @@ LAND = Ls.make({ key: 'dlca', name: '가나안 (증조할아버지의 이야기)
     if (c === 6 && (p0 === 2 || p0 === 4)) follow('daIsaac', dt, 2);
     if (c === 6 && p0 === 2 && !s0.asked && hillH(p.x - o.x, p.z - o.z) > 2) isaacAsk(); },
   ctx(s, lx, lz) { const out = [], c = ch(), p0 = ph(), s0 = st(), near = (q, r) => Math.hypot(q[0] - lx, q[1] - lz) < (r || 3), at = (q, o) => Object.assign({ x: wx(q), z: wz(q), y: 1.1, noMagnet: true }, o);
-    OUTS.forEach((q, i) => { if (near(q, 3.6)) out.push(at(q, { d: 0.6, label: '이야기에서 나오기 (세겜으로)', key: 'daOut' + i, use: () => say([{ n: '', t: '이야기를 잠시 멈추고 세겜의 제단 앞으로 돌아갈까요? 여기까지 한 것은 남아요.', choices: [{ t: '돌아가기', then: () => D.leave() }, { t: '더 머물기' }] }], null) })); });
+
     if (c === 0 && p0 === 0 && near(OAK, 5)) out.push(at(OAK, { d: 0, label: '모레 상수리나무 아래 서기', key: 'daOak', use: oak }));
     if (c === 0 && p0 === 1) { const n = Object.keys(s0.stones || {}).length; STONES.forEach((q, i) => { if (!s0.stones[i] && near(q, 2)) out.push(at(q, { d: -0.2, label: `돌 줍기 (${n}/8)`, key: 'daSt' + i, use: () => { s0.stones[i] = 1; P().emote = { k: 'pick', t: 0, dur: 0.9 }; sfx('pickup'); G.UI.quest(); if (Object.keys(s0.stones).length >= 8) pop('돌을 다 모았어요', '상수리나무 곁 빈터에 제단을 쌓아요', 'star'); } })); });
       if (n >= 8 && near(ALT1, 3)) out.push(at(ALT1, { d: -0.4, label: '제단 쌓기', key: 'daAlt1', use: altar1 })); }
@@ -309,38 +345,32 @@ LAND = Ls.make({ key: 'dlca', name: '가나안 (증조할아버지의 이야기)
     if (c === 3) return p0 === 0 ? [R('4장 세 나그네 · 상수리나무 그늘의 나그네들에게 달려가기')] : [R('4장 세 나그네 · 서둘러 대접할 채비하기'), R('우물에서 발 씻을 물 긷기', g.w === 1), R('사라에게 떡을 부탁하기', g.b === 1), R('소 떼에서 송아지를 골라 엘리에셀에게', g.c === 1), R('여종 하갈에게 엉긴 젖과 우유', g.m === 1), R('나그네들께 상 차려 드리기 (앞의 나그네에게)')];
     if (c === 4) return [R('5장 간구 · 나그네들을 따라가 말씀드리기')]; if (c === 5) return [R(p0 === 0 ? '6장 웃음 · 장막의 사라에게 가기' : '6장 웃음 · 장막 앞 빈터에 에셀나무 심기')];
     if (c === 6) return [R(['7장 모리아 · 장막 곁 나뭇더미에서 번제 나무 쪼개기', '7장 모리아 · 이삭에게 말하기', s0.asked ? '7장 모리아 · 산꼭대기에 단 쌓기' : '7장 모리아 · 이삭과 함께 산을 오르기', '7장 모리아', `7장 모리아 · 산꼭대기 둘레의 수풀 살피기 (${Object.keys(s0.seen || {}).length}/3)`][p0])];
-    return [R('아브라함 편을 마쳤어요 · 돌무더기에서 「이야기에서 나오기」', 1)]; },
+    return [R('아브라함 편을 마쳤어요 · 오른쪽 위 「이야기에서 나오기」로 세겜의 제단에 돌아가요', 1)]; },
   dyn(list) { const s0 = st(), o = W0();
     if (s0.altar1) { M1 = M1 || altarMesh(41); G.m4trs(MA, wx(ALT1), o.y, wz(ALT1), 0.4, 0, 0, 1, 1, 1); list.push({ mesh: M1, m: MA, outline: true }); }
     if (s0.altar2) { M2 = M2 || altarMesh(43); G.m4trs(MB, wx(TOP), o.y + hillH(TOP[0], TOP[1]), wz(TOP), 1.1, 0, 0, 1, 1, 1); list.push({ mesh: M2, m: MB, outline: true }); }
     if (s0.planted) { MT = MT || tamMesh(); G.m4trs(MC, wx(TAMA), o.y, wz(TAMA), 0.6, 0, 0, 0.8, 0.8, 0.8); list.push({ mesh: MT, m: MC, outline: true }); } },
   weather: { clear: 0.8, cloudy: 0.2, rain: 0, wind: 0, fog: 0, dust: 0, storm: 0 },
-  floor: (lx, lz) => (lx >= XMIN - 2 && lx <= XMAX + 2 && lz >= ZMIN - 2 && lz <= ZMAX + 2 ? 64 + hillH(lx, lz) : null),
+  floor: (lx, lz) => hillH(lx, lz),
   build(B) { const { box, cyl, sph, put, col, colR, rng, g, X, Z, BY } = B;
-    const KEEP = [SPAWN0, OAK, ALT1, SPAWN1, MOAK, VIS, TENT, STENT, HEARTH, WELLM, FOLD, HERD, WOOD, TAMA, KNOLL, EDGE, LOT, FOOT, TOP, ...STONES, ...THICK, ...OUTS, ...DFIRES].map(q => [q[0], q[1]]);
+    const KEEP = [SPAWN0, OAK, ALT1, SPAWN1, MOAK, VIS, TENT, STENT, HEARTH, WELLM, FOLD, HERD, WOOD, TAMA, KNOLL, EDGE, LOT, FOOT, TOP, ...STONES, ...THICK, ...DFIRES].map(q => [q[0], q[1]]);
     const free = (x, z, r) => !KEEP.some(q => Math.hypot(q[0] - x, q[1] - z) < (r || 4.5));
     const yAt = (x, z) => BY + hillH(x, z);
     const tree = (fn, x, z, s, r) => { put(fn, x, z, { s: s || 1, y: yAt(x, z) - 0.05 }); colR(x, z, (r || 0.5) * (s || 1), yAt(x, z) + 4); };
     const tent = (x, z, ry, s, c) => { put('tent', x, z, { ry, s, args: [c] }); const w = 5.6 * s, d = 3.6 * s, rot = Math.abs(Math.sin(ry)) > 0.5; col(x, z, rot ? d : w, rot ? w : d, BY - 1, BY + 2.5 * s, true); };
     const wall = (x, z, len, rot, h) => { put('wallSeg', x, z, { ry: rot ? Math.PI / 2 : 0, args: [len, h || 0.9] }); col(x, z, rot ? 0.7 : len, rot ? len : 0.7, BY - 1, BY + (h || 0.9)); };
     const fence = (x, z, len, rot) => { put('fence', x, z, { ry: rot ? Math.PI / 2 : 0, args: [len] }); col(x, z, rot ? 0.3 : len, rot ? len : 0.3, BY - 1, BY + 1.1); };
-    const road = (pts, w, c) => { for (let i = 0; i < pts.length - 1; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1], dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz); box(w, 0.03, L + w * 0.6, (ax + bx) / 2, BY + 0.018 + i * 0.0006, (az + bz) / 2, c || 0xb8a47c, { ry: Math.atan2(dx, dz), j: 0.08 }); } };
-    const patch = (x, z, w, d, c, ry) => box(w, 0.04, d, x, BY + 0.012, z, c, { ry: ry || 0, j: 0.07 });
-    /* the ground: one grassy plateau, far fields round it, hills on the horizon */
-    box(XMAX - XMIN + 6, 14, ZMAX - ZMIN + 6, (XMAX + XMIN) / 2, BY - 7, (ZMAX + ZMIN) / 2, 0x9aa060, { j: 0.04 }); g.box(620, 1, 620, { at: [X, BY - 0.6, Z], c: 0x96985a, j: 0.05 });
-    for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, r = 165 + rng() * 45; sph(26 + rng() * 16, Math.cos(a) * r, BY - 10, Math.sin(a) * r, [0x8a8a5a, 0x9a9664, 0x7e8250, 0xa09a70][i % 4], { s: [1.4, 0.55, 1], j: 0.06 }); }
-    patch(-66, -6, 52, 66, 0x8ea65a); patch(2, 12, 74, 70, 0xa6a46c); patch(70, -30, 50, 50, 0xa49a70); patch(70, 40, 46, 46, 0xa69c76);
-    /* roads between the places */
-    road([[-94, -4], [-80, -6], [-66, -12], [-50, -10], [-36, 2], [-18, 4], [-4, 14]], 2.4); road([[24, 4], [40, -10], [46, -20]], 2.0, 0xae9c76); road([[-4, 14], [16, 30], [34, 38]], 1.8); road([[34, 38], [44, 44], [52, 44]], 1.8, 0xae9c76);
+    const road = () => { }; /* v18.64 roads are painted on the ground (ground, above) */
+    const patch = () => { }; /* (patches too) */
 
     // ---------------- 세겜 (west): the oak of Moreh, the Canaanites' houses and terraces, Gerizim and Ebal on either side
-    sph(34, -66, BY - 13, -98, 0x8c8a5c, { s: [1.6, 0.9, 0.8], j: 0.06 }); sph(30, -70, BY - 13, 104, 0x94925e, { s: [1.7, 0.85, 0.75], j: 0.06 }); /* Gerizim (south) · Ebal (north) */
+
     tree('oak', OAK[0], OAK[1], 1.5, 0.75); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283; put('flowers', OAK[0] + Math.cos(a) * 3.4, OAK[1] + Math.sin(a) * 3.4, { args: [[0xe8d070, 0xd86a5a, 0xf0f0e0][i % 3]] }); }
     patch(ALT1[0], ALT1[1], 4, 4, 0xb4a47a);
     STONES.forEach(([x, z]) => sph(0.34, x, BY + 0.18, z, 0x9a9284, { s: [1.2, 0.7, 1], j: 0.1 }));
     for (const [x, z, w, d] of [[-80, -45, 6, 5], [-70, -48, 5, 4], [-88, -37, 5, 4], [-62, -50, 4.5, 4]]) { put('house', x, z, { ry: Math.PI, args: [{ w, d, h: 2.6, c: [0xc4b08c, 0xb8a684, 0xcbb894][Math.floor(Math.abs(x)) % 3] }] }); col(x, z, w, d, BY - 1, BY + 2.9, true); }
     wall(-75, -41, 18, 0, 0.8); put('jars', -73, -39.5, { args: [3] }); put('pots', -84, -33); cyl(1.6, 1.6, 0.06, 14, -66, BY + 0.03, -40, 0xc8b88c); /* threshing floor */
-    for (const [x, z, w, d, ripe] of [[-80, 18, 14, 9, 1], [-62, 22, 12, 8, 0], [-86, 34, 10, 7, 1]]) { put('crops', x, z, { args: [w, d, ripe] }); wall(x, z - d / 2 - 0.5, w, 0, 0.7); }
+    for (const [x, z, w, d, ripe] of FIELDS) { /* v18.64 the wheat is the ground's own grass, painted gold (ground, above), with a few taller tufts: no raised slab */ for (let i = 0; i < w * d / 3; i++) put('dryGrass', x + (rng() - 0.5) * (w - 1), z + (rng() - 0.5) * (d - 1), { s: 0.8 + rng() * 0.5, args: [ripe ? 0xd8c070 : 0x9ab060] }); wall(x, z - d / 2 - 0.5, w, 0, 0.7); }
     for (const [x, z] of [[-90, 26], [-84, 40], [-76, 42], [-70, 38], [-92, 44]]) tree('olive', x, z, 1, 0.4);
     for (const [x, z, f] of [[-84, -20, 'oak'], [-48, -34, 'oak'], [-44, 6, 'tamarisk'], [-92, -30, 'oak'], [-52, 12, 'fig'], [-88, 8, 'oak'], [-46, -46, 'olive'], [-58, -42, 'fig']]) tree(f, x, z, 1, 0.5);
     for (const [x, z] of [[-92, -50], [-50, -52], [-46, 30], [-60, 46], [-90, 58], [-48, 56]]) { put('rockField', x, z, { s: 1.1 }); colR(x, z, 1.2, BY + 1); }
@@ -360,7 +390,7 @@ LAND = Ls.make({ key: 'dlca', name: '가나안 (증조할아버지의 이야기)
     for (const [x, z, c] of [[TENT[0] - 2.4, TENT[1] + 3.6, 0x8a3a2a], [STENT[0], STENT[1] + 3, 0x2e4a78]]) put('blanket', x, z, { args: [c] });
     patch(TAMA[0], TAMA[1], 3, 3, 0xb4a47a);
     /* the knoll east of the camp, for the stars and for looking toward Sodom */
-    g.lathe(KPROF.map(([r, h]) => [Math.max(0.01, r), h]), 22, { at: [X + KNOLL[0], BY, Z + KNOLL[1]], c: 0xa29c6c, j: 0.05 });
+
     for (const [x, z] of [[KNOLL[0] + 5, KNOLL[1] - 4], [KNOLL[0] - 6, KNOLL[1] + 3]]) put('desertShrub', x, z, { y: yAt(x, z) });
 
     // ---------------- 단의 밤 진영 (south-east): the kings' tents, fires, loot, captives
@@ -374,8 +404,7 @@ LAND = Ls.make({ key: 'dlca', name: '가나안 (증조할아버지의 이야기)
     for (const [x, z] of [[48, -8], [92, -8], [52, -52]]) tree('tamarisk', x, z, 1, 0.4);
 
     // ---------------- 모리아 (north-east): a rocky mountain, a path up its west side, thickets near the top
-    g.lathe(HPROF.map(([r, h]) => [Math.max(0.01, r), h]), 30, { at: [X + HILL[0], BY, Z + HILL[1]], c: 0xa49878, j: 0.05 });
-    for (let i = 0; i < 9; i++) { const t = i / 8, x = FOOT[0] + (TOP[0] - 2 - FOOT[0]) * t, z = FOOT[1] + (TOP[1] - FOOT[1]) * t + Math.sin(t * 6) * 1.2; box(1.8, 0.05, 2.6, x, yAt(x, z) + 0.02, z, 0xb8a882, { ry: Math.PI / 2 - 0.1, j: 0.1 }); }
+
     for (let i = 0; i < 22; i++) { const a = 0.6 + i / 22 * 5.1 + rng() * 0.15, r = 6 + rng() * 13, x = HILL[0] + Math.cos(a) * r, z = HILL[1] + Math.sin(a) * r; if (Math.abs(Math.atan2(z - HILL[1], x - HILL[0]) - Math.PI) < 0.45) continue; if (!free(x, z, 3)) continue;
       const big = i % 3 === 0; put(big ? 'outcrop' : 'rock', x, z, { s: big ? 0.6 + rng() * 0.3 : 0.8 + rng() * 0.5, y: yAt(x, z) - 0.2 }); colR(x, z, big ? 1.2 : 0.8, yAt(x, z) + 1.4); }
     THICK.forEach(([x, z]) => { const y = yAt(x, z); for (let k = 0; k < 6; k++) sph(0.55 + rng() * 0.3, x + Math.cos(k * 1.1) * 0.75, y + 0.45 + (k % 2) * 0.35, z + Math.sin(k * 1.1) * 0.75, [0x4a6a34, 0x5a7a3c, 0x3e5a2c][k % 3], { j: 0.1 }); });
@@ -383,19 +412,12 @@ LAND = Ls.make({ key: 'dlca', name: '가나안 (증조할아버지의 이야기)
     for (const [x, z] of [[50, 58], [92, 40], [56, 22]]) tree('olive', x, z, 0.9, 0.35);
     put('woodStack', FOOT[0] - 3.5, FOOT[1] + 1, { ry: 1.2 });
 
-    // ---------------- the way out (a cairn in every place) and the edge
-    OUTS.forEach(([x, z]) => { for (let i = 0; i < 5; i++) sph(0.42 + rng() * 0.15, x - 1 + Math.cos(i * 1.3) * 0.7, BY + 0.25 + (i % 2) * 0.3, z + Math.sin(i * 1.3) * 0.7, 0x9a9284, { s: [1.1, 0.75, 1] }); colR(x - 1, z, 1.0, BY + 1); });
-    /* v18.61 the ground itself: grass, darker greens and bare earth in patches (flat), and many more tufts */
-    for (let i = 0; i < 160; i++) { const x = XMIN + 2 + rng() * (XMAX - XMIN - 4), z = ZMIN + 2 + rng() * (ZMAX - ZMIN - 4); if (Math.hypot(x - HILL[0], z - HILL[1]) < 21) continue; box(3 + rng() * 8, 0.03, 2.5 + rng() * 7, x, yAt(x, z) + 0.012, z, [0x8e9a58, 0xa8a66c, 0x86904e, 0xbcaa7c, 0x98a05e][i % 5], { ry: rng() * 3, j: 0.08 }); }
-    for (let i = 0; i < 380; i++) { const x = XMIN + 2 + rng() * (XMAX - XMIN - 4), z = ZMIN + 2 + rng() * (ZMAX - ZMIN - 4); if (!free(x, z, 2.4) || Math.hypot(x - HILL[0], z - HILL[1]) < 21) continue; put(i % 8 === 0 ? 'flowers' : 'dryGrass', x, z, { y: yAt(x, z), s: 0.7 + rng() * 0.6 }); }
+    for (let i = 0; i < 200; i++) { const x = XMIN + 2 + rng() * (XMAX - XMIN - 4), z = ZMIN + 2 + rng() * (ZMAX - ZMIN - 4); if (!free(x, z, 2.4) || Math.hypot(x - HILL[0], z - HILL[1]) < 21) continue; put(i % 8 === 0 ? 'flowers' : 'dryGrass', x, z, { y: yAt(x, z), s: 0.7 + rng() * 0.6 }); }
     /* grass tufts, bushes and stones everywhere so no ground looks bare */
     for (let i = 0; i < 140; i++) { const x = XMIN + 2 + rng() * (XMAX - XMIN - 4), z = ZMIN + 2 + rng() * (ZMAX - ZMIN - 4); if (!free(x, z, 3.2) || Math.hypot(x - HILL[0], z - HILL[1]) < 21 || (x > 50 && x < 94 && z > -48 && z < -8)) continue; put(i % 7 === 0 ? 'bush' : 'dryGrass', x, z, { y: yAt(x, z), args: i % 7 === 0 ? [] : [0xa0a060] }); }
     for (let i = 0; i < 26; i++) { const x = XMIN + 3 + rng() * (XMAX - XMIN - 6), z = ZMIN + 3 + rng() * (ZMAX - ZMIN - 6); if (!free(x, z, 6) || Math.hypot(x - HILL[0], z - HILL[1]) < 22) continue; sph(0.3 + rng() * 0.35, x, yAt(x, z) + 0.12, z, [0x9a9284, 0xa8a090, 0x8a8276][i % 3], { s: [1.3, 0.6, 1], flat: true, j: 0.1 }); } } });
 
-/* the stage has edges: he cannot walk off it into the empty air */
-{ const b0 = EP.bounds; EP.bounds = function (p) { if (b0) b0.apply(this, arguments); if (!on()) return; const o = W0(); p.x = Math.max(o.x + XMIN, Math.min(o.x + XMAX, p.x)); p.z = Math.max(o.z + ZMIN, Math.min(o.z + ZMAX, p.z)); }; }
-
-D.add({ key: 'abraham', land: 'dlca', hero: s0 => s0.renamed ? '아브라함' : '아브람', outfit: 'dlcAbraham', title: '창세기 아브라함 편 · 약속의 별',
+D.add({ key: 'abraham', land: 'dlca', dayLabel: s0 => ['세겜', '마므레', '마므레', '마므레', '마므레', '브엘세바', '모리아', '모리아'][s0.ch | 0] || '가나안', backTo: '이야기를 잠시 멈추고 세겜의 제단 앞으로 돌아갈까요?', hero: s0 => s0.renamed ? '아브라함' : '아브람', outfit: 'dlcAbraham', title: '창세기 아브라함 편 · 약속의 별',
   kit: () => ({ inv: { bread: 2, curd: 1, dates: 2 }, tools: ['staff'], hand: 'staff', silver: 0, water: 6 }),
   target: () => { try { return target(); } catch (e) { return null; } },
   spawn: s0 => { const c = s0.ch | 0, p0 = s0.ph | 0; if (c === 0) return p0 === 0 ? [SPAWN0[0], SPAWN0[1], Math.PI / 2] : [OAK[0] + 4, OAK[1] + 2, -1.2];
@@ -409,5 +431,5 @@ D.add({ key: 'abraham', land: 'dlca', hero: s0 => s0.renamed ? '아브라함' : 
     arrange(); },
   intro(s0) { if (!s0.ch && !s0.ph) narr([card('창세기 12:1–2', '아브라함 편 · 약속의 별', '여호와께서 아브람에게 이르시되 「너는 너의 본토 친척 아비 집을 떠나 내가 네게 지시할 땅으로 가라. 내가 너로 큰 민족을 이루고 네게 복을 주어 네 이름을 창대케 하리니 너는 복의 근원이 될지라」', '창세기 12:1–2'),
       card('창세기 12:4–5', '칠십오 세에', '아브람이 하란을 떠날 때에 그 나이 칠십오 세였더라. 아브람이 그 아내 사래와 조카 롯과 하란에서 모은 모든 소유와 얻은 사람들을 이끌고 가나안 땅으로 가려고 떠나서 마침내 가나안 땅에 들어갔더라.', '창세기 12:4–5'),
-      card('증조할아버지의 이야기', '아브람이 되어', '이 이야기 속에서 요셉은 증조할아버지 아브람이 되어 걸어요. 사래와 롯과 짐 행렬이 뒤따라와요. 동쪽의 큰 상수리나무로 가 보세요.\n돌무더기(세겜 서쪽 끝, 마므레 서쪽, 진영 서쪽, 모리아 서쪽)에서 언제든 「이야기에서 나오기」를 할 수 있어요.')]); else toast('약속의 이야기를 이어서 떠올려요'); } });
+      card('증조할아버지의 이야기', '아브람이 되어', '이 이야기 속에서 요셉은 증조할아버지 아브람이 되어 걸어요. 사래와 롯과 짐 행렬이 뒤따라와요. 동쪽의 큰 상수리나무로 가 보세요.\n화면 오른쪽 위 「이야기에서 나오기」로 언제든 세겜의 제단 앞에 돌아갈 수 있어요. 한 만큼은 남아요.')]); else toast('약속의 이야기를 이어서 떠올려요'); } });
 })(window.G);

@@ -1,4 +1,4 @@
-/* 약속의 길 — v18.60 창세기 야곱 편 · 라헬을 위한 일곱 해 (dlc_jacob.js)   창 29:1–30 (31:7, 38–41)
+/* 약속의 길 — v18.60 (v18.64 따로 된 지도) 창세기 야곱 편 · 라헬을 위한 일곱 해 (dlc_jacob.js)   창 29:1–30 (31:7, 38–41)
    고센에서 아버지 야곱이 들려주는 젊은 날 이야기 속으로 들어가, 젊은 야곱이 되어 하란에서 라반의 양 떼를 일곱 해 동안 쳐요(목장 경영).
    흐름: ① 우물가의 목자들 → ② 우물 돌 굴리기 · 라헬 → ③ 라반과 품삯 → ④ 일곱 해(해마다 봄·여름·가을·겨울, 철마다 일손 셋, 해마다 「올해의 일」 하나)
          → ⑤ 혼인 잔치와 레아 → ⑥ 라헬
@@ -7,17 +7,18 @@
      해마다 라반이 양 떼를 세요(TARGET). 숫자는 아래 상수로 조절해요.
    올해의 일(EV): 해마다 한 사람에게 작은 사건이 하나씩 있어요(우물가의 법 · 양털 깎는 날 · 라반의 셈법 · 우물가의 다툼 · 벧엘의 이야기 · 레아의 빵 · 혼인의 너울).
      하지 않아도 해는 넘어가요. 하면 신임이나 마음이 조금 올라요.
-   무대(BX -40, BZ 10, 높이 64, 걷는 곳 x ±64 · z ±56): 서쪽 큰길 → 들의 우물(양 세 떼) → 라반의 집 마당(벌집 지붕 집 · 화덕 · 베틀 · 염소 우리)
-     → 야곱의 양 우리 · 털 깎는 곳 → 풀밭 셋 · 다른 목자들의 우리 · 장막 → 동쪽 발릭 강(얕은 여울) · 북서쪽 하란 성읍 · 남서쪽 보리밭 · 올리브 숲.
-   짐승: 사람 목록(EP.npcs)의 짐승은 무대 바닥을 쓰지 않아 지도 아래에 그려져요. 그래서 양 떼 · 염소 · 나귀 · 낙타 · 개는 이 파일이 직접 그려요(EP.skinned).
+   땅(v18.64 따로 된 지도 · dlcep.js · 걷는 곳 x ±66 · z ±58, 그 밖은 들판과 언덕): 서쪽 큰길 → 들의 우물(양 세 떼) → 라반의 집 마당(벌집 지붕 집 · 화덕 · 베틀 · 염소 우리)
+     → 야곱의 양 우리 · 털 깎는 곳 → 풀밭 셋 · 다른 목자들의 우리 · 장막 → 동쪽 발릭 강(얕은 여울, 지도 밖까지 흘러요) · 북서쪽 하란 성읍 · 남서쪽 보리밭 · 올리브 숲.
+     길 · 마당 · 풀밭 · 밭 · 강가는 땅에 칠해요(ground). 지도의 장소 이름은 PLACES.
+   짐승: 양 떼 · 염소 · 나귀 · 낙타 · 개는 이 파일이 직접 그려요(spec.skinned → drawHerd).
    저장: G.DLC.st('jacob') = { ch, T: { y, se, ap, n, hp, grass[3], at, water, hay, wool, sown, trust, heart, evd{해:1}, … }, kind, leah, wellLaw, fin, done, best } */
 'use strict';
 (function (G) {
-const Game = G.Game, EP = G.EP && G.EP.joseph, Ls = G.Lands, D = G.DLC; if (!Game || !EP || !Ls || !D) return;
+const Game = G.Game, EP = G.EP && G.EP.joseph, XL = G.DLCEP, D = G.DLC; if (!Game || !EP || !XL || !D) return;
 const S = () => Game.S(), P = () => Game.P, sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
 const pop = (a, b, c) => D.pop ? D.pop(a, b, c) : (G.UI.pop || G.UI.toast)(a, b, c), toast = m => D.toast ? D.toast(m) : G.UI.toast(m);
 const st = () => D.st('jacob'), say = (l, cb) => G.UI.say(l, cb), narr = (c, cb) => G.UI.narr(c, cb), Ln = D.Ln, T = D.T, J = (t, ref, e) => ({ n: '야곱', t, ref, e });
-const BX = -40, BZ = 10, BY = 64;
+const BX = 0, BZ = 0, BY = 0; /* v18.64 the story has a map of its own: the stage is the middle of it, at height 0 */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), angd = (a, b) => { let d = (b - a) % 6.2832; if (d > 3.1416) d -= 6.2832; if (d < -3.1416) d += 6.2832; return d; };
 
 // ------------------------------------------------------------------ 생김새 (늙은 야곱 · 본편 사람들과 겹치지 않게)
@@ -213,12 +214,34 @@ function drawHerd(list, t) { if (!hInit) herdInit(); const dt = hT < 0 ? 1 / 60 
     if (!a.rig) { a.rig = new G.Rig(G.AB[a.kind]); a.M = G.m4(); a.mesh = Game.animalMesh(a.kind, a.pat, a.extra); }
     if (d < 32 || (hFrame + a.k) % 3 === 0) { G.animAnimal(a.rig, { speed: a.sp, phase: a.ph, graze: a.graze, lie: a.lie, seed: a.seed }, t); a.rig.update(G.m4trs(a.M, wx, BY, wz, a.f, 0, 0, a.s, a.s, a.s)); }
     list.push({ mesh: a.mesh, bones: a.rig.bones, outline: true }); } }
-{ const sk0 = EP.skinned; EP.skinned = function (list, s, g, t) { if (sk0) sk0.apply(this, arguments); if (!on()) return; try { drawHerd(list, t); } catch (e) { console.error('dlc jacob herd', e); } }; }
 
+// ------------------------------------------------------------------ 땅 색 (v18.64 길 · 마당 · 풀밭 · 밭 · 강가는 땅에 칠해요 · 판을 깔지 않아요)
+const HX = XL.hex, mixC = XL.mix, smc = XL.sm;
+const ROADS = [[[-210, 9], [-120, 8], [-66, 6.5], [-50, 5], [-40, 3], [-33, 0.5], [-24, 2], [-16, 6.5], [-8, 10.5]], [[-8, 10.5], [2, 8.5], [12, 9], [16, 7.5]], [[12, 9], [24, 6], [34, -2], [46, -6], [51, -6], [60, -6], [100, -11], [210, -18]], [[24, 6], [28, 11]], [[-40, 3], [-46, -8], [-48, -15]], [[-48, -15], [-80, -40], [-150, -90]]];
+const roadD = (x, z) => { let d = 1e9; for (const r of ROADS) d = Math.min(d, XL.segD(r, x, z)); return d; };
+const GC = { road: HX(0xc6b088), road2: HX(0xb49e78), yard: HX(0xbea884), earth: HX(0xa8916a), straw: HX(0xc6ae78), lush: HX(0x6c9840), barley: HX(0xd2ba68), soil: HX(0x7a6448), mud: HX(0x7c6c4c), reed: HX(0x6a8c44), town: HX(0xc4b08c) };
+const inR = (x, z, x0, x1, z0, z1, e) => Math.min(smc(x0 - e, x0 + e, x), 1 - smc(x1 - e, x1 + e, x), smc(z0 - e, z0 + e, z), 1 - smc(z1 - e, z1 + e, z));
+function ground(x, z, c, gr) { let o = c, g = gr; const lay = (col, k, ga) => { if (!(k > 0)) return; o = mixC(o, col, k); g += (ga - g) * k; };
+  for (const p of PAST) lay(GC.lush, inR(x, z, p.x - p.w / 2, p.x + p.w / 2, p.z - p.d / 2, p.z + p.d / 2, 3) * 0.75, 1);
+  const dr = Math.abs(x - RIVER); lay(GC.reed, (1 - smc(3.2, 9, dr)) * 0.8, 1); lay(GC.mud, 1 - smc(2.4, 3.6, dr), 0.05);
+  { const k = inR(x, z, FIELD[0] - 7, FIELD[0] + 7, FIELD[1] - 5, FIELD[1] + 5, 0.9); if (k > 0) { const f = 0.86 + 0.14 * Math.cos((z - FIELD[1]) * 3.93); lay([GC.barley[0] * f, GC.barley[1] * f, GC.barley[2] * f], k, 1); } }
+  lay(GC.soil, inR(x, z, FIELD[0] - 6, FIELD[0] + 6, FIELD[1] + 8.6, FIELD[1] + 14.4, 0.6), 0.1);
+  lay(GC.earth, (1 - smc(3.5, 9, Math.hypot(x - WELL[0], z - WELL[1] + 2.5))) * 0.85, 0.12);
+  lay(GC.yard, inR(x, z, -21, 5, 14, 34, 0.8), 0); lay(GC.town, inR(x, z, -63, -38, -42, -16, 2.5) * 0.9, 0.08);
+  for (const [cx, cz, w] of [[FOLD[0], FOLD[1], 9], [F1[0], F1[1], 8], [F2[0], F2[1], 8]]) lay(GC.straw, inR(x, z, cx - w / 2, cx + w / 2, cz - w / 2, cz + w / 2, 0.7) * 0.9, 0.15);
+  lay(GC.straw, (1 - smc(2.5, 5, Math.hypot(x - SHED[0], z - SHED[1]))) * 0.75, 0.25);
+  lay(GC.earth, (1 - smc(5, 11, Math.hypot(x - 36, z - 42))) * 0.55, 0.3); lay(GC.earth, (1 - smc(1.5, 3.8, Math.hypot(x - CAMPF[0], z - CAMPF[1]))) * 0.85, 0);
+  const rd = roadD(x, z); if (rd < 3) lay(rd < 0.4 ? GC.road2 : GC.road, (1 - smc(0.9, 2.2, rd)) * 0.92, 0);
+  return [o[0], o[1], o[2], g]; }
+const PLACES = [{ n: '들의 우물', x: WELL[0], z: WELL[1] }, { n: '라반의 집', x: -8, z: 24, k: 'town' }, { n: '야곱의 양 우리', x: FOLD[0], z: FOLD[1] }, { n: '털 깎는 곳', x: SHED[0], z: SHED[1] }, { n: '보리밭 · 텃밭', x: FIELD[0], z: FIELD[1] + 4 },
+  { n: '하란 성읍', x: -50, z: -28, k: 'town' }, { n: '북쪽 풀밭', x: PAST[0].x, z: PAST[0].z }, { n: '동쪽 풀밭', x: PAST[1].x, z: PAST[1].z }, { n: '남쪽 시냇가 풀밭', x: PAST[2].x, z: PAST[2].z }, { n: '목자들의 장막', x: 36, z: -40 }, { n: '발릭 강 여울', x: RIVER, z: -6 }, { n: '가나안 가는 큰길', x: -62, z: 6.5 }];
 // ------------------------------------------------------------------ 무대
 const person = (id, name, look, l, face, o) => Object.assign({ id, name, look, x: l[0], z: l[1], face, talkR: 3, noBond: true }, o || {});
 let STONE = null; const SM = G.m4();
-LAND = Ls.make({ key: 'dlcj', name: '하란 (아버지의 이야기)', BX, BZ, BY, hours: 0, seed: 229, spawn: [OUT[0] + 2.5, OUT[1] + 3, Math.PI / 2], hello: ['', ''],
+LAND = XL.make({ key: 'dlcj', story: 'jacob', name: '하란 (아버지의 이야기)', title: '창세기 야곱 편 · 라헬을 위한 일곱 해', hero: '야곱', look: LK.jacobY, seed: 229, area: [-66, 66, -58, 58], spawn: [OUT[0] + 2.5, OUT[1] + 3, Math.PI / 2],
+  places: PLACES, ground, valley: (x, z) => 1 - XL.sm(10, 42, Math.abs(x - RIVER)), outFloor: (x, z, h) => { const dr = Math.abs(x - RIVER); if (dr > 9) return null; return (dr < 3.5 ? -0.72 * clamp((3.5 - dr) / 1.6, 0, 1) : 0) + h * XL.sm(3.5, 9, dr); },
+  water: { level: -0.38, shallow: [0.24, 0.46, 0.38], deep: [0.08, 0.24, 0.2] }, sceneryAvoid: (x, z) => Math.abs(x - RIVER) < 7 || roadD(x, z) < 3, trees: ['oak', 'tamarisk', 'olive', 'acacia'],
+  skinned: (list, t) => drawHerd(list, t),
   people: [
     person('djShep', OLD, LK.shepOld, [WELL[0] - 3.2, WELL[1] + 2.6], 0.6, { prop: 'staff', show: () => on(), chat: S => CHAT.djShep() }),
     person('djShep2', YNG, LK.shepYoung, [WELL[0] + 5, WELL[1] + 3.4], -0.9, { prop: 'staff', show: () => on(), chat: S => CHAT.djShep2() }),
@@ -251,7 +274,7 @@ LAND = Ls.make({ key: 'dlcj', name: '하란 (아버지의 이야기)', BX, BZ, B
         const L = RACHEL_T[Math.min(6, T0.y - 1)]; say([Ln('라헬', L[0], 'tender'), J(L[1], '', 'tender')], () => { fin('djRachel'); pop('라헬의 마음이 자랐어요', `라헬의 마음 ${Math.round(T0.heart)}`, 'star'); G.UI.quest(); }); return true; }
       say([Ln('라헬', c >= 6 ? '이제는 날마다 함께예요.' : c === 1 ? '목자들이 다 모여야 돌을 옮길 수 있어요. …아직 아무도 안 왔네요.' : '아버지께서 대문 앞에서 기다리세요. 어서 가 보세요.', 'happy')], () => fin('djRachel')); return true; } },
   ctx(s, lx, lz) { const out = [], c = ch(), near = (p, r) => Math.hypot(p[0] - lx, p[1] - lz) < (r || 3), at = (p, o) => Object.assign({ x: BX + p[0], z: BZ + p[1], y: 1.1, noMagnet: true }, o);
-    if (near(OUT, 3.6)) out.push(at(OUT, { d: 0.5, label: '이야기에서 나오기 (고센으로)', key: 'djOut', use: () => say([{ n: '', t: '아버지의 이야기를 잠시 멈추고 고센으로 돌아갈까요? 여기까지 한 것은 남아요.', choices: [{ t: '돌아가기', then: () => D.leave() }, { t: '더 듣기' }] }], null) }));
+
     if (c === 1 && near(WELL, 4)) out.push(at(WELL, { d: -1, label: '우물 아귀의 돌 굴리기', key: 'djStone', use: rollStone }));
     if (c !== 3) return out; const T0 = TY();
     if (near(WELL, 4)) out.push(at(WELL, { d: -0.5, label: `물 길어 구유 채우기 (물 ${Math.round(T0.water)}%)`, key: 'djWater', disabled: T0.water >= 95, use: () => { if (noAp(T0)) return; const fill = () => { T0.water = 100; sfx('splash', { vol: 0.5 }); pop('구유를 가득 채웠어요', '양들이 줄지어 물을 마셔요', 'star'); use(T0); };
@@ -269,7 +292,7 @@ LAND = Ls.make({ key: 'dlcj', name: '하란 (아버지의 이야기)', BX, BZ, B
     if (near(GATE, 3.4)) out.push(at(GATE, { d: 0.9, label: `한 철 마무리하기 (${SEA[T0.se]})`, key: 'djEnd', use: () => { const go = () => G.UI.fade(() => endSeason(), () => { }); if (T0.ap > 0) say([{ n: '', t: `일손이 ${T0.ap} 남았어요. 그래도 ${SEA[T0.se]}을 마칠까요?`, choices: [{ t: '마친다', then: () => setTimeout(go, 40) }, { t: '조금 더 일한다' }] }], null); else go(); } }));
     return out; },
   quest(s) { const c = ch(), T0 = TY(); if (c === 0) return [{ t: '들의 우물 곁 목자들과 이야기하기', ok: false }]; if (c === 1) return [{ t: '우물 아귀의 큰 돌 굴려 내기', ok: false }]; if (c === 2) return [{ t: '외삼촌 라반과 이야기하기 (남동쪽 마당 대문 앞)', ok: false }];
-    if (c === 4) return [{ t: '칠 년이 찼어요 · 대문 앞의 라반에게 말하기', ok: false }]; if (c === 5) return [{ t: '라헬에게 가기', ok: false }]; if (c >= 6) return [{ t: '야곱 편을 마쳤어요 · 서쪽 돌무더기에서 「이야기에서 나오기」', ok: true }];
+    if (c === 4) return [{ t: '칠 년이 찼어요 · 대문 앞의 라반에게 말하기', ok: false }]; if (c === 5) return [{ t: '라헬에게 가기', ok: false }]; if (c >= 6) return [{ t: '야곱 편을 마쳤어요 · 오른쪽 위 「이야기에서 나오기」로 고센에 돌아가요', ok: true }];
     if (!T0) return [];
     const e = evOpen(T0), rows = [{ t: T0.ap > 0 ? `라헬을 위한 ${T0.y}년째 · ${SEA[T0.se]} · 남은 일손 ${T0.ap}` : `${T0.y}년째 ${SEA[T0.se]} · 일손을 다 썼어요 · 대문 앞에서 「한 철 마무리하기」`, ok: false }, { t: `양 ${T0.n}마리 (기운 ${Math.round(T0.hp)}%) · 라반의 셈 ${TARGET[T0.y - 1]}마리`, ok: T0.n >= TARGET[T0.y - 1] },
       { t: `물구유 ${Math.round(T0.water)}% · 꼴 ${T0.hay}${T0.se === 3 ? '' : T0.hay < HAYN(T0.n) ? ` (겨울에 ${HAYN(T0.n)} 필요)` : ''} · 양털 ${T0.wool}`, ok: T0.water > 45 }, { t: `풀밭 북 ${Math.round(T0.grass[0])} · 동 ${Math.round(T0.grass[1])} · 남 ${Math.round(T0.grass[2])}`, ok: !!T0.grazed || T0.se === 3 },
@@ -283,29 +306,24 @@ LAND = Ls.make({ key: 'dlcj', name: '하란 (아버지의 이야기)', BX, BZ, B
     if (c < 2 && !st().stoneOff) G.m4trs(SM, BX + WELL[0], BY + 0.98, BZ + WELL[1], 0.3, 0, 0, 1, 1, 1); else G.m4trs(SM, BX + WELL[0] + 2.8, BY + 0.2, BZ + WELL[1] + 1.6, 0.8, 0, 0.12, 1, 1, 1); /* rolled off and lying beside the well */
     list.push({ mesh: STONE, m: SM, outline: true }); },
   weather: { clear: 0.7, cloudy: 0.22, rain: 0.05, wind: 0.03, fog: 0, dust: 0, storm: 0 },
-  floor: (lx, lz) => { if (Math.abs(lx) > 66 || Math.abs(lz) > 58) return null; const d = Math.abs(lx - RIVER); if (d < 3.5) return 64 - 0.72 * clamp((3.5 - d) / 1.6, 0, 1); return 64; },
-  water: (lx, lz) => { const d = Math.abs(lx - RIVER); if (d < 2.6 && Math.abs(lz) < 58) return { level: 63.62, bed: 64 - 0.72 * clamp((3.5 - d) / 1.6, 0, 1) }; return null; },
+  floor: (lx, lz) => { const d = Math.abs(lx - RIVER); if (d < 3.5) return -0.72 * clamp((3.5 - d) / 1.6, 0, 1); return 0; },
+
   build(B) { const { box, cyl, sph, put, col, colR, rng, g, X, Z } = B, GR = 0x9fa064, MUD = 0xc4a678, MUD2 = 0xa88a5e, ROADC = 0xc4b08a;
-    // ---- 땅 (강줄기 자리는 비워 둬요) · 먼 땅 · 먼 언덕
-    box(117.5, 14, 116, -7.25, BY - 7, 0, GR); box(7.5, 14, 116, 62.25, BY - 7, 0, GR); box(7, 14, 116, RIVER, BY - 7.72, 0, 0x6a5a40);
-    for (const s of [1, -1]) box(1.9, 0.4, 116, RIVER - s * 2.55, BY - 0.36, 0, 0x8a7a52, { rz: -s * 0.4 });
-    g.box(311.5, 1, 560, { at: [X - 104.25, BY - 0.6, Z], c: 0x9a9864, j: 0.05 }); g.box(201.5, 1, 560, { at: [X + 159.25, BY - 0.6, Z], c: 0x9a9864, j: 0.05 }); g.box(7, 1, 560, { at: [X + RIVER, BY - 2.6, Z], c: 0x6a5a40 });
-    for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, r = 140 + rng() * 50; sph(24 + rng() * 16, Math.cos(a) * r, BY - 10, Math.sin(a) * r, [0x8a8a5a, 0x9a9664, 0x7e8250, 0xa09a6e][i % 4], { s: [1.5, 0.45, 1], j: 0.06 }); }
-    sph(30, -110, BY - 14, -86, 0xa8986e, { s: [1.6, 0.4, 1.2], j: 0.05 }); /* 북서쪽 하란 성읍 언덕 */
+    // ---- 땅 · 먼 들판 · 먼 언덕은 이 이야기의 지도(dlcep.js)가 만들어요. 길 · 마당 · 풀밭 · 밭은 땅에 칠해요(위 ground).
+
     // ---- 길
-    const road = pts => { for (let i = 0; i < pts.length - 1; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz); box(L + 1.2, 0.04, 2.6, (x0 + x1) / 2, BY + 0.012, (z0 + z1) / 2, ROADC, { ry: Math.atan2(-dz, dx), j: 0.05 }); } };
-    road([[-66, 6.5], [-50, 5], [-40, 3], [-33, 0.5], [-24, 2], [-16, 6.5], [-8, 10.5]]); road([[-8, 10.5], [2, 8.5], [12, 9], [16, 7.5]]); road([[12, 9], [24, 6], [34, -2], [46, -6], [51, -6]]); road([[24, 6], [28, 11]]); road([[-40, 3], [-46, -8], [-48, -15]]);
+
     for (let i = 0; i < 6; i++) sph(0.45, RIVER - 2.6 + i * 1.05, BY - 0.42, -6 + (i % 2) * 0.3, 0x9a9284, { s: [1.2, 0.5, 1], j: 0.1 }); /* 여울의 디딤돌 */
     // ---- 풀밭 셋 (푯말)
-    PAST.forEach((p, i) => { box(p.w, 0.05, p.d, p.x, BY + 0.015, p.z, [0x7e9a4a, 0x86a052, 0x76924a][i], { j: 0.07 }); const sx = p.x - p.w / 2 + 1, sz = p.z + (i === 1 ? -p.d / 2 + 1 : p.d / 2 - 1); cyl(0.05, 0.06, 1.5, 6, sx, BY + 0.75, sz, 0x7a5a3a); box(0.8, 0.4, 0.06, sx, BY + 1.35, sz, 0xc8a068); colR(sx, sz, 0.15, BY + 1.6);
+    PAST.forEach((p, i) => { const sx = p.x - p.w / 2 + 1, sz = p.z + (i === 1 ? -p.d / 2 + 1 : p.d / 2 - 1); cyl(0.05, 0.06, 1.5, 6, sx, BY + 0.75, sz, 0x7a5a3a); box(0.8, 0.4, 0.06, sx, BY + 1.35, sz, 0xc8a068); colR(sx, sz, 0.15, BY + 1.6);
       for (let k = 0; k < 10; k++) put(rng() < 0.5 ? 'flowers' : 'dryGrass', p.x + (rng() - 0.5) * (p.w - 2), p.z + (rng() - 0.5) * (p.d - 2), { s: 0.8 + rng() * 0.4, args: [rng() < 0.5 ? undefined : 0x9ab060] }); });
     // ---- 들의 우물 (창 29:2–3) · 구유 셋
     cyl(1.55, 1.65, 0.8, 16, WELL[0], BY + 0.4, WELL[1], 0x9a9282, { j: 0.05 }); cyl(1.35, 1.4, 0.12, 16, WELL[0], BY + 0.82, WELL[1], 0xa8a090); cyl(1.0, 1.0, 0.06, 12, WELL[0], BY + 0.8, WELL[1], 0x1e2a30); colR(WELL[0], WELL[1], 1.75, BY + 1.3);
     for (const [dx, dz, ry] of [[3.6, -3, 0.5], [-3.8, -2.6, -0.5], [0, -4.4, 0]]) { box(2.6, 0.5, 0.75, WELL[0] + dx, BY + 0.25, WELL[1] + dz, 0x8a7a62, { ry }); box(2.3, 0.04, 0.5, WELL[0] + dx, BY + 0.49, WELL[1] + dz, 0x3a6a7a, { ry }); colR(WELL[0] + dx, WELL[1] + dz, 1.1, BY + 0.6); }
-    box(14, 0.03, 12, WELL[0], BY + 0.01, WELL[1] - 5, 0xa8a06a, { j: 0.08 });
+
     for (const [x, z] of [[-38, -3.6], [-21.6, -1.2]]) { put('datePalm', x, z); colR(x, z, 0.4); }
     // ---- 라반의 집 마당 (x -21~5, z 14~34 · 대문은 북쪽 x -10~-6)
-    box(26, 0.03, 20, -8, BY + 0.012, 24, 0xb8a27e, { j: 0.05 });
+
     const wall = (x, z, w, d, h) => { box(w, h, d, x, BY + h / 2, z, MUD2, { j: 0.04 }); box(w + 0.1, 0.12, d + 0.1, x, BY + h + 0.06, z, MUD); col(x, z, w, d, BY - 1, BY + h); };
     wall(-15.5, 14, 11, 0.6, 2.1); wall(-0.5, 14, 11, 0.6, 2.1); wall(-8, 34, 26.6, 0.6, 2.1); wall(-21, 24, 0.6, 20, 2.1); wall(5, 24, 0.6, 20, 2.1);
     for (const x of [-10.2, -5.8]) { box(0.8, 2.8, 0.8, x, BY + 1.4, 14, MUD, { j: 0.03 }); col(x, 14, 0.8, 0.8, BY - 1, BY + 2.8); }
@@ -323,16 +341,16 @@ LAND = Ls.make({ key: 'dlcj', name: '하란 (아버지의 이야기)', BX, BZ, B
     for (const [x, z] of [[-24.6, 10.6], [10, 32], [-25.4, 38]]) { cyl(0.13, 0.18, 1.6, 7, x, BY + 0.8, z, 0x5a4434); for (let k = 0; k < 4; k++) sph(0.95, x + Math.cos(k * 1.6) * 0.8, BY + 2.0 + (k % 2) * 0.35, z + Math.sin(k * 1.6) * 0.8, [0xf2e0e6, 0xead0d8, 0x9ab070, 0xf6ecee][k], { s: [1, 0.7, 1], j: 0.12 }); colR(x, z, 0.3); } /* 살구나무(아몬드) — 창 30:37 */
     // ---- 야곱의 양 우리 (x 11.5~20.5 · z -2.5~6.5 · 남쪽 문) · 다른 목자들의 우리 둘
     const fold = (cx, cz, w, d) => { const hw = w / 2, hd = d / 2; put('wallSeg', cx, cz - hd, { args: [w, 1.1] }); col(cx, cz - hd, w, 0.6, BY - 1, BY + 1.2); for (const s of [-1, 1]) { put('wallSeg', cx + s * hw, cz, { ry: Math.PI / 2, args: [d, 1.1] }); col(cx + s * hw, cz, 0.6, d, BY - 1, BY + 1.2); }
-      const gw = (w - 3) / 2; for (const s of [-1, 1]) { const x = cx + s * (1.5 + gw / 2); put('wallSeg', x, cz + hd, { args: [gw, 1.1] }); col(x, cz + hd, gw, 0.6, BY - 1, BY + 1.2); } box(w - 1, 0.03, d - 1, cx, BY + 0.012, cz, 0x9a8a62, { j: 0.08 }); };
+      const gw = (w - 3) / 2; for (const s of [-1, 1]) { const x = cx + s * (1.5 + gw / 2); put('wallSeg', x, cz + hd, { args: [gw, 1.1] }); col(x, cz + hd, gw, 0.6, BY - 1, BY + 1.2); } };
     fold(FOLD[0], FOLD[1], 9, 9); fold(F1[0], F1[1], 8, 8); fold(F2[0], F2[1], 8, 8);
     put('trough', FOLD[0] + 2.6, FOLD[1] - 2.8); put('trough', F1[0] - 2, F1[1] - 2.6); put('trough', F2[0] + 2, F2[1] - 2.6);
     // ---- 털 깎는 곳
     box(5.4, 0.12, 4.4, SHED[0], BY + 2.4, SHED[1], 0xb89a62, { j: 0.06 }); for (const [dx, dz] of [[-2.4, -2], [2.4, -2], [-2.4, 2], [2.4, 2]]) { cyl(0.08, 0.09, 2.4, 6, SHED[0] + dx, BY + 1.2, SHED[1] + dz, 0x6a4a30); colR(SHED[0] + dx, SHED[1] + dz, 0.15, BY + 2.4); }
     box(1.8, 0.45, 0.8, SHED[0] - 0.6, BY + 0.22, SHED[1] + 1.2, 0x7a5a3a); for (let k = 0; k < 5; k++) sph(0.42, SHED[0] + 1.6 + (k % 2) * 0.5, BY + 0.35 + Math.floor(k / 2) * 0.42, SHED[1] - 1 + (k % 3) * 0.3, 0xece4d4, { s: [1.2, 0.8, 1], j: 0.12 }); colR(SHED[0] + 1.8, SHED[1] - 0.8, 0.8, BY + 1.2);
     // ---- 남서쪽 보리밭 · 텃밭 · 망대 · 올리브 숲
-    box(14, 0.05, 10, FIELD[0], BY + 0.02, FIELD[1], 0xc8b060, { j: 0.08 }); for (let i = 0; i < 6; i++) box(13, 0.07, 0.25, FIELD[0], BY + 0.05, FIELD[1] - 4.2 + i * 1.6, 0x8a6a40);
+    
     for (let k = 0; k < 26; k++) put('dryGrass', FIELD[0] - 6 + (k % 9) * 1.5, FIELD[1] - 4 + Math.floor(k / 9) * 3.2 + rng(), { args: [0xd8c070] });
-    box(12, 0.04, 6, FIELD[0], BY + 0.02, FIELD[1] + 11.5, 0x7a6a48); for (let r = 0; r < 4; r++) for (let k = 0; k < 9; k++) sph(0.26, FIELD[0] - 5.2 + k * 1.3, BY + 0.15, FIELD[1] + 9.4 + r * 1.4, [0x5a8a3a, 0x6a9a44, 0x7aa24c][(r + k) % 3], { s: [1, 0.7, 1], j: 0.15 });
+    for (let r = 0; r < 4; r++) for (let k = 0; k < 9; k++) sph(0.26, FIELD[0] - 5.2 + k * 1.3, BY + 0.15, FIELD[1] + 9.4 + r * 1.4, [0x5a8a3a, 0x6a9a44, 0x7aa24c][(r + k) % 3], { s: [1, 0.7, 1], j: 0.15 });
     put('booth', -45, 37, { ry: 0.6 }); colR(-45, 37, 1.3);
     for (const [x, z] of [[-56, 20], [-52, 24.5], [-58, 28.5], [-53, 32.5], [-57.5, 37], [-52, 41], [-58, 45]]) { put('olive', x, z, { s: 0.9 + rng() * 0.2 }); colR(x, z, 0.4); }
     // ---- 북서쪽 하란 성읍 (벌집 지붕 집 · 성벽 · 성문)
@@ -352,21 +370,17 @@ LAND = Ls.make({ key: 'dlcj', name: '하란 (아버지의 이야기)', BX, BZ, B
       if (x > -47 && x < -26 && z > 22 && z < 47) return true; if (Math.hypot(x - FOLD[0], z - FOLD[1]) < 8 || Math.hypot(x - F1[0], z - F1[1]) < 7 || Math.hypot(x - F2[0], z - F2[1]) < 7 || Math.hypot(x - SHED[0], z - SHED[1]) < 5) return true;
       if (x > 26 && x < 47 && z > -49 && z < -30) return true; if (Math.hypot(x - OUT[0], z - OUT[1]) < 4) return true; if (x < -60 || (x > -66 && z > 1 && z < 11 && x < -20)) return true; if (Math.abs(z - 8) < 3 && x > -10 && x < 50) return true; return false; };
     for (let i = 0; i < 150; i++) { const x = -62 + rng() * 112, z = -54 + rng() * 108; if (keep(x, z)) continue; const r = rng(); if (r < 0.14) { put('rock', x, z, { s: 0.5 + rng() * 0.9 }); colR(x, z, 0.5); } else if (r < 0.34) { put('bush', x, z, { s: 0.6 + rng() * 0.5 }); } else if (r < 0.72) put('dryGrass', x, z, { s: 0.8 + rng() * 0.5 }); else put('flowers', x, z); }
-    /* v18.61 the ground itself: worn grass, darker greens and dry patches (flat, cheap), and many more tufts, so no stretch looks like a bare floor */
-    for (let i = 0; i < 140; i++) { const x = -62 + rng() * 112, z = -54 + rng() * 108; if (x > RIVER - 4) continue; box(3 + rng() * 7, 0.03, 2.5 + rng() * 6, x, B.BY + 0.012, z, [0x8e9a58, 0xa8a66c, 0x86904e, 0xb4a878, 0x98a05e][i % 5], { ry: rng() * 3, j: 0.08 }); }
-    for (let i = 0; i < 420; i++) { const x = -62 + rng() * 112, z = -54 + rng() * 108; if (keep(x, z)) continue; put(i % 9 === 0 ? 'flowers' : 'dryGrass', x, z, { s: 0.7 + rng() * 0.6 }); }
+
+    for (let i = 0; i < 200; i++) { const x = -62 + rng() * 112, z = -54 + rng() * 108; if (keep(x, z)) continue; put(i % 9 === 0 ? 'flowers' : 'dryGrass', x, z, { s: 0.7 + rng() * 0.6 }); }
     for (const [x, z] of [[-60, -6], [-54, 50], [-6, -50], [40, 52], [48, 30]]) { put('outcrop', x, z, { s: 1.1 + rng() * 0.5 }); colR(x, z, 1.6); }
-    // ---- 서쪽 돌무더기 (이야기에서 나오기)
-    for (let i = 0; i < 6; i++) sph(0.42 + rng() * 0.15, OUT[0] - 1 + Math.cos(i * 1.3) * 0.7, BY + 0.25 + (i % 3) * 0.28, OUT[1] + Math.sin(i * 1.3) * 0.7, 0x9a9284, { s: [1.1, 0.75, 1] }); colR(OUT[0] - 1, OUT[1], 1.0, BY + 1);
-    // ---- 무대 가장자리 (보이지 않는 담 · 떨어지지 않게)
-    for (const s of [1, -1]) { col(s * 65.5, 0, 1, 120, BY - 3, BY + 6); col(0, s * 57.5, 134, 1, BY - 3, BY + 6); }
-    return { water: B.sea(63.62, [0.24, 0.46, 0.38], [0.08, 0.24, 0.2], 40) }; } });
-D.add({ key: 'jacob', land: 'dlcj', hero: '야곱', outfit: 'dlcJacob', title: '창세기 야곱 편 · 라헬을 위한 일곱 해', spawn: () => [OUT[0] + 2.5, OUT[1] + 3, Math.PI / 2],
+
+    return {}; } });
+D.add({ key: 'jacob', land: 'dlcj', dayLabel: s0 => (s0.ch | 0) === 3 && s0.T ? `${s0.T.y}년째 ${SEA[s0.T.se]}` : (s0.ch | 0) > 3 ? '일곱 해 뒤' : '하란', backTo: '아버지의 이야기를 잠시 멈추고 고센으로 돌아갈까요?', hero: '야곱', outfit: 'dlcJacob', title: '창세기 야곱 편 · 라헬을 위한 일곱 해', spawn: () => [OUT[0] + 2.5, OUT[1] + 3, Math.PI / 2],
   kit: () => ({ inv: { bread: 3, cheese: 1, fig: 2 }, tools: ['staff'], hand: 'staff', silver: 0, water: 6 }),
   target(s0) { const c = s0.ch | 0, T0 = s0.T, np = id => { const n = npc(id); return n && n.vis ? [n.x - BX, n.z - BZ] : null; };
-    if (c === 0) return np('djShep'); if (c === 1) return [WELL[0], WELL[1] + 2.8]; if (c === 2 || c === 4) return np('djLaban') || [GATE[0], GATE[1] - 2]; if (c === 5) return np('djRachel'); if (c >= 6) return [OUT[0], OUT[1]];
+    if (c === 0) return np('djShep'); if (c === 1) return [WELL[0], WELL[1] + 2.8]; if (c === 2 || c === 4) return np('djLaban') || [GATE[0], GATE[1] - 2]; if (c === 5) return np('djRachel'); if (c >= 6) return null;
     if (!T0) return null; if (T0.ap === 0) return [GATE[0], GATE[1] - 1]; const e = evOpen(T0); if (e && evReady(e, T0)) { const q = np(e.who); if (q) return q; }
     if (T0.ev === 'wolf' && !T0.guard) return [FOLD[0], FOLD[1] + 6]; if (T0.water < 45) return [WELL[0], WELL[1] + 2.8]; if (T0.se === 0 && !T0.lambed) return [FOLD[0], FOLD[1] + 6]; return null; },
   onEnter(s0) { placedFor = null; hInit = false; S().time = (s0.ch | 0) >= 3 ? 8 : 13; if (G.Weather && G.Weather.set) G.Weather.set(s0.T ? WX[s0.T.se % 4] : 'clear', 6); },
-  intro(s0) { if (!s0.ch) narr([D.card('창세기 29:1–2', '야곱 편 · 라헬을 위한 일곱 해', '야곱이 발행하여 동방 사람의 땅에 이르러 본즉, 들에 우물이 있고 그 곁에 양 세 떼가 누웠으니 이는 목자들이 그 우물에서 물을 양 떼에게 먹임이라. 큰 돌로 우물 아귀를 덮었다가…', '창세기 29:1–2'), D.card('아버지의 이야기', '젊은 야곱이 되어', '이 이야기 속에서 요셉은 젊은 날의 아버지 야곱이 되어 걸어요. 큰길을 따라 동쪽으로 가면 들의 우물이 있어요. 우물 곁의 목자들에게 말을 걸어 보세요.\n서쪽 길 끝 돌무더기에서 언제든 「이야기에서 나오기」를 할 수 있어요.')]); else toast('아버지의 이야기를 이어서 들어요'); } });
+  intro(s0) { if (!s0.ch) narr([D.card('창세기 29:1–2', '야곱 편 · 라헬을 위한 일곱 해', '야곱이 발행하여 동방 사람의 땅에 이르러 본즉, 들에 우물이 있고 그 곁에 양 세 떼가 누웠으니 이는 목자들이 그 우물에서 물을 양 떼에게 먹임이라. 큰 돌로 우물 아귀를 덮었다가…', '창세기 29:1–2'), D.card('아버지의 이야기', '젊은 야곱이 되어', '이 이야기 속에서 요셉은 젊은 날의 아버지 야곱이 되어 걸어요. 큰길을 따라 동쪽으로 가면 들의 우물이 있어요. 우물 곁의 목자들에게 말을 걸어 보세요.\n화면 오른쪽 위 「이야기에서 나오기」로 언제든 고센에 돌아갈 수 있어요. 한 만큼은 남아요.')]); else toast('아버지의 이야기를 이어서 들어요'); } });
 })(window.G);
