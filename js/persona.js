@@ -311,7 +311,8 @@ function dayTick() { const ENT = Game.ENT; if (!ENT) return; const S2 = S(), h =
     else if (h > D.bed - 2.8 && !n.d.sit) a = evenAct(id, p);
     else if (h > 6.5) a = blockAct(id, p, n, Math.floor((h + hash(id + 'off') * 1.5) / 1.5), S2.day);
     if (p.age === 'kid' && n.wander) n.wander.r = h > 7 && h < 18.5 ? Math.max(n.wander.r, 2 + hash(id + 'wr') * 4) : 0.6; // children run about by day, each as far as they dare
-    if (sl) { if (!n.sleep) { n.sleep = true; n._psleep = true; n.act = null; n._ract = null; } if (Pl && Math.hypot(Pl.x - n.x, Pl.z - n.z) < 7 && hash(id + Math.floor(pclk / 7)) < 0.35) G.Life && G.Life.bubble && G.Life.bubble(id, 'Zzz…', 2.4); continue; }
+    if (!sl && n._bed) n._bed = null;
+    if (sl) { if (!n.sleep) { if (G.Bed && !G.Bed.ready(n, id)) continue; /* v18.65 a bed is got ready first: fetch, shake, spread, smooth, sit, lie down */ n.sleep = true; n._psleep = true; n.act = null; n._ract = null; } if (Pl && Math.hypot(Pl.x - n.x, Pl.z - n.z) < 7 && hash(id + Math.floor(pclk / 7)) < 0.35) G.Life && G.Life.bubble && G.Life.bubble(id, 'Zzz…', 2.4); continue; }
     if (n._psleep) { n.sleep = false; n._psleep = false; n.emote = { k: 'stretch', t: 0, dur: 2.2, amb: true }; }
     if (a !== (n.act || null)) { n.act = a; n._ract = a; } } }
 // a straw mat under whoever sleeps out in the open (laid head to feet under the body)
@@ -328,7 +329,7 @@ if (G.NpcAI && G.NpcAI.plan) { const plan0 = G.NpcAI.plan; G.NpcAI.plan = functi
       if (m === 'sit' && p && hash(f.id + S2.day + 's' + i) < 0.6) m = 'act:' + evenAct(f.id + i, p);
       else if (m && m.startsWith('act:') && p) { const alt = ACT[p.role] || [], ho = hobAct(p), k = hash(f.id + S2.day + 'a' + i); if (ho && k < 0.25) m = 'act:' + ho; else if (alt.length > 1 && k < 0.6) m = 'act:' + pickH(alt, f.id + i + S2.day); }
       else if (m && m.startsWith('wander:')) m = 'wander:' + (+m.split(':')[1] * (mb[0] === 'E' ? 1.25 : 0.75)).toFixed(1);
-      return [+h.toFixed(2), x, z, fc, m]; }); } catch (e) { return rows; } }; }
+      return [+h.toFixed(2), x, z, fc, m, r[5]]; }); } catch (e) { return rows; } }; } /* (v18.65 r[5]: why they are there, livelife.js) */
 
 // =================================================================== per frame
 let dT = 0;

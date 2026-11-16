@@ -15,7 +15,7 @@ const friends = s => { const b = (s && s.bond) || {}; let n = 0; for (const id i
 /* each goal: id · 이름 · 어디서/어떻게 · 지금 값 · 목표 값 · (언제부터 보이는지) */
 const GROUPS = [
   { t: '사람들', list: [
-    { id: 'sy10', n: '열 사람의 사연', h: '처음 만난 사람에게 말을 걸거나 「안부 묻기」', v: s => cnt(fl(s).sy), max: 10 },
+    { id: 'sy10', n: '열 사람의 사연', h: '처음 만난 사람에게 말을 걸거나 「인사하기」', v: s => cnt(fl(s).sy), max: 10 },
     { id: 'sy40', n: '마흔 사람의 사연', h: '마을마다 사는 사람이 달라요', v: s => cnt(fl(s).sy), max: 40 },
     { id: 'friend5', n: '마음을 연 벗 다섯', h: '안부를 묻고 선물을 건네면 가까워져요', v: friends, max: 5 },
     { id: 'kind10', n: '열 번의 친절', h: '부탁을 들어주고 어려운 이를 도와요', v: s => (s.stats && s.stats.kind) || 0, max: 10 },

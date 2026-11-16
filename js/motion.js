@@ -174,6 +174,15 @@ pose('lie', false, (rig, p, t) => { // v13: on the back, hands behind the head, 
   set(rig, B.uArmL, -2.75, 0, 0.55); set(rig, B.uArmR, -2.75, 0, -0.55); set(rig, B.fArmL, -2.3); set(rig, B.fArmR, -2.3);
   set(rig, B.thighL, -0.06, 0, -0.04); set(rig, B.shinL, 0.06); set(rig, B.thighR, -0.04, 0, 0.05); set(rig, B.shinR, 0.04);
 });
+/* v18.65 getting a bed ready: shaking out the blanket (standing, both hands forward, flapping), and smoothing it flat (kneeling, hands sweeping side to side) */
+pose('shakeMat', true, (rig, p, t) => { const f = Math.sin(t * 7.5), u = Math.abs(Math.sin(t * 3.75));
+  set(rig, B.chest, 0.12 + 0.06 * u); set(rig, B.head, 0.15); set(rig, B.uArmL, -1.15 - 0.4 * f, 0, -0.12); set(rig, B.uArmR, -1.15 - 0.4 * f, 0, 0.12); set(rig, B.fArmL, -0.35 + 0.2 * f); set(rig, B.fArmR, -0.35 + 0.2 * f);
+});
+pose('smoothMat', false, (rig, p, t) => { const sw = Math.sin(t * 2.6);
+  set(rig, B.thighL, -1.45, 0, 0.28); set(rig, B.thighR, -1.45, 0, -0.28); set(rig, B.shinL, 2.15); set(rig, B.shinR, 2.15);
+  rig.off[1] = -0.47; set(rig, B.pelvis, 0.15); set(rig, B.chest, 0.62, 0.18 * sw, 0); set(rig, B.head, 0.35);
+  set(rig, B.uArmL, -1.05, 0, -0.1 + 0.45 * sw); set(rig, B.uArmR, -1.05, 0, 0.1 + 0.45 * sw); set(rig, B.fArmL, -0.2); set(rig, B.fArmR, -0.2);
+});
 pose('kneelRest', false, (rig, p, t) => { // sitting back on the heels, hands on the thighs
   /* v18.34 the knees floated ~13 cm (thighs nearly level): now thighs slope down to the knees, knees (y≈0.075) and ankles (y≈0.09) rest
      on the ground, the hips stay at the same height; the hands lie on the thighs instead of hovering past the knees */
@@ -543,7 +552,7 @@ function postureChoreo(rig, st, t) {
    It replaces both the old offset spring (models.js inertia(), one 0.12 s for everything, combat included) and the v16.8 timed
    crossfade. Cost: ~60 channels × a few multiplies per character per frame. G.Motion.inertialOn = false turns it off. */
 const WORKP = new Set(['gather', 'harvest', 'pick', 'plant', 'water', 'dig', 'squat', 'hoe', 'reap']);
-const HL = { rise: 0.24, combat: 0.05, air: 0.06, land: 0.08, start: 0.08, brake: 0.1, turn: 0.09, sharp: 0.09, gesture: 0.12, posture: 0.2, choreo: 0.15 };
+const HL = { recline: 0.55, rise: 0.24, combat: 0.05, air: 0.06, land: 0.08, start: 0.08, brake: 0.1, turn: 0.09, sharp: 0.09, gesture: 0.12, posture: 0.2, choreo: 0.15 };
 M.HL = HL; M.inertialOn = true;
 const CLOTH0 = 14 * 3, CLOTH1 = 15 * 3; // the cape has its own spring (clothSim)
 function iKey(st) { if (st.sleep) return 'sleep'; if (st.ride) return 'ride'; if (st.kneel) return 'kneel'; if (st.sit) return 'sit'; return st.act || 'loco'; }
@@ -559,7 +568,8 @@ function inertialize(rig, st, t, choreo) {
   else if (!!st.air !== z.air) hl = st.air ? HL.air : HL.land;
   else if (mode !== z.mode && mode && z.mode) hl = mode === 'stop' ? HL.brake : mode === 'turn' ? HL.turn : mode === 'move' && z.mode === 'rest' ? HL.start : 0;
   z.sharpT = Math.max(0, z.sharpT - dt); if (!hl && Math.abs(lm.turn || 0) > 4.5 && (st.speed || 0) > 1.5 && z.sharpT <= 0) { hl = HL.sharp; z.sharpT = 0.35; }
-  const fromWork = hl && key !== z.key && WORKP.has(z.key) && !WORKP.has(key); if (fromWork) hl = HL.rise; /* v18.40 after reaping or digging he simply straightens up (the swing's own speed used to fling him forward) */
+  const fromWork = hl && key !== z.key && WORKP.has(z.key) && !WORKP.has(key); if (fromWork) hl = HL.rise;
+  if (hl && ((z.key === 'sitg' && (key === 'lie' || key === 'sleep')) || ((z.key === 'lie' || z.key === 'sleep') && key === 'sitg'))) hl = HL.recline; /* v18.65 from sitting he lies back slowly (and sits up slowly) */ /* v18.40 after reaping or digging he simply straightens up (the swing's own speed used to fling him forward) */
   z.key = key; z.air = !!st.air; z.mode = mode;
   // --- start (or restart) a transition from what is on screen
   if (hl) { z.hl = hl; z.live = true; const R = rig.rot;

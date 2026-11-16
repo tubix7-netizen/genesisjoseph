@@ -141,7 +141,7 @@ L.talk = function (npcId) {
   if (avail.length && QS()[avail[0]].main) return offer(avail[0]);
   for (const qid of mine) { const q = QS()[qid]; if (q.prog) { /* v18.60 a reminder of the errand, then the person is still someone to talk with (it used to end there every time) */
       const pl = fix(typeof q.prog === 'function' ? q.prog(S, Game) : q.prog, nm), chatF = L.chatWith(npcId, done);
-      G.UI.say([Object.assign({}, pl, { choices: [].concat(chatF ? [{ t: '이야기 나누기', then: chatF }] : [], [{ t: chatF ? '작별 인사' : '알겠어요', then: done }]) })], null); return true; } }
+      G.UI.say([Object.assign({}, pl, { choices: [].concat(chatF ? [{ t: '이야기 나누기', then: chatF }] : [], [{ t: chatF ? '떠나기' : '알겠어요', then: done }]) })], null); return true; } }
   if (avail.length) return offer(avail[0]);
   return false;
 };

@@ -24,7 +24,7 @@ T.flow = function (o) { const used = o.used || (o.used = {});
 /* a line in someone's voice when they have nothing more planned */
 T.more = (n, id) => { const C = G.Cast && G.Cast.of && G.Cast.of(id || n.id); return C && C.more ? { n: n.name, t: C.more } : null; };
 /* a menu of at most three: the person's own business first (if any), 「이야기 나누기」, a way out */
-T.top = function (lines, o) { const ch = [].concat(o.act ? [o.act] : [], o.chat ? [{ t: o.chatT || '이야기 나누기', then: o.chat }] : [], [{ t: o.byeT || '작별 인사', then: () => { if (o.bye) o.bye(); } }]);
+T.top = function (lines, o) { const ch = [].concat(o.act ? [o.act] : [], o.chat ? [{ t: o.chatT || '이야기 나누기', then: o.chat }] : [], [{ t: o.byeT || '떠나기', then: () => { if (o.bye) o.bye(); } }]);
   const ls = lines.slice(); const last = ls[ls.length - 1]; ls[ls.length - 1] = Object.assign({}, last, { choices: ch }); G.UI.say(ls, null); };
 
 // ------------------------------------------------------------------ the three angels of the ladder (꿈의 세계 · 「사다리의 세 천사」)

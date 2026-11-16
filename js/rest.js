@@ -55,6 +55,19 @@ if (G.Vitals && G.Vitals.stamCap) { const cap0 = G.Vitals.stamCap; G.Vitals.stam
 { const E = G.EP && G.EP.joseph; if (E) { const up0 = E.update; E.update = function (dt, s) { if (up0) up0.apply(this, arguments); try { R.update(dt); } catch (e) { console.error('rest', e); } };
   /* the tent: not in Canaan (the story has not reached Egypt yet), never inside a village */
   const can0 = E.canBuild; E.canBuild = function (x, z, s, k) { const r = can0 ? can0.apply(this, arguments) : null; if (r) return r; if (k === 'camp') { if (G.Cast && G.Cast.era && G.Cast.era() === 'canaan') return '텐트는 애굽에 간 뒤부터 칠 수 있어요'; if (Game.townAt && Game.townAt(x, z)) return '텐트는 마을 밖에 쳐요'; } return null; }; } }
+/* v18.65 a few hours' sleep by day (낮잠): after a sleepless night he may lie down any time, not only at night.
+   · 침대 · 집 · 텐트 · 동굴에서: 서너 시간 자면 밤샘 피로가 모두 풀려요. 밖(그늘 · 들판)에서 「눕기」로: 두세 시간, 하루치가 풀려요.
+   · 밤샘이 없어도 잠깐 쉴 수는 있어요(기력과 체력이 차요). 궂은 날 밖에서는 못 자요(R.judge). 밤에는 원래대로 아침까지 자요. */
+R.nap = function (where, cb) { const s = S(), p = P(); if (!s) return; const j = R.judge(), inside = where === 'bed' || where === 'tent' || j.shelter;
+  if (!inside && j.block) { G.UI.toast(j.block, true); cb && cb(false); return; }
+  const f = F(), n0 = f.n | 0, hrs = n0 ? (inside ? 3.5 : 2.5) : 2;
+  G.UI.fade(() => { s.time = Math.min(s.time + hrs, s.time < 24 ? 23.5 : 29.6); /* never on into the next morning (that would count as a night) */
+    f.n = inside ? 0 : Math.max(0, n0 - 1); const H = s.hero; if (H) { H.hp = Math.min(H.hpMax, H.hp + H.hpMax * (inside ? 0.6 : 0.35)); if (H.mindMax) H.mind = Math.min(H.mindMax, (H.mind || 0) + H.mindMax * 0.4); }
+    p.stam = (G.Vitals && G.Vitals.cap) || (H && H.stamMax) || 140; p.exhausted = false; G.UI.hud && G.UI.hud(); },
+    () => { const left = f.n | 0; pop(n0 ? '한숨 푹 잤어요' : '잠깐 눈을 붙였어요', n0 ? (left ? `밤샘 피로가 하루치 풀렸어요 · 아직 ${left}일 남았어요 (집이나 텐트에서 자면 다 풀려요)` : '밤샘 피로가 모두 풀렸어요') : '기력과 체력이 찼어요', n0 ? 'star' : 'moon'); cb && cb(true); }); };
+R.napAsk = function (where, cb, intro) { const n = R.n(), inside = where === 'bed' || where === 'tent';
+  const t = (intro ? intro + ' ' : '') + (n ? `밤을 새워 눈꺼풀이 무거워요. ${inside ? '서너 시간 푹 자면 밤샘 피로가 모두 풀려요' : '여기서 두세 시간 눈을 붙이면 밤샘 피로가 하루치 풀려요'}.` : '아직 밤은 아니지만 잠깐 눈을 붙일 수 있어요(두 시간쯤).');
+  G.UI.say([{ n: '', t, choices: [{ t: n ? '몇 시간 자기' : '잠깐 낮잠 자기', then: () => setTimeout(() => R.nap(where, cb), 40) }, { t: '그냥 둔다', then: () => cb && cb(false) }] }]); };
 /* a hearty cooked meal before bed */
 { const eat0 = Game.eat; Game.eat = function (k) { const s = S(), before = Game.inv(k); const r = eat0.apply(this, arguments); try { const p = G.Cuisine && G.Cuisine.profile ? G.Cuisine.profile(k) : null; if (s && p && (p.tier | 0) >= 3 && Game.inv(k) < before) s.flags.hearty = s.time; } catch (e) { } return r; }; }
 })(window.G);
