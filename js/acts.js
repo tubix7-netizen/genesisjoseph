@@ -38,7 +38,7 @@ Ac.play = function (k, o) {
   if (P.act || P.atk || (P.dodgeT > 0)) return false;
   if (k === 'pet') { const a = nearestAnimal(2.6); if (!a) return no('가까이에 쓰다듬을 동물이 없어요 · 양이나 나귀 곁으로 가 보세요'); P.face = Math.atan2(a.x - P.x, a.z - P.z); P.petTarget = a; }
   if (k === 'warmHands') { const f = nearestFire(6); if (f) P.face = Math.atan2(f.x - P.x, f.z - P.z); }
-  P.emote = { k, t: 0, dur: d[1].dur || 0, slept: false }; P.resting = !!d[1].rest; P.vx *= 0.3; P.vz *= 0.3;
+  P.emote = k === 'lie' && !o.now ? { k: 'sitg', t: 0, dur: 0, slept: false, then: 'lie', at: 1.9 } : { k, t: 0, dur: d[1].dur || 0, slept: false }; P.resting = !!d[1].rest; P.vx *= 0.3; P.vz *= 0.3; /* v18.65 lying down: he sits first, then lies back slowly */
   if (k === 'flute') tune = { i: 0, next: 0.25, song: rnd(SONGS) }; else tune = null;
   if (P.resting && !tipRest && !o.quiet) { tipRest = true; UI.toast('쉬는 중 · 기력이 빨리 차고 배가 덜 고파요'); }
   if (!o.quiet) react(k); label();
@@ -54,6 +54,7 @@ Ac.update = function (dt) {
   const P = Game.P, e = P.emote; if (!e) return;
   if (P.act || P.atk || P.ride || P.swim || Game.cineOn || Game.mode !== 'play' || !P.grounded || P.carry || P.sit || P.kneel || P.sleeping) { Ac.stop(); return; }
   e.t += dt; if (e.dur && e.t >= e.dur) { Ac.stop(); return; }
+  if (e.then && e.t >= e.at) { P.emote = { k: e.then, t: 0, dur: 0, slept: false }; return; }
   if (e.k === 'clap' || e.k === 'dance2') { e.ct = (e.ct || 0) - dt; if (e.ct <= 0) { e.ct = e.k === 'clap' ? 0.334 : 0.507; sfx('clap', { pitch: 0.9 + Math.random() * 0.2, vol: 0.55 }); } }
   if (e.k === 'flute' && tune) { tune.next -= dt; if (tune.next <= 0) { const n = tune.song[tune.i % tune.song.length]; tune.i++; if (n[0]) sfx('ney', { note: n[0], dur: n[1] * 0.42 * 0.95, gap: 0.01 }); tune.next = n[1] * 0.42; if (tune.i % tune.song.length === 0) tune.next += 0.9; }
     // sheep and goats nearby come and listen
@@ -62,6 +63,7 @@ Ac.update = function (dt) {
       sfx({ goat: 'goat', camel: 'camel', horse: 'nicker', donkey: 'snort', cow: 'moo', ox: 'moo' }[sp] || 'bleat', { pitch: a.lamb ? 1.4 : 1, soft: 1, pos: 1 }); /* v18.52 a content little sound of its own kind */
       G.FX.burst(a.x, (a.y || P.y) + 1.0, a.z, 8, { c: [1, 0.62, 0.7], sp: 0.5, up: 1.1, size: 0.16, g: -0.2 });
       const S = Game.S(); S.flags.petted = (S.flags.petted || 0) + 1; if (S.flags.petted === 1 || S.flags.petted % 10 === 0) UI.toast(rnd(['기분이 좋은지 꼬리를 흔들어요', '포근한 털이 따뜻해요', '고개를 비비며 따라와요'])); } }
+  if (e.k === 'lie' && !e.slept && e.t > 2.6 && G.Rest && G.Rest.n() > 0) { const h = Game.hour(); if (h >= 4.5 && h < 19.5 && !UI.busy()) { e.slept = true; G.Rest.napAsk('open', ok => { if (ok) Ac.stop(); }, '그늘에 누우니 스르르 눈이 감겨요.'); } } /* v18.65 a nap out of doors after a sleepless night */
   if (e.k === 'lie' && !e.slept && e.t > 2.6) { e.slept = true; const h = Game.hour(); if ((h >= 19.5 || h < 4.5) && !UI.busy()) UI.say([{ n: '', t: '별이 쏟아지는 밤이에요. 이대로 아침까지 잘까요?', choices: [{ t: '별을 보며 잔다', then: () => setTimeout(() => { Ac.stop(); Game.sleep(); }, 50) }, { t: '조금 더 누워 있는다' }] }]); }
 };
 

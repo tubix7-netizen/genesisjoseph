@@ -57,7 +57,7 @@ B.talk = function (n, lines, done) { const id = n.id || Object.keys(Game.ENT.npc
   if (ls[0] && ls[0].keep) { B.chat(n, done, true); return; } /* (an older 「또 무슨 이야기를…」 call: straight back into the talk) */
   /* v18.60 at most three ways to go: a family member who walks with you can be asked to wait; 「이야기 나누기」; 작별 */
   const ch = []; if (F && F.walk && n.follow) ch.push({ t: '여기서 기다려 줘요', then: () => { n.follow = false; G.UI.toast(`${n.name}이(가) 여기서 기다려요`); done && done(); } });
-  ch.push({ t: '이야기 나누기', then: () => B.chat(n, done) }, { t: '작별 인사', then: () => done && done() });
+  ch.push({ t: '이야기 나누기', then: () => B.chat(n, done) }, { t: '떠나기', then: () => done && done() });
   const last = ls[ls.length - 1]; ls[ls.length - 1] = Object.assign({}, last, { choices: ch });
   G.UI.say(ls, null); };
 /* v18.60 the talk itself: how they are first, then the next thing opens up (a gift, a meal, a walk, a game) — two at a time */
