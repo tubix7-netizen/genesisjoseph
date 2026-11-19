@@ -93,12 +93,14 @@ const famAsk = (id, a) => { const f = (a || []).filter(kidOK), L = f.length ? f 
 const kidOK = t => { const q = (Game.S() && Game.S().q) || {}; return q.born2 ? true : q.born1 ? !/에브라임/.test(t) : !/아이|므낫세|에브라임/.test(t); }, pk = a => { const f = (a || []).filter(kidOK); return rnd(f.length ? f : a); };
 B.meal = function (n, done) { const S = Game.S(), P = Game.P, b = B.get(n.id); b.meal = S.day; const F = fam(n.id);
   G.UI.fade(() => { P.emote = { k: 'sitg', t: 0, dur: 1e4 }; /* v18.34 on the floor mat, not on an invisible chair */ const H = S.hero; if (H) H.hp = H.hpMax; P.stam = (H && H.stamMax) || 100; if (G.Vitals && G.Vitals.mindGain) G.Vitals.mindGain(25); if (S.surv) S.surv.food = 100; }, () => {
-    G.UI.say([{ n: '', t: pk(['식탁에 따뜻한 빵과 렌틸 죽, 대추야자가 차려졌습니다.', '아이들이 앞다투어 오늘 있었던 일을 이야기했습니다.', '나일 강에서 잡은 생선이 구수하게 익었습니다.']) },
+    const quiet = G.Quiet && G.Quiet.is(n.id); /* v18.73 people of the Bible: the meal in narration only (no words of theirs, none of Joseph's) */
+    G.UI.say(quiet ? [{ n: '', t: pk(['식탁에 따뜻한 빵과 렌틸 죽, 대추야자가 차려졌습니다.', '나일 강에서 잡은 생선이 구수하게 익었습니다.']) }, { n: '', t: '온 가족이 둘러앉아 함께 먹었습니다.' }]
+      : [{ n: '', t: pk(['식탁에 따뜻한 빵과 렌틸 죽, 대추야자가 차려졌습니다.', '아이들이 앞다투어 오늘 있었던 일을 이야기했습니다.', '나일 강에서 잡은 생선이 구수하게 익었습니다.']) },
       { n: n.name, t: pk(F.mealTalk) }, { n: '요셉', t: pk(['하나님, 이 식탁을 주셔서 감사합니다.', '고마워요. 오늘도 덕분에 힘이 나요.', '(아이들의 웃음소리를 들으며 미소 짓는다)']) }],
       () => { P.emote = null; B.add(n.id, 5, '함께한 식사'); for (const k in Game.EP().family) if (k !== n.id && Game.ENT.npcs[k] && Game.ENT.npcs[k].vis) B.add(k, 2); G.UI.toast('체력·기력·정신력이 가득 찼어요'); done && done(); }); }); };
 B.play = function (n, done) { const S = Game.S(), P = Game.P, b = B.get(n.id); b.play = S.day; const F = fam(n.id), game = rnd(F.games);
   n.emote = { k: game.k, t: 0, dur: 5 }; P.emote = { k: game.me, t: 0, dur: 5 }; sfx('cheer');
-  G.UI.say([{ n: '', t: game.t }, { n: n.name, t: rnd(game.kid) }], () => { B.add(n.id, 5, '함께 논 시간'); if (G.Vitals && G.Vitals.mindGain) G.Vitals.mindGain(15); done && done(); }); };
+  G.UI.say(G.Quiet && G.Quiet.is(n.id) ? [{ n: '', t: game.t }] : [{ n: '', t: game.t }, { n: n.name, t: rnd(game.kid) }], () => { /* v18.73 the boys play without words of their own */ B.add(n.id, 5, '함께 논 시간'); if (G.Vitals && G.Vitals.mindGain) G.Vitals.mindGain(15); done && done(); }); };
 // family members who walk with you
 B.update = function (dt) { const P = Game.P; if (!Game.S()) return; for (const id in Game.ENT.npcs) { const n = Game.ENT.npcs[id]; if (!n.follow || !n.vis) continue; const d = Math.hypot(n.x - P.x, n.z - P.z);
     if (d > 60) { n.follow = false; continue; } if (d > 2.6 && (!n.walk || (B.fT = (B.fT || 0) - dt) < 0)) { B.fT = 0.5; const a = P.face + Math.PI + (id.length % 3 - 1) * 0.6; /* v18.35 standing still: they stop in front of you (the spot behind your back made them run past you) */ const k = 1.5 / Math.max(1, d), tx = P.spd > 0.6 ? P.x + Math.sin(a) * 1.6 : P.x + (n.x - P.x) * k, tz = P.spd > 0.6 ? P.z + Math.cos(a) * 1.6 : P.z + (n.z - P.z) * k; Game.npcWalk(id, tx, tz, () => { n.face = n.homeFace = Math.atan2(P.x - n.x, P.z - n.z); }, d > 6 ? 4.2 : 2.4); } } };

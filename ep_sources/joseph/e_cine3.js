@@ -105,17 +105,7 @@ function cinIAmJoseph(S, G, next) { const [hx, hz] = G7HOUSE, hh = hAt(hx, hz + 
     { at: onJ(-1.20, 0.05, 1.80), cam: [hx - 1.2, hh + 1.6, hz + 1.8], look: [hx, hh + 1.6, hz], dur: 9, n: '요셉', t: '그런즉 나를 이리로 보낸 자는 당신들이 아니요 하나님이시라. 하나님이 나로 바로의 아비를 삼으시며 그 온 집의 주를 삼으시며 애굽 온 땅의 치리자를 삼으셨나이다.', ref: '창세기 45:8', e: 'tender' },
     { fn: () => { const b = G.npc('benjamin2'); if (b) { b.act = null; G.npcTo('benjamin2', hx + 0.5, hz + 0.9, Math.PI, false); b.emote = { k: 'weep', t: 0, dur: 22, amb: true }; } }, cam: [hx + 2.6, hh + 1.5, hz + 0.4], look: [hx + 0.2, hh + 1.4, hz + 0.5], dur: 8,
       t: '자기 아우 베냐민의 목을 안고 우니 베냐민도 요셉의 목을 안고 우니라. 요셉이 또 형들과 입맞추며 안고 우니 형들이 그제야 요셉과 말하니라.', ref: '창세기 45:14–15' },
-    /* v18.34 the promise made at Hebron (p_provision: 「형, 꼭 빨리 와야 해. 약속!」) is answered at last */
-    { cam: [hx + 1.5, hh + 1.5, hz - 0.9], look: [hx + 0.5, hh + 1.5, hz + 0.9], dur: 5.5, n: '베냐민', t: '형… 금방 온다고 약속했잖아. 스무 해가 넘게 기다렸어.', e: 'cry' },
-    { at: onJ(2.30, 0.05, 0.20), cam: [hx + 2.3, hh + 1.55, hz + 0.2], look: [hx + 0.2, hh + 1.5, hz + 0.45], dur: 6, n: '요셉', t: '늦어서 미안해, 베냐민. 오늘 밤엔 별 이야기 해 줄게. 이제는 날마다. 하나님이 우리 약속을 잊지 않으셨어.', e: 'cry' },
-    /* v18.56 Benjamin's stone comes home, and the two brothers who carry that day the most each say their word */
-    { cam: [hx + 1.2, hh + 1.2, hz + 0.1], look: [hx + 0.3, hh + 1.0, hz + 0.6], dur: 6, fov: 0.5, t: '요셉이 품에서 닳고 닳은 작은 돌멩이를 꺼냈습니다. 헤브론을 떠나던 날, 어린 베냐민이 쥐여 준 그 돌이었습니다.' },
-    { cam: [hx + 2.0, hh + 1.5, hz - 0.6], look: [hx + 0.5, hh + 1.5, hz + 0.9], dur: 6, n: '베냐민', t: '그거… 아직 가지고 있었어? 형, 그거 내 보물이었는데…', e: 'cry' },
-    { at: onJ(1.40, 0.05, 1.60), cam: [hx + 1.4, hh + 1.6, hz + 1.6], look: [hx, hh + 1.6, hz], dur: 6, n: '요셉', t: '구덩이에서도, 옥에서도 이걸 쥐고 있었어. 무서우면 꼭 쥐라며.', e: 'cry' },
-    { cam: [hx + 1.8, hh + 1.25, hz + 1.7], look: [hx + 0.8, hh + 0.85, hz + 4], dur: 7, n: '유다', t: '…요셉아. 그날 은 이십 개를 받고 너를 넘기자고 한 건 나였다. 나를 벌해라.', e: 'cry' },
-    { at: onJ(-0.75, 0.05, 1.75), cam: [hx - 0.6, hh + 1.6, hz + 1.4], look: [hx, hh + 1.6, hz], dur: 7, n: '요셉', t: '유다 형님은 베냐민 대신 종이 되겠다고 하셨어요. 그날, 형님은 이미 다른 사람이었어요.', e: 'tender' },
-    { cam: [hx - 4.8, hh + 1.25, hz + 1.6], look: [hx - 4, hh + 0.85, hz + 4], dur: 7, n: '르우벤', t: '그날 밤 구덩이에 돌아갔을 때 네가 없었다. 스무 해 동안, 나는 날마다 그 빈 구덩이를 들여다보며 살았다.', e: 'cry' },
-    { at: onJ(1.22, 0.05, 1.46), cam: [hx + 1, hh + 1.7, hz + 1.2], look: [hx, hh + 1.6, hz], dur: 7, fov: 0.5, n: '요셉', t: '르우벤 형님… 이제 그 구덩이는 비어 있어도 괜찮아요. 제가 여기 있잖아요.', e: 'cry' },
+    /* v18.73 the made-up lines after 45:15 (Benjamin's promise and stone, Judah's and Reuben's words, Joseph's answers) are gone: the main story is the Bible only */
   ], () => { cpose(null); BRO11.forEach(id => { const n = G.npc(id); if (n) { n.act = null; n.emote = null; } }); next && next(); });
 }
 function cinSendOff(S, G, next) { const cx = 34, cz = -30, ch = hAt(cx, cz), hh = hAt(G7HEB[0], G7HEB[1]);

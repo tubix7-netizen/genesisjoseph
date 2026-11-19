@@ -104,7 +104,12 @@ function build(W, Game) {
   W.canopies = [];
   const ROOFED = { portico: a => [a[0], a[1], a[2] || 4], room: a => [a[0], a[1], a[2] || 3], cellRow: a => [a[0] * a[1], a[2], a[3] || 2.8], pavilion: a => [a[0], a[1], a[2] || 2.6] };
   const CLEAR = [[-91, -69, 10]]; /* v18.52 the north Nile landing (the Byblos · Caphtor · Kush boats): open ground, no scattered trees or rocks */
-  const P = (fn, x, z, o) => { if (typeof fn === 'string' && (CANOPY[fn] || /^(bush|rock|outcrop|retama)$/.test(fn)) && !(o && o.keep) && CLEAR.some(c => Math.hypot(x - c[0], z - c[1]) < c[2])) return { x, y: W.heightAt(x, z), z }; if (fn === 'rugEg') o = Object.assign({}, o, { dy: 0.06 }); if (fn === 'palmRow') for (let i = 0; i < ((o && o.args && o.args[0]) || 0); i++) W.addCol({ x: x + i * 4, z, r: 0.4, h: 3 }); /* v18.35b palms in a row are solid too */ if (fn === 'gatePosts' && o && o.args) for (const s of [1, -1]) W.addCol({ x: x + s * (o.args[0] / 2 + 0.6), z, w: 1.2, d: 1.4, h: 4, cam: true });
+  /* v18.66 nothing grows or lies on a road: a tree, bush or boulder that would stand on one is moved to the nearest spot beside it (trunks 3.2 m from the middle, the rest 2.4 m) */
+  const offRoad = (fn, x, z) => { const clear = CANOPY[fn] ? 3.2 : 2.4; if (roadD(x, z) >= clear) return [x, z]; for (let r = 0.6; r <= 7; r += 0.6) for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r; if (roadD(nx, nz) >= clear) return [nx, nz]; } return null; };
+  GG.PROPLOG = []; /* v18.72 every prop the story map puts down: [name, x, z] (for checking that a quest's 「대야」 really has a basin) */
+  const P = (fn, x, z, o) => { if (typeof fn === 'string' && (CANOPY[fn] || /^(bush|rock|outcrop|retama|rockField|desertShrub|honeyRock|caperBush|herbBush)$/.test(fn)) && !(o && (o.keep || o.y !== undefined))) { const q = offRoad(fn, x, z); if (!q) return { x, y: W.heightAt(x, z), z }; x = q[0]; z = q[1]; }
+    if (typeof fn === 'string') GG.PROPLOG.push([fn, x, z]);
+    if (typeof fn === 'string' && (CANOPY[fn] || /^(bush|rock|outcrop|retama)$/.test(fn)) && !(o && o.keep) && CLEAR.some(c => Math.hypot(x - c[0], z - c[1]) < c[2])) return { x, y: W.heightAt(x, z), z }; if (fn === 'rugEg') o = Object.assign({}, o, { dy: 0.06 }); if (fn === 'palmRow') for (let i = 0; i < ((o && o.args && o.args[0]) || 0); i++) W.addCol({ x: x + i * 4, z, r: 0.4, h: 3 }); /* v18.35b palms in a row are solid too */ if (fn === 'gatePosts' && o && o.args) for (const s of [1, -1]) W.addCol({ x: x + s * (o.args[0] / 2 + 0.6), z, w: 1.2, d: 1.4, h: 4, cam: true });
     if (fn === 'egHouse' && o) { // v12: houses were one low storey; raise them to a proper two-storey height (model and collider together)
       o = Object.assign({}, o); if (o.args && o.args[0]) o.args = [Object.assign({}, o.args[0], { h: (o.args[0].h || 3) * 1.45 })]; if (o.col) o.col = Object.assign({}, o.col, { h: (o.col.h || 3) * 1.45 }); }
     // v18.8: on phones (GG.treeLod) the trees standing beside the roads are left out, and the forest is thinned by a third (trees were most of the world's triangles); trees near a story place (SPOTS / PADS) are kept.
@@ -251,6 +256,10 @@ function build(W, Game) {
       P('dais', -30, -208.6, { args: [6, 4.4, 0.14], col: null }); for (const [x, z] of [[-24.2, -192.6], [-39.8, -192.6]]) P('brazier', x, z);
       GG.PALACE = { bedCol: W.addCol({ x: -30, z: -208.6, w: 2.7, d: 2.3, h: 1.1 }), bed: W.addCol({ x: -30, z: -190, w: 2.4, d: 0.4, h: 3 }), office: W.addCol({ x: -14, z: -190, w: 2.4, d: 0.4, h: 3 }) }; } wallL(gx + 9.9, z1, x1, z1, 5);
     for (const s of [1, -1]) P('brickTower', gx + s * 6.6, z1, { args: [6.2, 2.4, 6], col: { w: 6.6, d: 2.4, h: 6.4, cam: true } }); P('gatePosts', gx, z1, { args: [5] }); /* v18.55 a palace gate of plastered brick (no pylons, no obelisks) */
+    /* v18.74 the palace front: long banners on both gate towers, a blue carpet out of the gate, braziers either side of it */
+    for (const s of [1, -1]) for (const k of [0, 1]) { const fc = [[OCHRE, LAPIS], [TURQ, OCHRE]][k][s > 0 ? 0 : 1];
+      P((g, M) => { g.box(1.5, 0.18, 0.12, { m: M, at: [0, 5.55, 0], c: GOLD, j: 0 }); g.box(1.3, 3.7, 0.05, { m: M, at: [0, 3.65, 0], c: fc, j: 0.02 }); g.box(1.3, 0.22, 0.06, { m: M, at: [0, 4.9, 0.01], c: GOLD, j: 0 }); g.box(1.3, 0.16, 0.06, { m: M, at: [0, 2.2, 0.01], c: LINEN, j: 0 }); g.box(0.5, 0.5, 0.06, { m: M, at: [0, 3.7, 0.015], c: GOLD, j: 0 }); }, gx + s * (4.9 + k * 3.4), z1 + 1.24, { col: null }); }
+    P('rugEg', gx, z1 + 6, { args: [2.6, 12, LAPIS, GOLD], col: null }); for (const s of [1, -1]) P('brazier', gx + s * 3.4, z1 + 9.5);
     for (let row = 0; row < 3; row++) for (const s of [1, -1]) { const x = gx + s * 7.5, z = -150 - row * 7; P('column', x, z, { args: [6.5], col: { r: 0.85, h: 7, cam: true } }); }
     for (const s of [1, -1]) { P('pool', gx + s * 14, -152, { args: [6, 9] }); GG.wade(W, gx + s * 14, -152, 6, 9); }
     P('dais', gx, -176, { args: [10, 6, 1.1], col: { w: 10, d: 6, h: 1.1 } }); P('throne', gx, -177.4, { y: padH(gx, -176) + 1.1 });
@@ -287,6 +296,7 @@ function build(W, Game) {
   around(176, 152, 38, 14, ['fig', 'olive', 'deadwood', 'rock']); around(188, -12, 30, 8, ['olive', 'fig', 'deadwood']);
   { const r2 = GG.rng(9001); let nsid = 0; const near = (cx, cz, rr, n, types) => { for (let i = 0; i < n; i++) { const a = r2() * 6.28, d = rr * (0.4 + r2() * 0.6), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (roadD(x, z) < 4.5 || PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r * 0.75)) continue; if (waterDist(x, z) >= 4) W.nodes.push({ id: 'ns' + (nsid++), type: types[i % types.length], x, y: W.heightAt(x, z), z, ry: r2() * 6, s: 0.85 + r2() * 0.3 }); } }; // v18.12 stones: creek pebbles near the well, flint and black rock out on the hills
     near(160, 150, 26, 5, ['creek']); near(176, 152, 40, 4, ['flintrock', 'rock']); near(188, -12, 32, 6, ['creek', 'flintrock', 'blackrock']); near(150, 40, 40, 5, ['rock', 'creek', 'blackrock']); }
+  if (typeof proBuild === 'function') proBuild(W, P); if (typeof ch1Build === 'function') ch1Build(W, P); if (typeof ch2Build === 'function') ch2Build(W, P); if (typeof ch3Build === 'function') ch3Build(W, P); if (typeof ch5Build === 'function') ch5Build(W, P); if (typeof ch8Build === 'function') ch8Build(W, P); /* v18.67 the prologue's road places (e_prologue.js) */
   furnish(P, W);
 }
 

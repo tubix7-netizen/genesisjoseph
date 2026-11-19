@@ -14,7 +14,7 @@ const NM = {
   issachar: '잇사갈', zebulun: '스불론', man: '들의 사람', ishmael: '이스마엘 상인', ishBoy: '대상의 아이', midian: '미디안 상인', dinah: '디나', leah: '레아', hServ: '야곱의 종',
   auctioneer: '노예 상인', potiphar: '보디발', wife: '보디발의 아내', ameni: '늙은 종 아메니', neb: '청지기 네브', cook: '요리사 헤누', gardener: '정원지기 앙쿠', boy: '소 치는 아이 파이',
   weaver: '베 짜는 여인 타뮈', scribe: '서기관 이피', guest1: '왕궁 관리', guest2: '신전 제사장', guest3: '군대 장교', keeper: '간수장', cupbearer: '술 맡은 관원장', baker: '떡 굽는 관원장',
-  oldP: '늙은 죄수', youngP: '어린 죄수', prisA: '죄수 케티', prisB: '죄수 메루', messenger: '바로의 사자', pharaoh: '바로', magician: '애굽의 점술가', sage: '애굽의 현인',
+  oldP: '늙은 죄수 파네브', youngP: '어린 죄수', prisA: '죄수 케티', prisB: '죄수 메루', messenger: '바로의 사자', pharaoh: '바로', magician: '애굽의 점술가', sage: '애굽의 현인',
   asenath: '아스낫', manasseh: '므낫세', ephraim: '에브라임', overseerW: '서쪽 마을 촌장', overseerS: '남쪽 마을 촌장', overseerC: '성읍 감독관', brick: '벽돌 굽는 이 우니',
   farmer: '애굽 농부', woman: '애굽 여인', elder: '애굽 노인', sidon: '시돈의 상인', edom: '에돔의 목자', canaan: '가나안의 나그네', steward2: '요셉의 청지기',
   cartMan: '왕궁 수레지기 호리', kaiClerk: '서기 카이' /* v18.58 these two spoke under their code names */ };
@@ -32,7 +32,8 @@ const brookZ = x => 84 + 4 * Math.sin(x / 9);                        // 헤브�
 const FORDS = [-60, 100];
 const PIT = { x: 168, z: -140, r: 3.0, wall: 2.35, depth: 4.4 };       // 도단의 빈 구덩이 (창 37:24)
 const ROADS = [
-  [[176, 146], [178, 112], [182, 76], [184, 40], [186, 4], [184, -30], [176, -66], [169, -104], [165, -132]],   // 헤브론 → 세겜 → 도단
+  /* v18.67 the road winds through the hill country (Hebron → Shechem ≈ 320 m, Shechem → Dothan ≈ 190 m): Joseph walks it day by day */
+  [[176, 146], [178, 130], [160, 120], [134, 112], [128, 96], [146, 86], [176, 82], [192, 74], [194, 58], [176, 50], [150, 46], [134, 36], [140, 22], [162, 16], [186, 10], [186, 4], [184, -30], [178, -48], [156, -56], [136, -66], [138, -82], [160, -90], [169, -104], [165, -132]],   // 헤브론 → 세겜 → 도단
   [[234, -158], [200, -154], [166, -150]],                                                                          // 길르앗 → 도단 (대상의 길)
   [[160, -150], [130, -124], [96, -84], [64, -34], [44, 24], [30, 76], [10, 108], [-6, 118]],                        // 도단 → 광야 → 애굽
   [[-6, 118], [-20, 92], [-28, 72], [-28, 26], [-29, 14]], [[-28, 26], [-24, -30], [-22, -60], [-24, -100], [-28, -124], [-30, -140]], // 애굽 동쪽 길: 장터 → 보디발 → 옥 → 성읍 → 궁
@@ -127,6 +128,7 @@ function color1(x, z, h, ny) {
 // named places
 const SPOTS = {
   hebron: [176, 152], jacobTent: [170, 147], josephTent: [183, 157], bedHeb: [184.21, 158.61], log: [181.1, 84], restOak: [186, 32], restBed: [189.2, 32.4], /* v18.41 off the road, in front of the oak beside the fire */
+  waystone: [181, 131], shadeOak: [139, 108], micah: [160, 97], micahTent: [165, 101], micahLamb: [116, 90], hamlet: [118, 32], hamletWell: [124, 29], shechemView: [146, 19], clue4: [200, -6], gorge: [137, -74], dothanWell: [158, -98], /* v18.67 the prologue's new places (e_prologue.js) */
   shechem: [188, -12], clue1: [178, -6], clue2: [197, -21], clue3: [186, -31], manSpot: [196, -36], dothanView: [169, -100], dothanCamp: [160, -148],
   caravanStart: [200, -154], caravanNight: [60, -28], egyptGate: [26, 86], market: [-8, 118], block: [-10, 114],
   pGate: [-28, 71], pHouse: [-28, 42], quarters: [-45, 53], kitchen: [-12, 45], well: [-38, 61], pool: [-18, 58], store: [-12, 64], loom: [-44, 64], quern: [-12.3, 45.2],

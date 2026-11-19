@@ -36,15 +36,17 @@ function cellGive(S, G, i) {
   else { (S.q.fed = S.q.fed || {})[i] = 1; act('pick', 0.7); if (Object.keys(S.q.fed).length >= 4) { G.P.carry = null; } }
   bubble(id, GIVE_T[id][keeper ? 0 : 1], 3); G.UI.quest(); G.checkStep();
 }
-function fight(S, G) {
-  say([N('prisA', '메루 녀석이 내 떡을 훔쳐 먹었어!', '', 'angry'), N('prisB', '거짓말! 네가 먼저 내 물을 엎질렀잖아!', '', 'angry'),
-    { n: '요셉', t: '어떻게 말릴까?', choices: [
-      { t: '"제 몫의 떡을 반씩 나눠 드릴게요. 대신 서로 손을 잡으세요."', ok: true },
-      { t: '"간수장께 일러서 둘 다 벌을 받게 하겠어요."', ok: false, fb: '벌은 미움을 키울 뿐이에요. 형제의 미움이 어디까지 갈 수 있는지, 요셉은 누구보다 잘 알았습니다.' },
-      { t: '(모른 척한다)', ok: false, fb: '옥중의 일을 맡은 이상, 요셉은 외면할 수 없었습니다.' }] },
-    N('prisA', '…네 몫을? 그럼 너는 뭘 먹고.', '', 'awe'), J('저는 괜찮아요. 하나님이 먹이실 거예요.', '', 'tender'),
-    N('prisA', '……미안하다, 메루. 물은 내가 실수로 엎은 거야.', '', 'sad'), N('prisB', '…나도 거짓말이라고 소리친 거, 미안하다. 떡은 내가 반 나눠 줄게.', '', 'sad')], () => tick(S, 'fight'));
+function fight(S, G) { /* v18.73 no made-up words of Joseph's: he settles it as the one in charge (39:22), the narration tells it
+     · v18.75 a quarrel that can happen between two locked cells: right after the bread is handed out, each thinks the other got more.
+       They stand at the bars facing each other (e_ch3.js fightPose3); Joseph sets the two portions side by side */
+  if (typeof fightPose3 === 'function') fightPose3(true);
+  say([N('prisA', '어이, 메루! 네 떡이 내 것보다 크잖아! 총무가 너만 챙겨 줬지?', '', 'angry'), N('prisB', '무슨 소리야, 케티! 네 물그릇이 더 가득했다고!', '', 'angry'),
+    { n: '', t: '요셉이 두 감방의 떡과 물그릇을 창살 앞에 나란히 놓고 견주어 보았습니다. 떡도 물도 똑같았습니다.', fn: () => { G.P.emote = { k: 'pick', t: 0, dur: 1.4 }; } },
+    T('간수장이 옥중 죄수를 다 요셉의 손에 맡기므로 그 제반 사무를 요셉이 처리하고', '창세기 39:22'),
+    N('prisA', '……똑같네. 배가 고프니 남의 떡이 커 보였나 보다. 미안하다, 메루.', '', 'sad'), N('prisB', '…나도 소리친 거 미안하다, 케티.', '', 'sad')], () => { tick(S, 'fight'); if (typeof fightPose3 === 'function') fightPose3(false); });
 }
+
+
 function cinOfficers(S, G) {
   const gx = -30, gz = 14, gh = hAt(gx, gz);
   cine([
@@ -52,10 +54,10 @@ function cinOfficers(S, G) {
         G.teleport(gx, gz - 4.4, 0); G.sfx('door'); },
       cam: [gx + 5, gh + 2.2, gz - 7], cam2: [gx + 3.6, gh + 1.8, gz - 5.6], look: [gx, gh + 1.3, gz + 2], dur: 7, music: 'j_dread', t: '그 후에 애굽왕의 술 맡은 자와 떡 굽는 자가 그 주 애굽왕에게 범죄한지라. 바로가 그 두 관원장 곧 술 맡은 관원장과 떡 굽는 관원장에게 노하여', ref: '창세기 40:1–2' },
     { cam: [gx - 2.6, gh + 1.5, gz - 1.6], look: [gx, gh + 1.4, gz + 2.4], dur: 6, t: '그들을 시위대장의 집 안에 있는 옥에 가두니, 곧 요셉의 갇힌 곳이라.', ref: '창세기 40:3' },
-    { fn: () => walkTo('potiphar', gx, gz - 1.6, 1.4, () => face('potiphar', gx, gz - 4.4)), cam: [gx + 2.4, gh + 1.6, gz - 6], look: [gx, gh + 1.5, gz - 1], dur: 6, n: '보디발', t: '……요셉.', e: 'cold' },
-    { cam: [gx - 1.4, gh + 1.6, gz - 0.6], look: [gx, gh + 1.5, gz - 4.4], dur: 4.5, fov: 0.6, n: '요셉', t: '…나리.', e: 'tender' },
-    { cam: [gx + 4, gh + 1.4, gz - 3], look: [gx, gh + 1.4, gz - 3], dur: 6, t: '두 사람은 한참 동안 서로를 바라보았습니다. 보디발은 무언가 말하려다 입을 다물었습니다.' },
-    { cam: [gx + 1.2, gh + 1.6, gz - 6.2], look: [gx, gh + 1.6, gz - 1.6], dur: 7, n: '보디발', t: '이 두 사람은 바로의 관원장들이다. 네가 이들을 수종 들어라. …네가 늘 그랬듯이, 잘 섬겨라.', ref: '창세기 40:4', e: 'tender' },
+    { fn: () => walkTo('potiphar', gx, gz - 1.6, 1.4, () => face('potiphar', gx, gz - 4.4)), cam: [gx + 2.4, gh + 1.6, gz - 6], look: [gx, gh + 1.5, gz - 1], dur: 6, },
+    { cam: [gx - 1.4, gh + 1.6, gz - 0.6], look: [gx, gh + 1.5, gz - 4.4], dur: 4.5, fov: 0.6, },
+    /* (v18.72 the long look between Potiphar and Joseph was not in Scripture) */
+    { cam: [gx + 1.2, gh + 1.6, gz - 6.2], look: [gx, gh + 1.6, gz - 1.6], dur: 7, t: '시위대장이 요셉에게 그들을 수종하게 하였습니다.', ref: '창세기 40:4' },
     { fn: () => { walkTo('potiphar', gx, gz + 6, 1.6); place('cupbearer', CELL[3][0] - 1.1, CELL[3][1] - 0.2, 0); place('baker', CELL[3][0] + 1.1, CELL[3][1] - 0.4, 0); },
       cam: [CELL[3][0] + 1, hAt(CELL[3][0], -3) + 1.6, -2.4], look: [CELL[3][0], hAt(CELL[3][0], -8) + 1.1, -8], dur: 6, t: '시위대장이 요셉으로 그들에게 수종하게 하매 요셉이 그들을 섬겼더라.', ref: '창세기 40:4' },
   ], () => { S.q.potPrison = 0; GG.Game.musicOverride = null; stage(S, G); });
@@ -67,11 +69,9 @@ function dreamShots(kind, lines) { const h = hAt(DREAM.x, DREAM.z);
     each: t => { RT.dreamK = Math.min(1, (i + t / 6.5) / lines.length * 1.1); } }, l, i === 0 ? { fn: () => { RT.dreamFx = kind; RT.dreamK = 0; }, fadeIn: 1.2, music: 'j_dream' } : {})); }
 function cupDream(S, G) {
   say([J('오늘 어찌하여 근심 빛이 있나이까?', '창세기 40:7', 'tender'), N('cupbearer', '우리가 꿈을 꾸었으나 이를 해석할 자가 없도다.', '창세기 40:8', 'sad'),
-    ...(S.flags.char === 'trust' ? [N('cupbearer', '자네가 원망 없이 지내는 걸 보니, 이 꿈 이야기를 털어놓아도 될 것 같네.', '', 'tender')] : S.flags.char === 'protest' ? [N('cupbearer', '자네도 억울하다 하지 않았나. 같은 처지니 속을 털어놓겠네.', '', 'sad')] : []),
     { n: '요셉', t: '요셉은 무엇이라 대답했을까?', choices: [{ t: '해석은 하나님께 있지 아니하니이까? 청컨대 내게 고하소서…', ok: true, ref: '창세기 40:8' },
       { t: '"제가 꿈을 잘 풉니다. 말씀해 보세요."', ok: false, fb: '요셉은 알고 있었습니다. 꿈을 푸는 지혜는 자기 것이 아니라 하나님께 있다는 것을.' }] },
     J('해석은 하나님께 있지 아니하니이까? 청컨대 내게 고하소서…', '창세기 40:8'),
-    N('cupbearer', '꿈에 보니 내 앞에 포도나무가 있었네. 그 뒤로는… 말로 다 못 하겠네. 자네도 보면 좋으련만.', '', 'sad'),
     T('관원장이 꿈을 이야기하는 동안, 요셉은 하나님께 지혜를 구했습니다. 「꿈의 세계」 단추로 그 꿈을 함께 보아요.', '창세기 40:8–9')], () => { S.q.dreamGo = 'vine'; G.UI.quest(); }); }
 /* v18.35 the dream is first seen, in the dream land: it grows before your eyes, and then God shows what it means; only after that does Joseph tell it */
 function vineVision(S, G) { const x = DREAM.x, z = DREAM.z, h = hAt(x, z); G.P.face = Math.atan2(x - G.P.x, z - G.P.z); const dawn = (t, a, b) => { GG.DW.dawn = t > a && t < b ? Math.sin((t - a) / (b - a) * Math.PI) : 0; };
@@ -79,17 +79,15 @@ function vineVision(S, G) { const x = DREAM.x, z = DREAM.z, h = hAt(x, z); G.P.f
     { fn: () => { RT.dreamFx = 'vine'; RT.dreamK = 0; RT.godRay = 0; }, cam: [x + 7, h + 2.6, z + 8], cam2: [x + 4.6, h + 2, z + 5.6], look: [x, h + 1.3, z], dur: 7, fadeIn: 1, music: 'j_dream', n: '술 맡은 관원장', t: '꿈에 보니 내 앞에 포도나무가 있는데, 그 나무에 세 가지가 있고', ref: '창세기 40:9–10', each: t => { RT.dreamK = Math.min(0.3, t / 7 * 0.3); } },
     { cam: [x + 2.6, h + 1.5, z + 3.4], cam2: [x + 2, h + 1.7, z + 2.8], look: [x + 0.2, h + 1.7, z], dur: 7, n: '술 맡은 관원장', t: '싹이 나서 꽃이 피고, 포도송이가 익었고', ref: '창세기 40:10', sfx: 'insight', each: t => { RT.dreamK = 0.3 + t / 7 * 0.6; if (Math.random() < 0.3) G.FX.burst(x + (Math.random() - 0.5) * 2.4, h + 1 + Math.random() * 1.6, z + (Math.random() - 0.5) * 2.4, 2, { c: [1, 0.9, 0.7], sp: 0.3, up: 0.6, g: -0.1, life: 1.6, size: 0.1 }); } },
     { cam: [x - 2.8, h + 1.6, z + 2.6], look: [x + 0.55, h + 1.3, z + 0.5], dur: 8, n: '술 맡은 관원장', t: '내 손에 바로의 잔이 있기로, 내가 포도를 따서 그 즙을 바로의 잔에 짜서, 그 잔을 바로의 손에 드렸노라.', ref: '창세기 40:11', each: t => { RT.dreamK = 1; } },
-    { fn: () => { RT.godRay = 0.01; G.sfx('insight', { pitch: 0.6 }); }, cam: [x + 8, h + 1.1, z + 9], cam2: [x + 9, h + 3, z + 10], look: [x, h + 4, z], dur: 6.5, t: '그때 고요한 음성이 요셉의 마음에 들려왔습니다.', e: 'solemn', each: t => { RT.godRay = Math.min(1, t / 3); } },
-    { cam: [x + 6, h + 2, z + 7], look: [x, h + 2, z], dur: 9, t: '「세 가지는 사흘이라.」', e: 'solemn', each: t => { dawn(t, 0.4, 2.8); dawn2(t); } },
-    { cam: [x + 2.4, h + 1.6, z + 3], look: [x, h + 1.6, z], dur: 7.5, fadeOut: 1.4, t: '「사흘 안에 바로가 그의 머리를 들고, 그는 다시 바로의 잔을 받들게 되리라.」', e: 'solemn', each: t => { GG.DW.dawn = 0; RT.godRay = 1 - t / 7.5 * 0.6; } },
+    { fn: () => { RT.godRay = 0.01; G.sfx('insight', { pitch: 0.6 }); }, cam: [x + 8, h + 1.1, z + 9], cam2: [x + 9, h + 3, z + 10], look: [x, h + 4, z], dur: 6.5, t: '요셉은 꿈을 지켜보며 마음속으로 하나님께 지혜를 구했습니다.', e: 'solemn', each: t => { RT.godRay = Math.min(1, t / 3); } },
+    { cam: [x + 6, h + 2, z + 7], look: [x, h + 2, z], dur: 9, t: '기도하자, 그 뜻이 마음에 또렷해졌습니다. 세 가지는… 사흘이었습니다.', e: 'solemn', each: t => { dawn(t, 0.4, 2.8); dawn2(t); } },
+    { cam: [x + 2.4, h + 1.6, z + 3], look: [x, h + 1.6, z], dur: 7.5, fadeOut: 1.4, t: '사흘 안에 술 맡은 관원장이 다시 바로의 잔을 받들게 되리라는 것을, 요셉은 깨달았습니다.', e: 'solemn', each: t => { GG.DW.dawn = 0; RT.godRay = 1 - t / 7.5 * 0.6; } },
   ], () => { RT.dreamFx = null; RT.godRay = 0; GG.DW.dawn = 0; S.q.dreamGo = null; S.q.cupSeen = 1; GG.DW.exit(() => cupTell(S, G)); }); function dawn2(t) { if (t > 3 && t < 5.5) dawn(t, 3, 5.5); else if (t > 6 && t < 8.6) dawn(t, 6, 8.6); } }
 function cupTell(S, G) { say([T('요셉은 눈을 떴습니다. 꿈의 뜻이 마음에 또렷이 남아 있었습니다.')], () => { say([
-    { n: '요셉', t: '세 가지는 무엇을 뜻할까?', choices: [{ t: '사흘', ok: true }, { t: '세 해', ok: false, fb: '고요한 음성이 무엇이라 하셨나요? 해석은 하나님께 있습니다 (창세기 40:8).' }, { t: '세 사람', ok: false, fb: '가지가 자라 열매 맺기까지의 「때」를 생각해 보세요.' }] },
+    { n: '요셉', t: '세 가지는 무엇을 뜻할까?', choices: [{ t: '사흘', ok: true }, { t: '세 해', ok: false, fb: '기도할 때 마음에 또렷해진 뜻을 떠올려 보세요. 해석은 하나님께 있습니다 (창세기 40:8).' }, { t: '세 사람', ok: false, fb: '가지가 자라 열매 맺기까지의 「때」를 생각해 보세요.' }] },
     J('그 해석이 이러하니, 세 가지는 사흘이라. 지금부터 사흘 안에 바로가 당신의 머리를 들고 당신의 전직을 회복하리니, 당신이 이왕에 술 맡은 자가 되었을 때에 하던것 같이 바로의 잔을 그 손에 받들게 되리이다.', '창세기 40:12–13'),
-    N('cupbearer', '…정말인가? 정말 그렇게 된단 말인가!', '', 'happy'),
     J('당신이 득의하거든 나를 생각하고 내게 은혜를 베풀어서, 내 사정을 바로에게 고하여 이 집에서 나를 건져내소서…', '창세기 40:14', 'urgent'),
-    J('나는 히브리 땅에서 끌려온 자요, 여기서도 옥에 갇힐 일은 행치 아니하였나이다.', '창세기 40:15', 'sad'),
-    N('cupbearer', '물론이지! 내가 반드시 바로께 아뢰겠네. 이 은혜를 어찌 잊겠는가!', '', 'happy')], () => tick(S, 'cupDone')); });
+    J('나는 히브리 땅에서 끌려온 자요, 여기서도 옥에 갇힐 일은 행치 아니하였나이다.', '창세기 40:15', 'sad')], () => tick(S, 'cupDone')); });
 }
 function bakerDream(S, G) {
   say([N('baker', '(해석이 좋은 것을 보고) 나도 꿈에 보았네! 나도 좀 풀어 주게.', '창세기 40:16'), T('떡 굽는 관원장이 꿈을 이야기하는 동안, 요셉은 다시 하나님께 지혜를 구했습니다. 「꿈의 세계」 단추로 그 꿈을 함께 보아요.')], () => { S.q.dreamGo = 'baskets'; G.UI.quest(); }); }
@@ -98,8 +96,8 @@ function basketVision(S, G) { const x = DREAM.x, z = DREAM.z, h = hAt(x, z); G.P
     { fn: () => { RT.dreamFx = 'baskets'; RT.dreamK = 0; }, cam: [x + 5, h + 2, z + 6], cam2: [x + 3.4, h + 2.3, z + 4.4], look: [x, h + 1.9, z], dur: 7, fadeIn: 1, music: 'j_dread', n: '떡 굽는 관원장', t: '흰 떡 세 광주리가 내 머리에 있고', ref: '창세기 40:16' },
     { cam: [x + 2, h + 2.6, z + 2.6], look: [x, h + 2.2, z], dur: 7, n: '떡 굽는 관원장', t: '윗광주리에 바로를 위하여 만든 각종 구운 식물이 있는데', ref: '창세기 40:17' },
     { cam: [x - 3, h + 1.2, z + 3.4], look: [x, h + 2.8, z], dur: 8, shake: 0.1, sfx: 'flap', n: '떡 굽는 관원장', t: '새들이 내 머리의 광주리에서 그것을 먹더라.', ref: '창세기 40:17', each: t => { RT.dreamK = Math.min(1, t / 6); if (Math.random() < 0.3) G.FX.burst(x + (Math.random() - 0.5) * 1, h + 2.2, z + (Math.random() - 0.5) * 1, 2, { c: [0.1, 0.09, 0.1], sp: 0.8, up: 0.6, size: 0.1, g: 3, life: 0.9 }); } },
-    { fn: () => { RT.godRay = 0.01; G.sfx('insight', { pitch: 0.45 }); }, cam: [x + 8, h + 1.1, z + 9], look: [x, h + 3.4, z], dur: 6.5, t: '요셉의 마음에 다시 그 음성이 들려왔습니다. 이번에는 무겁고 슬픈 말씀이었습니다.', e: 'solemn', each: t => { RT.godRay = Math.min(0.6, t / 4); } },
-    { cam: [x + 2.4, h + 1.7, z + 3], look: [x, h + 2, z], dur: 8, fadeOut: 1.4, t: '「세 광주리는 사흘이라. 사흘 안에 바로가 그의 머리를 들고, 그를 나무에 달리니 새들이 그의 고기를 뜯어 먹으리라.」', e: 'solemn' },
+    { fn: () => { RT.godRay = 0.01; G.sfx('insight', { pitch: 0.45 }); }, cam: [x + 8, h + 1.1, z + 9], look: [x, h + 3.4, z], dur: 6.5, t: '요셉은 다시 하나님께 구했습니다. 이번에 마음에 새겨진 뜻은 무겁고 슬펐습니다.', e: 'solemn', each: t => { RT.godRay = Math.min(0.6, t / 4); } },
+    { cam: [x + 2.4, h + 1.7, z + 3], look: [x, h + 2, z], dur: 8, fadeOut: 1.4, t: '세 광주리도 사흘이었습니다. 그러나 그 끝은… 요셉은 한동안 입을 열 수 없었습니다.', e: 'solemn' },
   ], () => { RT.dreamFx = null; RT.godRay = 0; S.q.dreamGo = null; S.q.bakeSeen = 1; GG.DW.exit(() => bakerTell(S, G)); }); }
 function bakerTell(S, G) { say([T('요셉은 한참을 말없이 앉아 있었습니다. 그래도 하나님이 보이신 것을 거짓으로 말할 수는 없었습니다.')], () => { say([
     T('요셉의 얼굴이 굳어졌습니다. 하나님이 보이신 뜻은 좋은 소식이 아니었습니다.'),
@@ -112,8 +110,8 @@ function cinBirthday(S, G, next) {
   cine([
     { hour: 9, fn: () => { place('messenger', -30, 12.6, Math.PI); place('cupbearer', -30, 8, 0); place('baker', -27.6, 8.6, 0, { act: 'bound' }); G.teleport(-30, 4.6, 0); }, cam: [-34, ch + 2, 2], look: [-30, ch + 1.3, 9], dur: 7,
       t: '제 삼일은 바로의 탄일이라. 바로가 모든 신하를 위하여 잔치할 때에', ref: '창세기 40:20' },
-    { fn: () => walkTo('cupbearer', -30, 15.5, 1.6, () => face('cupbearer', -30, 4.6)), cam: [-31.6, ch + 1.6, 3.4], look: [-30, ch + 1.5, 4.6], dur: 4.5, n: '요셉', t: '나리! 저를 꼭 기억해 주세요!', e: 'urgent' },
-    { fn: () => emote('cupbearer', 'wave', 3), cam: [-28.6, ch + 1.6, 11.6], look: [-30, ch + 1.5, 15.5], dur: 5, n: '술 맡은 관원장', t: '걱정 말게! 바로께 꼭 아뢰겠네!', e: 'happy' },
+    { fn: () => walkTo('cupbearer', -30, 15.5, 1.6, () => face('cupbearer', -30, 4.6)), cam: [-31.6, ch + 1.6, 3.4], look: [-30, ch + 1.5, 4.6], dur: 4.5, },
+    { fn: () => emote('cupbearer', 'wave', 3), cam: [-28.6, ch + 1.6, 11.6], look: [-30, ch + 1.5, 15.5], dur: 5, },
     { fn: () => { S.q.pharShow = 1; place('pharaoh', px, pz, 0, { sit: true }); place('cupbearerC', px + 1.6, -173.6, -2.6, { act: 'present' }); }, cam: [px + 5, ph + 1.4, -168], look: [px, ph + 0.8, pz + 1], dur: 7, music: 'j_court',
       t: '술 맡은 관원장은 전직을 회복하매, 그가 잔을 바로의 손에 받들어 드렸고', ref: '창세기 40:21' },
     { fn: () => { const n = G.npc('baker'); if (n) n.forceVis = false; }, cam: [CELL[3][0] + 0.8, hAt(CELL[3][0], -4) + 1.5, -3], look: [CELL[3][0], hAt(CELL[3][0], -8) + 0.8, -8.2], dur: 6,
@@ -144,17 +142,18 @@ function waitNext(S, G) {
 }
 steps.c3_wait.talk = {
   youngP(S, G) { if ((S.q.wait || 0) !== 0) return false;
-    say([N('youngP', '…엄마… 엄마…', '', 'cry'), J('얘야, 이름이 뭐니?', '', 'tender'), N('youngP', '…타후. 빵 하나 훔쳤다고… 여기 갇혔어요.', '', 'cry'),
+    say([N('youngP', '…엄마… 엄마…', '', 'cry'), N('youngP', '…타후예요. 빵 하나 훔쳤다고… 여기 갇혔어요.', '', 'cry'), T('요셉은 어린 죄수 곁에 앉아 그를 달랬습니다. 자기 몫의 물도 건넸습니다.')], () => waitNext(S, G)); },
+  _oldYoungP(S, G) { say([
       J('타후. 내 동생 베냐민도 지금쯤 너만 하겠구나. …나도 처음 여기 왔을 때 많이 무서웠어.', '', 'tender'),
       /* v18.48 the choice on the caravan night comes back here (a save from before that choice has no such line) */ ...(S.q.tookWater === undefined ? [] : [J(S.q.tookWater ? '이 땅으로 끌려오던 밤에, 꼭 너만 한 아이가 내게 물을 건넸단다. 그 한 모금을 잊은 적이 없어. …자, 내 물이야. 마시렴.' : '이 땅으로 끌려오던 밤에, 꼭 너만 한 아이가 내게 물을 건넸는데… 나는 고개를 돌렸어. 그런데도 그 아이는 물을 내 곁에 두고 갔지. …자, 내 물이야. 마시렴.', '', 'tender')]),
       N('youngP', '형도요? 형은 어른이잖아요.', ''),
       J('무서울 땐 이렇게 해 봐. 하늘을 보고 「여호와여」 하고 불러. 우리 아버지가 그랬어. 어디에 있든지 함께 계시는 분이라고.', '', 'tender'),
       N('youngP', '…여호와. 여기에도요?', ''), J('응. 구덩이 속에도 계셨어. 내가 알아.', '', 'calm')], () => waitNext(S, G)); },
   oldP(S, G) { if ((S.q.wait || 0) !== 1) return false;
-    say([N('oldP', '요셉… 오늘 내가 나간다. 앓아누웠던 이 늙은이를 살린 건 너였어.', '', 'tender'), J('하나님이 하신 일이에요, 할아버지.', '', 'calm'),
+    say([N('oldP', '요셉… 오늘 내가 나간다. 앓아누웠던 이 늙은이를 살린 건 너였어.', '', 'tender'),
       N('oldP', '그래, 네 하나님. …얘야, 그 관원장 녀석이 너를 잊었다고 낙심하지 마라.', '', 'tender'),
-      N('oldP', '사람은 잊어도, 네 하나님은 너를 잊지 않으실 게다. 이 늙은이가 장담하마.', '', 'tender'),
-      T('늙은 죄수는 요셉의 손을 오래도록 붙잡았다가, 웃으며 옥 문을 나섰습니다.')], () => waitNext(S, G)); },
+      N('oldP', '네가 늘 말하던 그 하나님 말이다. 네 말대로라면, 그분은 너를 잊지 않으셨겠지.', '', 'tender'),
+      T('파네브는 요셉의 손을 오래도록 붙잡았습니다.')], () => waitNext(S, G)); },
   keeper(S, G) { if ((S.q.wait || 0) !== 3) return false;
     say([N('keeper', '요셉, 잠이 안 오는구나. 나도 그렇다.', '', 'calm'), N('keeper', '너는 왜 원망하지 않느냐? 그 관원장 녀석은 너를 까맣게 잊었을 텐데.', '', 'calm'),
       { n: '요셉', t: '요셉은 무엇이라 대답할까?', choices: [{ t: '"원망한 날도 있었어요. 그래도… 하나님은 구덩이에서도, 보디발의 집에서도, 여기서도 저를 떠나지 않으셨어요."', ok: true },
@@ -164,7 +163,7 @@ steps.c3_wait.talk = {
 function scratchWall(S, G) {
   G.P.face = -1.57;
   GG.UI.minigame('count', { title: '벽에 날들을 새기기', hint: '돌 조각으로 벽에 금을 그어 지난 달들을 세어요.', need: 8, btn: '새기기', onPress: () => { cpose('scratchWall', 0.6); G.sfx('scratch'); } }, () => {
-    say([T('여덟 줄, 또 여덟 줄, 그리고 또 여덟 줄. 벽은 금으로 가득했습니다.'), J('…스물넷. 이 년이 지났구나.', '', 'weary'), J('하나님, 저는 아직 여기 있어요.', '', 'sad')], () => { S.q.wReady = 1; G.UI.quest(); }); });
+    say([T('여덟 줄, 또 여덟 줄, 그리고 또 여덟 줄. 벽은 금으로 가득했습니다. 스물넷 · 두 해가 지났습니다.')], () => { S.q.wReady = 1; G.UI.quest(); }); });
 }
 // Pharaoh's dreams and the cupbearer remembers (창 41:1–14)
 function cinPharaohDream(S, G) {
@@ -177,6 +176,8 @@ function cinPharaohDream(S, G) {
     { fn: () => walkTo('cupbearerC', px + 1, -172.4, 1.4, () => { face('cupbearerC', px, pz); emote('cupbearerC', 'bow', 2); }), cam: [px + 3.2, ph, -168], look: [px + 1, hAt(px, -172) + 1.5, -172.4], dur: 6, n: '술 맡은 관원장', t: '내가 오늘날 나의 허물을 추억하나이다.', ref: '창세기 41:9', e: 'solemn' },
     { cam: [px - 2.4, ph, -169.6], look: [px + 1, hAt(px, -172) + 1.5, -172.4], dur: 10, n: '술 맡은 관원장', t: '그곳에 시위대장의 종된 히브리 소년이 우리와 함께 있기로, 우리가 그에게 고하매 그가 우리의 꿈을 풀되 그 꿈대로 각인에게 해석하더니, 그 해석한대로 되어 나는 복직하고 그는 매여 달렸나이다.', ref: '창세기 41:12–13' },
     { cam: [px + 1.6, ph + 0.9, pz + 2.6], look: [px, ph + 1.3, pz], dur: 5, fov: 0.6, n: '바로', t: '그를 부르라.', ref: '창세기 41:14', e: 'solemn' },
+    { hour: 6.6, fn: () => { S.q.pharShow = 0; const [bx, bz] = SPOTS.basin; G.teleport(bx + 1.2, bz, -1.57); cpose('gather', 5); if (S.q.youngIn) place('youngP', bx + 2.4, bz + 1.3, -2.2); }, music: 'j_prison', /* v18.70 the same morning in the prison */
+      cam: [SPOTS.basin[0] + 4.2, hAt(SPOTS.basin[0], SPOTS.basin[1]) + 1.6, SPOTS.basin[1] - 2.8], look: [SPOTS.basin[0] + 1.2, hAt(SPOTS.basin[0], SPOTS.basin[1]) + 1, SPOTS.basin[1]], dur: 6.5, t: '그 시각, 옥에서는 요셉이 여느 아침처럼 대야에서 물을 긷고 있었습니다. 아무것도 모른 채.' },
     { cam: [-30, hAt(-30, 14) + 2.4, 20], cam2: [-30, hAt(-30, 14) + 1.8, 17], look: [-30, hAt(-30, 14) + 1.4, 12], dur: 6, hour: 7.2, sfx: 'door', fn: () => { G.teleport(-30, 6, 0); place('messenger', -29, 11, Math.PI); },
       t: '바로가 보내어 요셉을 부르매, 그들이 급히 그를 옥에서 낸지라.', ref: '창세기 41:14' },
     { black: true, title: '4장 · 바로의 꿈', sub: '창세기 41:14–45', cam: [-30, 4, 10], look: [-30, 1, 0], dur: 4 },
@@ -200,7 +201,7 @@ function courtIntro(S, G, next) {
   G.P.face = Math.PI;
   cine([
     { fn: () => { place('pharaoh', px, pz, 0, { sit: true }); }, cam: [cx + 6, chh + 3.4, cz + 10], cam2: [cx + 3, chh + 2.4, cz + 5], look: [px, ph + 1, pz], dur: 7, music: 'j_court',
-      t: '요셉은 바로의 궁에 들어섰습니다. 금빛 기둥 사이로, 애굽의 모든 신하가 히브리 죄수를 바라보았습니다.' },
+      t: '요셉이 바로에게 들어가니', ref: '창세기 41:14' },
     { cam: [px + 1.8, ph + 1.0, pz + 3.4], look: [px, ph + 1.3, pz], dur: 9, fov: 0.62, n: '바로', t: '내가 한 꿈을 꾸었으나 그것을 해석하는 자가 없더니, 들은즉 너는 꿈을 들으면 능히 푼다더라.', ref: '창세기 41:15', e: 'solemn' },
   ], () => say([{ n: '요셉', t: '요셉은 무엇이라 대답했을까?', choices: [{ t: '이는 내게 있는 것이 아니라 하나님이 바로에게 평안한 대답을 하시리이다.', ok: true, ref: '창세기 41:16' },
     { t: '"그렇습니다. 저는 어떤 꿈이든 풀 수 있습니다."', ok: false, fb: '이 년 전 옥에서처럼, 요셉은 공을 자기에게 돌리지 않았습니다.' }] },

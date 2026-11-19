@@ -52,7 +52,7 @@ const LINES = {
   kid: ['와, 저것 좀 보세요!', '저기에 뭐가 있어요?', '다리가 아파요… 조금만요.']
 };
 function say(n, kind, cool) {
-  if (!n.d || n.d.animal || !n.vis) return false; const t = performance.now() / 1000; n.cb = n.cb || { t: 0, mem: [] }; if (t < n.cb.t) return false;
+  if (!n.d || n.d.animal || !n.vis || n.d.noTalk || (G.Quiet && G.Quiet.is && G.Quiet.is(n))) return false; /* v18.79 people of the Bible (js/quiet.js) and silent helpers make no small talk on the road */ const t = performance.now() / 1000; n.cb = n.cb || { t: 0, mem: [] }; if (t < n.cb.t) return false;
   let full = LINES[kind].slice(); if (kind === 'idle' && n.d.look && n.d.look.kid) full = full.concat(LINES.kid); // (a child also says child things)
   let pool = full.filter(l => !n.cb.mem.includes(l)); if (!pool.length) { n.cb.mem = n.cb.mem.filter(l => !full.includes(l)); pool = full; } // every line of this kind has been said: start over (never the same line twice in a row)
   if (pool.length > 1 && n.cb.last) pool = pool.filter(l => l !== n.cb.last);

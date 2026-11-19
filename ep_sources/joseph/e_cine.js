@@ -126,9 +126,9 @@ function cinNight(S, G) {
   ], () => { G.P.sleeping = false; GG.Game.musicOverride = null; G.newDay('세겜 들판으로'); G.teleport(bx - 1.5, bz - 1.5, Math.PI); G.go('p_shechem'); }));
 }
 const CLUE_T = [
-  [J('모닥불 자리… 재가 식었어. 형들이 떠난 지 며칠은 된 것 같아.', '', 'calm'), T('곁에는 빈 자루와 깨진 물동이가 굴러다녔습니다.')],
-  [J('양 떼 발자국이야. 많기도 해라… 북쪽으로 이어져 있어.', '', 'calm')],
-  [J('르우벤 형이 쌓는 방식의 돌무더기다. 길이 여기서 갈라지네… 어느 쪽일까?', '', 'calm'), T('요셉은 한참을 두리번거렸습니다. 넓은 들판에서, 혼자였습니다.', '창세기 37:15')]];
+  [T('식은 모닥불 자리예요. 재가 차가워요. 목자들이 떠난 지 며칠은 된 것 같아요.')],
+  [T('수많은 양 떼 발자국이 북쪽으로 이어져 있어요.')],
+  [T('목자들이 쌓은 돌 표시예요. 길이 여기서 여러 갈래로 갈라져요.')]];
 function clue(S, G, k, i) {
   (S.q.cl = S.q.cl || {})[k] = 1; S.q.clues = Object.keys(S.q.cl).length; pick(); G.FX.burst(SPOTS[k][0], hAt(SPOTS[k][0], SPOTS[k][1]) + 0.5, SPOTS[k][1], 12, { c: [1, 0.9, 0.55], sp: 1, up: 1.5 });
   say(CLUE_T[i], () => { G.UI.quest(); G.checkStep(); });
@@ -156,14 +156,14 @@ function cinPit(S, G, next) {
   const fr = Math.atan2(fx - px, fz - pz); P.face = fr;
   const rim = (a, r) => [PIT.x + Math.cos(a) * (r || PIT.wall + 0.85), PIT.z + Math.sin(a) * (r || PIT.wall + 0.85)]; // v16.9 at the very edge, looking down (they stood back out of sight)
   cine([
-    { fn: () => { cpose(null); }, shot: { type: 'MS', a: 'hero', b: 'simeon' }, dur: 4.5, n: '요셉', t: '형들! 드디어 찾았다! 아버지께서 형들이 잘 있는지 보고 오라고 하셨어요!', e: 'happy' },
+    { fn: () => { cpose(null); }, shot: { type: 'MS', a: 'hero', b: 'simeon' }, dur: 4.5, e: 'happy' },
     { fn: () => { ['simeon', 'levi', 'judah', 'dan', 'gad'].forEach((id, i) => walkTo(id, px + Math.sin(fr + 2.2 + i * 0.45) * 1.7, pz + Math.cos(fr + 2.2 + i * 0.45) * 1.7, 2.2, n => face(id, px, pz))); },
-      shot: { type: 'OTS', a: 'simeon', b: 'hero' }, dur: 5, n: '시므온', t: '꿈꾸는 자야. 아버지 심부름까지 와서 우리를 감시하느냐.', e: 'cold' },
-    { shot: { type: 'CU', a: 'hero', b: 'simeon', lens: 'tele', move: 'pushIn' }, dur: 4.5, n: '요셉', t: '형들… 왜 그런 눈으로 보세요…?', e: 'fear', fn: () => cpose('think', 4) },
+      shot: { type: 'OTS', a: 'simeon', b: 'hero' }, dur: 5, e: 'cold' },
+    { shot: { type: 'CU', a: 'hero', b: 'simeon', lens: 'tele', move: 'pushIn' }, dur: 4.5, e: 'fear', fn: () => cpose('think', 4) },
     { fn: () => { emote('simeon', 'grab', 2); emote('levi', 'grab', 2); G.sfx('rip'); G.setOutfit('josephPlain'); cpose('fallen', 0, true); }, cam: [px + 2.4, ph + 1.2, pz + 1.8], look: [px, ph + 0.8, pz], dur: 5, shake: 0.6, shakeDecay: 1.4,
       t: '요셉이 형들에게 이르매, 그 형들이 요셉의 옷 곧 그 입은 채색옷을 벗기고', ref: '창세기 37:23' },
     Object.assign(garmentBeat(0, [px + 0.9, ph + 0.05, pz + 0.5], [px + 1.9, ph + 0.55, pz + 1.6], '첫 번째 옷 · 아버지가 지어 주신 채색옷이 흙바닥에 떨어졌습니다.'), { fn: () => { RT.coatG = { x: px + 0.9, z: pz + 0.5, y: ph }; GG.Audio && GG.Audio.sfx('insight', { pitch: 0.72, vol: 0.7 }); } }),
-    { shot: { type: 'LOW', a: 'levi', b: 'hero' }, dur: 4.5, n: '레위', t: '이 옷이 그리도 자랑스러웠느냐! 아버지가 너만 사랑하신다고!', e: 'angry', fn: () => emote('levi', 'swing', 1.2) },
+    { shot: { type: 'LOW', a: 'levi', b: 'hero' }, dur: 4.5, e: 'angry', fn: () => emote('levi', 'swing', 1.2) },
     // dragged to the edge: the two brothers walk Joseph to the rim between them, then it goes dark as he falls
     { fn: () => { const ax = px - PIT.x, az = pz - PIT.z, al = Math.hypot(ax, az) || 1, ux = ax / al, uz = az / al, sx = -uz, sz = ux;
         RT.drag = { x0: PIT.x + ux * (PIT.r + 7.5), z0: PIT.z + uz * (PIT.r + 7.5), x1: PIT.x + ux * (PIT.r + 1.1), z1: PIT.z + uz * (PIT.r + 1.1), sx, sz, f: Math.atan2(-ux, -uz) };
@@ -178,8 +178,8 @@ function cinPit(S, G, next) {
       fn: () => { S.q.inPit = 1; G.teleport(PIT.x + 0.4, PIT.z + 0.3, 0.6); P.y = PIT.floor; cpose('fallen', 0, true);
         [['simeon', 0.6], ['levi', 1.4], ['judah', 2.4], ['reuben', 3.6], ['dan', 4.6]].forEach(([id, a]) => { const [x, z] = rim(a); place(id, x, z, Math.atan2(PIT.x - x, PIT.z - z)); }); } },
     { cam: [PIT.x - 0.6, PIT.floor + 0.7, PIT.z - 0.8], look: [PIT.x + 0.8, PIT.rim + 1.6, PIT.z + 1.6], dur: 6, fov: 1.05, shake: 0.4, shakeDecay: 1, t: '그 구덩이는 빈 것이라. 그 속에 물이 없었더라.', ref: '창세기 37:24', music: 'j_pit' },
-    { shot: { type: 'LOW', a: 'simeon', b: 'hero', lens: 'wide' }, dur: 5, n: '시므온', t: '네 꿈이 어떻게 되는지 보자! 해와 달과 별들이 너를 꺼내 주겠지!', e: 'cold', fn: () => emote('levi', 'laugh', 4) },
-    { cam: [rim(3.6, 6)[0], PIT.rim + 1.7, rim(3.6, 6)[1]], look: [rim(3.6)[0], PIT.rim + 1.4, rim(3.6)[1]], dur: 6, t: '르우벤은 아무 말도 하지 못했습니다. 그는 밤이 되면 몰래 돌아와 동생을 건져 내리라 마음먹었습니다.', ref: '창세기 37:22, 29' },
+    { shot: { type: 'LOW', a: 'simeon', b: 'hero', lens: 'wide' }, dur: 5, e: 'cold', fn: () => emote('levi', 'laugh', 4) },
+    { cam: [rim(3.6, 6)[0], PIT.rim + 1.7, rim(3.6, 6)[1]], look: [rim(3.6)[0], PIT.rim + 1.4, rim(3.6)[1]], dur: 4 },
     { fn: () => { cpose(null); BRO.forEach((id, i) => { const [x, z, f] = broRing(i); walkTo(id, x, z, 1.8, n => { n.face = n.homeFace = f; n.sit = i % 4 !== 0; if (i % 3 === 1) n.act = 'eat'; }); }); },
       cam: [PIT.x, PIT.rim + 1.5, PIT.z + 1], cam2: [PIT.x, PIT.rim + 6, PIT.z + 1.5], look: [PIT.x + 0.4, PIT.floor + 0.6, PIT.z + 0.3], dur: 7, title: '1장 · 구덩이', sub: '창세기 37:23–36' },
   ], () => { stage(S, G); next(); }, { noSkip: false });
@@ -215,11 +215,11 @@ function cinSold(S, G, next) {
       cam: [top[0] - 3.4, hAt(top[0], top[1]) + 1.6, top[1] + 1.6], look: [top[0], hAt(top[0], top[1]) + 1.1, top[1]], dur: 6, shake: 0.25, shakeDecay: 1,
       t: '때에 미디안 사람 상고들이 지나는지라 그들이 요셉을 구덩이에서 끌어올리고…', ref: '창세기 37:28', sfx: 'rope' },
     { fn: () => { place('midian', top[0] + 2.4, top[1] - 1.6, -0.8); place('judah', top[0] + 1.2, top[1] + 0.2, 2.2); },
-      cam: [top[0] + 4.4, hAt(top[0], top[1]) + 1.5, top[1] + 0.6], look: [top[0] + 1.8, hAt(top[0], top[1]) + 1.3, top[1] - 0.6], dur: 4, n: '미디안 상인', t: '이 아이를 팔겠소?', e: 'cold' },
-    { cam: [top[0] + 0.2, hAt(top[0], top[1]) + 1.5, top[1] + 2.4], look: [top[0] + 1.4, hAt(top[0], top[1]) + 1.4, top[1]], dur: 4, n: '유다', t: '…은 이십이면 되겠소.', e: 'cold' }, /* v18.42 no haggling over the boy */
-    { cam: [top[0] + 3.4, hAt(top[0], top[1]) + 1.3, top[1] - 0.2], look: [top[0] + 1.8, hAt(top[0], top[1]) + 1.0, top[1] - 0.8], dur: 5.5, sfx: 'coins', n: '미디안 상인', t: '…좋소. 은 스물.', e: 'cold', fn: () => emote('midian', 'pick', 2) },
-    { cam: [top[0] - 1.8, hAt(top[0], top[1]) + 1.4, top[1] - 1.2], look: [top[0], hAt(top[0], top[1]) + 1.4, top[1]], dur: 7, fov: 0.62, n: '요셉', t: '유다 형! 시므온 형! 제발요… 아버지가 기다리세요! 베냐민한테 금방 간다고 약속했단 말이에요!', e: 'cry', fn: () => cpose('beg', 0, true) },
-    { cam: [top[0] + 1.2, hAt(top[0], top[1]) + 1.6, top[1] + 3.2], look: [top[0] + 1.2, hAt(top[0], top[1]) + 1.2, top[1] + 0.2], dur: 6, t: '형들은 고개를 돌렸습니다. 은 이십 세겔에, 요셉은 이스마엘 사람들에게 팔렸습니다.', ref: '창세기 37:28' },
+      cam: [top[0] + 4.4, hAt(top[0], top[1]) + 1.5, top[1] + 0.6], look: [top[0] + 1.8, hAt(top[0], top[1]) + 1.3, top[1] - 0.6], dur: 4 },
+    { cam: [top[0] + 0.2, hAt(top[0], top[1]) + 1.5, top[1] + 2.4], look: [top[0] + 1.4, hAt(top[0], top[1]) + 1.4, top[1]], dur: 3 }, /* v18.42 no haggling over the boy */
+    { cam: [top[0] + 3.4, hAt(top[0], top[1]) + 1.3, top[1] - 0.2], look: [top[0] + 1.8, hAt(top[0], top[1]) + 1.0, top[1] - 0.8], dur: 5.5, sfx: 'coins', t: '은 이십에 이스마엘 사람들에게 팔매', ref: '창세기 37:28', fn: () => emote('midian', 'pick', 2) },
+    { cam: [top[0] - 1.8, hAt(top[0], top[1]) + 1.4, top[1] - 1.2], look: [top[0], hAt(top[0], top[1]) + 1.4, top[1]], dur: 7, fov: 0.62, t: '요셉이 애걸하였으나, 형들은 듣지 아니하였습니다.', ref: '창세기 42:21', e: 'cry', fn: () => cpose('beg', 0, true) },
+    { cam: [top[0] + 1.2, hAt(top[0], top[1]) + 1.6, top[1] + 3.2], look: [top[0] + 1.2, hAt(top[0], top[1]) + 1.2, top[1] + 0.2], dur: 4 },
     { fn: () => { cpose('bound', 0, true); const L = [[150, -138], [146, -134], [142, -131], [138, -128], [134, -126], [130, -124]]; CAR.forEach((id, i) => { place(id, PIT.x + 6 - i * 3, PIT.z - 7.5 - i * 0.4, -2.2); walkTo(id, L[i][0], L[i][1], 2.1); }); G.teleport(PIT.x - 14, PIT.z - 5.8, -2.2); walkTo('ishBoy', PIT.x - 15, PIT.z - 7.5, 2); },
       cam: [PIT.x + 14, PIT.rim + 9, PIT.z + 14], cam2: [PIT.x + 6, PIT.rim + 14, PIT.z + 10], look: [PIT.x - 10, PIT.rim, PIT.z - 6], look2: [PIT.x - 22, PIT.rim, PIT.z - 2], dur: 8, t: '요셉을 데리고 애굽으로 갔더라.', ref: '창세기 37:28', music: 'j_mourn',
       each: t => { const P = G.P; P.x = PIT.x - 14 - t * 1.6; P.z = PIT.z - 5.8 + t * 0.9; P.y = hAt(P.x, P.z); P.spd = 1.6; } },
@@ -228,12 +228,12 @@ function cinSold(S, G, next) {
     { cam: [PIT.x + 9.4, PIT.rim + 1.7, PIT.z - 3.2], look: [PIT.x + 6.4, PIT.rim + 1.3, PIT.z - 1.4], dur: 6, n: '르우벤', t: '아이가 없도다! 나는 나는 어디로 갈까!', ref: '창세기 37:30', e: 'cry' },
     { hour: 21, fn: () => { const n = G.npc('reuben'); if (n) n.act = null; stage(S, G); }, cam: [fx + 6, fh + 3, fz + 6], cam2: [fx + 4, fh + 2.2, fz + 4], look: [fx, fh + 0.8, fz], dur: 6, t: '그들이 요셉의 옷을 취하고 수염소를 죽여 그 옷을 피에 적시고, 그 채색옷을 보내어 그 아비에게로 가져다가', ref: '창세기 37:31–32' },
     { hour: 10, fn: () => { S.q.heb = 1; S.q.broShow = 1; ['judah', 'reuben', 'simeon', 'levi', 'dan', 'naphtali', 'gad', 'asher', 'issachar', 'zebulun'].forEach((id, i) => place(id, heb[0] - 3 + (i % 5) * 1.5, heb[1] + 5 + Math.floor(i / 5) * 1.6, Math.PI));
-        place('jacob', heb[0], heb[1] + 2.6, 0); place('benjamin', heb[0] + 2.4, heb[1] + 2.2, -0.6); },
-      cam: [heb[0] + 4, hh + 1.7, heb[1] + 9], cam2: [heb[0] + 2.4, hh + 1.6, heb[1] + 7.2], look: [heb[0], hh + 1.2, heb[1] + 3], dur: 7, n: '유다', t: '우리가 이것을 얻었으니, 아버지의 아들의 옷인가 아닌가 보소서…', ref: '창세기 37:32', e: 'solemn' },
+        place('jacob', heb[0], heb[1] + 2.6, 0); place('benjamin', heb[0] - 2.6, heb[1] + 3.0, 1.75); }, /* v18.76 Benjamin stands left of his father (he stood on the basin's stool and blocked the shot) */
+      cam: [heb[0] + 4, hh + 1.7, heb[1] + 9], cam2: [heb[0] + 2.4, hh + 1.6, heb[1] + 7.2], look: [heb[0], hh + 1.2, heb[1] + 3], dur: 7, n: '형들', t: '우리가 이것을 얻었으니, 아버지의 아들의 옷인가 아닌가 보소서…', ref: '창세기 37:32', e: 'solemn' },
     { cam: [heb[0] - 1.2, hh + 1.6, heb[1] + 4.8], look: [heb[0], hh + 1.5, heb[1] + 2.6], dur: 7, fov: 0.62, n: '야곱', t: '내 아들의 옷이라. 악한 짐승이 그를 먹었도다. 요셉이 정녕 찢겼도다!', ref: '창세기 37:33', e: 'cry', fn: () => { const n = G.npc('jacob'); if (n) n.act = 'tearClothes'; } },
-    { fn: () => { const n = npcSet('jacob', { look: LOOK.jacobMourn }); if (n) n.act = 'mourn'; }, cam: [heb[0] + 3, hh + 1.2, heb[1] + 4], look: [heb[0], hh + 0.9, heb[1] + 2.6], dur: 7,
+    { fn: () => { const n = npcSet('jacob', { look: LOOK.jacobMourn }); if (n) n.act = 'mourn'; }, cam: [heb[0] - 1.0, hh + 1.2, heb[1] + 5.0], look: [heb[0], hh + 0.9, heb[1] + 2.6], dur: 7, /* v18.76 from the left: the basin's stool no longer stands in front of him (he seemed to kneel on it) */
       t: '자기 옷을 찢고 굵은 베로 허리를 묶고 오래도록 그 아들을 위하여 애통하니', ref: '창세기 37:34' },
-    { cam: [heb[0] + 3.6, hh + 0.9, heb[1] + 1.4], look: [heb[0] + 2.4, hh + 0.8, heb[1] + 2.2], dur: 6, n: '베냐민', t: '아버지… 요셉 형은요? 형이 금방 온다고… 약속했는데…', e: 'cry', fn: () => { const n = G.npc('benjamin'); if (n) n.act = 'weep'; } },
+    { cam: [heb[0] - 4.2, hh + 0.9, heb[1] + 4.8], look: [heb[0] - 2.6, hh + 0.8, heb[1] + 3.0], dur: 4, fn: () => { const n = G.npc('benjamin'); if (n) n.act = 'weep'; } },
     { cam: [heb[0] - 2.4, hh + 1.3, heb[1] + 4.6], look: [heb[0], hh + 0.9, heb[1] + 2.6], dur: 8, n: '야곱', t: '내가 슬퍼하며 음부에 내려 아들에게로 가리라.', ref: '창세기 37:35', e: 'cry' },
     { cam: [heb[0] + 10, hh + 7, heb[1] + 14], cam2: [heb[0] + 14, hh + 12, heb[1] + 20], look: [heb[0], hh + 1, heb[1] + 2], dur: 8, t: '모든 자녀가 위로하되 그가 그 위로를 받지 아니하여 가로되 내가 슬퍼하며 음부에 내려 아들에게로 가리라 하고 그 아비가 그를 위하여 울었더라.', ref: '창세기 37:35', fadeOut: 1.5 },
     { hour: 17.6, fn: () => { GG.Cine.hold = true; /* v18.24 from the prayer in the pit to Egypt: one unbroken chain of scenes, no control in between */ S.q.heb = 0; S.q.broShow = 0; const n = npcSet('jacob', { look: LOOK.jacob }); if (n) n.act = null; const b = G.npc('benjamin'); if (b) b.act = null; caravanStart(S, G, false); },
@@ -279,10 +279,7 @@ function caravanUpdate(dt, S, G) {
   const last = RT.crumbs[0]; if (!last || Math.hypot(lead.x - last.x, lead.z - last.z) > 0.6) { RT.crumbs.unshift({ x: lead.x, z: lead.z }); if (RT.crumbs.length > 60) RT.crumbs.pop(); }
   CAR_IDS.forEach((id, k) => { if (!k) return; const n = G.npc(id); if (!n) return; const c = RT.crumbs[Math.min(RT.crumbs.length - 1, CAR_GAP[id])]; const d = Math.hypot(c.x - n.x, c.z - n.z);
     if (d > 0.35) { G.npcWalk(id, c.x, c.z, null, clamp(d * 1.6, 0.6, 4.2)); if (n.walk) n.walk.solid = false; } });
-  // talk along the road
-  RT.carT = (RT.carT || 0) - dt; if (RT.carT <= 0 && !busy) { RT.carT = 16 + Math.random() * 10; const L = S.q.night ? ['저기 초록 땅이 보이지? 애굽이다.', '나일 강 물은 꿀처럼 달단다.', '장터에 서면 고개를 들어라. 그래야 값을 잘 받지.'] : ['걸어라, 히브리 아이. 해 지기 전에 우물까지 가야 한다.', '향품 자루를 떨어뜨리지 마라!', '물은 아껴 마셔라. 광야는 길다.'];
-    bubble(Math.random() < 0.6 ? 'ishmael' : 'midian', L[Math.floor(Math.random() * L.length)], 3.6); }
-  if (!S.q.night && !RT.lookBack && P.z > -110 && P.x < 120) { RT.lookBack = 1; setTimeout(() => { if (S.step === 'c1_caravan' && !GG.UI.busy()) say([J('(뒤를 돌아본다) …저 산 너머가 헤브론인데. 아버지…', '', 'sad'), N('ishBoy', '…', ''), T('대상의 아이가 말없이 요셉을 바라보았습니다.')]); }, 400); }
+  /* v18.73 the traders' made-up talk on the road and Joseph's look back at Hebron are gone (37:25–28 only: the caravan, silent) */
   /* v18.38 the walk on the rope: Joseph walks this stretch himself; if he stands still the rope drags him on after a while */
   if (RT.ropeDone) { RT.ropeT = (RT.ropeT || 0) + dt; if (RT.ropeT > 50 && !busy) C.done = true; if (C.done && !busy) { const f = RT.ropeDone; RT.ropeDone = null; RT.legOver = null; RT.car = null; RT.ropeT = 0; GG.UI.hint(null); f(); return; } return; }
   // arrivals
@@ -303,7 +300,7 @@ function cinJourney(S, G) {
   cine([
     { fn: () => stageCar(p0[0], p0[1], a1, true), cam: [p0[0] + 9, h0 + 5, p0[1] - 8], cam2: [p0[0] + 6, h0 + 3.6, p0[1] - 5], look: [p0[0] - 4, h0 + 1, p0[1] + 4], dur: 6, music: 'j_caravan',
       t: '요셉은 줄에 묶인 채, 이스마엘 대상을 따라 남쪽으로 끌려갔습니다.', ref: '창세기 37:28' },
-    { cam: () => [jx() + 1.8, hAt(jx(), jz()) + 1.4, jz() + 2.2], look: () => [jx(), hAt(jx(), jz()) + 1.3, jz()], dur: 4.5, fov: 0.62, n: '이스마엘 상인', t: '걸어라, 히브리 아이. 해 지기 전에 우물에 닿아야 한다.' },
+    { cam: () => [jx() + 1.8, hAt(jx(), jz()) + 1.4, jz() + 2.2], look: () => [jx(), hAt(jx(), jz()) + 1.3, jz()], dur: 4.5, fov: 0.62 }, /* v18.76 (the trader's made-up words are gone: the walk on the rope, silent) */
     { fn: () => { stageCar(m[0], m[1], a2, true); GG.Cine.hold = false; }, cam: [m[0] - 30, hm + 14, m[1] - 10], cam2: [m[0] - 22, hm + 10, m[1] - 4], look: [m[0], hm + 1, m[1]], dur: 6, t: '고향 가나안의 언덕은 멀어지고, 끝없는 광야가 펼쳐졌습니다.' },
   ], () => { /* v18.38 this stretch is yours to walk */ RT.legOver = [LEG1[3], LEG1[4], LEG1[5]]; RT.lookBack = 1; RT.ropeT = 0; caravanStart(S, G, false); RT.ropeDone = () => cine([
     { fn: () => { GG.Cine.hold = true; const P = Gm().P; P.face = a2 + Math.PI * 0.85; }, cam: () => [jx() - Math.sin(a2) * 2.2 + 0.6, hAt(jx(), jz()) + 1.5, jz() - Math.cos(a2) * 2.2], look: () => [jx(), hAt(jx(), jz()) + 1.45, jz()], dur: 5.5, fov: 0.6,
@@ -342,7 +339,7 @@ function cinReveal(S, G, then) {
     { cam: [P.x - 1.5, h + 2.4, P.z + 3.5], cam2: [P.x - 20, h + 32, P.z + 12], look: [P.x - 10, h + 1, P.z - 3], look2: [-92, 0, 80], dur: 8, music: 'j_egypt', title: '애굽', sub: '나일 강의 땅',
       t: '광야가 끝나는 곳에, 끝없이 푸른 땅이 펼쳐졌습니다.' },
     { cam: [-20, 30, 120], cam2: [-60, 26, 70], look: [-110, 4, 20], look2: [-180, 20, -140], dur: 9, t: '강을 따라 늘어선 종려나무와 푸른 밭, 흰 벽의 집들. 그리고 저 멀리, 하늘을 찌르는 거대한 돌산이 서 있었습니다.' },
-    { cam: [P.x - 1.6, h + 1.6, P.z - 2.4], look: [P.x, h + 1.5, P.z], dur: 5, fov: 0.65, n: '요셉', t: '여기가… 애굽.', e: 'awe' },
+    { cam: [P.x - 1.6, h + 1.6, P.z - 2.4], look: [P.x, h + 1.5, P.z], dur: 4, fov: 0.65 },
   ], () => { G.UI.quest(); if (then) then(); });
 }
 // c1_market · sold again (창 37:36; 39:1)
@@ -358,10 +355,8 @@ function cinMarket(S, G) {
     { cam: [bx - 3, bh + 0.8, bz + 3], look: [bx - 1.3, bh + 1.6, bz + 0.2], dur: 6, fn: () => emote('auctioneer', 'wave', 4), ...EG('auctioneer', '헴! 헴 네페르! 가나안의 젊은 종이오!', '종이오! 좋은 종! 가나안에서 온 젊은 종이오!', 'shout') },
     { cam: [bx + 2.6, bh + 0.6, bz + 2.2], look: [bx + 0.6, bh + 1.3, bz + 0.5], dur: 6, fov: 0.62, t: '사람들이 요셉의 팔을 만져 보고, 이를 들여다보고, 값을 불렀습니다. 요셉은 땅만 내려다보았습니다.' },
     { fn: () => { place('potiphar', mx + 5, mz + 4.5, -2.2); walkTo('potiphar', bx + 1.2, bz + 3.4, 1.9, n => face('potiphar', bx, bz)); G.sfx('crowd'); },
-      cam: [bx - 2, bh + 1.4, bz + 1], look: [mx + 8, hAt(mx, mz) + 1.4, mz + 5], dur: 6, n: '애굽 상인', t: '(속삭이며) 비켜라, 비켜! 시위대장 보디발 나리시다!', e: 'whisper' },
-    { cam: [bx + 2.8, bh + 0.4, bz + 4.2], look: [bx + 1.2, hAt(bx, bz) + 1.6, bz + 3.4], dur: 6, n: '보디발', t: '…눈빛이 맑구나. 종의 눈이 아니야. 이름이 무엇이냐.', e: 'calm', ask: [{ t: '고개를 들고 대답한다', fn: s => { s.q.headUp = 1; } }, { t: '고개를 숙인 채 대답한다', fn: s => { s.q.headUp = 0; } }] },
-    { at: s => ({ t: s.q.headUp ? '요셉… 히브리 사람 요셉입니다.' : '(작은 목소리로) 요셉… 히브리 사람 요셉입니다.' }), cam: [bx + 1.2, bh + 0.6, bz + 3.2], look: [bx + 0.6, bh + 1.4, bz + 0.5], dur: 5, n: '요셉', e: 'weary' },
-    { cam: [bx - 0.4, bh + 0.4, bz + 4.4], look: [bx + 1.2, hAt(bx, bz) + 1.6, bz + 3.4], dur: 5, n: '보디발', t: '가나안 말을 하는구나. 좋다. 내가 사겠다.', fn: () => G.sfx('coins') },
+      cam: [bx - 2, bh + 1.4, bz + 1], look: [mx + 8, hAt(mx, mz) + 1.4, mz + 5], dur: 5 },
+    { cam: [bx + 2.8, bh + 0.4, bz + 4.2], look: [bx + 1.2, hAt(bx, bz) + 1.6, bz + 3.4], dur: 5, fn: () => G.sfx('coins') }, /* v18.72 (Potiphar's questions and Joseph's chosen answer were not in Scripture) */
     { cam: [bx + 8, bh + 5, bz + 12], cam2: [bx + 6, bh + 9, bz + 16], look: [bx, bh, bz], dur: 8, t: '요셉이 이끌려 애굽에 내려가매, 바로의 신하 시위대장 애굽 사람 보디발이 그를 그리로 데려간 이스마엘 사람의 손에서 그를 사니라.', ref: '창세기 39:1', fadeOut: 1.6 },
     { black: true, title: '2장 · 보디발의 집', sub: '창세기 39:1–20', cam: [bx, bh + 2, bz + 4], look: [bx, bh, bz], dur: 4,
       fn: () => { crowd.forEach(id => G.removeNPC(id)); S.q.bound = 0; cpose(null); } },
@@ -386,7 +381,7 @@ function cinPotiphar(S, G, next) {
   const hx = -28, hz = 41.6, hh = hAt(hx, hz);
   fade(() => { S.time = GG.Game.clockTo(S, 17.6, 0); place('potiphar', -28, 39.4, 0, { sit: true }); G.teleport(-28, 43.4, Math.PI); }, () => cine([
     { cam: [hx + 4, hh + 2, hz + 6], cam2: [hx + 2.6, hh + 1.6, hz + 4.4], look: [hx, hh + 1.1, hz - 1], dur: 6, music: 'j_house', t: '여호와께서 요셉과 함께하시므로 그가 형통한 자가 되어 그 주인 애굽 사람의 집에 있으니', ref: '창세기 39:2' },
-    { cam: [hx - 1.8, hh + 1.2, hz + 1.4], look: [hx, hh + 1.0, hz - 2.2], dur: 6, n: '보디발', t: '히브리 청년. 네가 손대는 일마다 잘된다고 집안이 떠들썩하더구나. 우물물이 맑아지고, 소가 살찌고, 이제는 장부까지.' },
+    { cam: [hx - 1.8, hh + 1.2, hz + 1.4], look: [hx, hh + 1.0, hz - 2.2], dur: 6, t: '그 주인이 여호와께서 그와 함께하심을 보며, 또 여호와께서 그의 범사에 형통하게 하심을 보았더라.', ref: '창세기 39:3' },
     { cam: [hx + 1.6, hh + 1.3, hz - 0.4], look: [-28, hh + 1.3, 43.4], dur: 6, n: '요셉', t: '나리, 제가 한 것이 아닙니다. 제 하나님 여호와께서 함께 하셔서 그렇습니다.', e: 'calm', fn: () => cpose('bow', 1.6) },
     { cam: [hx - 1.4, hh + 1.1, hz + 1.8], look: [hx, hh + 1.0, hz - 2.2], dur: 7, t: '주인이 여호와께서 그와 함께하심을 보며, 또 여호와께서 그의 범사에 형통케 하심을 보았더라.', ref: '창세기 39:3' },
     { cam: [hx + 2, hh + 1.4, hz + 2.8], look: [hx, hh + 1.1, hz - 1.6], dur: 7, n: '보디발', t: '이레 뒤에 바로의 궁에서 손님들이 온다. 잔치 시중은 네가 들어라. 애굽 말로 주문을 받아야 할 게다.' },
@@ -398,7 +393,7 @@ const WANT_ORDER = ['guest1', 'guest2', 'guest3', 'potiphar'];
 function banquetStart(S, G, re) {
   const go = () => { S.q.served = S.q.served || 0; S.q.want = WANT_ORDER[S.q.served]; S.q.carry = null; G.P.carry = null; askNext(S); };
   if (re) { go(); return; }
-  fade(() => { S.time = GG.Game.clockTo(S, 19.3, 0); G.teleport(-38.3, 42.8, -Math.PI / 2); }, () => say([N('ameni', '요셉, 잘 들어라. 손님들은 애굽 말로만 주문할 게다. 「이르프」는 포도주, 「데브」는 무화과란다.', '', 'whisper'),
+  fade(() => { S.time = GG.Game.clockTo(S, 19.3, 0); G.teleport(-38.3, 42.8, -Math.PI / 2); }, () => say([N('ameni', '요셉, 잘 들어라. 손님들은 애굽 말로만 주문할 게다. 마당 쓸고 자루 나르며 배운 말, 기억하지? 「이르프」는 포도주, 「데브」는 무화과다.', '', 'whisper'),
     N('ameni', '무와 타는 알지? 시중 상에서 알맞은 것을 들고 가서 손님께 드려라.', '', 'tender')], () => { learn('irp'); learn('dab'); go(); }));
 }
 // v16.6: the order stays above the guest's head until it is served; v18.14 the table names the dishes without their Egyptian
@@ -462,15 +457,15 @@ function cinBless(S, G, next) {
 }
 // c2_tempt3 → the garment (창 39:11–12)
 /* v18.35 she calls him into the bedroom, shuts the way out and takes hold of his robe. The player wrenches free (A, five times): then the robe stays in her hand, she falls back, and the chase begins */
-const GRAB = { x: -27.3, z: 29.9 };
-function cinGrab(S, G) {
-  const tx = GRAB.x, tz = GRAB.z, th = hAt(tx, tz);
+const GRAB = { x: -27.3, z: 29.9 }; /* (v18.72 set to where he stands when she catches him) */
+function cinGrab(S, G) { /* v18.72 where he works (the ledger room): 39:12 only */
+  const tx = GRAB.x, tz = GRAB.z, th = hAt(tx, tz), f = G.P.face, sx = Math.sin(f), sz = Math.cos(f), wx = tx - sx * 2.6 + sz * 0.6, wz = tz - sz * 2.6 - sx * 0.6;
   cine([
-    { fn: () => { G.teleport(tx, tz, -1.2); cpose('pick', 0, true); place('wife', -30.5, 31.6, 1.57); }, cam: [-34.8, th + 1.7, 31.2], look: [tx, th + 1, tz], dur: 5.5, music: 'j_dread',
-      t: '안방은 고요했습니다. 요셉이 궤를 여는 사이, 등 뒤에서 문이 닫혔습니다.' },
-    { fn: () => walkTo('wife', tx - 1.05, tz + 0.2, 1.1, () => face('wife', tx, tz)), cam: [-25.4, th + 1.5, 31.6], look: [-30.4, th + 1.3, 30.2], dur: 5.5, n: '보디발의 아내', t: '요셉… 아무도 없어. 오늘은 아무도.', e: 'whisper' },
-    { fn: () => { cpose(null); G.P.face = -1.5; }, cam: [-31.6, th + 1.45, 31.2], look: [tx, th + 1.4, tz], dur: 4.5, fov: 0.62, n: '보디발의 아내', t: '나와 동침하자.', ref: '창세기 39:12', e: 'whisper' },
-    { fn: () => { emote('wife', 'grabCloth', 30); const n = G.npc('wife'); if (n) { n.x = tx - 0.78; n.z = tz + 0.1; n.col.x = n.x; n.col.z = n.z; n.face = n.homeFace = 1.5; } }, cam: [tx - 0.5, th + 1.3, tz + 1.9], look: [tx - 0.5, th + 1.15, tz], dur: 3, n: '요셉', t: '안 됩니다!', e: 'shout', shake: 0.3, shakeDecay: 0.8 },
+    { fn: () => { G.teleport(tx, tz, f); cpose('pick', 0, true); place('wife', wx, wz, Math.atan2(tx - wx, tz - wz)); }, cam: [tx + sz * 3.4, th + 1.7, tz - sx * 3.4], look: [tx, th + 1, tz], dur: 5, music: 'j_dread',
+      t: '그러할 때에 요셉이 시무하러 그 집에 들어갔더니, 그 집 사람은 하나도 거기 없었더라.', ref: '창세기 39:11' },
+    { fn: () => walkTo('wife', tx - sx * 1.05, tz - sz * 1.05, 1.1, () => face('wife', tx, tz)), cam: [tx - sz * 2.6, th + 1.5, tz + sx * 2.6], look: [tx - sx, th + 1.3, tz - sz], dur: 4.5 },
+    { fn: () => { cpose(null); G.P.face = Math.atan2(-sx, -sz); }, cam: [tx + sz * 1.8 - sx * 0.6, th + 1.45, tz - sx * 1.8 - sz * 0.6], look: [tx, th + 1.4, tz], dur: 4.5, fov: 0.62, n: '보디발의 아내', t: '나와 동침하자.', ref: '창세기 39:12', e: 'whisper' },
+    { fn: () => { emote('wife', 'grabCloth', 30); const n = G.npc('wife'); if (n) { n.x = tx - sx * 0.78; n.z = tz - sz * 0.78; n.col.x = n.x; n.col.z = n.z; n.face = n.homeFace = Math.atan2(sx, sz); } }, cam: [tx + sz * 1.9, th + 1.3, tz - sx * 1.9], look: [tx, th + 1.15, tz], dur: 3, t: '그 여인이 그 옷을 잡았습니다.', ref: '창세기 39:12', shake: 0.3, shakeDecay: 0.8 },
   ], () => G.go('c2_flee'));
 }
 function breakFree(S, G) { const n = G.npc('wife'), c = RT.chase, tx = G.P.x, tz = G.P.z, th = hAt(tx, tz); G.sfx('rip'); G.setOutfit('josephFled'); S.q.robe = 1; c.stun = 3.2; c.t = 0; if (n) { n.walk = null; n.act = null; n.emote = { k: 'grabCloth', t: 0, dur: 6 }; } /* v18.42 she stands holding the cloak (she was drawn fallen, like her false story) */ GG.UI.hint(null);

@@ -43,9 +43,14 @@ const go0 = Game.go;
 Game.go = function (id, resume) {
   const s0 = S(), e = EPo(), before = s0 && e && e.steps[s0.step] ? e.steps[s0.step].ch || 0 : 0;
   const r = go0.apply(this, arguments);
-  try { const s = S(), st = e && e.steps[id], ch = st && st.ch; if (!resume && s && ch && ch !== before && Game.mode === 'play') { keepSnap(ch); if (ch === before + 1 && before >= 1 && !seen()[before] && qOf(before)) { pend = before; calm = 0; } } } catch (err) { console.warn('chapters', err); }
+  try { const s = S(), st = e && e.steps[id], ch = st && st.ch; if (!resume && s && ch && ch !== before && Game.mode === 'play') { keepSnap(ch); if (ch === before + 1 && before >= 1 && !seen()[before] && qOf(before)) { pend = before; calm = 0; }
+      if (ch === before + 1 && before >= 1) card(ch); } } catch (err) { console.warn('chapters', err); }
   return r;
 };
+/* v18.78 a picture for the new chapter (EP.chapterCards): a breath between chapters. It opens at once; a scene that starts underneath waits for it. */
+function card(ch) { const s = S(), e = EPo(), c = e && e.chapterCards && e.chapterCards[ch]; if (!c || !G.Opening || !G.Opening.play) return; const f = s.flags.chapCard = s.flags.chapCard || {}; if (f[ch]) return; f[ch] = 1;
+  const go = () => { if (G.Opening.on) { setTimeout(go, 400); return; } if (G.Cine) G.Cine.cardHold = true; G.Opening.play({ pages: [Object.assign({ who: '' }, c)], music: c.music || (e.titleMusic || 'dream'), after: () => { if (G.Cine) G.Cine.cardHold = false; } }, s, Game); };
+  setTimeout(go, 60); }
 /* the card waits until the scenes of the new chapter are over and Joseph has stood free for a few seconds */
 setInterval(() => {
   try { const s = S(); if (pend === null || !s || Game.mode !== 'play') return;
@@ -57,7 +62,7 @@ setInterval(() => {
 }, 800);
 
 // ------------------------------------------------------------------ the menu (drawn at the bottom of 발자취)
-const Ch = G.Chapters = {};
+const Ch = G.Chapters = {}; Ch.card = card; /* (tests) */
 Ch.html = function () {
   const s = S(); if (!s) return ''; let h = '';
   const L = QS[s.ep] || [], sn = seen(), got = Object.keys(sn).map(Number).filter(c => L[c]).sort((a, b) => a - b);

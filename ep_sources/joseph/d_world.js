@@ -17,7 +17,7 @@ const npcs = [
   // ---- Shechem: the man in the field (창 37:15)
   { id: 'man', name: '들의 사람', look: LOOK.man, x: SPOTS.manSpot[0], z: SPOTS.manSpot[1], face: -2.6, talkR: 3.4, show: S => S.step === 'p_man' },
   // ---- the ten brothers (Dothan; Hebron in the mourning scene; Egypt at the end)
-  ...BRO.map((id, i) => { const a = i / BRO.length * Math.PI * 2; return { id, name: NM[id], look: LOOK[id], x: 158 + Math.cos(a) * 3.4, z: -150 + Math.sin(a) * 3.4, face: Math.atan2(-Math.cos(a), -Math.sin(a)), sit: i % 3 !== 0, noTalk: S => !(steps[S.step] && steps[S.step].talk && steps[S.step].talk[id]), /* v18.21 a brother can be spoken to when the story wants it (시므온 in the prison) */
+  ...BRO.map((id, i) => { const a = i / BRO.length * Math.PI * 2; return { id, name: NM[id], look: LOOK[id], x: 158 + Math.cos(a) * 3.4, z: -150 + Math.sin(a) * 3.4, face: Math.atan2(-Math.cos(a), -Math.sin(a)), sit: i % 3 !== 0, noTalk: S => !(steps[S.step] && steps[S.step].talk && steps[S.step].talk[id]) && !(S.step === 'j_end' && S.q.goshen), /* v18.21 a brother can be spoken to when the story wants it (시므온 in the prison) · v18.81 and in Goshen after the story (their requests; js/quiet.js keeps the small talk off) */
     show: S => between(S, 'p_dothan', 'c1_pit') || !!S.q.broShow }; }),
   // ---- the caravan (창 37:25, 28)
   { id: 'ishmael', name: '이스마엘 상인', look: LOOK.ishmael, x: 236, z: -158, face: -1.6, prop: 'staff', noTalk: true, show: S => !!S.q.caravanOn },
@@ -82,7 +82,7 @@ const npcs = [
   { id: 'bySidon', name: NM.sidon, look: LOOK.sidon, x: 19.2, z: -56.2, face: -2.5, show: show('c6_sell') },
   { id: 'byEdom', name: NM.edom, look: LOOK.edom, x: 8.4, z: -54.2, face: 2.2, show: show('c6_sell') },
   { id: 'byAmeni', name: NM.ameni, look: LOOK.ameniOld, x: 19.4, z: -53.6, /* v18.34 not inside the clerk Ipi */ face: -2.2, show: show('c6_sell') },
-  { id: 'benjamin2', name: '베냐민', look: LOOK.benjaminAdult, x: 172, z: 150, face: 0, noTalk: true, show: S => !!S.q.heb2 },
+  { id: 'benjamin2', name: '베냐민', look: LOOK.benjaminAdult, x: 172, z: 150, face: 0, noTalk: S => !(S.step === 'j_end' && S.q.goshen), show: S => !!S.q.heb2 }, /* v18.81 in Goshen after the story he can be spoken to (his request) */
 ];
 for (const n of npcs) if (n.id === 'jacob') n.show = S => before(S, 'p_night') || !!S.q.heb || !!S.q.heb2; /* v18.56 the family stays at home while Joseph sets out (they no longer vanish the moment he is ready) */
 const BUYERS = [{ id: 'byFarmer' }, { id: 'byWoman' }, { id: 'buyElder' }, { id: 'bySidon' }, { id: 'byEdom' }, { id: 'byAmeni', last: true }];
@@ -130,9 +130,9 @@ const specials = [
   SP('pitShout', PIT.x, PIT.z, '형들을 부르기', S => S.step === 'c1_pit' && !S.q.shout, (S, G) => pitShout(S, G), { r: 2.6, y: 1.2 }),
   SP('pitPray', PIT.x + 0.6, PIT.z - 0.6, '무릎 꿇고 하나님께 부르짖기', S => S.step === 'c1_pit' && S.q.shout && !S.q.pitPray, (S, G) => pitPray(S, G), { r: 2.6, y: 1.0 }),
   SP('kJars', -8.6, 47.4, S => S.water >= 4 ? '부엌 항아리에 물 붓기' : '물이 부족해요 (우물에서 길어 와요)', S => S.step === 'c2_work' && !S.q.w1, (S, G) => { if (S.water < 4) { G.UI.toast('우물에서 물을 길어 오세요 (4번 부을 물)'); return; } if (G.hand() !== 'jar') { G.hold('jar'); return; } S.water -= 4; act('water', 0.8, 'jar'); G.sfx('pour'); G.UI.hud();
-    say([EG('cook', '무! 무 네페르!', '물! 좋은 물이다!', 'happy'), J('(아메니 할아버지가 「무」는 물이라고 했지. 이제 하나 배웠다.)', '', 'tender') /* v18.42 Ameni was 33 m away: Joseph remembers his lesson */], () => { learn('mu'); tick(S, 'w1'); }); }),
+    say([EG('cook', '무! 무 네페르!', '물! 좋은 물이다!', 'happy'), T('「무」는 물이라는 뜻이에요. 애굽 말 하나를 배웠어요.') /* v18.73 (was Joseph's inner words) */], () => { learn('mu'); tick(S, 'w1'); }); }),
   SP('quern', SPOTS.quern[0], SPOTS.quern[1], '맷돌로 보리 갈기', S => S.step === 'c2_work' && !S.q.w2, (S, G) => { G.P.face = 0.3;
-    G.UI.minigame('wrestle', { title: '맷돌 돌리기', need: 6, dur: 30, btn: '갈기', unit: '갈기', act: 'gather', /* v18.42 not 「붙잡음」, not a wrestling pose */ hint: '하얀 표시가 초록 구간에 들어올 때 「갈기」를 눌러요. 6번 맞추면 보리가 고운 가루가 돼요. 구간 한가운데에 딱 맞추면 두 번 몫이에요.' }, () => { G.sfx('grind'); { const r = GG.UI.mgLast; if (r && r.miss === 0 && GG.UI.pop) GG.UI.pop('한 번도 놓치지 않았어요', '요리사 헤누가 고개를 끄덕였어요', 'star'); } /* v18.48 */ say([EG('cook', '타! 타 네페르!', '빵! 좋은 빵이 되겠군!', 'happy'), J('(「타」는 빵이라고 하셨지. 이 고운 가루로 내일 아침 빵을 굽겠구나.)')], () => { learn('ta'); tick(S, 'w2'); }); }); }, { r: 2.2 }),
+    G.UI.minigame('wrestle', { title: '맷돌 돌리기', need: 6, dur: 30, btn: '갈기', unit: '갈기', act: 'gather', /* v18.42 not 「붙잡음」, not a wrestling pose */ hint: '하얀 표시가 초록 구간에 들어올 때 「갈기」를 눌러요. 6번 맞추면 보리가 고운 가루가 돼요. 구간 한가운데에 딱 맞추면 두 번 몫이에요.' }, () => { G.sfx('grind'); { const r = GG.UI.mgLast; if (r && r.miss === 0 && GG.UI.pop) GG.UI.pop('한 번도 놓치지 않았어요', '요리사 헤누가 고개를 끄덕였어요', 'star'); } /* v18.48 */ say([EG('cook', '타! 타 네페르!', '빵! 좋은 빵이 되겠군!', 'happy'), T('「타」는 빵이라는 뜻이에요. 이 고운 가루로 내일 아침 빵을 구워요.')], () => { learn('ta'); tick(S, 'w2'); }); }); }, { r: 2.2 }),
   SP('feedOx', 9, 70, '외양간 소들에게 꼴 주기', S => S.step === 'c2_work' && !S.q.w3, (S, G) => { act('gather', 0.9); G.sfx('moo'); say([N('boy', '카! 카! 형, 「카」는 황소예요. 우리 소들은 꼴을 주면 이렇게 고개를 끄덕여요!', '', 'happy')], () => { learn('ka'); tick(S, 'w3'); }); }, { r: 3 }),
   SP('calf', SPOTS.canal[0], SPOTS.canal[1] - 0.6, '진흙에서 송아지 끌어내기', S => S.step === 'c2_field' && !S.q.calf, (S, G) => { G.P.face = 0;
     G.UI.minigame('push', { title: '진흙에 빠진 송아지', hint: 'A를 누르고 있으면 끌어당겨요. 기운이 빠지면 잠깐 놓았다가 다시!', rate: 18, btn: '꾹 눌러 당기기' }, () => { G.sfx('moo', { pitch: 1.4 }); G.FX.burst(SPOTS.canal[0], G.W().heightAt(SPOTS.canal[0], SPOTS.canal[1]) + 0.4, SPOTS.canal[1], 22, { c: [0.35, 0.28, 0.2], sp: 2, up: 2 });
@@ -142,7 +142,7 @@ const specials = [
       say([J(`${n}… 하나, 둘, 셋… 모두 ${KNUM[c]}.`, '', 'calm')]); }, { r: 1.7, y: 1.2 })),
   SP('assign', -30, 44.9, '일꾼 명부에 일 적기', S => S.step === 'c2_manage' && !S.q.assign, (S, G) => { G.P.face = Math.PI; act('pick', 0.7); assignPuzzle(S, G); }, { r: 2.2, y: 1.4 }),
   SP('serveT', -40.1, 43.1, S => S.q.carry ? `들고 있는 것 · ${S.q.carry}` : '시중 상에서 음식 들기', S => S.step === 'c2_banquet', (S, G) => serveTable(S, G), { r: 1.9, reach: 1.2 }),
-  SP('ledgerT', -22.5, 41.6, '장부 정리하기', S => S.step === 'c2_tempt3' && S.q.empty && !S.q.called, (S, G) => { act('pick', 1); say([T('요셉은 장부를 펼쳤습니다. 곳간 문서 한 장이 비어 있었습니다.'), T('장부 사이에 쪽지가 끼어 있었습니다. 「빈 문서는 안방 궤에 넣어 두었다. 가져다 채워 두어라.」'), J('…마님은 오늘 밖에 나가셨다고 했지. 주인님의 일이니 문서만 얼른 가져오자.', '', 'calm')] /* v18.42 Joseph goes in for his work believing the house empty (39:11), not because she called him in */, () => { S.q.called = 1; G.sfx('door'); GG.UI.quest(); GG.UI.hint('안방 문이 열렸어요 · 궤에서 문서를 찾아요', 'bedroom', 'star'); }); }, { r: 2.2 }),
+  SP('ledgerT', -22.5, 41.6, '장부 정리하기', S => S.step === 'c2_tempt3' && S.q.empty && !S.q.called, (S, G) => { act('pick', 1); S.q.called = 1; S.q.grab = 1; GG.UI.quest(); say([T('요셉은 장부를 펼쳤습니다. 집 안은 고요했습니다.')], () => { GRAB.x = G.P.x; GRAB.z = G.P.z; S.q.grabAt = [GRAB.x, GRAB.z]; cinGrab(S, G); }); }, { r: 2.2 }), /* v18.72 (the note and the chest in the inner room were not in Scripture: 39:11–12) */
   SP('potDoor', -30.5, 33.6, '안방 문', S => between(S, 'c2_arrive', 'c2_tempt3') && !(S.step === 'c2_tempt3' && S.q.called), (S, G) => { G.sfx('thud', { vol: 0.4, pitch: 1.4 }); GG.UI.toast('주인 내외의 안방이에요 · 부르시기 전엔 들어갈 수 없어요'); }, { r: 1.5, y: 1.3 }),
   SP('prayWin', -18.4, -8.2, '달빛 아래 무릎 꿇고 기도하기', S => S.step === 'c3_cell' || (S.step === 'c3_wait' && S.q.wReady), (S, G) => windowPray(S, G), { r: 1.8, y: 1.0 }),
   ...CELL.map(([x, z], i) => SP('cw' + i, x, -4.9, S => S.step === 'c3_keeper' ? (S.water > 0 ? '창살 너머로 물 건네기' : '물이 없어요 (대야에서 길어 와요)') : '창살 너머로 떡 건네기',
@@ -189,7 +189,7 @@ const shops = {
 const stations = [
   // v16.9 each well's action sits on the well itself (it used to be a couple of metres in front of it)
   { id: 'wHeb', type: 'well', x: 160, z: 150, r: 3.2 }, { id: 'fHeb', type: 'fire', x: 176, z: 153, r: 3 }, { id: 'bHeb', type: 'bed', x: SPOTS.bedHeb[0], z: SPOTS.bedHeb[1], r: 2, on: S => before(S, 'p_road'), chest: [182.29, 159.2], chestA: -2.24 },
-  { id: 'fOak', type: 'fire', x: SPOTS.restOak[0], z: SPOTS.restOak[1], r: 3 }, { id: 'fDot', type: 'fire', x: 158, z: -150, r: 3 }, { id: 'fCar', type: 'fire', x: SPOTS.caravanNight[0], z: SPOTS.caravanNight[1], r: 3 },
+  { id: 'fOak', type: 'fire', x: SPOTS.restOak[0], z: SPOTS.restOak[1], r: 3, on: S => !!(S.q && S.q.oakLit) || !before(S, 'p_shechem') }, { id: 'fDot', type: 'fire', x: 158, z: -150, r: 3 }, { id: 'fCar', type: 'fire', x: SPOTS.caravanNight[0], z: SPOTS.caravanNight[1], r: 3 },
   { id: 'wPot', type: 'well', x: SPOTS.well[0], z: SPOTS.well[1], r: 3.2, on: inEgyptHouse }, { id: 'bPot', type: 'bed', x: -46.8, z: 50, on: inEgyptHouse, noChest: true },
   { id: 'wPri', type: 'well', x: SPOTS.basin[0], z: SPOTS.basin[1], r: 2.8, rim: 1.3, on: show('c3_keeper', 'c4_shave') }, { id: 'bPri', type: 'bed', x: -20.2, z: -8.6, on: show('c3_keeper', 'c3_wait'), noChest: true },
   { id: 'bJos', type: 'bed', x: 10, z: -141.2, on: show('c5_patrol') }, { id: 'wCity', type: 'well', x: -21, z: -90, r: 3.2 }, { id: 'wW', type: 'well', x: -140, z: -40, r: 3.2 }, { id: 'wS', type: 'well', x: -145, z: 128, r: 3.2 },

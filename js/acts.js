@@ -15,7 +15,7 @@ const rnd = a => a[Math.floor(Math.random() * a.length)];
 // k: [label, options]  hold = loops until the hero moves · walk = may walk while doing it · rest = counts as resting · dur = seconds
 const DEF = {
   sitg: ['앉기', { hold: 1, rest: 1 }], sitHug: ['무릎 안고 앉기', { hold: 1, rest: 1 }], kneelRest: ['꿇어앉기', { hold: 1, rest: 1 }], squat: ['쪼그려 앉기', { hold: 1, rest: 1 }],
-  lie: ['눕기', { hold: 1, rest: 1, d: '밤에는 별을 보며 잠들 수 있어요' }], warmHands: ['손 녹이기', { hold: 1, rest: 1 }], crossArms: ['팔짱 끼기', { hold: 1, walk: 1 }],
+  lie: ['눕기', { hold: 1, rest: 1, d: '누워서 쉬어요 · 잠은 모닥불 곁 · 텐트 · 침대에서 자요' }], warmHands: ['손 녹이기', { hold: 1, rest: 1 }], crossArms: ['팔짱 끼기', { hold: 1, walk: 1 }],
   pray: ['무릎 꿇고 기도', { hold: 1 }], prostrate: ['엎드려 절하기', { dur: 3.4 }], raiseHands: ['두 손 들고 찬양', { hold: 1 }], bow: ['허리 굽혀 인사', { dur: 1.5 }],
   wave: ['손 흔들기', { dur: 2, walk: 1 }], clap: ['박수', { hold: 1, walk: 1 }], cheer: ['환호', { dur: 2 }], laugh: ['웃기', { dur: 2.4, walk: 1 }], weep: ['울기', { dur: 4.5 }],
   think: ['생각하기', { hold: 1, walk: 1 }], point: ['가리키기', { dur: 1.8, walk: 1 }], stretch: ['기지개', { dur: 2.8 }],
@@ -63,8 +63,7 @@ Ac.update = function (dt) {
       sfx({ goat: 'goat', camel: 'camel', horse: 'nicker', donkey: 'snort', cow: 'moo', ox: 'moo' }[sp] || 'bleat', { pitch: a.lamb ? 1.4 : 1, soft: 1, pos: 1 }); /* v18.52 a content little sound of its own kind */
       G.FX.burst(a.x, (a.y || P.y) + 1.0, a.z, 8, { c: [1, 0.62, 0.7], sp: 0.5, up: 1.1, size: 0.16, g: -0.2 });
       const S = Game.S(); S.flags.petted = (S.flags.petted || 0) + 1; if (S.flags.petted === 1 || S.flags.petted % 10 === 0) UI.toast(rnd(['기분이 좋은지 꼬리를 흔들어요', '포근한 털이 따뜻해요', '고개를 비비며 따라와요'])); } }
-  if (e.k === 'lie' && !e.slept && e.t > 2.6 && G.Rest && G.Rest.n() > 0) { const h = Game.hour(); if (h >= 4.5 && h < 19.5 && !UI.busy()) { e.slept = true; G.Rest.napAsk('open', ok => { if (ok) Ac.stop(); }, '그늘에 누우니 스르르 눈이 감겨요.'); } } /* v18.65 a nap out of doors after a sleepless night */
-  if (e.k === 'lie' && !e.slept && e.t > 2.6) { e.slept = true; const h = Game.hour(); if ((h >= 19.5 || h < 4.5) && !UI.busy()) UI.say([{ n: '', t: '별이 쏟아지는 밤이에요. 이대로 아침까지 잘까요?', choices: [{ t: '별을 보며 잔다', then: () => setTimeout(() => { Ac.stop(); Game.sleep(); }, 50) }, { t: '조금 더 누워 있는다' }] }]); }
+  /* v18.67 lying down is rest only: sleep is by a fire, in a tent or in a bed (sleepsys.js) */
 };
 
 // ------------------------------------------------------------------ village life: now and then someone stretches, laughs, children dance

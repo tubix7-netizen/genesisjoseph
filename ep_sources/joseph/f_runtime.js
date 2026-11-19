@@ -50,7 +50,7 @@ function struggle(S, G) { const c = RT.chase, n = G.npc('wife'), P = G.P; if (!c
    just before the ledger and tries again. Only running (달리기) gets away. */
 const HOUSE_ROOMS = [{ in: p => p.z < 32.5 && p.x > -36.6 && p.x < -24.6, di: [-30.5, 31.2], do: [-30.5, 33.8] }, { in: p => p.x > -24.6 && p.x < -15 && p.z > 37 && p.z < 46.6, di: [-23.2, 42.3], do: [-26, 42.3] }, /* 비서실 (door from the lobby) */ { in: p => p.x > -13.5 && p.x < -7.5 && p.z > 40.5 && p.z < 49.5, di: [-10.4, 48.2], do: [-10.4, 50.7] }, // 부엌 (west door)
   { in: p => p.x < -36.6 && p.x > -41 && p.z > 37 && p.z < 46.6, di: [-37.7, 42.5], do: [-35.4, 42.5] }]; // 시중 방 (door to the hall)
-const CHASE_L = ['여봐라! 게 아무도 없느냐!', '다들 이리 오너라!', '이 히브리 종이…!']; /* v18.42 she does not run after him: she calls the household (창 39:13–14) */
+const CHASE_L = ['그가 나와 동침하고자 내게로 들어오므로', '내가 크게 소리 질렀더니', '그가 그 옷을 내게 버려두고 도망하여 나갔느니라']; /* v18.73 her words as the Bible gives them (39:14–15) */ /* v18.42 she does not run after him: she calls the household (창 39:13–14) */
 function chase(dt, S, G) { const c = RT.chase || (RT.chase = { t: 0, w: 0, b: 0, caught: false, held: 0 }), n = G.npc('wife'), P = G.P; if (!n || !n.vis || c.caught) return;
   if (c.held > 0) { P.x = GRAB.x; P.z = GRAB.z; P.vx = P.vz = 0; P.sprint = false; n.face = n.homeFace = 1.5; if (!n.emote || n.emote.k !== 'grabCloth') n.emote = { k: 'grabCloth', t: 0, dur: 60 }; return; } /* v18.35 held by the robe */
   c.t += dt; if (c.t < (c.stun || 1.3)) return; if (n.act === 'fallen') { n.act = null; n.emote = { k: 'stretch', t: 0, dur: 0.4, amb: true }; } // she falls back and gets up
@@ -58,7 +58,7 @@ function chase(dt, S, G) { const c = RT.chase || (RT.chase = { t: 0, w: 0, b: 0,
   /* v18.58 창 39:12–15: for a moment she only stares at the cloak in her hand. Then she cries out, and the household comes running.
      From the cry on: go back to her and it is over; be seen by anyone running in and it is over. So: wrench free and RUN. */
   { const left = Math.max(0, Math.ceil(FLEE_T - c.t)); if (left !== c.left) { c.left = left; GG.UI.quest(); } const dw = Math.hypot(n.x - P.x, n.z - P.z); if (dw > 3.4) c.away = 1;
-    if (c.t > CRY_T && !c.alarm) { c.alarm = RT.alarm = 1; c.b = RT.t; G.sfx('door'); bubble('wife', '여봐라! 게 아무도 없느냐! 이 히브리 종이…!', 2.8); GG.haptic && GG.haptic('thud'); GG.UI.toast('여인이 소리쳤어요! 사람들이 달려와요 · 들키지 말고 대문 밖으로!'); }
+    if (c.t > CRY_T && !c.alarm) { c.alarm = RT.alarm = 1; c.b = RT.t; G.sfx('door'); bubble('wife', '보라, 주인이 히브리 사람을 우리에게 데려다가 우리를 희롱하게 하는도다!', 3.4); GG.haptic && GG.haptic('thud'); GG.UI.toast('여인이 소리쳤어요! 사람들이 달려와요 · 들키지 말고 대문 밖으로!'); }
     if (c.alarm) { c.sent = c.sent || {}; FLEE_FOLK.forEach(([id, x, z, dl], i) => { if (c.sent[id] || c.t < CRY_T + dl) return; c.sent[id] = 1; const m = G.npc(id); if (!m) return; m.sit = false; m.act = null; m.wander = null; G.npcWalk(id, x, z, null, 3.4, GG.NpcAI && GG.NpcAI.pathTo ? GG.NpcAI.pathTo(m.x, m.z, x, z) : null); bubble(id, ['마님 목소리다!', '무슨 일이오!', '안채에서 소리가!', '어서 가 보자!', '청지기가 간다! 비켜라!'][i % 5], 2.4); }); }
     if (c.alarm && ((c.away && dw < 2.3) || (!c.away && c.t > CRY_T + 2.6))) { fleeFail(S, G, n, 'back'); return; } /* turned back to her (or never left her side) */
     if (c.sent) { const W = GG.Game.W(); for (const [id] of FLEE_FOLK) { const m = G.npc(id); if (!m || !m.vis || !c.sent[id]) continue; /* only someone already running to the cry */ const d2 = Math.hypot(m.x - P.x, m.z - P.z); if (d2 > 3.4) continue; if (d2 > 1.6 && W && W.ray && W.ray(m.x, m.y + 1.5, m.z, P.x, P.y + 1.3, P.z) < 1) continue; /* a wall between them: not seen */ m.walk = null; m.face = Math.atan2(P.x - m.x, P.z - m.z); m.emote = { k: 'point', t: 0, dur: 3 }; fleeFail(S, G, n, 'seen', m); return; } }
@@ -85,19 +85,21 @@ const SCENE_ONLY = { c1_market: 1, c4_answer: 1, c5_years: 1 };
 /* v18.35 the cook and the gardener argue by the pool path where the player can find them (no teleporting once he talks to them) */
 function quarrelStage(S, G, dt) { const c = G.npc('cook'), g = G.npc('gardener'); if (!c || !g) return; const near = G.dist(-13, 54) < 16; if (!RT.qsOn) { RT.qsOn = 1; if (near) { G.npcWalk('cook', -13.4, 53.6, null, 1.6, GG.NpcAI && GG.NpcAI.pathTo ? GG.NpcAI.pathTo(c.x, c.z, -13.4, 53.6) : null); G.npcWalk('gardener', -15.2, 54.6, null, 1.6); } else { place('cook', -13.4, 53.6, -2.2); place('gardener', -15.2, 54.6, 0.9); } c.act = null; g.act = null; } if (c.walk || g.walk) return; c.face = c.homeFace = Math.atan2(g.x - c.x, g.z - c.z); g.face = g.homeFace = Math.atan2(c.x - g.x, c.z - g.z); c.act = g.act = 'point'; if (near && RT.t - (RT.qsB || 0) > 5) { RT.qsB = RT.t; const k = Math.floor(RT.t / 5) % 2; bubble(k ? 'gardener' : 'cook', k ? '연못 물은 안 되오!' : '물이 모자라단 말이오!', 3); } }
 function update(dt, S, G, t) {
+  if (S.step === 'j_end' && !S.flags.clearMark) { S.flags.clearMark = 1; clearMark(S); } /* v18.73 (the vizier title) */
+  if (typeof proTick === 'function') proTick(dt, S); if (typeof ch1Tick === 'function') ch1Tick(dt, S); if (typeof ch2Tick === 'function') ch2Tick(dt, S); if (typeof ch3Tick === 'function') ch3Tick(dt, S); if (typeof ch4Tick === 'function') ch4Tick(dt, S); if (typeof ch5Tick === 'function') ch5Tick(dt, S); if (typeof ch6Tick === 'function') ch6Tick(dt, S); if (typeof ch8Tick === 'function') ch8Tick(dt, S); /* v18.67 prologue (e_prologue.js) */
   const P = G.P, st = S.step; RT.t += dt;
   if (P.cpose) { P.cpose.t += dt; if (P.cpose.dur && !P.cpose.hold && P.cpose.t > P.cpose.dur) P.cpose = null; }
   if (P.cpose && P.spd > 0.6 && !GG.Cine.on && ['reach', 'scratchWall', 'shave', 'think', 'bow', 'gather'].includes(P.cpose.k)) P.cpose = null;
   if (P.cpose && P.cpose.hold && !GG.Cine.on && P.spd > 0.6 && !['bound'].includes(P.cpose.k)) P.cpose = null;
-  if (S.step === 'c2_flee' && !GG.Cine.on && !GG.UI.busy()) chase(dt, S, G);
+  if (S.step === 'c2_flee' && !S.q.jail && !GG.Cine.on && !GG.UI.busy()) chase(dt, S, G); /* v18.69 not once he is out of the gate (the walk to the prison) */
   if (S.step === 'c3_dreams' && S.q.dreamGo && GG.DW && GG.DW.on() && !GG.Cine.on && !GG.UI.busy() && !RT.dreamFx && G.dist(DREAM.x, DREAM.z) < 6.5) { if (S.q.dreamGo === 'vine') vineVision(S, G); else basketVision(S, G); }
   if (S.step === 'c2_tempt3' && S.q.called && !S.q.grab && P.z < 31.2 && P.x > -36.6 && P.x < -24.6 && !GG.Cine.on && !GG.UI.busy()) { S.q.grab = 1; cinGrab(S, G); }
   if (S.step === 'c2_manage' && S.q.assign && !S.q.quarrel && !GG.Cine.on && !GG.UI.busy()) quarrelStage(S, G, dt);
   if (P.spd > 0.8 && P.grounded && !P.ride) for (const p of GG.WADE || []) if (Math.abs(P.x - p.x) < p.w / 2 && Math.abs(P.z - p.z) < p.d / 2) { if ((RT.wadeT = (RT.wadeT || 0) - dt) <= 0) { RT.wadeT = P.spd > 3.5 ? 0.22 : 0.38; G.sfx('step', { surf: 'water', vol: 0.5 }); if (GG.FX && GG.FX.burst) GG.FX.burst(P.x, p.y + 0.4, P.z, 4, { c: [0.75, 0.88, 0.95], sp: 0.7, up: 0.8, size: 0.06, g: 5 }); } break; }
-  if (S.q.chain) S.q.chain = 0; /* v18.14 no shackles any more (old saves kept them on forever: the clinking, the slow walk) */
-  if (S.outfit === 'josephFettered' && !GG.Cine.on) G.setOutfit('josephPrisoner');
-  if ((S.q.bound || S.q.chain) && !P.cpose && !GG.Cine.on) P.cpose = { k: 'bound', t: 0, dur: 0, hold: true };
-  if (!S.q.bound && !S.q.chain && P.cpose && P.cpose.k === 'bound' && !GG.Cine.on) P.cpose = null;
+  if (S.q.chain && !between(S, 'c3_cell', 'c3_keeper')) S.q.chain = 0; /* v18.70 the fetters are back for the first night and day (시 105:18); old saves that kept them on lose them */
+  if (S.outfit === 'josephFettered' && !GG.Cine.on && !S.q.chain) G.setOutfit('josephPrisoner');
+  if (S.q.bound && !P.cpose && !GG.Cine.on) P.cpose = { k: 'bound', t: 0, dur: 0, hold: true }; /* (fetters are on the feet: the hands stay free to carry water) */
+  if (!S.q.bound && P.cpose && P.cpose.k === 'bound' && !GG.Cine.on) P.cpose = null;
   if (S.q.bound || S.q.chain) P.sprint = false;
   tutorial(dt, S, G);
   // the pit: trying to climb out
@@ -137,7 +139,7 @@ function tutorial(dt, S, G) {
   if (st === 'p_wake') { if (!RT.tut0) RT.tut0 = [P.x, P.z]; const moved = Math.hypot(P.x - RT.tut0[0], P.z - RT.tut0[1]);
     if (moved < 3) GG.UI.hint('왼쪽 아래를 끌면 걸어요 · 오른쪽 화면을 끌면 둘러봐요 (키보드: WASD · 방향키)', 'move', 'move');
     else GG.UI.hint('화살표가 가리키는 곳으로 · 아버지 야곱께 가서 A로 말해요', 'goJacob', 'tap'); }
-  else if (st === 'p_provision') { if (!S.q.skin) GG.UI.hint('물건 가까이에서 A를 누르면 챙길 수 있어요', 'items', 'tap'); else if (S.q.bread && !S.q.benj) GG.UI.hint('동생 베냐민에게 인사해요', 'benj', 'heart'); }
+  else if (st === 'p_provision') { if (!S.q.skin) GG.UI.hint('물건 가까이에서 A를 누르면 챙길 수 있어요', 'items', 'tap'); }
   else if (st === 'p_road') { const dl = Math.hypot(P.x - SPOTS.log[0], P.z - SPOTS.log[1]);
     if (dl < 11 && P.z > SPOTS.log[1] - 1) GG.UI.hint('쓰러진 나무가 길을 막았어요 · 점프 버튼(스페이스)으로 넘어요', 'jump', 'jump');
     else if (!RT.ran && P.z > SPOTS.log[1]) { if (P.sprint && P.spd > 5) RT.ran = 1; GG.UI.hint('달리기 버튼을 누른 채 걸으면 빨리 달려요 (키보드: Shift)', 'run', 'run'); }
@@ -164,7 +166,7 @@ function camera(S, G, dt) {
   const k = d > R0 ? R0 / d : 1, x = PIT.x + (cx - PIT.x) * k, z = PIT.z + (cz - PIT.z) * k, up = clamp(C.pitch, -0.3, 0.9);
   return { x, y: P.y + 1.25 + up * 0.35, z, lx: P.x - Math.sin(yaw) * 0.6, ly: P.y + 1.95 + up * 1.8, lz: P.z - Math.cos(yaw) * 0.6, fov: 1.1 };
 }
-function speedMul(S, P, mag) { if (S.q.riding && S.q.chariotOk) return P.sprint ? 1.85 : 2.2; if (S.step === 'c2_flee' && P.sprint) return 1.8; /* v18.35 this is no stroll in town: he runs for it (the town's slow run let her catch him at once) */ if (S.q.chain) return 0.52; if (S.q.bound) return 0.74; if (S.q.inPit) return 0.6; return 1; }
+function speedMul(S, P, mag) { if (S.q.riding && S.q.chariotOk) return P.sprint ? 1.85 : 2.2; if (S.step === 'c2_flee' && P.sprint && !S.q.jail) return 1.8; /* v18.35 this is no stroll in town: he runs for it (the town's slow run let her catch him at once) */ if (S.q.chain) return 0.52; if (S.q.bound) return 0.74; if (S.q.inPit) return 0.6; return 1; }
 function pose(pst, S, G) {
   const P = G.P;
   if (S.q.riding && S.q.chariotOk) { pst.act = 'charioteer'; pst.actT = 0; pst.speed = 0; pst.staff = false; pst.carry = null; return; }
@@ -214,6 +216,17 @@ function earsDyn(list, S, G, t) {
 }
 function dyn(list, S, G, t) {
   const P = G.P, W = G.W();
+  /* v18.78 the water in Jacob's basin: empty until Joseph pours, then it rises */
+  if (Math.hypot(P.x - 172.4, P.z - 149.9) < 70 && idx(S) <= ORDER.indexOf('c1_pit')) { const q = S.q.pr || {}, washed = q.wash || idx(S) > ORDER.indexOf('p_wake'), k = !washed ? 0 : q.washAt === undefined ? 1 : Math.min(1, (RT.t - q.washAt) / 1.8);
+    if (k > 0) { const wy = 0.49 + 0.15 * k, wr = 0.4 + (wy - 0.47) / 0.21 * 0.12 - 0.006; list.push({ mesh: mk('basinWater', g => g.cyl(1, 1, 0.01, 20, { at: [0, 0, 0], c: 0x5f9cc4, j: 0 })), m: mat('basinWater', 172.4, hAt(172.4, 149.9) + wy, 149.9, 0, 0, 0, wr, 1, wr) }); } } /* (the water fills the open bowl from its bottom (y 0.47) up to just under the rim (0.68)) */
+  /* v18.78 the dry branches to gather (the action used to stand over bare grass) */
+  { const q = S.q.pr || {}, br = (n, x, z, i) => list.push({ mesh: mk('dryBranch' + (i % 3), g => { g.cyl(0.035, 0.05, 1.2, 5, { at: [0, 0.05, 0], rz: Math.PI / 2, ry: (i % 3) * 0.7, c: 0x6f5b45 }); g.cyl(0.02, 0.03, 0.5, 4, { at: [0.25, 0.07, 0.12], rz: Math.PI / 2, ry: 0.9 + (i % 3) * 0.4, c: 0x5f4b38 }); g.cyl(0.018, 0.025, 0.4, 4, { at: [-0.3, 0.06, -0.1], rz: Math.PI / 2, ry: -0.6, c: 0x7d6a50 }); /* (grey-brown: dry wood, not fresh orange) */ }), m: mat('dryBranch' + n, x, hAt(x, z) + 0.02, z, (i * 1.3) % 3), outline: true });
+    if (S.step === 'p_micah') BRANCH_C.forEach(([x, z], i) => { if (!(q.cb || {})[i]) br('c' + i, x, z, i); });
+    if ((S.step === 'p_road' || S.step === 'p_micah') && q.mi === 3) BRANCH_M.forEach(([x, z], i) => { if ((q.br || {})[i]) return; /* v18.80 a pole, a bundle of pegs on a dry bush, a flat stone */
+      const mesh = i === 0 ? mk('findPole', g => { g.cyl(0.05, 0.07, 2.6, 6, { at: [0, 0.08, 0], rz: Math.PI / 2, c: 0x6f5b45 }); g.cyl(0.025, 0.03, 0.5, 4, { at: [0.6, 0.12, 0.14], rz: Math.PI / 2, ry: 0.8, c: 0x5f4b38 }); g.cyl(0.12, 0.16, 0.5, 7, { at: [-1.4, 0.18, 0], rz: 1.2, c: 0x5a4632 }); })
+        : i === 1 ? mk('findPegs', g => { g.sph(0.42, 6, 4, { at: [0, 0.32, 0], s: [1, 0.8, 1], c: 0x8a7a50 }); for (let k = 0; k < 6; k++) g.cyl(0.018, 0.024, 0.55, 4, { at: [Math.cos(k * 1.1) * 0.22, 0.5, Math.sin(k * 1.1) * 0.22], rz: 0.5 * Math.cos(k), rx: 0.5 * Math.sin(k), c: 0x6a5238 }); })
+        : mk('findStone', g => { g.sph(0.17, 6, 4, { at: [0, 0.06, 0], s: [1.3, 0.45, 1], c: 0x8e8678, flat: true }); });
+      list.push({ mesh, m: mat('find' + i, x, hAt(x, z) + 0.02, z, i * 1.3), outline: true }); }); }
   // v16.9 the things to pack before the road actually lie there (the action used to float beside the jars over nothing)
   if (S.step === 'p_provision' || S.step === 'p_wake' || S.step === 'p_jacob') {
     if (!S.q.bread) list.push({ mesh: mk('provBread', g => { g.cyl(0.26, 0.2, 0.16, 12, { at: [0, 0.08, 0], c: 0xa57a3c }); g.cyl(0.25, 0.25, 0.02, 12, { at: [0, 0.17, 0], c: 0x7a5530 });
@@ -256,7 +269,7 @@ function dyn(list, S, G, t) {
   // grain piled before the granaries
   const sacks = RT.sacks || (between(S, 'c5_years') ? 3 : 0);
   if (sacks) for (const s of sites) if (S.built[s.id] || S.step === 'c5_years') list.push({ mesh: mk('sacks' + sacks, (g, M, r) => { for (let i = 0; i < sacks * 7; i++) g.sph(0.32, 7, 5, { at: [(i % 7) * 0.62 - 1.9 + (r() - 0.5) * 0.1, 0.25 + Math.floor(i / 7) * 0.42, (Math.floor(i / 7) % 2) * 0.3], s: [1, 0.85, 0.8], c: [0xd8c49a, 0xc8b080, 0xe2cfa0][i % 3] }); }), m: mat('sk' + s.id, s.x, hAt(s.x, s.z + 4.4), s.z + 4.4, 0), outline: true });
-  dreamDyn(list, S, G, t); earsDyn(list, S, G, t);
+  dreamDyn(list, S, G, t); earsDyn(list, S, G, t); if (typeof ch8Dyn === 'function') ch8Dyn(list, S, G, t);
 }
 function band2(g) { for (let i = 0; i < 6; i++) g.box(0.2, 0.08, 0.02, { at: [-0.5 + i * 0.2, 0.92, 0.52], c: [0x2c5aa0, 0xb3472e, 0x2f8a77][i % 3] }); }
 const HR = { rigs: [new Rig(AB.horse), new Rig(AB.horse)], ph: 0 };
@@ -296,9 +309,39 @@ function onLoad(S, G) {
   if (S.step === 'c2_field' && !S.q.flaxPlanted) { ripe(S, 'pflax', 'flax'); S.q.flaxPlanted = 1; }
   if (between(S, 'c5_year2')) G.unlock('royal');
   G.P.sleeping = false; G.P.sit = false; G.P.kneel = false;
+  vizTitle(S, G);
 }
+/* v18.73 once the story has reached its end (j_end, in any slot), the title shows Joseph as Egypt's vizier (linen robe, gold chain)
+   · v18.74 seen from the front: Pharaoh's palace gate and its two towers fill the picture, Joseph stands in the middle before it and looks at us;
+   under the name 「애굽의 총리 · 사브낫바네아」 */
+const CLEAR_KEY = 'yakgil_joseph_clear', TITLE0 = {}, TITLE_BACK = 10; /* Joseph stands 10 m in front of the gate */
+function clearMark(S) { if (S && S.step === 'j_end') { try { localStorage.setItem(CLEAR_KEY, '1'); } catch (e) { } } }
+const clearedJ = () => { try { return localStorage.getItem(CLEAR_KEY) === '1'; } catch (e) { return false; } };
+function vizTitle(S, G) { const E = GG.EP.joseph, sub = document.getElementById('tSub'); clearMark(S);
+  if (!('cam' in TITLE0)) { TITLE0.cam = E.titleCam; TITLE0.music = E.titleMusic; }
+  const on = G.mode === 'title' && clearedJ(); if (sub) sub.hidden = !on; G.titleHero = on;
+  if (!on) { E.titleCam = TITLE0.cam; E.titleMusic = TITLE0.music; return; }
+  const W = G.W(), P = G.P, x = SPOTS.palaceGate[0], z = SPOTS.palaceGate[1] + TITLE_BACK;
+  P.x = x; P.z = z; P.y = W.heightAt(x, z); P.face = 0; P.vx = P.vz = 0; P.emote = null; P.cpose = null; P.carry = null; S.hand = null; S.time = 17.7;
+  G.setOutfit('josephVizier');
+  for (const [id, gx2] of [['royalG0', x - 5], ['royalG1', x + 5]]) { const n = G.npc(id); if (n) { n.forceVis = true; G.npcTo(id, gx2, SPOTS.palaceGate[1] + 2.4, 0, false); n.walk = null; n.wander = null; } } /* the palace guards either side of the gate (title only) */
+  titleCrowd(G, x, z);
+  E.titleCam = titleFrame(x, z); E.titleMusic = 'j_finale';
+  if (!TITLE0.rs) { TITLE0.rs = 1; addEventListener('resize', () => { const g = GG.Game; if (g.mode === 'title' && g.titleHero && GG.EP.joseph.titleCam && GG.EP.joseph.titleCam.a0 !== undefined) GG.EP.joseph.titleCam = titleFrame(g.P.x, g.P.z); }); } }
+/* v18.74 the people of Egypt on both sides, glad, looking out at us with him: clapping, waving, hands raised (title only: gone when the game starts) */
+const CROWD = [[-1.6, -3.4, 'official', 'raiseHands'], [1.6, -3.4, 'woman', 'clap'], [-1.05, 0.9, 'kid', 'wave'], [1.05, 0.8, 'kid', 'raiseHands'],
+  [-3.3, -1.6, 'farmer', 'clap'], [3.3, -1.6, 'maid', 'wave'], [-5.2, 0, 'woman', 'laugh'], [5.2, -0.2, 'farmer', 'raiseHands'], [-6.8, -2.2, 'elder', 'clap'], [6.8, -2, 'scribe', 'clap'],
+  [-8.6, -0.6, 'farmer', 'wave'], [8.6, -0.8, 'woman', 'raiseHands'], [-4.4, 2.2, 'maid', 'clap'], [4.4, 2.1, 'official', 'wave']];
+function titleCrowd(G, x, z) { let kid = null; for (const id in G.ENT.npcs) { const n = G.ENT.npcs[id]; if (n.d.folk && n.d.folk.age === 'kid' && n.d.look) { kid = n.d.look; break; } }
+  CROWD.forEach(([dx, dz, lk, act], i) => { const id = 'tCrowd' + i; if (G.npc(id)) return; const isKid = lk === 'kid'; if (isKid && !kid) return;
+    G.spawnNPC({ id, name: '애굽 사람', look: isKid ? kid : LOOK[lk], x: x + dx, z: z + dz, face: -dx * 0.03 + (i % 3 - 1) * 0.08, noTalk: true, noTag: true, noBond: true, act, scale: isKid ? 0.62 : undefined }); }); }
+/* the camera stands straight in front, low (1.4 m): the tops of the gate towers just under the top edge, Joseph's feet just above the title words, on any screen */
+function titleFrame(x, z) { const T = Math.tan(0.95 / 2), hc = 1.4, top = 6.4, a = 0.05, wr = document.querySelector('#title .t-wrap'), tw = wr ? wr.getBoundingClientRect().top / Math.max(1, innerHeight) : 0.4;
+  const b = Math.min(0.6, Math.max(0.3, tw - 0.04)), frac = (ang, p) => 0.5 - 0.5 * Math.tan(ang - p) / T, pitch = D => -Math.atan(hc / D) - Math.atan((0.5 - b) * 2 * T);
+  let lo = 3, hi = 60, D = 15; for (let i = 0; i < 50; i++) { D = (lo + hi) / 2; if (frac(Math.atan((top - hc) / (D + TITLE_BACK)), pitch(D)) < a) lo = D; else hi = D; }
+  return { x, z, r: D, h: 0, ty: 0, minH: hc, a0: 0, arc: 0.03, lk: 0, ly: hc + D * Math.tan(pitch(D)) }; }
 function onDay(S, G) { if (between(S, 'c5_patrol', 'c5_years')) { S.silver += 0; } }
-function calmWeather(S) { return !!(S.q.vision || RT.dreamFx || S.q.inPit || between(S, 'c2_tempt3', 'c3_cell') || between(S, 'c4_shave', 'c4_answer') || (GG.Opening && GG.Opening.on)); }
+function calmWeather(S) { return !!(S.step === 'p_micah' || S.step === 'p_night' || S.q.vision || RT.dreamFx || S.q.inPit || between(S, 'c2_tempt3', 'c3_cell') || between(S, 'c4_shave', 'c4_answer') || (GG.Opening && GG.Opening.on)); }
 function calmSurv() { return true; }
 function climate(S, x, z, hr) { if (canaanK(x) > 0.5) return null; return { clear: 0.66, cloudy: 0.12, rain: 0.004, storm: 0, wind: 0.12, dust: LAND === 'famine' ? 0.22 : 0.06, fog: hr > 4 && hr < 8 && fert(x, z) > 0.5 ? 0.08 : 0 }; }
 function quiet(S) { return !!(S.q.inPit || S.q.vision || between(S, 'c2_tempt3', 'c3_cell') || S.step === 'c1_caravan' || S.step === 'c3_wait'); }
@@ -379,7 +422,7 @@ G.EP.joseph = {
   id: 'joseph', title: '요셉 편 · 꿈꾸는 자', hero: '요셉', sub: '창세기 37–47장',
   blurb: '채색옷을 입은 소년이 형들을 찾아 나섰다가 구덩이에 던져집니다. 은 이십에 팔려 애굽의 종이 되고, 누명을 쓰고 옥에 갇혀도 하나님은 그와 함께 하셨습니다. 보디발의 집과 왕의 옥을 지나 바로 앞에 서기까지.',
   chapters: [{ t: '프롤로그 · 형들을 찾아서', r: '창 37:12–17' }, { t: '1장 · 구덩이', r: '창 37:18–36' }, { t: '2장 · 보디발의 집', r: '창 39:1–20' }, { t: '3장 · 왕의 옥', r: '창 39:20–41:14' },
-    { t: '4장 · 바로의 꿈', r: '창 41:14–45' }, { t: '5장 · 일곱 해 풍년', r: '창 41:46–52' }, { t: '6장 · 일곱 해 흉년', r: '창 41:53–42:9' }, { t: '7장 · 형제들', r: '창 42:9–45:15' }, { t: '8장 · 고센 땅', r: '창 45:16–47:12' }, { t: '에필로그 · 고센의 이스라엘', r: '창 47' }],
+    { t: '4장 · 바로의 꿈', r: '창 41:14–45' }, { t: '5장 · 일곱 해 풍년', r: '창 41:46–52' }, { t: '6장 · 일곱 해 흉년', r: '창 41:53–42:9' }, { t: '7장 · 형제들', r: '창 42:9–45:15' }, { t: '8장 · 고센 땅', r: '창 45:16–47:26' }, { t: '에필로그 · 고센의 이스라엘', r: '창 47:27' }],
   spec: { size: SIZE, cell: 2, seed: 37, height, color, water: { level: -0.35, shallow: [0.36, 0.62, 0.56], deep: [0.14, 0.32, 0.36] } },
   build, npcs, pens, fields, sites, specials, shops, stations, spots: SPOTS, steps, talk, chatter, envx: ENVX, quests: QUESTS,
   outfits: Object.assign({ default: LOOK.josephCoat }, ...['josephCoat', 'josephPlain', 'josephSlave', 'josephServant', 'josephSteward', 'josephFled', 'josephPrisoner', 'josephFettered', 'josephShaved', 'josephVizier'].map(k => ({ [k]: LOOK[k] })), { prisoner: LOOK.josephPrisoner }, WARD_LOOKS),
@@ -394,5 +437,52 @@ G.EP.joseph = {
   _dbg: { RT, stage, VISION, WAIT, ORDER, hAt, cin: (k, nx) => ({ cinNight, cinPlot, cinPit, cinSold, cinCaravanNight, cinReveal, cinMarket, cinGrab, cinAccuse, windowPray, cinOfficers, cinBirthday, cinPharaohDream, courtIntro, cinInvest, plentyMontage, cinBrothers })[k](GG.Game.S(), GG.Game, nx || (() => { })) },
 };
 { const u0 = G.EP.joseph.update; G.EP.joseph.update = function (dt, S) { if (u0) u0.apply(this, arguments); goshenTick(dt, S); }; } // v16.7 고센 마을
+// ------------------------------------------------------------------ v18.78 chapter cards: one picture for each chapter, a breath between chapters (js/chapters.js shows it)
+const CARD_SKY = (id, a, b, c) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".65" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><rect width="320" height="200" fill="url(#${id})"/>`;
+const MAN = (x, y, s, c, o) => `<g opacity="${o || 1}"><circle cx="${x}" cy="${y - 13 * s}" r="${3.6 * s}" fill="${c}"/><path d="M${x - 4.6 * s} ${y - 9 * s}Q${x} ${y - 11 * s} ${x + 4.6 * s} ${y - 9 * s}L${x + 5.6 * s} ${y + 6 * s}H${x - 5.6 * s}z" fill="${c}"/></g>`;
+const BOW = (x, y, s, c) => `<g><circle cx="${x + 7 * s}" cy="${y - 2.6 * s}" r="${3 * s}" fill="${c}"/><path d="M${x - 7 * s} ${y}Q${x - 6 * s} ${y - 8 * s} ${x + 4 * s} ${y - 5 * s}L${x + 5 * s} ${y}z" fill="${c}"/></g>`;
+const CAMEL = (x, y, s, c) => `<path d="M${x} ${y}l${2 * s} ${-9 * s}q${3 * s} ${-6 * s} ${7 * s} ${-2 * s}q${3 * s} ${-5 * s} ${7 * s} 0l${3 * s} ${-5 * s}q${2 * s} ${-2 * s} ${4 * s} 0l${-2 * s} ${8 * s}l${-1 * s} ${8 * s}h${-1.5 * s}l${-1 * s} ${-6 * s}l${-8 * s} 0l${-1 * s} ${6 * s}h${-1.5 * s}z" fill="${c}"/>`;
+const PALM = (x, y, h, c) => `<path d="M${x} ${y}q${-3} ${-h / 2} ${2} ${-h}" stroke="${c}" stroke-width="3" fill="none"/><g fill="${c}"><path d="M${x + 2} ${y - h}q-14 -4 -22 6q12 -9 22 -6z"/><path d="M${x + 2} ${y - h}q14 -5 22 5q-12 -8 -22 -5z"/><path d="M${x + 2} ${y - h}q-4 -12 -16 -14q13 4 16 14z"/><path d="M${x + 2} ${y - h}q6 -12 18 -12q-13 3 -18 12z"/></g>`;
+const DOMEG = (x, y, s, c, d) => `<g><rect x="${x - 9 * s}" y="${y - 22 * s}" width="${18 * s}" height="${22 * s}" fill="${c}"/><ellipse cx="${x}" cy="${y - 22 * s}" rx="${9 * s}" ry="${8 * s}" fill="${c}"/><rect x="${x - 2.6 * s}" y="${y - 30 * s}" width="${5.2 * s}" height="${4 * s}" fill="${d}"/></g>`;
+const SHEAF = (x, y, s, c) => `<g fill="${c}"><path d="M${x - 1.5 * s} ${y}L${x - 3 * s} ${y - 16 * s}Q${x} ${y - 24 * s} ${x + 3 * s} ${y - 16 * s}L${x + 1.5 * s} ${y}z"/><rect x="${x - 3.6 * s}" y="${y - 9 * s}" width="${7.2 * s}" height="${1.6 * s}" fill="#9a6a2a"/></g>`;
+const COW = (x, y, s, c, thin) => { const b = thin ? 3.2 : 6; return `<g fill="${c}"><ellipse cx="${x}" cy="${y - 7 * s}" rx="${9 * s}" ry="${b * s}"/><circle cx="${x + 10 * s}" cy="${y - 9 * s}" r="${2.8 * s}"/><rect x="${x - 7 * s}" y="${y - 6 * s}" width="${1.4 * s}" height="${7 * s}"/><rect x="${x + 5 * s}" y="${y - 6 * s}" width="${1.4 * s}" height="${7 * s}"/></g>`; };
+const CARD_ART = {
+  2: SV(`<path d="M0 132Q90 112 180 126T320 118V200H0z" fill="#7a4a30"/><path d="M0 150Q100 136 200 146T320 140V200H0z" fill="#5a3422"/>
+    ${CAMEL(210, 118, 1.3, '#3a2218')}${CAMEL(238, 116, 1.2, '#3a2218')}${CAMEL(264, 115, 1.1, '#3a2218')}${MAN(196, 118, 0.9, '#3a2218')}
+    <ellipse cx="150" cy="168" rx="58" ry="20" fill="#2a1a12"/><ellipse cx="150" cy="168" rx="58" ry="20" fill="none" stroke="#8a6a4a" stroke-width="5"/><ellipse cx="150" cy="172" rx="44" ry="13" fill="#140c08"/>
+    ${BOY(150, 160, 0.42)}${MAN(98, 152, 1.3, '#24160e')}${MAN(116, 148, 1.25, '#24160e')}${MAN(196, 150, 1.3, '#24160e')}`, CARD_SKY('k2', '#3a2a5a', '#d0784a', '#f2b060')),
+  3: SV(`<path d="M0 170H320V200H0z" fill="#e8d2a2"/><rect x="40" y="70" width="190" height="100" fill="#efe6d2"/><rect x="40" y="62" width="190" height="10" fill="#2c5aa0"/><rect x="40" y="72" width="190" height="4" fill="#b3472e"/>
+    <rect x="118" y="112" width="34" height="58" fill="#5a3a22"/>${[64, 90, 180, 206].map(x => `<rect x="${x - 5}" y="80" width="10" height="90" fill="#e2d6ba"/><rect x="${x - 8}" y="76" width="16" height="6" fill="#2f8a77"/>`).join('')}
+    ${PALM(268, 172, 70, '#3a6a3a')}${PALM(292, 176, 56, '#2f5a32')}<ellipse cx="275" cy="182" rx="34" ry="6" fill="#6aa8c8"/>
+    ${BOY(100, 150, 0.8, '#b07850').replace(/fill="#(b3472e|e5b552|2f8a77|2c5aa0|c06a9a|f0e6cc)"/g, 'fill="#f0e6cc"')}<path d="M110 134q10 -6 14 4l-4 10q-8 0 -10 -6z" fill="#b5673a"/>`, CARD_SKY('k3', '#7fb2d8', '#f0dcb0', '#f2c890')),
+  4: SV(`<rect width="320" height="200" fill="#1a1626"/><rect x="0" y="0" width="320" height="200" fill="#2a2236"/>
+    <rect x="196" y="38" width="44" height="34" fill="#0d1428"/>${[204, 214, 224, 234].map(x => `<rect x="${x}" y="38" width="3" height="34" fill="#3a2a1a"/>`).join('')}<circle cx="226" cy="52" r="6" fill="#f2eedc" opacity=".9"/>
+    <path d="M196 72L240 72L180 200L80 200z" fill="#e8e0c8" opacity=".14"/><path d="M0 178H320V200H0z" fill="#3a3024"/>${[...Array(14)].map((_, i) => `<path d="M${30 + i * 18} 186l6 -8" stroke="#8a7a52" stroke-width="2"/>`).join('')}
+    <g fill="#120e18"><circle cx="146" cy="138" r="7"/><path d="M134 148Q146 140 158 148L166 176H126z"/><path d="M138 150l-6 -16l4 -2l6 14z"/><path d="M154 150l6 -16l-4 -2l-6 14z"/></g><path d="M139 148q7 -4 14 0" stroke="#e8e0c8" stroke-width="1" opacity=".5" fill="none"/>`),
+  5: SV(`${STARS(40, 9)}<circle cx="262" cy="34" r="12" fill="#f4ecd0"/><circle cx="268" cy="30" r="11" fill="#14183a"/><path d="M0 120H320V152H0z" fill="#22406a"/><path d="M0 128Q160 122 320 130" stroke="#5a86b8" stroke-width="2" fill="none" opacity=".6"/><path d="M0 152H320V200H0z" fill="#2a3a22"/>
+    ${[0, 1, 2, 3, 4, 5, 6].map(i => COW(28 + i * 20, 116, 0.95, '#c88a4a')).join('')}${[0, 1, 2, 3, 4, 5, 6].map(i => COW(28 + i * 20, 172, 0.9, '#5a4a3a', true)).join('')}
+    ${[0, 1, 2, 3, 4, 5, 6].map(i => `<path d="M${180 + i * 18} 112q2 -22 0 -40" stroke="#c8a040" stroke-width="2" fill="none"/><ellipse cx="${180 + i * 18}" cy="${70 - (i % 2) * 2}" rx="3.4" ry="9" fill="#e8c050"/>`).join('')}
+    ${[0, 1, 2, 3, 4, 5, 6].map(i => `<path d="M${180 + i * 18} 196q2 -18 -2 -32" stroke="#7a6a3a" stroke-width="1.6" fill="none"/><ellipse cx="${178 + i * 18}" cy="${164}" rx="1.6" ry="7" fill="#8a7a4a"/>`).join('')}`, CARD_SKY('k5', '#0a1230', '#1e2a58', '#3a3a6a')),
+  6: SV(`<circle cx="246" cy="52" r="26" fill="#fff2c0" opacity=".9"/><path d="M0 128Q100 116 200 126T320 120V200H0z" fill="#d8a848"/>${[...Array(9)].map((_, r) => [...Array(16)].map((_, i) => SHEAF(12 + i * 20 + (r % 2) * 10, 150 + r * 7, 0.42 + r * 0.03, r % 2 ? '#e8b848' : '#d4a030')).join('')).join('')}
+    <path d="M60 128H244V136H60z" fill="#c8a878"/>${DOMEG(98, 128, 1.6, '#f4ecd8', '#3a2618')}${DOMEG(152, 128, 1.6, '#f4ecd8', '#3a2618')}${DOMEG(206, 128, 1.6, '#f4ecd8', '#3a2618')}
+    <rect x="70" y="106" width="164" height="4" fill="#2c5aa0" opacity=".85"/>${[0, 1, 2, 3].map(i => `<ellipse cx="${240 + i * 9}" cy="${132 - (i % 2) * 3}" rx="5" ry="4" fill="#c8a060"/>`).join('')}`, CARD_SKY('k6', '#f2c860', '#f8e2a8', '#f0c070')),
+  7: SV(`<circle cx="70" cy="44" r="20" fill="#fffaf0" opacity=".85"/><path d="M0 120Q120 110 320 118V200H0z" fill="#c8b088"/>
+    ${[...Array(18)].map((_, i) => `<path d="M${(i * 37) % 320} ${130 + (i * 13) % 60}l${8 + (i % 4) * 4} ${(i % 3) * 4 - 4}l${6} ${6}" stroke="#8a6a48" stroke-width="1.4" fill="none"/>`).join('')}
+    <path d="M196 118H268V124H196z" fill="#b8a07c"/>${DOMEG(232, 118, 1.7, '#ece2cc', '#2a1a10')}<rect x="226" y="100" width="12" height="18" fill="#1a120c"/>
+    ${[0, 1, 2, 3, 4, 5, 6, 7].map(i => MAN(210 - i * 19, 160 + (i % 2) * 4, 1.25, '#5a4636')).join('')}${[0, 2, 4, 6].map(i => `<ellipse cx="${216 - i * 19}" cy="${156 + (i % 2) * 4}" rx="4" ry="5" fill="#b8955a"/>`).join('')}`, CARD_SKY('k7', '#c8cdd4', '#e4dcc8', '#d8c09a')),
+  8: SV(`<path d="M0 150Q160 140 320 152V200H0z" fill="#c8a878"/>${[0, 1, 2].map(i => SHEAF(40 + i * 26, 92, 1.5, '#e8c060')).join('')}${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => SHEAF(20 + i * 26, 104, 0.9, 'rgba(232,192,96,.35)')).join('')}
+    <path d="M226 150H300V160H226z" fill="#d8b878"/><g fill="#f0e6cc"><circle cx="262" cy="104" r="5"/><path d="M254 112Q262 108 270 112L274 150H250z"/></g><rect x="252" y="112" width="20" height="4" fill="#d9a73a"/>
+    ${[0, 1, 2, 3, 4].map(i => BOW(36 + i * 34, 166, 1.9, '#4a3426')).join('')}${[0, 1, 2, 3, 4].map(i => BOW(52 + i * 34, 186, 1.9, '#3a281c')).join('')}`, CARD_SKY('k8', '#8aa8c8', '#e8d6b0', '#d8b080')),
+  9: SV(`<path d="M0 132Q110 118 200 130T320 124V200H0z" fill="#7aa84a"/><path d="M0 160Q120 148 320 162V200H0z" fill="#5a8a3a"/>
+    <path d="M30 132L56 104L84 132z" fill="#3a2a22"/><path d="M70 134L92 110L116 134z" fill="#4a3428"/>${[0, 1, 2, 3, 4].map(i => `<ellipse cx="${40 + i * 14}" cy="${170 + (i % 2) * 6}" rx="6" ry="4" fill="#f4f0e4"/>`).join('')}
+    <g><path d="M236 156h40l-4 -14h-32z" fill="#8a6a48"/><circle cx="242" cy="160" r="6" fill="none" stroke="#5a4030" stroke-width="2.4"/><circle cx="270" cy="160" r="6" fill="none" stroke="#5a4030" stroke-width="2.4"/></g>
+    <g><circle cx="152" cy="118" r="5.4" fill="#e8dcc8"/><path d="M144 124Q152 120 160 124L163 160H141z" fill="#5a4636"/><path d="M140 126L132 162" stroke="#6a4a2a" stroke-width="2"/></g>
+    <g><circle cx="164" cy="114" r="5.4" fill="#c98a5a"/><path d="M156 120Q164 116 172 120L176 160H152z" fill="#f4ecd8"/><rect x="156" y="120" width="16" height="3.4" fill="#d9a73a"/><path d="M158 126Q152 128 150 134" stroke="#f4ecd8" stroke-width="4" fill="none"/></g>`, CARD_SKY('k9', '#9ac0e0', '#e8f0e0', '#d8e8b8')),
+};
+const CARD_VERSE = { 2: ['그를 잡아 구덩이에 던지니 그 구덩이는 빈 것이라 그 속에 물이 없었더라.', '창세기 37:24'], 3: ['여호와께서 요셉과 함께 하시므로 그가 형통한 자가 되어 그 주인 애굽 사람의 집에 있으니', '창세기 39:2'],
+  4: ['여호와께서 요셉과 함께 하시고 그에게 인자를 더하사 전옥에게 은혜를 받게 하시매', '창세기 39:21'], 5: ['만 이 년 후에 바로가 꿈을 꾼즉 자기가 하숫가에 섰는데', '창세기 41:1'],
+  6: ['칠 년 풍년에 토지 소산이 심히 많은지라.', '창세기 41:47'], 7: ['온 지면에 기근이 있으매 요셉이 모든 창고를 열고 애굽 백성에게 팔새', '창세기 41:56'],
+  8: ['그들이 피차에 말하되 우리가 아우의 일로 인하여 범죄하였도다.', '창세기 42:21'], 9: ['요셉이 … 그 아비 이스라엘을 맞으러 고센으로 올라가서 아비에게 보이고 그 목을 어긋맞추어 안고 얼마 동안 울매', '창세기 46:29'] };
+G.EP.joseph.chapterCards = {}; for (const k in CARD_ART) { const ch = +k, c = G.EP.joseph.chapters[ch - 1] || {}; G.EP.joseph.chapterCards[ch] = { art: CARD_ART[k], kick: c.r ? c.r.replace(/^창 /, '창세기 ') : '', title: c.t || '', t: CARD_VERSE[k][0], ref: CARD_VERSE[k][1] }; }
 GG.NpcAI && GG.NpcAI.register(G.EP.joseph);
 })(window.G);

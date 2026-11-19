@@ -248,6 +248,8 @@ const SFX = {
   coin: (d, t, p) => { for (const [f, k] of [[2100, 0], [2650, 0.05], [3150, 0.09]]) osc(d, t + k, 'sine', f * p, f * p, 0.28, 0.08); },
   craft: (d, t) => { nz(d, t, 'bandpass', 1800, 1, 0.2, 0.2); osc(d, t + 0.12, 'triangle', 660, 660, 0.3, 0.14); osc(d, t + 0.2, 'triangle', 990, 990, 0.35, 0.12); },
   click: (d, t) => { osc(d, t, 'sine', 1500, 1200, 0.03, 0.08); },
+  flint: (d, t, p) => { osc(d, t, 'triangle', 3300 * p, 2700 * p, 0.14, 0.2); osc(d, t, 'sine', 5600 * p, 4800 * p, 0.09, 0.1); nz(d, t, 'highpass', 4200, 1, 0.05, 0.22); }, /* v18.78 팅! (a flint on iron) */
+  blow: (d, t, p, o) => { const du = (o && o.dur) || 1; nz(d, t, 'bandpass', 650 * p, 0.6, du, 0.3, 1050 * p, 0.25); nz(d, t, 'lowpass', 420, 0.5, du * 0.9, 0.14); }, /* v18.78 후~ (a long breath on the ember) */
   blip: (d, t, p) => { osc(d, t, 'triangle', 620 * p, 600 * p, 0.06, 0.05); },
   page: (d, t) => { nz(d, t, 'bandpass', 2400, 0.6, 0.35, 0.12, 800, 0.08); },
   swing: (d, t, p) => { nz(d, t, 'bandpass', 500 * p, 1.5, 0.22, 0.32, 2200, 0.05); },

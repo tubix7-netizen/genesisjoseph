@@ -9,6 +9,7 @@
    API: G.Climate.state() · G.Climate.warm(seconds) */
 'use strict';
 (function (G) {
+const underTree = P => { const W = G.Game.W(); if (!W || !W.canopies) return false; for (const c of W.canopies) { if (Math.abs(c.x - P.x) > c.r || Math.abs(c.z - P.z) > c.r) continue; if (Math.hypot(c.x - P.x, c.z - P.z) < c.r * 0.8 && P.y < c.y1) return true; } return false; }; /* v18.78 shelter from rain under a crown */
 const Game = G.Game, $ = id => document.getElementById(id), clamp = G.clamp;
 const C = G.Climate = { wet: 0, cold: false, hot: 0, warmT: 0, umb: false, lastDry: null, msgT: {} };
 const sfx = (n, o) => G.Audio && G.Audio.sfx(n, o);
@@ -33,7 +34,7 @@ C.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(); if (!S 
   const h0 = S.time % 24, dayHeat = P.x < 112 && h0 > 9 && h0 < 17.5 && !rainy && (!G.Weather || G.Weather.cur.cloud < 0.6); /* v18.41 Egyptian midday: water cools, it doesn't chill */
   C.umb = !!(C.umbOpen && Game.tool('umbrella') && !P.swim && !P.climb);
   // wet
-  if (inWater) C.wet = Math.min(1, C.wet + dt / 3); else if (rainy && !roof && !C.umb) C.wet = Math.min(1, C.wet + dt / 7);
+  if (inWater) C.wet = Math.min(1, C.wet + dt / 3); else if (rainy && !roof && !C.umb && !underTree(P)) C.wet = Math.min(1, C.wet + dt / 7); /* v18.78 under a tree crown the rain doesn't reach him either */
   else C.wet = Math.max(0, C.wet - dt / (fire ? 6 : roof ? 25 : 45));
   if (rainy && !roof && !C.umb && C.wet > 0.2 && Game.tool('umbrella')) say('umb', '비가 와요 · 「우산」을 펴면 젖지 않아요');
   // cold

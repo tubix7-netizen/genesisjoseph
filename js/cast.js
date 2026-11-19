@@ -403,7 +403,7 @@ let kT = 9;
 function kinChatter(dt) { const s = S(); if (!s || Game.mode !== 'play' || (kT -= dt) > 0) return; kT = 11 + Math.random() * 10;
   if (Game.cineOn || (G.Cine && G.Cine.on) || G.UI.busy() || !G.Life || !G.Life.bubble || (G.DW && G.DW.on && G.DW.on())) return; const e = C.era(); if (e !== 'canaan' && e !== 'goshen') return;
   const P = Game.P, ok = id => { const n = Game.ENT.npcs[id]; return n && n.vis && !n.talking && !n.sleep && Math.hypot(n.x - P.x, n.z - P.z) < 22; };
-  const cand = PAIRS.filter(p => p[2] === e && ok(p[0]) && ok(p[1]) && Math.hypot(Game.ENT.npcs[p[0]].x - Game.ENT.npcs[p[1]].x, Game.ENT.npcs[p[0]].z - Game.ENT.npcs[p[1]].z) < 9);
+  const cand = PAIRS.filter(p => p[2] === e && ok(p[0]) && ok(p[1]) && !(G.Quiet && (G.Quiet.is(p[0]) || G.Quiet.is(p[1]))) /* v18.73 people of the Bible don't chat in bubbles */ && Math.hypot(Game.ENT.npcs[p[0]].x - Game.ENT.npcs[p[1]].x, Game.ENT.npcs[p[0]].z - Game.ENT.npcs[p[1]].z) < 9);
   if (!cand.length) return; const p = rnd(cand), ids = [p[0], p[1]]; let t = 0;
   for (const [w, txt] of p[3]) { const id = ids[w], o = Game.ENT.npcs[ids[1 - w]], n = Game.ENT.npcs[id]; const rt = G.Life.readT ? G.Life.readT(txt) : 3.4;
     setTimeout(() => { if (!n.vis || n.talking || G.UI.busy()) return; G.Life.bubble(id, txt, rt); if (!n.walk && o) { n._chatFace = Math.atan2(o.x - n.x, o.z - n.z); setTimeout(() => { n._chatFace = undefined; }, rt * 1000); } }, t * 1000); t += rt * 0.9 + 0.3; } }
