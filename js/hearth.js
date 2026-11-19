@@ -117,8 +117,11 @@ const LOOKS = { // what the dish looks like on the fire: [base colour, accent co
   skewer: [0xa8582a, 0x6aa04a], honeyMeat: [0xb8602a, 0xe8b040], grilledFish: [0xc88a40, 0xa86a30], fishHoney: [0xc88a40, 0xe8b040],
   flatbread: [0xe0b060, 0x8a9a3a], sweetCake: [0xd89a3a, 0x7a3a2a], shepherd: [0xe8c878, 0xf4e8b0], figCake: [0x6a3a5a, 0x8a5a6a], roastEgg: [0xefe6d2, 0xe8c040], eggHerb: [0xe8d070, 0x6aa04a], fieldPlate: [0xc8a060, 0x8a4a2a],
   parched: [0xd8b040, 0xa88030], cucSalad: [0x6a9a4a, 0xf0e8d0], milkHoney: [0xf6f2ea, 0xe8b040], figCheese: [0x7a4a6a, 0xf0d890] };
-function cookware(out) { const key = 'd_' + out; if (MESH[key]) return MESH[key]; const g = new G.GB(31 + out.length), m = METHOD[out] || 'bake', [c1, c2] = LOOKS[out] || [0xc8a060, 0x8a4a2a];
-  const rocks = (rr, y) => { for (let i = 0; i < 3; i++) { const a = i / 3 * PI * 2 + 0.5; g.sph(0.12, 5, 4, { at: [Math.cos(a) * rr, y || 0.08, Math.sin(a) * rr], c: 0x7a7268, flat: true }); } };
+/* v18.78 three hearth stones under a flat stone slab, set over the fire for the pot */
+function slabMesh() { if (MESH.d_slab) return MESH.d_slab; const g = new G.GB(77); for (let i = 0; i < 3; i++) { const a = i / 3 * PI * 2 + 0.3; g.box(0.13, 0.3, 0.15, { at: [Math.cos(a) * 0.25, 0.15, Math.sin(a) * 0.25], ry: -a, c: 0x77706a, j: 0.08 }); } g.cyl(0.34, 0.32, 0.06, 14, { at: [0, 0.33, 0], c: 0x5e5852, j: 0.06 });
+  for (let i = 0; i < 7; i++) g.sph(0.045 + (i % 3) * 0.015, 5, 4, { at: [Math.cos(i * 2.3) * (0.05 + (i % 3) * 0.06), 0.04, Math.sin(i * 2.3) * (0.05 + (i % 3) * 0.06)], c: i % 2 ? 0xff7a2a : 0xd8461a, j: 0 }); /* (coals raked under it) */ MESH.d_slab = G.R.mesh(g); return MESH.d_slab; } /* v18.78 one flat stone on three hearth stones at the fire's edge, over raked coals (the sticks stand in the middle) */
+function cookware(out, slab) { const key = 'd_' + out + (slab ? '_s' : ''); if (MESH[key]) return MESH[key]; const g = new G.GB(31 + out.length), m = METHOD[out] || 'bake', [c1, c2] = LOOKS[out] || [0xc8a060, 0x8a4a2a];
+  const rocks = (rr, y) => { if (slab) return; /* v18.78 on the stone slab: the slab's own hearth stones hold it (no second ring of stones) */ for (let i = 0; i < 3; i++) { const a = i / 3 * PI * 2 + 0.5; g.sph(0.12, 5, 4, { at: [Math.cos(a) * rr, y || 0.08, Math.sin(a) * rr], c: 0x7a7268, flat: true }); } };
   if (m === 'stew') { rocks(0.32); g.lathe([[0.08, 0.14], [0.26, 0.2], [0.3, 0.38], [0.24, 0.55], [0.26, 0.6]], 12, { c: 0x9a5a34, j: 0.03 }); g.cyl(0.235, 0.235, 0.02, 12, { at: [0, 0.53, 0], c: c1 });
     for (let i = 0; i < 6; i++) g.sph(0.035, 5, 3, { at: [Math.cos(i * 1.9) * 0.13, 0.55, Math.sin(i * 1.9) * 0.13], s: [1, 0.5, 1], c: i % 2 ? c2 : c1 });
     g.cyl(0.012, 0.012, 0.55, 4, { at: [0.12, 0.72, 0.02], rz: -0.5, c: 0x8a6a40 }); }
@@ -129,7 +132,7 @@ function cookware(out) { const key = 'd_' + out; if (MESH[key]) return MESH[key]
     if (out === 'milkHoney') { for (let i = 0; i < 8; i++) g.sph(0.03, 4, 3, { at: [Math.cos(i * 0.8) * i * 0.022, 0.2, Math.sin(i * 0.8) * i * 0.022], s: [1, 0.3, 1], c: c2 }); }
     else if (out === 'cucSalad') { for (let i = 0; i < 10; i++) g.cyl(0.045, 0.045, 0.012, 7, { at: [Math.cos(i * 1.4) * (0.05 + (i % 3) * 0.05), 0.21 + (i % 2) * 0.01, Math.sin(i * 1.4) * (0.05 + (i % 3) * 0.05)], rx: 0.3, c: i % 3 ? c1 : 0xd0c090 }); }
     else for (let i = 0; i < 6; i++) { g.sph(0.06, 6, 4, { at: [Math.cos(i * 1.1) * 0.12, 0.23, Math.sin(i * 1.1) * 0.12], c: i % 2 ? c1 : c2 }); } }
-  else { rocks(0.3); g.cyl(0.36, 0.38, 0.06, 9, { at: [0, 0.22, 0], c: 0x8a8278, j: 0.05, flat: true });
+  else { rocks(0.3); if (!slab) g.cyl(0.36, 0.38, 0.06, 9, { at: [0, 0.22, 0], c: 0x8a8278, j: 0.05, flat: true }); /* (on the slab the hot slab itself is the baking stone) */
     if (m === 'roast') for (let i = 0; i < 26; i++) g.sph(0.018, 3, 2, { at: [Math.cos(i * 2.4) * (i % 7) * 0.04, 0.26, Math.sin(i * 2.4) * (i % 7) * 0.04], s: [1.4, 0.7, 1], c: i % 3 ? c1 : c2 });
     else if (out === 'roastEgg' || out === 'eggHerb') for (let i = 0; i < 3; i++) { g.sph(0.055, 7, 5, { at: [(i - 1) * 0.15, 0.3, 0.02], s: [0.85, 1.15, 0.85], c: out === 'eggHerb' ? 0xf4ecd8 : c1 }); if (out === 'eggHerb') g.sph(0.03, 4, 3, { at: [(i - 1) * 0.15 + 0.05, 0.27, 0.06], c: c2 }); }
     else for (let i = 0; i < 3; i++) { const fl = out === 'flatbread' || out === 'shepherd'; g.sph(fl ? 0.13 : 0.085, 8, 4, { at: [(i - 1) * (fl ? 0.2 : 0.16), 0.27, (i % 2) * 0.06], s: [1, fl ? 0.18 : 0.55, 1], c: c1 }); g.sph(0.025, 4, 3, { at: [(i - 1) * (fl ? 0.2 : 0.16) + 0.03, fl ? 0.3 : 0.33, 0.02], c: c2 }); } }
@@ -146,10 +149,12 @@ const TASTE = H.TASTE = { lentilStew: '구수하다… 에서 형님도 이 냄�
 H.cook = function (pick, r, st) {
   const S = Game.S(), P = Game.P, W = Game.W(); if (!st) st = { x: P.x + Math.sin(P.face) * 1.3, z: P.z + Math.cos(P.face) * 1.3 };
   for (const k in pick) Game.take(k, pick[k]); if (r.water) S.water = Math.max(0, S.water - r.water);
-  const fx = st.x, fz = st.z, fy = W.heightAt(fx, fz); let a = Math.atan2(P.x - fx, P.z - fz); if (!isFinite(a)) a = 0;
-  const hx = fx + Math.sin(a) * 1.15, hz = fz + Math.cos(a) * 1.15; const face = Math.atan2(fx - hx, fz - hz);
-  const side = a + PI / 2, m = METHOD[r.out] || 'bake', [c1] = LOOKS[r.out] || [0xc8a060]; const ware = { mesh: cookware(r.out), m: G.m4trs(G.m4(), fx, fy, fz, face), outline: true }; H.ware = ware;
-  const top = m === 'stew' ? 0.62 : m === 'grill' ? 0.66 : m === 'bowl' ? 0.24 : 0.3, col = [((c1 >> 16) & 255) / 255, ((c1 >> 8) & 255) / 255, (c1 & 255) / 255];
+  const cx = st.x, cz = st.z, fy = W.heightAt(cx, cz); let a = Math.atan2(P.x - cx, P.z - cz); if (!isFinite(a)) a = 0;
+  const flat = !st.oven && (METHOD[r.out] || 'bake') !== 'grill', edge = flat ? 0.42 : 0, fx = cx + Math.sin(a) * edge, fz = cz + Math.cos(a) * edge; /* v18.78 the slab stands at the fire's edge on Joseph's side (the sticks of the fire stand in the middle) */
+  const hx = cx + Math.sin(a) * 1.35, hz = cz + Math.cos(a) * 1.35; const face = Math.atan2(fx - hx, fz - hz);
+  const side = a + PI / 2, m = METHOD[r.out] || 'bake', [c1] = LOOKS[r.out] || [0xc8a060]; const lift = !flat ? 0 : 0.36 + ({ stew: -0.12, bake: -0.22, roast: -0.22 }[m] || 0); /* v18.78 a pot or the dough stands on ONE flat stone set on three hearth stones over the fire (it sat in the ashes) — spits stay on their forked sticks; the ware's own stones are left off */
+  const ware = { mesh: cookware(r.out, flat), m: G.m4trs(G.m4(), fx, fy + lift, fz, face), outline: true }; H.ware = ware; H.slab = flat ? { mesh: slabMesh(), m: G.m4trs(G.m4(), fx, fy, fz, face + 0.4), outline: true } : null;
+  const top = (m === 'stew' ? 0.62 : m === 'grill' ? 0.66 : m === 'bowl' ? 0.24 : 0.3) + lift, col = [((c1 >> 16) & 255) / 255, ((c1 >> 8) & 255) / 255, (c1 & 255) / 255];
   const FXK = { steam: n => G.FX.burst(fx, fy + top, fz, n, { c: [0.95, 0.95, 0.95], sp: 0.3, up: 1.2, size: 0.32, a: 0.35, g: -0.4, life: 1.6, drag: 1 }),
     spark: n => G.FX.burst(fx, fy + top - 0.1, fz, n, { c: [1, 0.6, 0.25], sp: 0.9, up: 2.2, size: 0.06, a: 1, g: 3, life: 0.6, drag: 1 }),
     flour: n => G.FX.burst(hx + Math.sin(face) * 0.5, fy + 0.5, hz + Math.cos(face) * 0.5, n, { c: [0.97, 0.95, 0.9], sp: 0.5, up: 0.6, size: 0.12, a: 0.5, g: 0.3, life: 1, drag: 1 }),
@@ -169,8 +174,8 @@ H.cook = function (pick, r, st) {
   if (H.extraShots) H.extraShots(shots, { fx, fy, fz, hx, hz, face, side, a, top, FXK, em, r, pick, m, name, inN }); // v16.9 cuisine.js: seasoning, happenings, more angles
   shots.push({ fn: () => { em('eat'); sfx('eat'); Game.give(r.out, r.n, true); sfx('craft'); S.stats.crafted['cook_' + r.out] = (S.stats.crafted['cook_' + r.out] || 0) + 1; const kn = S.flags.dishes = S.flags.dishes || {}; if (!kn[r.out]) { kn[r.out] = 1; H.newDish = r.out; } },
     cam: [hx + Math.sin(a) * 1.6 + Math.sin(side) * 0.6, fy + 1.45, hz + Math.cos(a) * 1.6 + Math.cos(side) * 0.6], look: [hx, fy + 1.35, hz], dur: 2.6, fov: 0.62,
-    n: '요셉', t: TASTE[r.out] || ['음… 맛있다!', '따뜻하다… 살 것 같아.', '아버지가 해 주시던 맛이 나.'][Math.floor(Math.random() * 3)], each: t => { if (P.emote) P.emote.t = t * 0.7; } });
-  G.Cine.play(shots, () => { P.emote = null; H.ware = null; G.UI.gain && G.UI.gain(r.out, r.n);
+    n: G.Quiet && G.Quiet.hero() ? '' : '요셉', t: G.Quiet && G.Quiet.hero() ? `${G.Quiet.ga(name)} 알맞게 익었습니다.` /* v18.76 no made-up words of Joseph's (js/quiet.js) */ : TASTE[r.out] || ['음… 맛있다!', '따뜻하다… 살 것 같아.', '아버지가 해 주시던 맛이 나.'][Math.floor(Math.random() * 3)], each: t => { if (P.emote) P.emote.t = t * 0.7; } });
+  G.Cine.play(shots, () => { P.emote = null; H.ware = null; H.slab = null; G.UI.gain && G.UI.gain(r.out, r.n);
     if (H.newDish === r.out) { H.newDish = null; const n = H.ALL.filter(k => H.known()[k]).length, d = DISH[r.out]; G.UI.featCard && G.UI.featCard('dish', { kick: `새 요리 · ${n} / ${H.ALL.length}`, n: name, ic: 'bread', d: d && d.ref ? d.ref : '요리 비법에 적어 두었어요' }); }
     G.UI.toast(`${name} ${r.n}개를 만들었어요 · 가방에서 먹을 수 있어요`); Game.checkStep(); });
 };
@@ -186,7 +191,7 @@ function foodMesh(k) { const it = Game.ITEMS[k], ic = it && it.ic, key = ic === 
   return (FOODM[key] = G.R.mesh(g)); }
 H.eatStart = function (k) { const P = Game.P; H.eatK = k; H.eatT = 0; H.bit = 0; };
 H.dyn = function (list) {
-  const P = Game.P; if (H.ware) list.push(H.ware);
+  const P = Game.P; if (H.ware) list.push(H.ware); if (H.slab) list.push(H.slab);
   const e = P.emote; if (!e || (e.k !== 'eat' && e.k !== 'drink') || !H.eatK) return;
   const m = G.m4mul(H.eM || (H.eM = G.m4()), P.rig.world[G.HBI.handR], G.m4trs(H.eL || (H.eL = G.m4()), 0, -0.08, 0.04, 0));
   list.push({ mesh: foodMesh(H.eatK), m, shadow: false });

@@ -102,7 +102,7 @@ Wl.frame = function () {
   };
   const NILE_LATE = ['이 강이 넘치는 해마다 곳간이 차는구나.', '형들은 아직 가나안에서 양을 치고 있을까.', '물이 이렇게 많은데… 흉년이 오면 이 강도 줄어들겠지.'];
   let tT = 20;
-  G.Wilds.thoughts = function (dt) {
+  G.Wilds.thoughts = function (dt) { if (G.Quiet) return; /* v18.73 Joseph's own made-up thoughts on the road are gone (the main story is the Bible only) */
     const S = Game.S(), P = Game.P, W = Game.W(), EP = Game.EP(); if (!S || !W || Game.mode !== 'play' || Game.cineOn || G.UI.busy() || P.downed) return;
     tT -= dt; if (tT > 0) return; tT = 6; if (EP.quiet && EP.quiet(S)) return;
     const day = S.day, said = S.flags.thought || (S.flags.thought = {}), key = (k) => k + ':' + Math.round(P.x / 40) + ',' + Math.round(P.z / 40);

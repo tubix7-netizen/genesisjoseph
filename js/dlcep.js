@@ -120,14 +120,15 @@ X.make = function (spec) {
     skinned(list, s, g, t) { if (spec.skinned) try { spec.skinned(list, t); } catch (e) { console.error('dlc skinned ' + key, e); } },
     music: spec.music ? (s, g, hr) => spec.music(hr) : undefined,
     mood: () => MOOD, /* a little less haze than Joseph's wide map: the valley and its hills stay clear */
-    onLoad(s) { if (G.DLC && G.DLC.loaded) G.DLC.loaded(story, s); }
+    onLoad(s) { if (G.DLC && G.DLC.loaded) G.DLC.loaded(story, s); },
+    pose(pst) { const P0 = Game.P; if (P0 && P0.cpose && !pst.act) { pst.act = P0.cpose.k; pst.actT = P0.cpose.dur ? Math.min(1, P0.cpose.t / P0.cpose.dur) : (P0.cpose.t % 2) / 2; } } /* v18.82 a held pose (sitting by the ewe, in the shade, by the fire) shows inside a story too */
   }, EPX);
   L.ep = EPD; const MOOD = { mod(e) { e.fogDen = 1 / 470; if (spec.mood) spec.mood(e); } };
   function rows(s) { try { return (spec.quest && spec.quest(s, K)) || []; } catch (e) { console.error('dlc quest ' + key, e); return []; } }
   /* people chatting with each other when he walks by */
   let tT = 0; const cool = {};
   function chatter(dt) { tT -= dt; if (tT > 0 || !spec.chatter) return; tT = 6 + Math.random() * 6; if (G.UI.busy()) return; const now = performance.now() / 1000, p = P();
-    const ns = EPD.npcs.map(d => Game.npc(d.id)).filter(n => n && n.vis && !n.talking && !(n.d && n.d.animal) && Math.hypot(n.x - p.x, n.z - p.z) < 24);
+    const ns = EPD.npcs.map(d => Game.npc(d.id)).filter(n => n && n.vis && !n.talking && !(n.d && (n.d.animal || n.d.bib)) && Math.hypot(n.x - p.x, n.z - p.z) < 24); /* v18.82 people of the Bible (bib) don't chat in bubbles */
     for (let i = 0; i < ns.length; i++) for (let j = i + 1; j < ns.length; j++) { const a = ns[i], b = ns[j], k = a.id + b.id; if ((cool[k] || 0) > now || Math.hypot(a.x - b.x, a.z - b.z) > 8) continue; cool[k] = now + 80;
       const T = spec.chatter[Math.floor(Math.random() * spec.chatter.length)]; G.Life.bubble(a.id, T[0], 2.6); setTimeout(() => G.Life.bubble(b.id, T[1], 2.8), 1500); return; } }
   if (spec.items) Object.assign(Game.ITEMS, spec.items);

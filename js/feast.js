@@ -95,7 +95,7 @@ function danceTick(dt) { const g = DG; if (!g) return; g.t += dt; const per = g.
     el.querySelector('.dt').textContent = good ? (g.perfect >= 8 ? '온 마을이 환호해요!' : '잘 췄어요!') : '다음엔 더 잘할 수 있어요!';
     if (good && first) { s.flags.danceDay = s.day; if (G.Bond) for (const fo of g.v.folk) if (Game.ENT.npcs[fo.id]) G.Bond.add(fo.id, g.perfect >= 8 ? 3 : 2, 'dance'); const H = s.hero; if (H) H.mind = Math.min(H.mindMax || 100, (H.mind || 0) + 12); }
     for (const fo of g.v.folk.slice(0, 8)) { const n = Game.ENT.npcs[fo.id]; if (n && n.vis && !n.walk) n.emote = { k: good ? 'cheer' : 'clap', t: 0, dur: 2.2, amb: true }; }
-    setTimeout(() => { el.remove(); DG = null; G.UI.setBusy && G.UI.setBusy('dance', false); if (G.Acts) G.Acts.stop(); pop(good ? '함께 춤을 췄어요!' : '함께 춤을 췄어요', good && first ? `${g.hits}/12 박자 · 정신력 +12 · 마을 사람들과 더 친해졌어요` : `${g.hits}/12 박자`, 'heart'); }, 1500); } }
+    setTimeout(() => { el.remove(); DG = null; Fe.lastDance = s.day; G.UI.setBusy && G.UI.setBusy('dance', false); if (G.Acts) G.Acts.stop(); pop(good ? '함께 춤을 췄어요!' : '함께 춤을 췄어요', good && first ? `${g.hits}/12 박자 · 정신력 +12 · 마을 사람들과 더 친해졌어요` : `${g.hits}/12 박자`, 'heart'); }, 1500); } }
 // ------------------------------------------------------------------ decorations: tables, food, braziers and cloth on posts
 let mesh = null, flame = null; const M0 = G.m4(), MF = [G.m4(), G.m4(), G.m4(), G.m4()];
 function build() { const g = new G.GB(91), W = 0x8a6a48, CL = [0xc83a2a, 0x2c5a9a, 0xe8c048, 0x3a8a4a];
@@ -108,7 +108,7 @@ function build() { const g = new G.GB(91), W = 0x8a6a48, CL = [0xc83a2a, 0x2c5a9
       g.box(0.22, 0.3, 0.02, { at: [x, 2.35 - sag, z], ry: Math.atan2(x1 - x0, z1 - z0) + Math.PI / 2, c: CL[i % 4], j: 0 }); } }
   g.box(2.2, 0.02, 1.6, { at: [0, 0.02, 2.4], c: 0xa83a2a }); g.box(2.0, 0.025, 1.4, { at: [0, 0.03, 2.4], c: 0xe8c048 }); /* a mat for the dancers */
   mesh = G.R.mesh(g); const f2 = new G.GB(92); f2.sph(0.2, 8, 6, { at: [0, 0.12, 0], c: 0xffb040 }); f2.cyl(0.04, 0.14, 0.4, 6, { at: [0, 0.28, 0], c: 0xffd070 }); flame = G.R.mesh(f2); }
-const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, arguments); if (!s) return; try { const f = today(s); if (!f) return; const v = (EP.villages || []).find(x => x.id === f.v); if (!v) return;
+const dyn0 = EP.dyn; EP.dyn = function (list, s) { if (dyn0) dyn0.apply(this, arguments); if (!s) return; try { if (STAGE) { if (!mesh) build(); const W = Game.W(), cx = STAGE.x, cz = STAGE.z, y = W.heightAt(cx, cz); G.m4trs(M0, cx, y, cz, 0, 0, 0, 1, 1, 1); list.push({ mesh, m: M0, outline: true }); const fl = 1 + Math.sin(performance.now() / 90) * 0.12; [[-5, -4], [5, -4], [-5, 4], [5, 4]].forEach(([x, z], i) => { G.m4trs(MF[i], cx + x, y + 2.78, cz + z, 0, 0, 0, fl, fl * (1 + i * 0.03), fl); list.push({ mesh: flame, m: MF[i], emis: [1.4, 0.7, 0.2] }); }); return; } const f = today(s); if (!f) return; const v = (EP.villages || []).find(x => x.id === f.v); if (!v) return;
     const h = s.time % 24; if (h < H0 - 1.5 || h > H1 + 0.3) return; const [cx, cz] = spotOf(v); if (Math.hypot(cx - P().x, cz - P().z) > 90) return; if (!mesh) build();
     const W = Game.W(), y = W.heightAt(cx, cz); G.m4trs(M0, cx, y, cz, 0, 0, 0, 1, 1, 1); list.push({ mesh, m: M0, outline: true });
     const fl = 1 + Math.sin(performance.now() / 90) * 0.12; [[-5, -4], [5, -4], [-5, 4], [5, 4]].forEach(([x, z], i) => { G.m4trs(MF[i], cx + x, y + 2.78, cz + z, 0, 0, 0, fl, fl * (1 + i * 0.03), fl); list.push({ mesh: flame, m: MF[i], emis: [1.4, 0.7, 0.2] }); }); } catch (e) { console.error('feast dyn', e); } };
@@ -121,8 +121,15 @@ const up0 = EP.update; let tT = 0, chk = 0; EP.update = function (dt) { const r 
         if (ids.length) G.Life.bubble(rnd(ids).id, rnd(REASON[f.why].say.concat(['하하하!', '한 곡 더!', '얼쑤!', '이 빵 좀 드셔 보세요!'])), 2.6); }
       if (G.Weather && G.Weather.kind && ['storm', 'dust'].includes(G.Weather.kind(s)) && G.Weather.set) G.Weather.set('clear', 3); } } catch (e) { console.error('feast', e); } return r; };
 /* music for a feast */
-const mu0 = EP.music; EP.music = function (s, g, hr) { try { const f = today(s); const v = f && (EP.villages || []).find(x => x.id === f.v); if (v && isOn(s, v)) { const [cx, cz] = spotOf(v); if (Math.hypot(P().x - cx, P().z - cz) < 35) return 'j_plenty'; } } catch (e) { } return mu0 ? mu0.apply(this, arguments) : undefined; };
+const mu0 = EP.music; EP.music = function (s, g, hr) { try { if (STAGE && Math.hypot(P().x - STAGE.x, P().z - STAGE.z) < 35) return 'j_plenty'; const f = today(s); const v = f && (EP.villages || []).find(x => x.id === f.v); if (v && isOn(s, v)) { const [cx, cz] = spotOf(v); if (Math.hypot(P().x - cx, P().z - cz) < 35) return 'j_plenty'; } } catch (e) { } return mu0 ? mu0.apply(this, arguments) : undefined; };
 Fe.spot = id => { const v = (EP.villages || []).find(x => x.id === id); return v ? spotOf(v) : null; };
 Fe.reasons = REASON; Fe.on = isOn;
 Fe.force = (vId, why) => { const s = S(); s.flags.feast = { day: s.day, v: vId, why: why || 'harvest' }; s.flags.feastLast = s.day; for (const id in Game.ENT.npcs) Game.ENT.npcs[id].schedKey = null; };
+/* v18.71 a feast staged by the story (the wedding of 창 41:45): the same table, food and dance at a given spot, with the given guests.
+   Fe.stage({ x, z, v: { id, n, folk: [{ id }] } }) puts it up; Fe.stage(null) takes it down. Fe.lastDance = the day of the last finished dance */
+let STAGE = null; Fe.stage = o => { STAGE = o || null; }; Fe.staged = () => STAGE; Fe.lastDance = -1;
+REASON.royalWed = { n: '혼인 잔치', d: '바로가 요셉에게 아스낫을 아내로 준 날의 잔치', say: ['아브렉!', '자, 다 같이 한 잔씩!', '오늘만큼은 배불리 드세요!', '하하하!'] };
+Game.CTX.push(function (s) { const p = P(); if (!STAGE || Game.cineOn || p.act || DG) return null; const d = Math.hypot(p.x - STAGE.x, p.z - STAGE.z); if (d > 4.2) return null; const v = STAGE.v, f = { why: 'royalWed' };
+  if (!ate() && d < 2.6) return [{ d: d - 0.6, label: '잔치 음식 먹기', x: STAGE.x, z: STAGE.z, y: 1.1, key: 'feastEat', story: true, use: () => eat(s, v, f) }];
+  return [{ d: d - 0.3, label: '함께 춤추기', x: STAGE.x, z: STAGE.z, y: 1.1, key: 'feastDance', story: true, use: () => danceGame(s, v, f) }]; });
 })(window.G);

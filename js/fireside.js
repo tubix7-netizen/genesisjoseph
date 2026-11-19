@@ -2,7 +2,8 @@
    · 마을 모닥불: once the story reaches Egypt, the villages, the market, the Nile ford, Potiphar's workers' yard and the vizier's
      courtyard each get a fire that burns all the time (fixed records in S.bld, pre:1 — they warm, dry and cook like a built one).
    · 「모닥불가에 앉기」 by any fire at night, or whenever Joseph is wet or cold: he sits, dries and warms (5 minutes), and whoever
-     is near — family first, then people he knows — comes to sit with him. Around the fire: tell one of the old stories
+     is near — family first, then people he knows — may get up and walk over to sit with him (v18.73: each in their own time, slowly; some don't come;
+     nobody appears out of nowhere). People of the Bible sit and listen without words (js/quiet.js). Around the fire: tell one of the old stories
      (Abraham's stars, Isaac on Moriah, Jacob's ladder, the wrestling at the Jabbok, Noah's rainbow, Joseph's own dreams),
      listen to theirs, pray together. Once a night: 정신력 and 친밀도 grow. Telling all six stories → 「모닥불 이야기꾼」.
    · 한낮의 물 한 모금: in Egypt's midday heat a worker nearby sometimes calls for water (a bubble over their head). Bring water
@@ -48,9 +49,7 @@ const STORIES = [
     kid: ['짐승들이 다 배에 탔어요? 낙타도요? 하마도요?', '다음에 무지개 뜨면 꼭 알려 주세요!'], wife: '비 온 뒤에 그 이야기를 다시 들려주세요. 아이들이 좋아할 거예요.', man: '나일이 넘칠 때마다 무서웠는데… 그런 약속이 있었구려.' },
   { k: 'dreams', n: '요셉의 두 꿈', t: ['어릴 적 저는 꿈을 꾸었어요. 밭에서 곡식단을 묶는데 형들의 단이 제 단에 절을 하는 꿈, 해와 달과 열한 별이 제게 절하는 꿈.', '그 꿈을 자랑하다 형들의 미움을 샀지요. 구덩이에 던져지고 종으로 팔렸어요. 그런데 지금 돌아보면… 그 모든 길에 하나님이 계셨어요.'],
     kid: ['아빠 형들 나빠요! …그래도 지금은 용서했어요?', '아빠 꿈이 진짜가 됐어요?'], wife: '그 길 끝에서 우리가 만났네요. 저는 그 길이 고마워요.', man: '그런 길을 걸어오셨다니… 그래서 우리 같은 사람 마음을 아시는구려.' }];
-const TALK = [
-  [/아스낫/, ['온에 살 때는 밤이 이렇게 따뜻한 줄 몰랐어요. 당신이 오고 나서예요.']],
-  [/므낫세|에브라임/, ['아빠, 불똥이 별처럼 올라가요!', '아빠 옆에 있으면 하나도 안 추워요.', '아빠, 내일도 여기 앉아요. 약속!']],
+const TALK = [ /* (people of the Bible say nothing by the fire: js/quiet.js) */
   [/어부|그물|나루|사공/, ['나일 강은 밤이 되면 소리가 달라지오. 하마가 숨 쉬는 소리가 들리지.', '오늘은 메기 한 마리를 놓쳤는데 팔뚝만 했다오. 정말이오!']],
   [/농부|일꾼|밭|감독/, ['올해 물이 알맞게 넘쳐서 밭이 검게 기름졌소. 감사한 일이지.', '하루 종일 흙을 만지다 이렇게 불가에 앉으면 세상 부러울 게 없소.']],
   [/상인|장사/, ['나는 남쪽 누비아까지 다녀왔소. 거기 사람들은 상아로 빗을 만든다오.', '장사는 믿음이 반이오. 당신 같은 사람과 거래하면 마음이 편하지.']],
@@ -58,119 +57,142 @@ const TALK = [
   [/여인|물 긷|베 짜/, ['베틀 앞에 종일 앉아 있으면 어깨가 굳어요. 불 쬐니 좀 풀리네요.', '우리 딸이 오늘 처음으로 물동이를 혼자 이었어요.']],
   [/./, ['불을 보고 있으면 걱정이 타서 날아가는 것 같소.', '이런 밤엔 고향 생각이 나지. 당신도 그렇소?', '당신 하나님 이야기를 하나 더 해 주시오. 듣고 싶구려.']]];
 const talkOf = n => { const s = n.name + ' ' + (n.d.role || ''); for (const [rx, l] of TALK) if (rx.test(s)) return l; return TALK[TALK.length - 1][1]; };
-const ALONE = ['(타닥타닥 타는 불을 보며 헤브론 장막 앞 모닥불을 떠올린다. 아버지는 지금 무엇을 하고 계실까.)', '(베냐민은 이제 많이 컸겠지… 하나님, 그 아이를 지켜 주세요.)',
-  '(구덩이의 밤, 옥의 밤, 그리고 오늘 밤. 어느 밤에도 하나님은 나를 떠나지 않으셨다.)', '(불똥이 하늘로 올라가 별 사이로 사라진다. 「네 자손이 이와 같으리라」…)'];
+/* v18.73 Joseph's own made-up thoughts by the fire are gone: only what is seen and heard */
+const ALONE = ['요셉은 한동안 말없이 타는 불을 바라보았습니다.', '불똥이 하늘로 올라가 별 사이로 사라졌습니다.', '장작이 타닥타닥 타는 소리만 들렸습니다.', '불빛이 일렁이며 둘레의 어둠을 밀어냈습니다.'];
 
 // ------------------------------------------------------------------ sitting by the fire
+const TREEISH = /oak|palm|acacia|tamarisk|sycamore|retama|bush|tree|olive|fig|willow|cedar|pine|shrub|thorn|herb|crop|reed|papyrus|vine/i;
+/* v18.78 a tree, bush or reeds between the camera and the fire hides Joseph: count them along the line (G.PROPLOG holds every placed prop) */
+const treeOnLine = (x0, z0, x1, z1) => { const L = G.PROPLOG || []; let n = 0; const dx = x1 - x0, dz = z1 - z0, ll = dx * dx + dz * dz || 1; for (const [k, x, z] of L) { if (!TREEISH.test(k)) continue; const t = Math.max(0, Math.min(1, ((x - x0) * dx + (z - z0) * dz) / ll)), px = x0 + dx * t, pz = z0 + dz * t; if (Math.hypot(x - px, z - pz) < 1.5) n++; } return n; };
+const inCrown = (W, x, y, z) => { for (const c of W.canopies || []) { if (Math.abs(c.x - x) > c.r || Math.abs(c.z - z) > c.r) continue; if (y > c.y0 - 4.2 && y < c.y1 && Math.hypot(c.x - x, c.z - z) < c.r * 0.9) return c; } return null; }; /* (big trees hang their leaves well below the crown's recorded bottom: keep the camera out from under them) */
 const near = (x, z, r) => Object.keys(Game.ENT.npcs).filter(id => { const n = npc(id); return n && n.vis && !n.d.animal && !n.talking && !n.walk && Math.hypot(n.x - x, n.z - z) < r; });
 const Cs = () => G.Cast;
+const quiet = id => !!(G.Quiet && G.Quiet.is(id)); /* v18.73 a person of the Bible: comes and sits, says nothing */
 const silent = id => { const n = npc(id), nt = n && n.d.noTalk; return typeof nt === 'function' ? !!nt(Game.S(), Game) : !!nt; };
-const castFire = id => Cs() ? Cs().fire(id) : undefined; /* v18.56 who this person is, by the fire (js/cast.js) */
+const castFire = id => { const v = Cs() ? Cs().fire(id) : undefined; return v && quiet(id) ? { quiet: 1 } : v; }; /* v18.56 who this person is, by the fire (js/cast.js) · v18.73 no words for people of the Bible */
 const kinNow = id => FAM.includes(id) || !!(Cs() && Cs().kin(id));
+const nameGa = nm => G.Quiet ? G.Quiet.ga(nm) : nm + '이(가)';
 function companions(f, S) { const P = Game.P, out = [];
   for (const id of FAM) { const n = npc(id); if (n && n.vis && (n.follow || Math.hypot(n.x - P.x, n.z - P.z) < 25)) out.push(id); }
   /* v18.56 Joseph's own people come first: in Hebron his father, Benjamin, Leah and Dinah; in Goshen his father and brothers */
   const PRI = ['jacob', 'benjamin', 'benjamin2', 'leah', 'dinah', 'reuben', 'judah']; /* father and Benjamin first, then the others */
-  for (const id of near(P.x, P.z, 25).sort((a, b) => ((PRI.indexOf(a) + 1) || 99) - ((PRI.indexOf(b) + 1) || 99))) { if (out.length >= 3) break; if (out.includes(id) || !kinNow(id) || (silent(id) && !castFire(id)) || castFire(id) === false) continue; out.push(id); } /* v18.56b (the brothers and Benjamin are 「noTalk」 between errands in Goshen, but they still come to the fire) */
+  const pool = near(P.x, P.z, 25).concat(Object.keys(Game.ENT.npcs).filter(id => { const n = npc(id); return n && n.vis && n.follow && !FAM.includes(id); }));
+  for (const id of pool.sort((a, b) => ((PRI.indexOf(a) + 1) || 99) - ((PRI.indexOf(b) + 1) || 99))) { if (out.length >= 3) break; if (out.includes(id) || !kinNow(id) || (silent(id) && !castFire(id)) || castFire(id) === false) continue; out.push(id); } /* v18.56b (the brothers and Benjamin are 「noTalk」 between errands in Goshen, but they still come to the fire) */
   if (out.length < 3) { const B = G.Bond, others = near(P.x, P.z, 22).filter(id => !out.includes(id) && !FAM.includes(id) && !silent(id) && castFire(id) !== false && (castFire(id) || !kidOf(npc(id))) && (Math.hypot(npc(id).x - P.x, npc(id).z - P.z) < 10 || (B && B.level(id).i >= 1)));
     others.sort((a, b) => (B ? B.get(b).p - B.get(a).p : 0)); for (const id of others) { if (out.length >= 3) break; out.push(id); } }
   return out.slice(0, 3); }
-let ring = null; // { f, ids, key }
+let ring = null; // { f, ids (seated), key, seats, come: [{ id, t, seat, walking }], news: [], atMenu }
+let kept = null; /* while cooking: the people stay seated by the fire */
+/* v18.73 nobody appears by the fire any more: whoever wants to come gets up and walks over slowly, each in their own time (some don't come at all) */
+function invite(r, S) { const cand = companions(r.f, S);
+  cand.forEach(id => { const n = npc(id); if (!n) return; const fol = !!n.follow, want = fol ? 1 : kinNow(id) ? 0.8 : 0.55; if (Math.random() > want) return;
+    r.come.push({ id, t: fol ? 0.6 + Math.random() * 2 : 2 + Math.random() * 14, walking: false, home: [n.x, n.z, n.homeFace !== undefined ? n.homeFace : n.face], sched: !!n.d.sched, fol }); }); }
+function seatOf(r, i) { const a = r.seats.length ? r.seats[i % r.seats.length] + (i >= r.seats.length ? 0.4 : 0) : r.a0 + [0.95, -0.95, 1.85, -1.85][i % 4]; return { a, x: r.f.x + Math.sin(a) * 1.75, z: r.f.z + Math.cos(a) * 1.75 }; }
+function walkIn(r, c) { const n = npc(c.id), S = Game.S(); if (!n || !n.vis) { c.gone = 1; return; } c.walking = true; c.seat = r.nSeat++;
+  const s = seatOf(r, c.seat); if (c.fol) { n.follow = false; c.wasFol = 1; } n.talking = true; n.sit = false; n.act = null; n.emote = null; n.wander = null;
+  Game.npcWalk(c.id, s.x, s.z, () => arrive(r, c, s), 0.9 + Math.random() * 0.4); if (S.npcPos) delete S.npcPos[c.id]; }
+function arrive(r, c, s) { const n = npc(c.id), live = ring === r || (kept && kept.r === r); if (!live || !n) return; c.walking = false; /* (still seated people count while Joseph cooks) */
+  if (Math.hypot(n.x - s.x, n.z - s.z) > 1.4) { c.gone = 1; letGo(c); return; } /* couldn't get round to the fire: goes back to what they were doing */
+  n.face = s.a + Math.PI; n.homeFace = n.face; n.act = 'sitg'; n.sit = false; r.ids.push(c.id); c.sat = 1;
+  const nm = npc(c.id).name, cf = castFire(c.id), line = quiet(c.id) ? null : cf && cf.join ? rnd(cf.join) : rnd(['불 좀 같이 쬐어도 되겠소?', '아, 당신도 불 쬐러 오셨구려. 앉으시오.', '이 불은 우리 마을 사람 누구나 쬐는 불이라오.']);
+  r.news.push({ n: '', t: `${nameGa(nm)} 불가로 와서 곁에 앉았어요.` }); if (line) r.news.push({ n: nm, t: line });
+  /* v18.56 「아버지와 저녁 이야기」 (a request of Jacob's) ends here at the fire */
+  const L = G.Life, S0 = Game.S(), QS = Game.EP().quests || {}; if (c.id === 'jacob' && L && L.active) for (const qid of L.active(S0)) { const q = QS[qid]; if (!q || q.giver !== 'jacob' || !L.qOk || !L.qOk(S0, qid) || !q.done) continue; r.doneQ = qid; break; }
+  if (r.atMenu && ring === r) menu(); }
+function letGo(c, toHome) { const n = npc(c.id); if (!n) return; if (n.walk && c.walking) n.walk = null; n.emote = null; n.sit = false; n.act = null; n.talking = false; c.walking = false;
+  if (c.wasFol) { n.follow = true; return; } if (c.sched) { n.schedSlot = -1; return; } /* back to their day (js/life.js) */
+  if (toHome !== false && c.home && Math.hypot(n.x - c.home[0], n.z - c.home[1]) > 1.2) { const S = Game.S(); Game.npcWalk(c.id, c.home[0], c.home[1], () => { n.face = n.homeFace = c.home[2]; }, 1.2); if (S.npcPos) delete S.npcPos[c.id]; } }
+function arrTick(dt) { const r = ring; if (!r || !r.come) return; for (const c of r.come) { if (c.gone || c.sat || c.walking) continue; if ((c.t -= dt) <= 0) walkIn(r, c); } }
 F.sit = function (f, back) { const S = Game.S(), P = Game.P, C = G.Climate; if (ring || calm()) return; inTalk = 0; const key = nightKey(S), first = S.flags.fsNight !== key;
-  const ids = companions(f, S); ring = { f, ids, key, told: 0 };
+  const kp = kept && kept.f === f ? kept : null; if (kept && !kp) release(); kept = null;
+  ring = kp ? Object.assign(kp.r, { atMenu: false }) : { f, ids: [], key, told: 0, come: [], news: [], seats: [], nSeat: 0, atMenu: false };
   G.UI.fade(() => { const W = Game.W(), y = W.heightAt(f.x, f.z) + 1.1; let a0 = Math.atan2(P.x - f.x, P.z - f.z), best = -1;
-    // pick the side with room for Joseph behind him and for the camera across the fire
+    if (kp) a0 = ring.a0; else // pick the side with room for Joseph behind him and for the camera across the fire
     for (let k = 0; k < 12; k++) { const a = a0 + k / 12 * Math.PI * 2, sx = Math.sin(a), sz = Math.cos(a); const me = W.ray(f.x + sx, y, f.z + sz, f.x + sx * 3, y, f.z + sz * 3), cam = W.ray(f.x - sx, y, f.z - sz, f.x - sx * 5, y + 1, f.z - sz * 5);
-      const cx = f.x - sx * 4.2, cz = f.z - sz * 4.2, roofed = W.inRoof && W.inRoof(cx, cz, y + 1.2, null) ? 1 : 0; const wet = W.heightAt(f.x + sx * 1.7, f.z + sz * 1.7) < (W.water ? W.water.level : -99) + 0.25 ? 3 : 0; const sc = Math.min(1, me) + Math.min(1, cam) * 1.4 - roofed * 2 - wet - k * 0.002; if (sc > best) { best = sc; ring.a0 = a; } }
+      const cx = f.x - sx * 4.2, cz = f.z - sz * 4.2, roofed = (W.inRoof && W.inRoof(cx, cz, y + 1.2, null) ? 1 : 0) + (inCrown(W, cx, y + 1.3, cz) ? 1.5 : 0) + Math.min(2, treeOnLine(cx, cz, f.x + sx * 1.7, f.z + sz * 1.7)) * 0.8; /* v18.76 nor inside a tree crown (the Shechem oak) */ const wet = W.heightAt(f.x + sx * 1.7, f.z + sz * 1.7) < (W.water ? W.water.level : -99) + 0.25 ? 3 : 0; const sc = Math.min(1, me) + Math.min(1, cam) * 1.4 - roofed * 2 - wet - k * 0.002; if (sc > best) { best = sc; ring.a0 = a; } }
     a0 = ring.a0; P.x = f.x + Math.sin(a0) * 1.7; P.z = f.z + Math.cos(a0) * 1.7; P.face = a0 + Math.PI; P.vx = P.vz = 0; P.emote = { k: 'sitg', t: 0, dur: 1e4 };
     const wl = W.water ? W.water.level : -99, dry = a => { const x = f.x + Math.sin(a) * 1.75, z = f.z + Math.cos(a) * 1.75; return W.heightAt(x, z) > wl + 0.25 && !(W.waterAt && W.waterAt(x, z)) && W.ray(f.x + Math.sin(a), y, f.z + Math.cos(a), x + Math.sin(a) * 0.4, y, z + Math.cos(a) * 0.4) >= 1; };
-    const seats = [0.95, -0.95, 1.85, -1.85, 2.5, -2.5].map(d => a0 + d).filter(dry);
-    ids.forEach((id, i) => { const n = npc(id), a = seats.length ? seats[i % seats.length] + (i >= seats.length ? 0.4 : 0) : a0 + [0.95, -0.95, 1.85][i]; n.x = f.x + Math.sin(a) * 1.75; n.z = f.z + Math.cos(a) * 1.75; n.face = a + Math.PI; n.talking = true; n.walk = null; n.emote = null; n.act = 'sitg'; n.sit = false; });
+    if (!kp) ring.seats = [0.95, -0.95, 1.85, -1.85, 2.5, -2.5].map(d => a0 + d).filter(dry);
     if (C) { C.wet = 0; C.warm(300); } if (first) { S.flags.fsNight = key; G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(15); }
-    const cd = 1 + 4 * Math.max(0.4, Math.min(1, W.ray(f.x - Math.sin(a0), y, f.z - Math.cos(a0), f.x - Math.sin(a0) * 5, y + 1.2, f.z - Math.cos(a0) * 5)) - 0.05), gy = W.heightAt(f.x, f.z);
-    Game.cineCam = { x: f.x - Math.sin(a0) * cd, y: gy + 1.2 + cd * 0.3, z: f.z - Math.cos(a0) * cd, lx: f.x + Math.sin(a0) * 0.5, ly: gy + 0.65, lz: f.z + Math.cos(a0) * 0.5, fov: 1.2 };
-    Game.CAM.yaw = P.face; Game.noDlgCam = true; }, () => {
+    let cd = 1 + 4 * Math.max(0.4, Math.min(1, W.ray(f.x - Math.sin(a0), y, f.z - Math.cos(a0), f.x - Math.sin(a0) * 5, y + 1.2, f.z - Math.cos(a0) * 5)) - 0.05), gy = W.heightAt(f.x, f.z);
+    { let cy = gy + 1.2 + cd * 0.3, k = 0; const cxx = () => f.x - Math.sin(a0) * cd, czz = () => f.z - Math.cos(a0) * cd; let cr; while ((cr = inCrown(W, cxx(), cy, czz())) && k++ < 8) { if (cd > 1.7) cd = Math.max(1.6, cd - 0.6); else { cy = Math.max(gy + 0.95, cy - 0.4); } } ring.camY = cy; } /* v18.76 under the leaves, never in them */
+    Game.cineCam = { x: f.x - Math.sin(a0) * cd, y: ring.camY, z: f.z - Math.cos(a0) * cd, lx: f.x + Math.sin(a0) * 0.5, ly: gy + 0.65, lz: f.z + Math.cos(a0) * 0.5, fov: 1.2 };
+    Game.CAM.yaw = P.face; Game.noDlgCam = true; if (!kp) invite(ring, S); }, () => {
     if (back) { menu(); return; } /* back from cooking: straight to the menu */
-    const wetNow = C && (C.wet > 0.2 || C.cold), w = G.Weather && G.Weather.rainy() ? '빗소리 사이로 불이 타닥타닥 탑니다.' : !isNight(S) && !wetNow ? rnd(['모닥불 곁에 앉았어요. 장작이 타닥타닥 탑니다.', '불가에 앉으니 마음이 느긋해져요.']) : isNight(S) ? rnd(['밤하늘에 별이 쏟아질 듯합니다. 불꽃이 타닥타닥 튀어 오릅니다.', '나일 쪽에서 서늘한 바람이 불어오고, 모닥불이 따뜻하게 일렁입니다.']) : '젖은 옷에서 김이 피어오릅니다. 불기운이 몸을 녹입니다.';
+    const wetNow = C && (C.wet > 0.2 || C.cold), w = G.Weather && G.Weather.rainy() ? '빗소리 사이로 불이 타닥타닥 탑니다.' : !isNight(S) && !wetNow ? rnd(['모닥불 곁에 앉았어요. 장작이 타닥타닥 탑니다.', '불가에 앉으니 마음이 느긋해져요.']) : isNight(S) ? rnd(['밤하늘에 별이 쏟아질 듯합니다. 불꽃이 타닥타닥 튀어 오릅니다.', egypt(S) ? '나일 쪽에서 서늘한 바람이 불어오고, 모닥불이 따뜻하게 일렁입니다.' : '서늘한 밤바람이 불어오고, 모닥불이 따뜻하게 일렁입니다.']) /* v18.76 (no Nile in Canaan) */ : '젖은 옷에서 김이 피어오릅니다. 불기운이 몸을 녹입니다.';
     const intro = [{ n: '', t: w }]; if (first) intro.push({ n: '', t: (wetNow ? '몸이 마르고 따뜻해졌어요' : '몸이 따뜻해졌어요') + ' · 정신력 +15' });
-    const cf0 = ids.length && castFire(ids[0]);
-    if (cf0 && cf0.join) intro.push({ n: npc(ids[0]).name, t: rnd(cf0.join) });
-    else if (ids.length) intro.push({ n: npc(ids[0]).name, t: ids[0] === 'asenath' ? rnd(Game.S().q.born1 ? ['여기 계셨네요. 저도 같이 앉을게요.', '불 피워 두셨네요. 아이들도 데려올게요.'] : ['여기 계셨네요. 저도 같이 앉을게요.']) : FAM.includes(ids[0]) ? rnd(['아빠! 나도 불 쬘래요!', '아빠 옆자리는 내 거예요!']) : rnd(['불 좀 같이 쬐어도 되겠소?', '아, 당신도 불 쬐러 오셨구려. 앉으시오.', '이 불은 우리 마을 사람 누구나 쬐는 불이라오.']) });
-    /* v18.56 the others settle in too, and people who belong together talk to each other */
-    for (const id of ids.slice(1)) { const cf = castFire(id); if (cf && cf.join) intro.push({ n: npc(id).name, t: rnd(cf.join) }); }
-    if (ids.length >= 2 && Cs()) { outer: for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const pl = Cs().pair(ids[i], ids[j]); if (pl) { for (const [w, t] of pl) intro.push({ n: npc(w ? ids[j] : ids[i]).name, t }); break outer; } } }
-    if (era() === 'canaan' && ids.includes('jacob') && !Game.S().flags.jBless) { Game.S().flags.jBless = 1; /* v18.56 a father's word before the road (heard once, at the Hebron fire) */
-      intro.push({ n: npc('jacob').name, t: '요셉아, 하나만 기억하거라. 하나님이 네게 꿈을 주셨다면, 그 꿈은 네 것이 아니라 그분 것이다.' }, { n: npc('jacob').name, t: '높아질수록 낮게 걸어라. 그리고 어디로 가든지… 그분이 너와 함께 계신다.', e: 'tender' }, { n: '요셉', t: '…네, 아버지. 잊지 않을게요.' }); }
-    /* v18.56 「아버지와 저녁 이야기」 ends here at the fire, not after getting up and speaking to him again */
-    const L = G.Life, S0 = Game.S(), QS = Game.EP().quests || {}; if (L && L.active && ids.includes('jacob')) for (const qid of L.active(S0)) { const q = QS[qid]; if (!q || q.giver !== 'jacob' || !L.qOk || !L.qOk(S0, qid) || !q.done) continue; const dl = typeof q.done === 'function' ? q.done(S0, Game) : q.done; for (const l of dl) intro.push(typeof l === 'string' ? { n: npc('jacob').name, t: l } : l); intro.push({ n: '', t: '__done:' + qid }); break; }
-    const doneQ = intro.find(l => /^__done:/.test(l.t)); if (doneQ) { const qid = doneQ.t.slice(7); intro.splice(intro.indexOf(doneQ), 1); G.UI.say(intro, () => { L.complete(qid); setTimeout(menu, 400); }); return; }
+    if (ring.come.length) intro.push({ n: '', t: '불빛을 보고 누군가 이쪽으로 오려는 것 같아요.' });
     G.UI.say(intro, () => menu()); }); };
-let inTalk = 0; /* after a story, back to the talk (not the top menu) */
-function menu() { const S = Game.S(), r = ring; if (!r) return; if (inTalk && r.ids.length) { talkMenu(); return; } /* v18.60 three ways at most: talk (stories in and out, one by one), pray, get up — cooking sits inside 「불가에서 하기」 */
+let inTalk = 0, idleT = 0; /* after a story, back to the talk (not the top menu) */
+/* what happened while you were busy (someone sat down), then the choices */
+function news(r) { const ls = r.news.splice(0); return ls; }
+function menu() { const S = Game.S(), r = ring; if (!r) return; r.atMenu = false;
+  if (r.doneQ) { const qid = r.doneQ, L = G.Life, q = (Game.EP().quests || {})[qid]; r.doneQ = null; if (q && L.qOk(S, qid)) { const dl = typeof q.done === 'function' ? q.done(S, Game) : q.done; const ls = news(r).concat(dl.map(l => typeof l === 'string' ? { n: npc('jacob').name, t: l } : l)); G.UI.say(ls, () => { L.complete(qid); setTimeout(menu, 400); }); return; } }
+  if (inTalk && r.ids.length) { talkMenu(); return; } /* v18.60 three ways at most: talk (stories in and out, one by one), pray, get up — cooking sits inside 「활동하기」 */
   const ch = [];
-  if (r.ids.length) ch.push({ t: '이야기 나누기', then: () => setTimeout(talkMenu, 30) });
-  else ch.push({ t: '불가에서 하기', then: () => setTimeout(soloMenu, 30) });
-  ch.push({ t: r.ids.length ? '함께 기도하기' : '기도하기', then: () => setTimeout(pray, 30) }); ch.push({ t: '일어나기', then: () => { inTalk = 0; setTimeout(stand, 30); } });
-  G.UI.say([{ n: '', t: r.ids.length ? '무엇을 할까요?' : '홀로 불가에 앉아 있습니다.', choices: ch }], null); }
+  if (r.ids.length) ch.push({ t: '이야기 나누기', then: () => { r.atMenu = false; setTimeout(talkMenu, 30); } });
+  else ch.push({ t: '활동하기', then: () => { r.atMenu = false; setTimeout(soloMenu, 30); } });
+  ch.push({ t: r.ids.length ? '함께 기도하기' : '기도하기', then: () => { r.atMenu = false; setTimeout(pray, 30); } }); ch.push({ t: '일어나기', then: () => { r.atMenu = false; inTalk = 0; setTimeout(stand, 30); } });
+  G.UI.say(news(r).concat([{ n: '', t: r.ids.length ? '무엇을 할까요?' : '홀로 불가에 앉아 있습니다.', choices: ch }]), null); r.atMenu = true; }
 /* stories by the fire: two choices at a time, the next one opens after each — always a way back */
 let tk = 0;
-function talkMenu() { const r = ring; if (!r) return; inTalk = 1; const opts = [{ t: teller() ? '아버지께 옛이야기 청하기' : '옛이야기 들려주기', f: tellPick }].concat(r.ids.map(id => ({ t: `${Cs() ? Cs().me(id) : npc(id).name}의 이야기 듣기`, f: () => listen(id) })));
+function talkMenu() { const r = ring; if (!r) return; inTalk = 1; r.atMenu = false; const opts = [{ t: teller() ? '아버지께 옛이야기 청하기' : '옛이야기 들려주기', f: tellPick }].concat(r.ids.filter(id => !quiet(id)).map(id => ({ t: `${Cs() ? Cs().me(id) : npc(id).name}의 이야기 듣기`, f: () => listen(id) })));
   if (G.Hearth) opts.push({ t: '함께 먹을 것 요리하기', f: cook });
   const two = []; for (let k = 0; k < Math.min(2, opts.length); k++) two.push(opts[(tk + k) % opts.length]); tk = (tk + 1) % Math.max(1, opts.length);
-  G.UI.say([{ n: '요셉', t: '(무슨 이야기를 할까?)', choices: two.map(o => ({ t: o.t, then: () => setTimeout(o.f, 30) })).concat([{ t: '그만 이야기하기', then: () => { inTalk = 0; setTimeout(menu, 30); } }]) }], null); }
-function soloMenu() { const ch = []; if (G.Hearth) ch.push({ t: '요리하기', then: () => setTimeout(cook, 30) }); ch.push({ t: '불을 바라보며 생각하기', then: () => setTimeout(() => G.UI.say([{ n: '요셉', t: rnd(alone()) }], menu), 30) }); ch.push({ t: '돌아가기', then: () => setTimeout(menu, 30) }); G.UI.say([{ n: '', t: '(무엇을 할까?)', choices: ch }], null); }
-/* v18.56 who tells the old stories: in Hebron and in Goshen, Jacob tells his own fathers' stories (and his own), not his son */
+  G.UI.say(news(r).concat([{ n: '', t: '무슨 이야기를 할까요?', choices: two.map(o => ({ t: o.t, then: () => { r.atMenu = false; setTimeout(o.f, 30); } })).concat([{ t: '그만 이야기하기', then: () => { r.atMenu = false; inTalk = 0; setTimeout(menu, 30); } }]) }]), null); r.atMenu = true; }
+function soloMenu() { const ch = []; if (G.Hearth) ch.push({ t: '요리하기', then: () => setTimeout(cook, 30) }); ch.push({ t: '불을 바라보기', then: () => setTimeout(() => G.UI.say([{ n: '', t: rnd(ALONE) }], menu), 30) }); if (G.Sleep) { const h = Game.S().time % 24, nt = h >= 18.5 || h < 4.5 || !!(G.storyNight && G.storyNight(Game.S())); ch.push({ t: nt ? '불가에서 자기' : '불가에서 눈 붙이기', then: () => setTimeout(() => { stand(true); /* v18.72 get up from the ring first (else the ring stayed taken and no fire could be sat at again) */ const s = Game.S(); if (G.prFireSleep && G.prFireSleep(s)) return; G.Sleep.go('fire'); }, 30) }); } /* v18.67 sleeping by the fire (fair weather only) */ ch.push({ t: '돌아가기', then: () => setTimeout(menu, 30) }); G.UI.say([{ n: '', t: '무엇을 할까요?', choices: ch }], null); }
+/* v18.56 who tells the old stories (someone not of the Bible with stories of their own, js/cast.js) */
 function teller() { const r = ring; if (!r) return null; for (const id of r.ids) { const cf = castFire(id); if (cf && cf.tell) return id; } return null; }
 function tellOf(id, k) { const cf = castFire(id); if (!cf) return null; let t = cf.tell; if (typeof t === 'string') { const c = Cs().of(id); t = c && c.fire && c.fire[t] && c.fire[t].tell; } return t && t[k] || null; }
 const era = () => Cs() ? Cs().era() : 'vizier';
-/* what Joseph himself can say: before the pit his dreams are only dreams; in Goshen he tells them to the brothers who sold him */
-function josephText(s) { const t = josephText0(s), kids = ring && ring.ids.some(id => id === 'manasseh' || id === 'ephraim') && !ring.ids.includes('jacob');
-  return kids ? t.map(x => x.replace(/우리 증조할아버지 아브라함/g, '너희 할아버지의 할아버지 아브라함').replace(/증조할아버지 아브라함/g, '너희 할아버지의 할아버지 아브라함').replace(/할아버지 이삭/g, '증조할아버지 이삭').replace(/우리 아버지 야곱/g, '너희 할아버지 야곱').replace(/(?<![할큰])아버지가/g, '할아버지가').replace(/(?<![할큰])아버지는/g, '할아버지는').replace(/(?<![할큰])아버지 이름/g, '할아버지 이름').replace(/에서 큰아버지/g, '에서 큰할아버지')) : t; } /* v18.56 to his sons, Jacob is 「할아버지」 */
-function josephText0(s) { const e = era(); if (s.k === 'dreams') { if (e === 'canaan') return (Game.S().flags.told || {}).dreams ? ['그 꿈 이야기 기억하세요? 곡식단들이 제 단에 절을 하던 꿈이요.', '해와 달과 열한 별 꿈도요. …저는 아직도 그 뜻이 궁금해요.'] : ['어젯밤에 꿈을 꾸었어요. 우리가 밭에서 곡식단을 묶는데, 제 단은 일어서고 형들의 단이 둘러서서 제 단에 절을 했어요.', '또 꿈을 꾸었어요. 해와 달과 열한 별이 제게 절을 했어요. …이게 무슨 뜻일까요?'];
-    if (e === 'goshen') return ['열일곱 살 때 꾼 두 꿈 이야기를, 이제는 웃으며 할 수 있겠어요. 곡식단과 해와 달과 열한 별.', '당신들이 나를 이곳에 팔므로 근심하지 마소서 한탄하지 마소서. 하나님이 생명을 구원하시려고 나를 당신들보다 먼저 보내셨나이다.'];
-    if (e === 'slave') return ['어릴 적 저는 꿈을 꾸었어요. 형들의 곡식단이 제 단에 절을 하는 꿈, 해와 달과 열한 별이 제게 절하는 꿈.', '그 꿈을 자랑하다 형들의 미움을 샀지요. 구덩이에 던져지고 여기까지 팔려 왔어요. …그래도 하나님이 그 꿈을 주셨다면, 아직 끝난 이야기가 아니겠지요.']; }
-  if (e === 'canaan' || e === 'goshen') { const fam = { stars: ['증조할아버지 아브라함께 자식이 없던 밤, 하나님이 그분을 밖으로 데리고 나가 말씀하셨대요.', '「하늘을 우러러 뭇별을 셀 수 있나 보라. 네 자손이 이와 같으리라.」'], ladder: ['아버지가 형을 피해 홀로 길을 떠나셨을 때, 돌을 베개 삼아 주무시다 하늘에 닿는 사다리를 보셨대요.', '「내가 너와 함께 있어 네가 어디로 가든지 너를 지키며…」 아버지는 그 말씀을 붙들고 하란까지 가셨어요.'], jabbok: ['에서 큰아버지를 만나기 전날 밤, 아버지는 얍복 나루에서 어떤 분과 밤새 씨름하셨대요.', '그분이 아버지 이름을 이스라엘로 바꿔 주셨어요. 그래서 아버지는 지금도 다리를 저세요.'] }; if (fam[s.k]) return fam[s.k]; }
-  return s.t; }
-/* how each listener takes the story: their own words first (js/cast.js), then the old defaults */
-function reactOf(id, k) { const n = npc(id), cf = castFire(id); if (cf && cf.react) { const r = cf.react[k] || cf.react['*']; if (r) return r.map(x => typeof x === 'string' ? { n: n.name, t: x } : Object.assign({ n: x.n === '' ? '' : n.name }, x)); }
+/* v18.73 the old stories are told in the Bible's own words (no made-up words of Joseph's) */
+const VERSE = { stars: [['그를 이끌고 밖으로 나가 가라사대 하늘을 우러러 뭇별을 셀 수 있나 보라. 또 그에게 이르시되 네 자손이 이와 같으리라.', '창세기 15:5'], ['아브람이 여호와를 믿으니 여호와께서 이를 그의 의로 여기시고', '창세기 15:6']],
+  moriah: [['아브라함이 눈을 들어 살펴본즉 한 수양이 뒤에 있는데 뿔이 수풀에 걸렸는지라.', '창세기 22:13'], ['아브라함이 그 땅 이름을 여호와 이레라 하였으므로 오늘날까지 사람들이 이르기를 여호와의 산에서 준비되리라 하더라.', '창세기 22:14']],
+  ladder: [['꿈에 본즉 사닥다리가 땅 위에 섰는데 그 꼭대기가 하늘에 닿았고 또 본즉 하나님의 사자가 그 위에서 오르락내리락 하고', '창세기 28:12'], ['내가 너와 함께 있어 네가 어디로 가든지 너를 지키며', '창세기 28:15']],
+  jabbok: [['야곱은 홀로 남았더니 어떤 사람이 날이 새도록 야곱과 씨름하다가', '창세기 32:24'], ['네 이름을 다시는 야곱이라 부를 것이 아니요 이스라엘이라 부를 것이니', '창세기 32:28']],
+  rainbow: [['내가 내 무지개를 구름 속에 두었나니 이것이 나의 세상과의 언약의 증거니라.', '창세기 9:13']],
+  dreams: [['우리가 밭에서 곡식단을 묶더니 내 단은 일어서고 당신들의 단은 내 단을 둘러서서 절하더이다.', '창세기 37:7'], ['해와 달과 열한 별이 내게 절하더이다.', '창세기 37:9']] };
+/* how each listener takes the story: their own words first (js/cast.js), then the old defaults · people of the Bible just listen */
+function reactOf(id, k) { if (quiet(id)) return []; const n = npc(id), cf = castFire(id); if (cf && cf.react) { const r = cf.react[k] || cf.react['*']; if (r) return r.map(x => typeof x === 'string' ? { n: n.name, t: x } : Object.assign({ n: x.n === '' ? '' : n.name }, x)); }
   if (cf && Cs().kin(id)) return []; /* Joseph's own family with nothing to add just listens */
   const s = STORIES.find(q => q.k === k), p = G.Persona && G.Persona.of && G.Persona.of(id);
-  if (FAM.includes(id) && kidOf(n)) return [{ n: n.name, t: s.kid[id === 'ephraim' ? 1 : 0] }]; /* v18.56 the two boys don't say the same thing */
-  return [{ n: n.name, t: id === 'asenath' ? s.wife : p && p.age === 'kid' ? EGK[k] : p && p.fem ? EGW[k] : s.man }]; }
+  return [{ n: n.name, t: p && p.age === 'kid' ? EGK[k] : p && p.fem ? EGW[k] : s.man }]; }
 /* v18.56 Egyptian women and children hear the old stories too (no 「…들어 보오」 from a girl) */
 const EGW = { stars: '별만큼 많은 자손이라니… 그런 약속을 해 주는 신도 있군요.', moriah: '아들을 아끼는 신이라니, 마음이 놓여요.', ladder: '어디로 가든 함께해 준다니… 그런 말 한 번 들어 보고 싶네요.', jabbok: '신과 씨름을 하다니, 무서웠겠어요.', rainbow: '나일이 넘칠 때마다 무서웠는데… 그런 약속이 있었군요.', dreams: '그런 길을 걸어오셨군요. 그래서 그렇게 다정하신가 봐요.' };
 const EGK = { stars: '별을 다 셀 수 있어요? 나도 세 볼래요!', moriah: '휴… 다행이다! 양이 숨어 있었어요?', ladder: '하늘까지 닿는 사다리요? 나도 올라가 보고 싶다!', jabbok: '밤새 씨름을요? 우와, 힘세다!', rainbow: '하마도 배에 탔어요? 진짜요?', dreams: '꿈이 진짜가 됐어요? 우와!' };
-function alone() { const e = era(), late = Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast');
-  if (e === 'canaan') return ['(타닥타닥 타는 불을 보며 어머니 라헬을 떠올린다. 에브랏 길가, 아버지가 세운 돌기둥…)', '(형들은 왜 나를 그렇게 볼까. 그 꿈 이야기를 괜히 했나…)', '(베냐민은 지금쯤 아버지 품에서 잠들었겠지.)', '(불똥이 하늘로 올라가 별 사이로 사라진다. 「네 자손이 이와 같으리라」… 아버지가 늘 하시던 말씀.)'];
-  if (e === 'goshen') return ['(장막 쪽에서 아버지의 기침 소리가 들린다. 살아 계신 아버지의 소리다.)', '(구덩이의 밤, 옥의 밤, 그리고 오늘 밤. 어느 밤에도 하나님은 나를 떠나지 않으셨다.)', '(형들의 장막에서 웃음소리가 들린다. 꿈에서도 바라던 소리다.)'];
-  return late ? ALONE.slice(2) : ALONE; } /* v18.34 no longing for Benjamin after he has come */
 function tellPick() { const S = Game.S(), told = S.flags.told = S.flags.told || {}, tl = teller();
-  G.UI.say([{ n: '요셉', t: tl ? '아버지, 그 이야기 해 주세요…' : '어떤 이야기를 해 줄까…', choices: STORIES.map(s => ({ t: (told[s.k] ? '' : '✦ ') + s.n, then: () => setTimeout(() => tell(s), 30) })).concat([{ t: '다음에', then: () => setTimeout(menu, 30) }]) }], null); }
+  G.UI.say([{ n: '', t: tl ? `${npc(tl).name}에게 어떤 이야기를 청할까요?` : '어떤 이야기를 들려줄까요?', choices: STORIES.map(s => ({ t: (told[s.k] ? '' : '✦ ') + s.n, then: () => setTimeout(() => tell(s), 30) })).concat([{ t: '다음에', then: () => setTimeout(menu, 30) }]) }], null); }
 function tell(s) { const S = Game.S(), r = ring, told = S.flags.told = S.flags.told || {}, B = G.Bond; const tl = teller(), byDad = tl && tellOf(tl, s.k);
-  const lines = byDad ? byDad.map(t => ({ n: npc(tl).name, t })) : josephText(s).map(t => ({ n: '요셉', t }));
+  const elder = r.ids.find(id => id === 'jacob'); /* with his father at the fire, they tell it together */
+  const lines = byDad ? byDad.map(t => ({ n: npc(tl).name, t })) : [{ n: '', t: elder ? `불가에 둘러앉아 「${s.n}」 이야기를 나누었습니다.` : `요셉이 「${s.n}」 이야기를 들려주었습니다.` }].concat((VERSE[s.k] || []).map(([t, ref]) => ({ n: '', t, ref })));
   for (const id of r.ids) { if (byDad && id === tl) continue; lines.push(...reactOf(id, s.k)); }
-  if (byDad) lines.push({ n: '요셉', t: rnd(['(아버지의 목소리를 마음에 새긴다)', '아버지, 그 이야기는 들을 때마다 새로워요.', '(불빛에 비친 아버지의 주름을 바라본다)']) });
+  if (byDad) lines.push({ n: '', t: '요셉은 그 이야기를 마음에 새겼습니다.' });
   G.UI.say(lines, () => { const fresh = !byDad && !told[s.k]; if (!byDad) told[s.k] = 1;
     for (const id of r.ids) { const b = B && B.get(id); if (b && b.fire !== r.key) { b.fire = r.key; B.add(id, 4, '모닥불 이야기'); } }
     if (fresh) { G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(8); if (Object.keys(told).length === STORIES.length && !S.flags.storyteller) { S.flags.storyteller = 1; sfx('quest');
       G.UI.featCard && G.UI.featCard('story', { kick: '모닥불 이야기꾼', n: '여섯 이야기를 모두 들려주었어요', ic: 'star', d: '조상들의 하나님 이야기가 애굽 사람들의 불가로 퍼져 나가요. 깨달음 +2' }); Game.insight && Game.insight(2, '모닥불 이야기꾼'); } }
     menu(); }); }
-function listen(id) { const n = npc(id), B = G.Bond, cf = castFire(id); const lv = B ? B.level(id).i : 0, pool = talkOf(n);
-  if (cf && cf.listen) { const ls = [{ n: n.name, t: Cs().next(id, 'fire:' + era(), cf.listen) }, { n: '요셉', t: rnd(cf.reply || ['(고개를 끄덕이며 귀 기울인다)']) }];
+function listen(id) { const n = npc(id), B = G.Bond, cf = castFire(id); const lv = B ? B.level(id).i : 0, pool = talkOf(n), nod = { n: '', t: '요셉이 고개를 끄덕이며 귀 기울였습니다.' }; /* v18.73 Joseph listens (no made-up replies) */
+  if (cf && cf.listen) { const ls = [{ n: n.name, t: Cs().next(id, 'fire:' + era(), cf.listen) }, nod];
     G.UI.say(ls, () => { const b = B && B.get(id); if (b && ring && b.fire !== ring.key) { b.fire = ring.key; B.add(id, 4, '불가의 이야기'); } menu(); }); return; }
   const ls = [{ n: n.name, t: rnd(pool) }]; if (lv >= 2 && !FAM.includes(id)) ls.push({ n: n.name, t: rnd(['당신이랑 이렇게 앉아 있으니 오래된 친구 같구려.', '이건 아무한테나 하는 얘기가 아니오. 당신이니까 하는 거요.']) });
-  ls.push({ n: '요셉', t: rnd(['(고개를 끄덕이며 귀 기울인다)', '그랬군요. 들려줘서 고마워요.', '하나님이 그 마음을 아실 거예요.']) });
-  G.UI.say(ls, () => { const b = B && B.get(id); if (b && b.fire !== ring.key) { b.fire = ring.key; B.add(id, 4, '불가의 이야기'); } menu(); }); }
-function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.emote = { k: 'pray', t: 0, dur: 4 }; const ls = [{ n: '요셉', t: rnd(['조상들의 하나님, 오늘 하루도 지켜 주셔서 감사합니다. 이 불가에 앉은 이들의 집에도 평안을 주세요.', era() === 'canaan' ? '하나님, 세겜에 있는 형들을 지켜 주세요. 형들과 제 사이에도 평화를 주세요.' : era() === 'goshen' ? '조상들의 하나님, 아버지를 제 곁에 다시 두셔서 감사합니다. 형님들의 장막에도 평안을 주세요.' : (Game.stepOrder().indexOf(Game.S().step) >= Game.stepOrder().indexOf('g3_feast') ? '하나님, 아버지와 형제들을 지켜 주세요.' : '하나님, 멀리 가나안에 계신 아버지와 베냐민을 지켜 주세요.') + ' 그리고 이 땅의 사람들도요.']) }];
-  for (const id of r.ids) { const cf = castFire(id); if (cf && cf.amen) ls.push({ n: npc(id).name, t: cf.amen }); }
-  if (r.ids.length && !r.ids.some(id => castFire(id) && castFire(id).amen)) ls.push({ n: npc(r.ids[0]).name, t: FAM.includes(r.ids[0]) ? '아멘!' : (G.Cast && G.Cast.gentile && G.Cast.gentile(npc(r.ids[0])) ? rnd(['(말없이 불을 바라보며 기도가 끝나기를 기다린다)', '…히브리 사람은 그렇게 비는구려. 처음 보오.', '당신의 신은 이름도 형상도 없다지요. 그런데도 듣는다니, 신기한 일이오.']) : rnd(['…아멘.', '(조용히 눈을 감고 함께 기도한다)'])) });
+  ls.push(nod);
+  G.UI.say(ls, () => { const b = B && B.get(id); if (b && ring && b.fire !== ring.key) { b.fire = ring.key; B.add(id, 4, '불가의 이야기'); } menu(); }); }
+/* v18.73 the prayer: Joseph prays without made-up words of his (the narration only); people not of the Bible keep their own way of waiting */
+function pray() { const S = Game.S(), r = ring, P = Game.P; P.emote = null; P.emote = { k: 'pray', t: 0, dur: 4 }; const ls = [{ n: '', t: '요셉이 눈을 감고 조용히 기도했습니다.' }];
+  const others = r.ids.filter(id => !quiet(id));
+  for (const id of others) { const cf = castFire(id); if (cf && cf.amen) ls.push({ n: npc(id).name, t: cf.amen }); }
+  if (r.ids.some(quiet)) ls.push({ n: '', t: '불가에 앉은 가족도 고개를 숙였습니다.' });
+  if (others.length && !others.some(id => castFire(id) && castFire(id).amen)) ls.push({ n: npc(others[0]).name, t: G.Cast && G.Cast.gentile && G.Cast.gentile(npc(others[0])) ? rnd(['(말없이 불을 바라보며 기도가 끝나기를 기다린다)', '…히브리 사람은 그렇게 비는구려. 처음 보오.', '당신의 신은 이름도 형상도 없다지요. 그런데도 듣는다니, 신기한 일이오.']) : rnd(['…아멘.', '(조용히 눈을 감고 함께 기도한다)']) });
   G.UI.say(ls, () => { P.emote = null; P.emote = { k: 'sitg', t: 0, dur: 1e4 }; if (S.flags.fsPray !== r.key) { S.flags.fsPray = r.key; G.Vitals && G.Vitals.mindGain && G.Vitals.mindGain(20); G.UI.toast('마음이 고요해졌어요 · 정신력 +20'); } menu(); }); }
-/* 요리하기: get up quietly, open the cooking sheet; when the dish is done (or the sheet is closed) sit back down by the same fire */
-function cook() { const r = ring; if (!r) return; const f = r.f; stand(true); G.Hearth.open(f); let n = 0;
-  const iv = setInterval(() => { const el = $('cookUI'); if (++n > 600) { clearInterval(iv); return; } if ((el && !el.hidden) || calm()) return; clearInterval(iv); if (Math.hypot(Game.P.x - f.x, Game.P.z - f.z) < 4) F.sit(f, true); }, 300); }
-function stand(quiet) { const P = Game.P, r = ring; ring = null; P.emote = null; Game.noDlgCam = false; if (Game.cineCam && !(G.Cine && G.Cine.on)) Game.cineCam = null; if (!r) return;
-  for (const id of r.ids) { const n = npc(id); if (!n) continue; n.emote = null; n.sit = false; n.act = null; n.talking = false; }
-  if (!quiet) G.UI.toast((G.Surv && G.Surv.cold > 0) || isNight(Game.S()) || (G.Climate && G.Climate.wet > 0.2) ? '불기운이 5분 동안 추위를 막아 줘요' : '불가에서 잠시 쉬었어요'); }
+/* 요리하기: get up quietly, open the cooking sheet; when the dish is done (or the sheet is closed) sit back down by the same fire (the others stay seated) */
+function cook() { const r = ring; if (!r) return; const f = r.f; stand(true, true); G.Hearth.open(f); let n = 0;
+  const iv = setInterval(() => { const el = $('cookUI'); if (++n > 600) { clearInterval(iv); release(); return; } if ((el && !el.hidden) || calm()) return; clearInterval(iv); if (Math.hypot(Game.P.x - f.x, Game.P.z - f.z) < 4) F.sit(f, true); else release(); }, 300); }
+function release() { const k = kept; kept = null; if (!k) return; for (const c of k.r.come) if (c.sat || c.walking) letGo(c); }
+function stand(quiet0, keep) { const P = Game.P, r = ring; ring = null; P.emote = null; Game.noDlgCam = false; if (Game.cineCam && !(G.Cine && G.Cine.on)) Game.cineCam = null; if (!r) return; r.atMenu = false;
+  if (keep) kept = { f: r.f, r }; else for (const c of r.come) if (c.sat || c.walking) letGo(c); /* everyone gets up and goes back to what they were doing */
+  if (!quiet0) G.UI.toast((G.Surv && G.Surv.cold > 0) || isNight(Game.S()) || (G.Climate && G.Climate.wet > 0.2) ? '불기운이 5분 동안 추위를 막아 줘요' : '불가에서 잠시 쉬었어요'); }
+F.ring = () => ring; /* (tests) */
 
 // the action by the fire
 Game.CTX.push(function (S) { const P = Game.P, C = G.Climate; if (S.step === 'p_wake') return null; /* v18.38 the first goal is Jacob: nothing else on A yet */ if (ring || P.ride || P.swim || P.act || Game.cineOn) return null; const E = Game.EP(); if (!E || E !== EPJ()) return null;
@@ -186,7 +208,9 @@ F.thirst = function (force) { const S = Game.S(), P = Game.P;
   const ids = near(P.x, P.z, 34).filter(id => !FAM.includes(id) && !kidOf(npc(id)) && Math.hypot(npc(id).x - P.x, npc(id).z - P.z) > (force ? 0 : 6));
   if (!ids.length) return null; const id = rnd(ids), n = npc(id); S.flags.thirst = { id, until: absH(S) + 2.5 }; bT = 0;
   G.UI.toast(`땡볕에 지친 ${n.name}이(가) 물을 찾아요 · 물항아리에 물을 담아 건네 보세요`); sfx('quest', { pitch: 0.8, vol: 0.5 }); return id; };
-F.update = function (dt) { const S = Game.S(); if (!S || !S.flags || Game.mode !== 'play' || Game.EP() !== EPJ()) return; tT -= dt; if (tT > 0) return; tT = 1;
+F.update = function (dt) { const S = Game.S(); if (!S || !S.flags || Game.mode !== 'play' || Game.EP() !== EPJ()) return; arrTick(dt); /* v18.73 people walking over to the fire */
+  if (ring && !G.UI.busy() && !(G.Cine && G.Cine.on) && !(G.Opening && G.Opening.on)) { if ((idleT += dt) > 0.6) { idleT = 0; inTalk = 0; menu(); } } else idleT = 0; /* v18.78 still seated but no menu (another line — e.g. after eating from the bag — took the dialog): the menu comes back */
+  tT -= dt; if (tT > 0) return; tT = 1;
   if (!S.flags.vfires && egypt(S)) seedFires(S);
   if (S.flags.vfires && !S.flags.vfire4) { S.flags.vfire4 = 1; S.flags.vfire3 = 1; S.flags.vfire2 = 1; refitFires(S); } /* v18.52 once more: the Nile ford's fire leaves the landing */
   if (S.flags.vfires && !S.flags.vfire2 && G.Build && G.Build.relocate) { S.flags.vfire2 = 1; const b = (S.bld || []).find(q => q.pre && q.name === '왕의 도성 모닥불' && Math.hypot(q.x + 22, q.z + 71) < 12); if (b) G.Build.relocate(b.id, -30, -80); } // v18.14 the city fire leaves the market aisle

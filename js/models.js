@@ -665,21 +665,29 @@ function faceAnim(rig, st, t) {
 }
 /* secondary motion for the cape bone: a damped spring that keeps the cloth hanging under gravity,
    flares it back with speed and acceleration, and swings it sideways when turning */
-const LOWC = { warmHands: 0.3, kneelRest: 0.36, kneel: 0.36, kneelPray: 0.36, pray: 0.34, beg: 0.36, weep: 0.36, tearClothes: 0.34, squat: 0.34, sitg: 0.26, sitHug: 0.26, gather: 0.4, pick: 0.4, plant: 0.4, water: 0.4, harvest: 0.4, bow: 0.3, prostrate: 0.15, lie: 0.05 };
+const LOWC = { warmHands: 0.3, kneelRest: 0.4, kneel: 0.38, kneelPray: 0.4, pray: 0.38, beg: 0.38, weep: 0.38, tearClothes: 0.34, squat: 0.34, sitg: 0.3, sitHug: 0.3, smoothMat: 0.4, gather: 0.4, pick: 0.4, plant: 0.4, water: 0.4, harvest: 0.4, bow: 0.3, prostrate: 0.15, lie: 0.05 };
 /* v18.58 seated or kneeling, the coat used to fan straight out behind (a metre of cloth on the ground). Now it hangs: a small swing back, and the hem gathers up (the cape bone shortens) so it folds at the ground instead of trailing */
-const LOWS = { warmHands: 0.5, kneelRest: 0.56, kneel: 0.56, kneelPray: 0.56, pray: 0.58, beg: 0.56, weep: 0.56, tearClothes: 0.58, squat: 0.5, sitg: 0.44, sitHug: 0.44, gather: 0.6, pick: 0.66, plant: 0.62, water: 0.7, harvest: 0.75 };
+/* v18.66 sitting or kneeling, the coat no longer shrinks to half (it looked cut short over a bare seat): it keeps most of its length so the hem reaches the ground
+   behind the hips and spreads a little there (wider at the hem, LOWW), the way a heavy cloak pools when you sit in it */
+const LOWS = { warmHands: 0.74, kneelRest: 0.8, kneel: 0.8, kneelPray: 0.8, pray: 0.8, beg: 0.8, weep: 0.8, tearClothes: 0.8, squat: 0.72, sitg: 0.74, sitHug: 0.74, gather: 0.78, pick: 0.8, plant: 0.78, water: 0.82, harvest: 0.86, smoothMat: 0.78 };
+const LOWW = { warmHands: 1.1, kneelRest: 1.14, kneel: 1.12, kneelPray: 1.14, pray: 1.14, beg: 1.12, weep: 1.12, tearClothes: 1.1, squat: 1.1, sitg: 1.2, sitHug: 1.18, smoothMat: 1.12 };
+/* v18.66 cloth by what it is made of: heavy wool hangs and swings slowly, linen is light and lifts in the wind, a dyed wool coat sits between */
+const CLOTHM = { wool: { k: 55, d: 7.5, sw: 0.08, acc: 0.01, wind: 0.02 }, coat: { k: 42, d: 6, sw: 0.1, acc: 0.013, wind: 0.035 }, linen: { k: 28, d: 4.2, sw: 0.13, acc: 0.017, wind: 0.07 } };
+G.clothMat = look => !look ? 'wool' : look.cloth || (look.mantleWeave || look.mantleStripes ? 'coat' : look.collar || look.collar2 ? 'linen' : 'wool');
 function clothSim(rig, st, t) {
-  const c = rig.cl || (rig.cl = { a: 0, v: 0, z: 0, zv: 0, t, sp: 0, face: st.face || 0 });
+  const c = rig.cl || (rig.cl = { a: 0, v: 0, z: 0, zv: 0, t, sp: 0, face: st.face || 0, ph: Math.random() * 6 });
   let dt = t - c.t; c.t = t; if (!(dt > 0) || dt > 0.1) dt = 1 / 60;
   const sp = st.speed || 0, acc = clamp((sp - c.sp) / dt, -25, 25); c.sp = sp;
   const lean = rig.rot[B.chest * 3] + rig.rot[B.pelvis * 3];
   const low = LOWC[st.act] !== undefined ? LOWC[st.act] : st.crouch ? 0.12 - lean * 0.15 : undefined; /* v18.41 kneeling / squatting / sitting on the ground: the coat swings back over the hips and heels instead of the legs coming through it */
-  let target = st.sleep ? 0 : low !== undefined ? low : (st.kneel || st.sit) ? -lean * 0.5 + 0.2 : st.ride ? -lean * 0.5 + 0.35 : -lean + Math.min(0.8, sp * 0.08) + (st.air ? 0.4 : 0) + (st.act === 'dodge' ? 0.6 : 0);
-  c.v += acc * 0.01 + ((target - c.a) * 55 - c.v * 7.5) * dt; c.a = clamp(c.a + c.v * dt, -0.7, 1.35);
+  let target = st.sleep ? 0 : low !== undefined ? low : (st.kneel || st.sit) ? -lean * 0.5 + 0.2 : st.ride ? -lean * 0.5 + 0.35 : -lean + Math.min(0.8, sp * ((CLOTHM[rig.mat] || CLOTHM.wool).sw)) + (st.air ? 0.4 : 0) + (st.act === 'dodge' ? 0.6 : 0);
+  const CM = CLOTHM[rig.mat] || CLOTHM.wool; if (!st.sleep && low === undefined && !(st.kneel || st.sit)) target += CM.wind * (Math.sin(t * 1.7 + c.ph) + 0.6 * Math.sin(t * 3.1 + c.ph * 2)) * ((G.Weather && G.Weather.cur && G.Weather.cur.wind) || 1); /* the hem stirs in the air, more for linen */
+  c.v += acc * CM.acc + ((target - c.a) * CM.k - c.v * CM.d) * dt; c.a = clamp(c.a + c.v * dt, -0.7, 1.35);
   let turn = 0; if (st.face !== undefined) { turn = angDiff(c.face, st.face) / dt; c.face = st.face; }
   c.zv += ((clamp(-turn * 0.07, -0.45, 0.45) - c.z) * 38 - c.zv * 6) * dt; c.z = clamp(c.z + c.zv * dt, -0.5, 0.5);
   rig.set(14, c.a, 0, c.z);
-  { const want = st.sleep ? 1 : LOWS[st.act] !== undefined ? LOWS[st.act] : st.crouch ? 0.6 : (st.kneel || st.sit) ? 0.5 : 1; c.s = c.s === undefined ? want : c.s + (want - c.s) * Math.min(1, dt * 7); if (rig.scl && c.s < 0.995) rig.scl[14 * 3 + 1] = c.s; }
+  { const want = st.sleep ? 1 : LOWS[st.act] !== undefined ? LOWS[st.act] : st.crouch ? 0.6 : (st.kneel || st.sit) ? 0.5 : 1; c.s = c.s === undefined ? want : c.s + (want - c.s) * Math.min(1, dt * 7); if (rig.scl && c.s < 0.995) rig.scl[14 * 3 + 1] = c.s;
+    const ww = st.sleep ? 1 : LOWW[st.act] !== undefined ? LOWW[st.act] : (st.kneel || st.sit) ? 1.1 : 1; c.w = c.w === undefined ? ww : c.w + (ww - c.w) * Math.min(1, dt * 5); if (rig.scl && c.w > 1.005) { rig.scl[14 * 3] = c.w; rig.scl[14 * 3 + 2] = c.w; } }
 }
 // gait keyframes (cycle fraction 0 = this foot's heel strike): [u, hip flexion (+ forward), knee flexion]
 const GAIT_W = [[0, 0.42, 0.06], [0.1, 0.38, 0.28], [0.25, 0.16, 0.1], [0.45, -0.14, 0.12], [0.58, -0.2, 0.55], [0.7, 0.05, 1.05], [0.82, 0.38, 0.62], [0.93, 0.46, 0.12], [1, 0.42, 0.06]];

@@ -236,8 +236,8 @@ EP.noClimb = (x, z, S) => !(between(S, 'p_wake', 'p_approach') || between(S, 'c5
   EP.update = function (dt, S) { if (prevUpd) prevUpd.apply(this, arguments); if (S && S.flags && RUN.length) runTick(dt); if (!S || !S.flags || (hT -= dt) > 0) return; hT = 1;
     if ((G.Cine && G.Cine.on) || G.UI.busy() || !(G.EP.joseph.steps.c5_patrol && S.step && G.Game.stepOrder().indexOf(S.step) >= G.Game.stepOrder().indexOf('c5_patrol'))) return; const P = G.Game.P, home = [10, -140], d = Math.hypot(P.x - home[0], P.z - home[1]);
     const f = S.flags.home = S.flags.home || {}; if (d > 22) { f.away = 1; return; }
-    if (f.away && f.greetDay !== S.day) { f.away = 0; f.greetDay = S.day; for (const id of ['manasseh', 'ephraim']) { const n = G.Game.ENT.npcs[id]; if (!n || !n.vis) continue; RUN.push({ id, t: 14, rt: 0, side: id === 'ephraim' ? 1 : -1 }); G.Life && G.Life.bubble(id, rnd(['아빠!', '아빠 왔다!', '아빠아!']), 2.6); } }
-    const h = S.time % 24; if (h > 18 && h < 21 && f.supperDay !== S.day && d < 14) { f.supperDay = S.day; G.Life && G.Life.bubble('asenath', '저녁 드세요! 오늘은 생선이에요.', 3.5); G.UI.toast('아스낫에게 말을 걸어 함께 식사할 수 있어요'); } };
+    if (f.away && f.greetDay !== S.day) { f.away = 0; f.greetDay = S.day; for (const id of ['manasseh', 'ephraim']) { const n = G.Game.ENT.npcs[id]; if (!n || !n.vis) continue; RUN.push({ id, t: 14, rt: 0, side: id === 'ephraim' ? 1 : -1 }); } } /* v18.73 the boys run to him without words (people of the Bible have no everyday lines) */
+    const h = S.time % 24; if (h > 18 && h < 21 && f.supperDay !== S.day && d < 14) { f.supperDay = S.day; G.UI.toast('저녁 식탁이 차려졌어요 · 아스낫에게 다가가 함께 식사할 수 있어요'); } /* v18.73 no call from Asenath (no everyday lines) */ };
   // a button for the people you know
   /* v18.12j the 「사람들」 page (친밀도 hearts) was removed from the menu; Bond.panel() still exists for tests */
 })(window.G);

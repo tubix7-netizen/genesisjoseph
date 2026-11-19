@@ -287,7 +287,7 @@ function grammar(cc, sh, k, dur) { if (sh.black || sh.title || sh.still) return;
   cc.x += nz(T, 0.3) * a; cc.y += nz(T * 1.1, 2.1) * a * 0.7; cc.z += nz(T * 0.9, 4.2) * a; cc.lx += nz(T * 1.3, 5.7) * r * L * 0.12; cc.ly += nz(T * 1.2, 7.3) * r * L * 0.1; }
 const EASE = { lin: k => k, in: k => k * k, out: k => 1 - (1 - k) * (1 - k), smooth: k => k * k * (3 - 2 * k) };
 Cine.update = function (dt) {
-  if (!Cine.on) return; const sh = Cine.shots[Cine.i]; if (!sh) return; Cine.t += dt; Cine.T += dt; const dur = sh.dur || 4, k = Math.min(1, Cine.t / dur), e = (EASE[sh.ease] || EASE.smooth)(k);
+  if (!Cine.on) return; if (G.Opening && G.Opening.on && Cine.cardHold) return; /* v18.78 a chapter card is up: the scene underneath waits */ const sh = Cine.shots[Cine.i]; if (!sh) return; Cine.t += dt; Cine.T += dt; const dur = sh.dur || 4, k = Math.min(1, Cine.t / dur), e = (EASE[sh.ease] || EASE.smooth)(k);
   const fnv = (v, d) => v === undefined ? d : typeof v === 'function' ? v(Cine.t) : v;
   const c0 = fnv(sh.cam, Cine.lastCam), l0 = fnv(sh.look, Cine.lastLook); if (!c0 || !l0) return; const c1 = fnv(sh.cam2, c0), l1 = fnv(sh.look2, l0); Cine.lastCam = c0; Cine.lastLook = l0;
   const cc = Game.cineCam || (Game.cineCam = {}); cc.x = c0[0] + (c1[0] - c0[0]) * e; cc.y = c0[1] + (c1[1] - c0[1]) * e; cc.z = c0[2] + (c1[2] - c0[2]) * e; cc.lx = l0[0] + (l1[0] - l0[0]) * e; cc.ly = l0[1] + (l1[1] - l0[1]) * e; cc.lz = l0[2] + (l1[2] - l0[2]) * e;

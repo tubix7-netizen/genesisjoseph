@@ -376,7 +376,7 @@ function renderMenu(tab, body) {
       <div class="set"><span>고정 시야</span><div class="seg"><button data-fx="1" class="${SET.fixView ? 'on' : ''}">켜기</button><button data-fx="0" class="${SET.fixView ? '' : 'on'}">끄기</button></div></div>
       <div class="set"><span>카메라 위아래 반전</span><div class="seg"><button data-i="0" class="${SET.invert ? '' : 'on'}">기본</button><button data-i="1" class="${SET.invert ? 'on' : ''}">반전</button></div></div>
       <div class="set"><span>주민이 먼저 말 걸기</span><div class="seg">${[['often', '자주'], ['some', '가끔'], ['off', '끄기']].map(q => `<button data-ch="${q[0]}" class="${(SET.chatty || 'some') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
-      <div class="set"><span>움직임 느낌</span><div class="seg">${[['wild', '자유롭게'], ['heavy', '묵직하게'], ['bal', '균형'], ['snappy', '경쾌하게']].map(q => `<button data-fl="${q[0]}" class="${(SET.feel || 'wild') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
+      <div class="set"><span>움직임 느낌</span><div class="seg">${[['calm', '느긋하게'], ['heavy', '묵직하게'], ['wild', '자유롭게'], ['snappy', '경쾌하게']].map(q => `<button data-fl="${q[0]}" class="${(SET.feel || 'calm') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       <div class="set"><span>글자·버튼 크기</span><div class="seg">${[['s', '작게'], ['m', '보통'], ['l', '크게'], ['xl', '최대']].map(q => `<button data-ui="${q[0]}" class="${(SET.ui || 'm') === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
       ${'' /* v18.23 the frame-rate setting is gone (the game picks it by itself) */}
       <div class="set"><span>그래픽 품질</span><div class="seg">${[['low', '낮음'], ['mid', '보통'], ['high', '높음']].map(q => `<button data-q="${q[0]}" class="${SET.quality === q[0] ? 'on' : ''}">${q[1]}</button>`).join('')}</div></div>
@@ -463,7 +463,7 @@ UI.siteDesign = function (s) {
 UI.sleepAsk = function () {
   const h = Game.hour();
   const from = Game.EP().sleepFrom || 16; if (h < from && h >= 5 && !(Game.EP().canSleep && Game.EP().canSleep(Game.S()))) { const wh = `아직 해가 높아요. 밤에는 ${from > 12 ? '오후 ' + (from - 12) : '오전 ' + from}시가 지나야 아침까지 잘 수 있어요.`; if (G.Rest && G.Rest.napAsk) { G.Rest.napAsk('bed', null, wh); return; } UI.say([{ n: '', t: wh }]); return; } /* v18.65 by day: a few hours' nap instead (it lifts a sleepless night) */
-  UI.say([{ n: '', t: '아침까지 잘까요? 밭의 곡식이 자라고 가축이 새끼를 낳아요.', choices: [{ t: '잔다', then: () => setTimeout(() => Game.sleep(), 50) }, { t: '조금 더 있는다' }] }]);
+  UI.say([{ n: '', t: '아침까지 잘까요? 밭의 곡식이 자라고 가축이 새끼를 낳아요.', choices: [{ t: '잔다', then: () => setTimeout(() => G.Sleep ? G.Sleep.go('bed') : Game.sleep(), 50) }, { t: '조금 더 있는다' }] }]);
 };
 UI.choose = function (title, opts, cb) { UI.say([{ n: '', t: title, choices: opts.map((o, i) => ({ t: o, then: () => cb(i) })) }]); };
 
@@ -479,7 +479,7 @@ UI.minigame = function (kind, opt, done) {
     mgHold = v => holding = v; const b = $('mgBtn'); b.onpointerdown = e => { e.preventDefault(); holding = true; }; b.onpointerup = b.onpointerleave = b.onpointercancel = () => holding = false;
     const tick = now => { const dt = Math.min(0.05, (now - last) / 1000); last = now;
       if (holding && stam > 0) { prog += dt * (opt.rate || 14); stam -= dt * 32; Game.P.act = 'push'; } else { prog = Math.max(0, prog - dt * 4); stam = Math.min(100, stam + dt * 40); if (Game.P.act === 'push') Game.P.act = null; }
-      $('mgP').style.width = Math.min(100, prog) + '%'; $('mgS').style.width = Math.max(0, stam) + '%';
+      $('mgP').style.width = Math.min(100, prog) + '%'; $('mgS').style.width = Math.max(0, stam) + '%'; if (opt.onTick) opt.onTick(dt, holding && stam > 0); /* v18.78 (sounds while pushing / blowing) */
       if (holding && stam > 0) { mgBuzz = (mgBuzz || 0) - dt; if (mgBuzz <= 0) { mgBuzz = 0.22; G.haptic && G.haptic('tap'); } }
       if (prog >= 100) { Game.P.act = null; finish(true); return; } raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick);
