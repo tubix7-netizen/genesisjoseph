@@ -37,7 +37,7 @@ function standAt(id, q, face) { const n = Game.npc(id); if (!n) return; Game.npc
 const fin = id => { const n = Game.npc(id); if (n) n.talking = false; };
 /* a real wait (time runs only while he stays near) */
 let WT = null;
-function waitAt(key, at, r, secs, endH, done) { const h = hour(); const hours = Math.max(0.5, (endH - h + 24) % 24); WT = { key, at, r, left: secs, rate: hours / secs, done, endH, note: 0 }; sitP(true); G.UI.quest(); }
+function waitAt(key, at, r, secs, endH, done) { if (G.Overnight && G.Overnight.need(endH)) { const A = arguments; G.Overnight.ask(() => waitAt.apply(null, A)); return; } /* v18.93 a daytime hour already gone: sleep here, go on tomorrow */ const h = hour(); if (!(h >= 6 && h < endH)) { done(); return; } const hours = endH - h; WT = { key, at, r, left: secs, rate: hours / secs, done, endH, note: 0 }; sitP(true); G.UI.quest(); }
 const waiting = k => !!(WT && WT.key === k);
 
 // ------------------------------------------------------------------ places (all on open ground · checked against the walls)
@@ -124,7 +124,7 @@ function wrongWater() { const n = Game.npc('nebka'); if (n) n.talking = true;
   say([T('창살 사이로 물그릇을 내밀어요. 네브카가 두 손으로 받아 단숨에 마셔요.'), N('죄수 네브카', '…이 옥에서 누가 제게 먼저 물을 준 건 처음입니다.', 'tender'), J('(나도 이 옥에서 날마다 물을 날랐지. 목마른 사람의 말은 물을 마신 다음에야 들린다.)')],
     () => { fin('nebka'); const w = E('wrong'); w.water = 1; w.cup = 0; G.UI.quest(); }); }
 function wrongWind() { const h = hour(); const go = () => { E('wrong').wind = 1; G.UI.quest(); sfx('wind', { vol: 0.6 }); narr({ t: '바람이 불어요', s: '한낮이 되자 강에서 더운 바람이 몰려와요. 차양이 펄럭이고, 노점 동쪽 끝 상에 놓인 그릇 하나가 굴러 뒤쪽 바구니 속으로 툭 떨어져요.' }, () => toast('노점 뒤 바구니를 살펴봐요')); };
-  if (h >= 13 && h < 17) { go(); return; } if (!(h >= 6 && h < 13)) { toast('바람은 한낮에 불어요 · 자고 나서 아침에 다시 와 앉아요'); return; } say([T('하피의 말로는 잔이 없어진 날 한낮에 바람이 몹시 불었대요. 노점 곁에 앉아 그 시각을 기다려요 · 자리를 뜨면 기다림이 멈춰요')], () => waitAt('wrong', STALLH, 4.2, 10, 13.5, go)); }
+  if (h >= 13 && h < 17) { go(); return; } say([T('하피의 말로는 잔이 없어진 날 한낮에 바람이 몹시 불었대요. 노점 곁에 앉아 그 시각을 기다려요 · 자리를 뜨면 기다림이 멈춰요')], () => waitAt('wrong', STALLH, 4.2, 10, 13.5, go)); }
 function wrongOpen() { const n = Game.npc('nebka'); if (!n) return; G.UI.fade(() => { Game.npcTo('nebka', BARS1[0], BARS1[1] + 0.9, Math.PI, false); sfx('door', { pitch: 0.7 }); sfx('chain', { vol: 0.5 }); },
   () => { E('wrong').out = 1; walkWith('nebka', true); G.UI.quest(); say([N('죄수 네브카', '…문이, 열렸습니다. (햇빛에 눈을 가리며) 총리님, 하피 어른께… 같이 가 주시겠습니까?'), J('그러세. 함께 가세.')]); }); }
 

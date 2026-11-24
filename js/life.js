@@ -70,7 +70,7 @@ function giveUp(n, a) { appr.cur = null; const h = a.home; if (n.d.sched) { n.sc
 // =================================================================== DAILY SCHEDULES
 function schedules(S) {
   const ENT = Game.ENT, hr = S.time % 24;
-  for (const id in ENT.npcs) { const n = ENT.npcs[id], sc = n.d.sched; if (!sc || n.follow || n.talking || n._chat || n.pass || (appr.cur && appr.cur.id === id) || (G.NpcAI && G.NpcAI.busyId && G.NpcAI.busyId() === id) || n.d.show && !n.d.show(S, Game)) continue;
+  for (const id in ENT.npcs) { const n = ENT.npcs[id], sc = n.d.sched; if (!sc || n.follow || n.talking || n._chat || n.pass || n._rain /* v18.92 sheltering from the rain (rainfolk.js) */ || (appr.cur && appr.cur.id === id) || (G.NpcAI && G.NpcAI.busyId && G.NpcAI.busyId() === id) || n.d.show && !n.d.show(S, Game)) continue;
     if (Game.questNeed && Game.questNeed(id)) { if (n.schedHidden) { n.schedHidden = false; n.schedSlot = -1; const hd = G.Night && G.Night.doorOfFolk(n); if (hd) Game.npcTo(id, hd[0], hd[1], hd[2], false); } if (n.schedHeld || (n.walk && n.d.folk && n.schedHome)) { n.walk = null; } n.schedHeld = 1; continue; } if (n.schedHeld) { n.schedHeld = 0; n.schedSlot = -1; } /* v18.35 needed by a quest: stays out until it is done */
     const list = typeof sc === 'function' ? sc(S, Game) : sc; if (!list || !list.length) continue;
     let k = list.length - 1; for (let i = 0; i < list.length; i++) if (hr >= list[i][0]) k = i; // last slot whose hour has passed (wraps from previous day)

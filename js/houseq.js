@@ -35,7 +35,7 @@ const fin = id => { const n = Game.npc(id); if (n) n.talking = false; };
 const tidy = (id, extra) => { const q = QS[id]; delete q.repeat; q.start = function () { }; q.prog = extra.prog; Object.assign(q, extra); delete q.take; }; /* (the old one-game version started its game on taking the request) */
 /* a real wait (time runs only while he stays near) — only forward within the day */
 let WT = null;
-function waitAt(key, at, r, secs, endH, done) { const h = hour(); if (!(h >= 6 && h < endH)) { done(); return; } WT = { key, at, r, left: secs, rate: (endH - h) / secs, done, endH, note: 0 }; sitP(true); G.UI.quest(); }
+function waitAt(key, at, r, secs, endH, done) { if (G.Overnight && G.Overnight.need(endH)) { const A = arguments; G.Overnight.ask(() => waitAt.apply(null, A)); return; } /* v18.93 a daytime hour already gone: sleep here, go on tomorrow */ const h = hour(); if (!(h >= 6 && h < endH)) { done(); return; } WT = { key, at, r, left: secs, rate: (endH - h) / secs, done, endH, note: 0 }; sitP(true); G.UI.quest(); }
 const waiting = k => !!(WT && WT.key === k);
 
 // ------------------------------------------------------------------ places

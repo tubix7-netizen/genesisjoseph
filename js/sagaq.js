@@ -28,7 +28,7 @@ const KU = LAND('kush') ? LAND('kush').stage() : { x: -130, z: -95 };
 const yAt = (x, z) => { const f = EP.floor ? EP.floor(x, z, S()) : null; return typeof f === 'number' ? f : Game.W().heightAt(x, z); };
 const npcAt = id => { const n = Game.npc(id); return n && n.vis ? [n.x, n.z] : null; };
 let WT = null;
-function waitAt(key, at, r, secs, endH, done) { const h = hour(); if (!(h >= 6 && h < endH)) { done(); return; } WT = { key, at, r, left: secs, rate: (endH - h) / secs, done, endH, note: 0 }; sitP(true); G.UI.quest(); }
+function waitAt(key, at, r, secs, endH, done) { if (G.Overnight && G.Overnight.need(endH)) { const A = arguments; G.Overnight.ask(() => waitAt.apply(null, A)); return; } /* v18.93 a daytime hour already gone: sleep here, go on tomorrow */ const h = hour(); if (!(h >= 6 && h < endH)) { done(); return; } WT = { key, at, r, left: secs, rate: (endH - h) / secs, done, endH, note: 0 }; sitP(true); G.UI.quest(); }
 const waiting = k => !!(WT && WT.key === k);
 const KI = '갑돌 도공 키라', DA = '케프티우 선원 다우로', ST = '활의 땅 궁수 세티', ME = '그물 깁는 할머니 메르티', PE = '갈대배 짓는 페피';
 const QUAY = [-102.9, -71.9], DRUM = [KU.x + 1.6, KU.z + 6], NETP = [-61, 153], BOAT = [-64.6, 154.7];
