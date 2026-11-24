@@ -106,8 +106,9 @@ function build(W, Game) {
   const CLEAR = [[-91, -69, 10]]; /* v18.52 the north Nile landing (the Byblos · Caphtor · Kush boats): open ground, no scattered trees or rocks */
   /* v18.66 nothing grows or lies on a road: a tree, bush or boulder that would stand on one is moved to the nearest spot beside it (trunks 3.2 m from the middle, the rest 2.4 m) */
   const offRoad = (fn, x, z) => { const clear = CANOPY[fn] ? 3.2 : 2.4; if (roadD(x, z) >= clear) return [x, z]; for (let r = 0.6; r <= 7; r += 0.6) for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r; if (roadD(nx, nz) >= clear) return [nx, nz]; } return null; };
-  GG.PROPLOG = []; /* v18.72 every prop the story map puts down: [name, x, z] (for checking that a quest's 「대야」 really has a basin) */
-  const P = (fn, x, z, o) => { if (typeof fn === 'string' && (CANOPY[fn] || /^(bush|rock|outcrop|retama|rockField|desertShrub|honeyRock|caperBush|herbBush)$/.test(fn)) && !(o && (o.keep || o.y !== undefined))) { const q = offRoad(fn, x, z); if (!q) return { x, y: W.heightAt(x, z), z }; x = q[0]; z = q[1]; }
+  GG.PROPLOG = []; W._defer = []; /* v18.85 nature that could land in a house is put down last (world.js finishStatics), once every building has its walls */ /* v18.72 every prop the story map puts down: [name, x, z] (for checking that a quest's 「대야」 really has a basin) */
+  const P = (fn, x, z, o) => { if (W._defer && typeof fn === 'string' && !(o && (o.keep || o.y !== undefined || o.late)) && ((o && o.scatter) || CANOPY[fn] || /^(bush|rock|outcrop|retama|caperBush|herbBush)$/.test(fn))) { W._defer.push(() => P(fn, x, z, Object.assign({}, o, { late: 1 }))); return { x, y: W.heightAt(x, z), z }; } /* v18.85 no tree, bush or rock inside a house, tent, pyramid or cave mouth */ if (typeof fn === 'string' && (CANOPY[fn] || /^(bush|rock|outcrop|retama|rockField|desertShrub|honeyRock|caperBush|herbBush)$/.test(fn)) && !(o && (o.keep || o.y !== undefined))) { const q = offRoad(fn, x, z); if (!q) return { x, y: W.heightAt(x, z), z }; x = q[0]; z = q[1]; }
+    if (o && o.late && W.inBuilding && (W.inBuilding(x, z, CANOPY[fn] ? 0.7 : 0.35) || (CANOPY[fn] && W.inBuilding(x, z, CANOPY[fn][2] * (o.s || 1) * 0.85, W.heightAt(x, z) + CANOPY[fn][0] * (o.s || 1))))) return { x, y: W.heightAt(x, z), z }; /* (a crown that would reach into a roof counts too) */
     if (typeof fn === 'string') GG.PROPLOG.push([fn, x, z]);
     if (typeof fn === 'string' && (CANOPY[fn] || /^(bush|rock|outcrop|retama)$/.test(fn)) && !(o && o.keep) && CLEAR.some(c => Math.hypot(x - c[0], z - c[1]) < c[2])) return { x, y: W.heightAt(x, z), z }; if (fn === 'rugEg') o = Object.assign({}, o, { dy: 0.06 }); if (fn === 'palmRow') for (let i = 0; i < ((o && o.args && o.args[0]) || 0); i++) W.addCol({ x: x + i * 4, z, r: 0.4, h: 3 }); /* v18.35b palms in a row are solid too */ if (fn === 'gatePosts' && o && o.args) for (const s of [1, -1]) W.addCol({ x: x + s * (o.args[0] / 2 + 0.6), z, w: 1.2, d: 1.4, h: 4, cam: true });
     if (fn === 'egHouse' && o) { // v12: houses were one low storey; raise them to a proper two-storey height (model and collider together)
@@ -128,6 +129,9 @@ function build(W, Game) {
     if (fn === 'palmRow' && (!o || o.col === undefined)) { const n = (o && o.args && o.args[0]) || 3, a = (o && o.ry) || 0; for (let i = 0; i < n; i++) W.addCol({ x: x + Math.cos(a) * i * 4, z: z - Math.sin(a) * i * 4, r: 0.32, h: 5 }); }
     const res = W.place(typeof fn === 'string' && ENVX[fn] ? ENVX[fn] : fn, x, z, o);
     if (typeof fn === 'string' && CANOPY[fn]) { const c = CANOPY[fn], k = (o && o.s) || 1; (W.canopies = W.canopies || []).push({ x, z, y0: res.y + c[0] * k, y1: res.y + c[1] * k, r: c[2] * k }); } // v15: tree crowns, so cutscene cameras keep out of them
+    /* v18.85 rain shelter (not a ceiling for the camera): a market stall's awning and a house's door awning keep the rain off whoever stands beneath */
+    if (fn === 'stallM') W.addCover(x, z, 3.4, 2.8, (o && o.ry) || 0, res.y + 2.1);
+    if (fn === 'egHouse' && o && o.args && o.args[0] && o.args[0].awning) { const a = (o.ry || 0), q = o.args[0], lx = q.doorX || 0, lz = (q.d || 5) / 2 + 0.75; W.addCover(x + lx * Math.cos(a) + lz * Math.sin(a), z - lx * Math.sin(a) + lz * Math.cos(a), 2.4, 1.7, a, res.y + 2.1); }
     if (typeof fn === 'string' && ROOFED[fn] && W.addRoof) { const [w, d, h] = ROOFED[fn]((o && o.args) || []); W.addRoof({ x, z, w, d, a: (o && o.ry) || 0, y: res.y + h, k: fn }); }
     return res; };
   /* v18.35 pens: a real fence (you can jump over it, not walk through it) with a gate that swings open */
@@ -284,13 +288,13 @@ function build(W, Game) {
     else if (F > 0.5) t = k < 0.42 ? 'datePalm' : k < 0.6 ? 'palm' : k < 0.75 ? 'acacia' : k < 0.88 ? 'bush' : 'tamarisk';
     else t = k < 0.18 ? 'acacia' : k < 0.3 ? 'tamarisk' : k < 0.46 ? 'retama' : k < 0.66 ? 'outcrop' : 'rock';
     const big = ['oak', 'olive', 'acacia', 'tamarisk', 'fig', 'datePalm', 'palm'].includes(t);
-    P(t, x, z, { ry: r() * 6, s: 0.8 + r() * 0.5, col: big ? tree : t === 'rock' ? { r: 1.1, h: 1.2 } : t === 'outcrop' ? { r: 1.8, h: 2 } : null });
+    P(t, x, z, { scatter: 1, ry: r() * 6, s: 0.8 + r() * 0.5, col: big ? tree : t === 'rock' ? { r: 1.1, h: 1.2 } : t === 'outcrop' ? { r: 1.8, h: 2 } : null });
   }
   const smallPts = G.poisson ? G.poisson(r, -200, -200, 200, 200, (x, z) => 13.5 - 4.5 * Math.max(canaanK(x), fert(x, z)), 9, 13.5) : []; // v17.0 포아송 디스크 (grass, flowers, shrubs)
   for (let i = 0; i < smallPts.length; i++) { const x = smallPts[i][0], z = smallPts[i][1]; if (!ok(x, z, 4)) continue; /* v18.40 keep shrubs off the road edge */ const C = canaanK(x), F = fert(x, z);
-    if (C > 0.5) P(r() < 0.55 ? 'flowers' : r() < 0.7 ? 'dryGrass' : 'bush', x, z, { ry: r() * 6, s: 0.6 + r() * 0.5, detail: 1, args: [[0xd8343a, 0xf0e0f0, 0xe8c040, 0x8a6ad8][i % 4]] });
-    else if (F > 0.4) P(r() < 0.6 ? 'dryGrass' : 'flowers', x, z, { ry: r() * 6, s: 0.6 + r() * 0.5, detail: 1, args: [[0xf0e0f0, 0xe8c040][i % 2]] });
-    else P(r() < 0.8 ? 'dryGrass' : 'retama', x, z, { ry: r() * 6, s: 0.7 + r() * 0.6, detail: 1 }); }
+    if (C > 0.5) P(r() < 0.55 ? 'flowers' : r() < 0.7 ? 'dryGrass' : 'bush', x, z, { scatter: 1, ry: r() * 6, s: 0.6 + r() * 0.5, detail: 1, args: [[0xd8343a, 0xf0e0f0, 0xe8c040, 0x8a6ad8][i % 4]] });
+    else if (F > 0.4) P(r() < 0.6 ? 'dryGrass' : 'flowers', x, z, { scatter: 1, ry: r() * 6, s: 0.6 + r() * 0.5, detail: 1, args: [[0xf0e0f0, 0xe8c040][i % 2]] });
+    else P(r() < 0.8 ? 'dryGrass' : 'retama', x, z, { scatter: 1, ry: r() * 6, s: 0.7 + r() * 0.6, detail: 1 }); }
   // gathering: a few sticks and stones in Canaan, figs and olives
   const around = (cx, cz, rr, n, types) => { for (let i = 0; i < n; i++) { const a = r() * 6.28, d = rr * (0.4 + r() * 0.6), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (roadD(x, z) < 4.5 || PADS.some(p => Math.hypot(x - p.x, z - p.z) < p.r * 0.75)) continue; node(types[i % types.length], x, z); } };
   around(176, 152, 38, 14, ['fig', 'olive', 'deadwood', 'rock']); around(188, -12, 30, 8, ['olive', 'fig', 'deadwood']);

@@ -73,11 +73,17 @@ X.make = function (spec) {
       sph: (r, x, y, z, c, o) => gAt(x, z).sph(r, 10, 6, Object.assign({ at: [x, y, z], c }, o || {})),
       col: (x, z, w, d, y0, y1, cam) => W.addCol({ x, z, w, d, y0: y0 === undefined ? BY - 2 : y0, y1: y1 === undefined ? BY + 5 : y1, cam: !!cam }),
       colR: (x, z, r, y1) => W.addCol({ x, z, r, y0: BY - 2, y1: y1 === undefined ? BY + 4 : y1 }),
-      put: (fn, x, z, o) => { const f = E[fn]; if (!f) return false; W.place(f, x, z, Object.assign({ gb: gAt(x, z), y: W.heightAt(x, z) }, o || {})); return true; },
+      put: (fn, x, z, o) => { const f = E[fn]; if (!f) return false; if (LATE && NATURE.test(fn) && !(o && o.keep)) { LATE.push([fn, x, z, o]); return true; } const res = W.place(f, x, z, Object.assign({ gb: gAt(x, z), y: W.heightAt(x, z) }, o || {})); G.DLCLOG && G.DLCLOG.push([fn, x, z]);
+        /* v18.85 a tree's crown is known to the world (shade from the sun, shelter from the rain, cutscene cameras keep out); a booth's leafy top keeps the rain off */
+        const c = CROWN[fn], k = (o && o.s) || 1; if (c && res) W.canopies.push({ x, z, y0: res.y + c[0] * k, y1: res.y + c[2] * k, r: c[1] * k }); if (fn === 'booth' && res) W.addCover(x, z, 3.2, 2.4, (o && o.ry) || 0, res.y + 2.1); return true; },
       sea: () => null, mesh: gb => R.mesh(gb), GB: seed => new G.GB(seed) };
+    /* v18.85 trees, bushes and rocks are put down after the story's tents, houses and walls stand, and not inside them (nor a crown through a roof) */
+    let LATE = [], NATURE = /^(oak|olive|tamarisk|acacia|fig|datePalm|palm|terebinth|cedar|pomegranate|bush|retama|rock|outcrop|dryGrass|flowers|desertShrub|caperBush|herbBush|broom)$/; G.DLCLOG = [];
+    const CROWN = { oak: [3.6, 6, 11.5], olive: [1.8, 3.5, 6], fig: [1.6, 3.6, 5.2], acacia: [3, 4.5, 6.2], tamarisk: [2, 3.2, 7], datePalm: [8, 3.5, 12.5], palm: [8, 3.5, 13], terebinth: [3, 5, 9], pomegranate: [1.4, 2.4, 4] }; /* [crown bottom, radius, top] */ W.canopies = W.canopies || [];
     const out = (spec.build && spec.build(B)) || {};
     try { scenery(B, W); } catch (e) { console.error('dlc scenery ' + key, e); }
     if (spec.deco) for (const f of spec.deco) try { f(B); } catch (e) { console.error('dlc deco ' + key, e); }
+    { const L = LATE; LATE = null; for (const [fn, x, z, o] of L) { const s = (o && o.s) || 1, c = CROWN[fn]; if (W.inBuilding && (W.inBuilding(x, z, c ? 0.7 : 0.3) || (c && W.inBuilding(x, z, c[1] * s * 0.85, W.heightAt(x, z) + c[0] * s)))) { for (const q of W.near(x, z)) if (q.t === 'c' && Math.abs(q.x - x) < 0.01 && Math.abs(q.z - z) < 0.01) q.on = false; continue; } /* (a tree left out takes its trunk's collider with it: no invisible post) */ B.put(fn, x, z, o); } }
     STAGE = Object.assign({ W }, out); }
   /* outside the story's ground: groves on the near slopes, single trees and boulders on the hills, low dark blobs of wood far off (cheap) */
   function scenery(B, W) { const { rng } = B, sd = spec.seed || 7, half = SIZE / 2 - 4;
