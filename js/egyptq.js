@@ -10,7 +10,7 @@
    ⑧ 장터의 히브리 소년(dq_boy) + 물 떠다 주기 · 엘리압과 함께 걷다 나루 그늘에서 고향 이야기
    ⑨ 온 신전의 물음(dq_on) + 해 질 때까지 앞뜰에서 기다리기 · 등잔에 불 붙여 밤길로
    ⑩ 모자란 곡식 자루(dq_sack) + 밤에 곳간 뒤에 숨어 지켜보기 · 들키지 않게 뒤따라가기
-   ⑪ 케티의 작은 바퀴(ketiQ) + 네브세니와 바퀴통 나무 고르기 · 작은 바퀴 함께 깎기
+   ⑪ 케티의 작은 바퀴(ketiQ) + 세넵카와 바퀴통 나무 고르기 · 작은 바퀴 함께 깎기
    ⑫ 총리의 유람 마차(coachQ) + 구리 테 두르기 · 케티를 태우고 남쪽 마을 아버지께 시험 주행
    저장: S.flags.eq = { hunt, kiln, titi, grain, fish, axe, ham, boy, on, sack, keti, coach } (각각 { s, … }) */
 'use strict';
@@ -182,10 +182,10 @@ const DADAT = [-141.5, 131.5];
     if (id === 'dqPoti' && on('dq_on') && (dq().on | 0) === 1 && !E('on').dusk) { say([L('dqPoti', '저녁 제사를 마치고 이야기합시다. 앞뜰에서 기다려 주시오.')], () => fin('dqPoti')); return true; }
     return lt0.apply(this, arguments); }; }
 function ketiWheel() { const n = Game.npc('ketiDad'); if (n) n.talking = true;
-  say([{ n: '늙은 수레장이 네브세니', t: '…케티가 보냈다고요? (떨리는 손을 감추며) 그 녀석이 어릴 때 갖고 놀던 작은 바퀴, 하나 더 깎아 주고 싶었는데 이 손으로는…', e: 'sad' }, J('어르신, 제 손을 빌려 드리겠습니다. 가르쳐 주십시오.', 'tender')],
-    () => { const go = () => ask('바퀴통으로 어떤 나무를 쓸까?', ['단단하고 결이 고운 아카시아', ''], [['가볍고 무른 무화과나무', '네브세니: 무화과는 무르다오. 바퀴통은 돌아가며 닳으니 단단해야지.'], ['물가의 갈대 묶음', '네브세니: 허허, 갈대로는 바구니를 엮지.']],
-      () => mg('rhythm', { title: '작은 바퀴 깎기', hint: '네브세니가 손을 얹어 박자를 알려 줘요. 박자에 맞춰 자귀로 둥글게 깎아요.', need: 6, beats: 10, btn: '깎기' }, () => { E('keti').wheel = 1; sfx('craft'); if (n) n.talking = false;
-        say([{ n: '늙은 수레장이 네브세니', t: '(작은 바퀴를 굴려 보며) …돈다, 잘 돈다. 이걸 케티에게 주시오. 그리고 내 자귀와 이 그림도.', e: 'tender' }], () => setTimeout(() => G.Life.talk('ketiDad'), 40)); }), () => go()); go(); }); }
+  say([{ n: '늙은 수레장이 세넵카', t: '…케티가 보냈다고요? (떨리는 손을 감추며) 그 녀석이 어릴 때 갖고 놀던 작은 바퀴, 하나 더 깎아 주고 싶었는데 이 손으로는…', e: 'sad' }, J('어르신, 제 손을 빌려 드리겠습니다. 가르쳐 주십시오.', 'tender')],
+    () => { const go = () => ask('바퀴통으로 어떤 나무를 쓸까?', ['단단하고 결이 고운 아카시아', ''], [['가볍고 무른 무화과나무', '세넵카: 무화과는 무르다오. 바퀴통은 돌아가며 닳으니 단단해야지.'], ['물가의 갈대 묶음', '세넵카: 허허, 갈대로는 바구니를 엮지.']],
+      () => mg('rhythm', { title: '작은 바퀴 깎기', hint: '세넵카가 손을 얹어 박자를 알려 줘요. 박자에 맞춰 자귀로 둥글게 깎아요.', need: 6, beats: 10, btn: '깎기' }, () => { E('keti').wheel = 1; sfx('craft'); if (n) n.talking = false;
+        say([{ n: '늙은 수레장이 세넵카', t: '(작은 바퀴를 굴려 보며) …돈다, 잘 돈다. 이걸 케티에게 주시오. 그리고 내 자귀와 이 그림도.', e: 'tender' }], () => setTimeout(() => G.Life.talk('ketiDad'), 40)); }), () => go()); go(); }); }
 if (QS.coachQ) { const q0 = QS.coachQ; QS.coachQ = Object.assign({}, q0, {
     obj: q0.obj.concat([{ t: '케티와 바퀴에 구리 테 두르기 (마구간)', ok: () => !!E('coach').rim }, { t: '케티를 태우고 남쪽 마을 아버지께 시험 주행', ok: () => !!E('coach').drive }]),
     loc: s => { const f = E('coach'), ready = Game.inv('cedar') >= 4 && Game.inv('linen') >= 3 && Game.inv('lapis') >= 1 && s.silver >= 120; if (ready && !f.rim) return 'npc:stKeeper'; if (f.rim && !f.drive) return { x: DADAT[0] + 3, z: DADAT[1] - 2 }; return q0.loc(s); } }); }
@@ -243,7 +243,7 @@ const up0 = EP.update; EP.update = function (dt, s) { const r = up0 ? up0.apply(
     /* ⑫ the test drive: Keti in the coach, to his father */
     if (on('coachQ') && E('coach').rim && !E('coach').drive) { const kp = Game.npc('stKeeper'); if (kp && s.q.riding && !s.q.cartPax && Math.hypot(kp.x - p.x, kp.z - p.z) < 8) { s.q.cartPax = 'stKeeper'; toast('케티를 태웠어요 · 남쪽 마을 아버지께'); }
       if (s.q.riding && s.q.cartPax === 'stKeeper' && Math.hypot(p.x - DADAT[0], p.z - DADAT[1]) < 14 && Math.abs(G.Cart && G.Cart.speed ? G.Cart.speed() : 0) < 0.9) { E('coach').drive = 1; s.q.cartPax = null; if (kp) { kp.x = DADAT[0] + 2; kp.z = DADAT[1] - 1.4; kp.walk = null; } G.UI.quest();
-        say([{ n: '늙은 수레장이 네브세니', t: '(마차 바퀴를 한참 쓰다듬으며) …내 그림이 굴러가는구나. 내 아들이 만든 마차가.', e: 'cry' }, { n: '마구간지기 케티', t: '아버지… 아버지 자귀로 깎았어요.', e: 'cry' }, T('아버지와 아들은 마차 곁에 오래 서 있었어요. 케티에게 말을 걸어 마쳐요.')]); } }
+        say([{ n: '늙은 수레장이 세넵카', t: '(마차 바퀴를 한참 쓰다듬으며) …내 그림이 굴러가는구나. 내 아들이 만든 마차가.', e: 'cry' }, { n: '마구간지기 케티', t: '아버지… 아버지 자귀로 깎았어요.', e: 'cry' }, T('아버지와 아들은 마차 곁에 오래 서 있었어요. 케티에게 말을 걸어 마쳐요.')]); } }
   } catch (e) { console.error('egyptq', e); } return r; };
 function spawnFarmer() { spawn('ehFarmer', { name: '밭 주인 농부 페피', look: { skin: 0x9a6038, top: 0xd8c8a0, bottom: 0xd8c8a0, belt: 0x6a4428, hair: 0x1a1410 }, x: FENCE[0] - 1.6, z: FENCE[1] + 0.8, face: 1.2 }); }
 /* coachQ's end: Keti, back at the stable afterwards */

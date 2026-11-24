@@ -245,6 +245,14 @@ function keepOutOfTrees(cc) { const W = Game.W(); if (!W || !W.canopies || !W.ca
   const dx = cc.lx - cc.x, dy = cc.ly - cc.y, dz = cc.lz - cc.z, L = Math.hypot(dx, dy, dz) || 1;
   for (let i = 1; i <= 16 && c; i++) { const t = Math.min(L * 0.8, i * 0.5) / L, x = cc.x + dx * t, y = cc.y + dy * t, z = cc.z + dz * t; if (!inCanopy(W, x, y, z)) { cc.x = x; cc.y = y; cc.z = z; return; } }
   c = inCanopy(W, cc.x, cc.y, cc.z); if (c) { const ax = cc.x - c.x, az = cc.z - c.z, al = Math.hypot(ax, az) || 1; cc.x = c.x + ax / al * c.r * 0.95; cc.z = c.z + az / al * c.r * 0.95; } }
+/* v18.85 a cutscene camera never sits inside a wall, house, tent or rock (it saw the inside of the model), nor under the ground or the river:
+   slide it toward what it looks at until it is clear (or lift it over the roof), and keep it a little above the ground and the water */
+function inSolid(W, x, y, z) { for (const c of W.near(x, z)) { if (!c.on || !c.cam || c.npcOnly || y < c.y0 || y > c.y1 - 0.05) continue;
+  if (c.t === 'c') { if (Math.hypot(x - c.x, z - c.z) < c.r) return c; continue; } const dx = x - c.x, dz = z - c.z, lx = dx * c.ca - dz * c.sa, lz = dx * c.sa + dz * c.ca; if (Math.abs(lx) < c.hw && Math.abs(lz) < c.hd) return c; } return null; }
+function keepOutOfWalls(cc) { const W = Game.W(); if (!W || !W.near) return; const gy = W.heightAt(cc.x, cc.z); if (cc.y < gy + 0.3) cc.y = gy + 0.3; if (W.water && W.water.level !== undefined && cc.y < W.water.level + 0.35 && W.heightAt(cc.x, cc.z) < W.water.level) cc.y = W.water.level + 0.35;
+  let c = inSolid(W, cc.x, cc.y, cc.z); if (!c || inSolid(W, cc.lx, cc.ly, cc.lz) === c) return; /* (a scene set inside that very tent or room is left as directed) */ const dx = cc.lx - cc.x, dy = cc.ly - cc.y, dz = cc.lz - cc.z, L = Math.hypot(dx, dy, dz) || 1;
+  for (let d = 0.3; d < L * 0.85; d += 0.3) { const x = cc.x + dx / L * d, y = cc.y + dy / L * d, z = cc.z + dz / L * d; if (!inSolid(W, x, y, z)) { cc.x = x; cc.y = y; cc.z = z; return; } }
+  cc.y = Math.max(cc.y, c.y1 + 0.6); }
 // v15: never lose the scene behind a wall — if something solid stands between the camera and what it looks at (and it is not the
 // building being looked at), slide the camera forward along its line of sight until the view is clear.
 function unblock(cc) { const W = Game.W(); if (!W || !W.ray) return; const dx = cc.lx - cc.x, dy = cc.ly - cc.y, dz = cc.lz - cc.z, L = Math.hypot(dx, dy, dz); if (L < 1) return;
@@ -293,7 +301,7 @@ Cine.update = function (dt) {
   const cc = Game.cineCam || (Game.cineCam = {}); cc.x = c0[0] + (c1[0] - c0[0]) * e; cc.y = c0[1] + (c1[1] - c0[1]) * e; cc.z = c0[2] + (c1[2] - c0[2]) * e; cc.lx = l0[0] + (l1[0] - l0[0]) * e; cc.ly = l0[1] + (l1[1] - l0[1]) * e; cc.lz = l0[2] + (l1[2] - l0[2]) * e;
   cc.fov = sh.fov2 ? (sh.fov || 0.9) + (sh.fov2 - (sh.fov || 0.9)) * e : (sh.fov || 0.9);
   grammar(cc, sh, k, dur);
-  keepOutOfTrees(cc); unblock(cc); frameSpeaker(cc, sh);
+  keepOutOfTrees(cc); if (!sh.inside) keepOutOfWalls(cc); unblock(cc); frameSpeaker(cc, sh);
   if (Cine.enter) { const en = Cine.enter; if (Cine.T < 0.05 && Math.hypot(en.x - cc.x, en.y - cc.y, en.z - cc.z) > 40) Cine.enter = null; else if (Cine.T >= en.dur) Cine.enter = null; else { const u = Cine.T / en.dur, w = 1 - u * u * (3 - 2 * u); // (smoothstep weight of the play camera, fading out)
     cc.x += (en.x - cc.x) * w; cc.y += (en.y - cc.y) * w; cc.z += (en.z - cc.z) * w; cc.lx += (en.lx - cc.lx) * w; cc.ly += (en.ly - cc.ly) * w; cc.lz += (en.lz - cc.lz) * w; cc.fov += (en.fov - cc.fov) * w; } }
   if (sh.shake) { const a = (typeof sh.shake === 'number' ? sh.shake : 0.3) * (sh.shakeDecay ? Math.max(0, 1 - Cine.t / sh.shakeDecay) : 1); cc.x += (Math.random() - 0.5) * a * 0.3; cc.y += (Math.random() - 0.5) * a * 0.3; cc.lx += (Math.random() - 0.5) * a * 0.2; cc.ly += (Math.random() - 0.5) * a * 0.2; }

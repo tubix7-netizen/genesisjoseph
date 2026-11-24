@@ -271,7 +271,7 @@ Game.start = function (epId, fresh, preview) {
   CAM.yaw = P.face + PI; CAM.pitch = camCfg().pRest; snapCam();
   if (!R.grass) R.grassInit(SET.quality === 'high' ? 9000 : SET.quality === 'mid' ? 5000 : 1, 40);
   if (window.__bc) __bc('quality'); Game.applyQuality();
-  if (preview) { Game.mode = 'title'; S.time = EP.titleTime || 17.2; if (EP.onLoad) EP.onLoad(S, Game); return; }
+  if (preview) { Game.mode = 'title'; S.time = EP.titleTime || 17.2; { const ts = document.getElementById('tSub'); if (ts) ts.hidden = true; } Game.titleHero = false; if (EP.onLoad) EP.onLoad(S, Game); return; }
   Game.mode = 'play';
   G.UI.enterGame();
   if (EP.onLoad) EP.onLoad(S, Game);
@@ -317,7 +317,7 @@ Game.camDrag = function (dx, dy) { if (G.UI.modal()) return; CAM.lookT = 0; cons
 
 // =================================================================== OUTFIT / PLAYER LOOK
 function setOutfit(key) { S.outfit = key; Game.refreshLook(); }
-Game.refreshLook = function () { if (!S) return; const base = (EP.outfits && EP.outfits[S.outfit]) || EP.outfits.default; let look = base;
+Game.refreshLook = function () { if (!S) return; const base = (EP.outfits && EP.outfits[S.outfit]) || EP.outfits.default; let look = base; if (P.rig && G.clothMat) P.rig.mat = G.clothMat(base); /* v18.66 cloth by material */
   const ar = S.hero && S.hero.armor && G.Combat && G.Combat.GEAR[S.hero.armor]; if (ar && ar.mantle && !base.noArmor) look = Object.assign({}, base, { mantle: ar.mantle, strap: 0x5a3a22 });
   P.look = look; // v17.2 P12: a new outfit's mesh (≈40 ms+) is built in the worker; the old one stays on screen until it is ready (render() swaps it in)
   const lk = JSON.stringify(look) + '|L0';
@@ -339,6 +339,7 @@ function addNPC(d) { folkLook(d);
     x: d.x, z: d.z, y: 0, face: d.face || 0, homeFace: d.face || 0, vis: true, st: { phase: 0 }, walk: null, wander: d.wander ? { r: d.wander, cx: d.x, cz: d.z, tx: null, wait: Math.random() * 3 } : null, talking: false, act: d.act || null, scale: d.scale || 1 };
   const sp = S.npcPos[d.id]; if (sp) { n.x = sp[0]; n.z = sp[1]; if (sp[2] !== undefined) n.face = n.homeFace = sp[2]; }
   n.y = W.heightAt(n.x, n.z); n.col = W.addCol({ x: n.x, z: n.z, r: d.animal ? 0.6 : 0.42, h: 1.8 });
+  if (!d.animal && G.clothMat) n.rig.mat = G.clothMat(d.look); /* v18.66 cloth by material */
   ENT.npcs[d.id] = n; return n;
 }
 Game.npc = id => ENT.npcs[id];
@@ -644,7 +645,7 @@ function buildSiteMeshes() {
 Game.buildSiteMeshes = buildSiteMeshes;
 
 // =================================================================== TIME
-const SEC_PER_HOUR = 22;
+const SEC_PER_HOUR = 28; /* v18.66 22 → 28: a day passes a little more slowly (about 11 minutes), time to take in the morning and the evening */
 function newDay(msg) {
   PM.n('newDay');
   if (G.Vitals) setTimeout(() => G.Vitals.mark('sleep'), 900);
@@ -693,7 +694,7 @@ Game.questNeeds = function () { if (!S) return needSet; if (needT === tAll) retu
   if (Game.curTarget && Game.curTarget.npc) needSet.add(Game.curTarget.npc); return needSet; };
 Game.questNeed = id => Game.questNeeds().has(id);
 /* v18.35 free time: the years of plenty and the free journey. Anything else counts as the story being on: no side errands, no strolling with company */
-const CALM = { c5_year1: 1, c5_year2: 1, j_end: 1 };
+const CALM = { c5_year1: 1, c5_year2: 1, c5_farm: 1, c5_build: 1, c5_haul: 1, g1_spy: 1, j_end: 1 }; /* v18.77 the new chapter 5: side stories while the wheat grows, the bricks dry, the walls set */
 Game.mainBusy = () => !!S && !CALM[S.step];
 Game.questBusy = () => { if (!S) return false; if (!CALM[S.step]) return true; return !!(G.Life && G.Life.active(S).length); };
 Game.sendHome = function (quiet) { let n0 = 0; for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.follow || !(EP.family && EP.family[id])) continue; n.follow = false; n0++; Game.npcWalk(id, n.d.x, n.d.z, () => { n.face = n.homeFace = n.d.face || 0; }, 2.2); } if (n0 && !quiet) G.UI.toast('함께 걷던 가족이 집으로 돌아갔어요'); return n0; };
@@ -773,7 +774,7 @@ function resolveContext() {
   // between two things at about the same distance, take the one in front of the hero (up to 0.5 m of preference)
   for (const c of cands) if (c.x !== undefined && !c.tile) { const dd = Math.hypot(c.x - P.x, c.z - P.z); if (dd > 0.3) c.d += (1 - ((c.x - P.x) * fx + (c.z - P.z) * fz) / dd) * 0.25; }
   /* v18.28 what A does first: a person > the thing the moment needs > lifting a loose thing > sleeping */
-  for (const c of cands) { if (c.npc) c.d -= 0.45; else if (c.key === 'lift') c.d += 0.5; else if (c.label === '잠자기') c.d += 1.2; if (c.disabled) c.d += 1.5; /* v18.34 a greyed-out 「오늘은 했어요」 no longer hides a live action */ }
+  for (const c of cands) { if (c.npc) c.d -= 0.45; else if (c.story) c.d -= 1.8; /* v18.67 a step of the story's own scene comes before a chat */ else if (c.key === 'lift') c.d += 0.5; else if (c.label === '잠자기') c.d += 1.2; if (c.disabled) c.d += 1.5; /* v18.34 a greyed-out 「오늘은 했어요」 no longer hides a live action */ }
   cands.sort((a, b) => a.d - b.d);
   /* v18.34 a little stickiness: the prompt already shown keeps the A button unless the other is clearly nearer (they flickered while turning) */
   const pv = ctx && cands.find(c => c.key && c.key === ctx.key); if (pv && pv !== cands[0] && !pv.disabled && pv.d - cands[0].d < 0.2) return pv;
@@ -868,7 +869,7 @@ function updatePlayer(dt) {
   let target = 0;
   const RD = P.ride && G.Ride ? G.Ride.spec(P.ride) : null; if (RD && P.swim) G.Ride.dismount(false, '물이 깊어 내렸어요');
   if (mag > 0 && RD) { target = mag < 0.6 ? lerp(1.2, RD.walk * 0.62, mag / 0.6) : lerp(RD.walk * 0.62, RD.walk, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45 && !P.ride.tired) target = RD.run; if (g0 < wl) target *= 0.6; }
-  else if (mag > 0) { target = town ? (mag < 0.6 ? lerp(0.9, 2.1, mag / 0.6) : lerp(2.1, 3.0, (mag - 0.6) / 0.4)) : mag < 0.6 ? lerp(1.0, 2.6, mag / 0.6) : lerp(2.6, 4.8, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45) target = town ? 3.9 : 7.6; /* (in a village the legs keep a walking stride: the run blend starts at 3 m/s) */ if (P.limp) target *= 0.72; if (P.atk) target *= 0.3; if (P.swim) target = P.sprint && mag > 0.3 && !P.exhausted ? 5.4 : Math.min(target, 2.3); /* v18.40 a hard crawl: clearly faster, paid for in breath */ else if (g0 < wl) target *= 0.7; if (P.exhausted) target = Math.min(target, 2.0); if (P.crouch) target = Math.min(target, P.swim ? target : 1.75); }
+  else if (mag > 0) { target = town ? (mag < 0.6 ? lerp(0.9, 2.1, mag / 0.6) : lerp(2.1, 3.0, (mag - 0.6) / 0.4)) : mag < 0.6 ? lerp(0.9, 2.3, mag / 0.6) : lerp(2.3, 4.3, (mag - 0.6) / 0.4); if (P.sprint && mag > 0.45) target = town ? 3.8 : 7.2; /* v18.66 a walk is a walk (4.8 → 4.3 m/s), the run a little less hurried */ /* (in a village the legs keep a walking stride: the run blend starts at 3 m/s) */ if (P.limp) target *= 0.72; if (P.atk) target *= 0.3; if (P.swim) target = P.sprint && mag > 0.3 && !P.exhausted ? 5.4 : Math.min(target, 2.3); /* v18.40 a hard crawl: clearly faster, paid for in breath */ else if (g0 < wl) target *= 0.7; if (P.exhausted) target = Math.min(target, 2.0); if (P.crouch) target = Math.min(target, P.swim ? target : 1.75); }
   if (G.Surv && target > 0) target *= G.Surv.mul;
   if (EP.speedMul && target > 0) target *= EP.speedMul(S, P, mag);
   const yaw = CAM.yaw; const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
@@ -1243,8 +1244,8 @@ Game.frame = function (now) {
     PM.b('ui'); G.UI.frame(dt); if (G.Wilds) { G.Wilds.frame(); G.Wilds.thoughts && G.Wilds.thoughts(dt); } PM.e('ui');
   } else if (Game.mode === 'title' && W) {
     if (G.Audio && G.Audio.on) G.Audio.setMood(EP.titleMusic || 'title');
-    const tc = EP.titleCam || { x: P.x, z: P.z, r: 30, h: 12 }; const a = tAll * 0.05;
-    CAM.tx = tc.x; CAM.tz = tc.z; CAM.ty = W.heightAt(tc.x, tc.z) + (tc.ty || 2); CAM.x = tc.x + Math.sin(a) * tc.r; CAM.z = tc.z + Math.cos(a) * tc.r; CAM.y = Math.max(W.heightAt(CAM.x, CAM.z) + 3, CAM.ty + tc.h); CAM.fov = 0.95; CAM.lx = CAM.tx; CAM.ly = CAM.ty; CAM.lz = CAM.tz;
+    const tc = EP.titleCam || { x: P.x, z: P.z, r: 30, h: 12 }; const a = tc.a0 !== undefined ? tc.a0 + Math.sin(tAll * 0.07) * (tc.arc || 0.5) : tAll * 0.05; /* v18.73 a0/arc: sway in front of someone instead of circling */
+    CAM.tx = tc.x; CAM.tz = tc.z; CAM.ty = W.heightAt(tc.x, tc.z) + (tc.ty || 2); CAM.x = tc.x + Math.sin(a) * tc.r; CAM.z = tc.z + Math.cos(a) * tc.r; CAM.y = Math.max(W.heightAt(CAM.x, CAM.z) + (tc.minH !== undefined ? tc.minH : 3), CAM.ty + tc.h); CAM.fov = 0.95; CAM.lx = CAM.tx; CAM.ly = CAM.ty; CAM.lz = CAM.tz; if (tc.ly !== undefined) { CAM.lx = CAM.tx + (CAM.x - CAM.tx) * (tc.lk || 0); CAM.lz = CAM.tz + (CAM.z - CAM.tz) * tc.lk; CAM.ly = W.heightAt(CAM.lx, CAM.lz) + (tc.ly || 0); } /* v18.73 lk/ly: look at the ground in front of someone, so they stand in the top of the picture above the title */
     updateNPCs(dt, tAll); updateAnimals(dt, tAll, false); if (ENT.plotsDirty) rebuildFarm(); render(dt);
   }
 };
@@ -1304,7 +1305,7 @@ function render(dt) {
   animHuman(P.rig, pst, tAll);
   if (P.swim) { P.rig.off[1] -= 0.0; }
   if (P.ride && G.Ride) G.Ride.riderMatrix(TMPM); else m4trs(TMPM, P.x, P.y + (EP.rootY ? EP.rootY(S, Game) : 0), P.z, P.face); P.rig.update(TMPM);
-  if (Game.mode === 'play') scene.skinned.push(P.sk || (P.sk = { mesh: null, bones: P.rig.bones, outline: true, bs: [0, 0, 0, 1.8] })); if (P.sk) { P.sk.mesh = P.mesh; P.sk.bs[0] = P.x; P.sk.bs[1] = P.y + 1; P.sk.bs[2] = P.z; P.sk.tint = P.tint || null; }
+  if (Game.mode === 'play' || (Game.mode === 'title' && Game.titleHero)) scene.skinned.push(P.sk || (P.sk = { /* v18.73 titleHero: the hero stands in the title picture (after the ending) */ mesh: null, bones: P.rig.bones, outline: true, bs: [0, 0, 0, 1.8] })); if (P.sk) { P.sk.mesh = P.mesh; P.sk.bs[0] = P.x; P.sk.bs[1] = P.y + 1; P.sk.bs[2] = P.z; P.sk.tint = P.tint || null; }
   // held prop
   // only one thing in the hand: the action's own tool > a drawn weapon > the tool the player chose to hold
   const freeHand = !P.carry && !P.ride && !P.sleeping && !Game.cineOn && !(P.emote && (P.emote.k === 'eat' || P.emote.k === 'drink' || P.emote.k === 'sit_eat' || P.emote.k === 'sit_drink' || P.emote.k === 'sitg')) && !(pst.act && pst.act !== P.act && !(G.Acts && G.Acts.walkable(pst.act)));

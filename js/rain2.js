@@ -11,6 +11,7 @@ const roofs = new Float32Array(64); let roofT = 0, mesh = null, mk = '', mT = 0,
 R2.under = () => { const S = Game.S(); if (!S) return false; const f = S.flags || {}; return !!(f.inHouse || f.inCave || (G.Caves && G.Caves.inside && G.Caves.inside()) || (G.Cave && G.Cave.inside && G.Cave.inside())); };
 function pickRoofs(sc, W) { const cx = sc.cam[0], cz = sc.cam[2], L = [];
   for (const r of W.roofs) { if (r.on === false) continue; const d = Math.hypot(r.x - cx, r.z - cz) - Math.max(r.hw, r.hd); if (d < 36) L.push([d, r]); }
+  for (const r of W.covers || []) { const d = Math.hypot(r.x - cx, r.z - cz) - Math.max(r.hw, r.hd); if (d < 36) L.push([d, r]); } /* v18.85 awnings: no rain streaks under them either */
   for (const r of R2.cover) { const d = Math.hypot(r.x - cx, r.z - cz) - Math.max(r.hw, r.hd); if (d < 36) L.push([d, r]); }
   L.sort((a, b) => a[0] - b[0]); let n = 0; for (const [, r] of L) { if (n >= 8) break; const i = n * 8; roofs[i] = r.x; roofs[i + 1] = r.z; roofs[i + 2] = r.hw + 0.25; roofs[i + 3] = r.hd + 0.25; roofs[i + 4] = r.ca; roofs[i + 5] = r.sa; roofs[i + 6] = r.y + 0.1; roofs[i + 7] = 0; n++; }
   sc.rainRoofs = roofs; sc.rainRoofN = n; }

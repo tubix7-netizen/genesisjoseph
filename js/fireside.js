@@ -151,7 +151,7 @@ const VERSE = { stars: [['그를 이끌고 밖으로 나가 가라사대 하늘�
   ladder: [['꿈에 본즉 사닥다리가 땅 위에 섰는데 그 꼭대기가 하늘에 닿았고 또 본즉 하나님의 사자가 그 위에서 오르락내리락 하고', '창세기 28:12'], ['내가 너와 함께 있어 네가 어디로 가든지 너를 지키며', '창세기 28:15']],
   jabbok: [['야곱은 홀로 남았더니 어떤 사람이 날이 새도록 야곱과 씨름하다가', '창세기 32:24'], ['네 이름을 다시는 야곱이라 부를 것이 아니요 이스라엘이라 부를 것이니', '창세기 32:28']],
   rainbow: [['내가 내 무지개를 구름 속에 두었나니 이것이 나의 세상과의 언약의 증거니라.', '창세기 9:13']],
-  dreams: [['우리가 밭에서 곡식단을 묶더니 내 단은 일어서고 당신들의 단은 내 단을 둘러서서 절하더이다.', '창세기 37:7'], ['해와 달과 열한 별이 내게 절하더이다.', '창세기 37:9']] };
+  dreams: [['우리가 밭에서 곡식단을 묶더니 내 단은 일어서고 당신들의 단은 내 단을 둘러서서 절하더이다.', '창세기 37:7'], ['해와 달과 열 한 별이 내게 절하더이다.', '창세기 37:9']] };
 /* how each listener takes the story: their own words first (js/cast.js), then the old defaults · people of the Bible just listen */
 function reactOf(id, k) { if (quiet(id)) return []; const n = npc(id), cf = castFire(id); if (cf && cf.react) { const r = cf.react[k] || cf.react['*']; if (r) return r.map(x => typeof x === 'string' ? { n: n.name, t: x } : Object.assign({ n: x.n === '' ? '' : n.name }, x)); }
   if (cf && Cs().kin(id)) return []; /* Joseph's own family with nothing to add just listens */

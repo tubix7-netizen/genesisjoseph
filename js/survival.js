@@ -31,7 +31,8 @@ Sv.coverTick = function () { // how well something overhead shelters the hero (0
   const W = Game.W(), P = Game.P; if (!W) { Sv.cover = 0; return; }
   let c = 0, src = '';
   if (W.roofAt(P.x, P.z, P.y)) { c = 1; src = '지붕 아래'; }
-  else { for (const k of W.canopies || []) { const d = Math.hypot(P.x - k.x, P.z - k.z); if (d < k.r * 0.8 && P.y + 1.6 < k.y1 && P.y + 1.6 > k.y0 - 6) { c = Math.max(c, 0.7); src = '나무 아래'; } }
+  else if (W.coverAt && W.coverAt(P.x, P.z, P.y)) { c = 1; src = '차양 아래'; } /* v18.85 awnings and booths */
+  else { for (const k of W.canopies || []) { const d = Math.hypot(P.x - k.x, P.z - k.z); if (d < k.r * 0.8 && P.y + 1.6 < k.y1 && P.y + 1.6 > k.y0 - 9) { c = Math.max(c, 0.7); src = "나무 아래"; } /* v18.85 (a palm's crown hangs 8 m up: it shelters too) */ }
     if (W.ray(P.x, P.y + 1.7, P.z, P.x, P.y + 9, P.z) < 0.98) { c = 1; src = '지붕 아래'; } }
   Sv.cover = c; Sv.coverSrc = src;
 };

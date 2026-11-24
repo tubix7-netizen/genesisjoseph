@@ -128,7 +128,7 @@ const CONS = X.CONS = [
   { id: 'pleiades', n: '묘성 (일곱 별)', ref: '네가 묘성을 매어 묶을 수 있으며 (욥 38:31)', pts: [[0, 0], [0.12, -0.05], [0.22, 0.04], [0.08, 0.12], [0.2, 0.17], [-0.06, 0.1], [0.3, -0.06]] },
   { id: 'orion', n: '삼성 (사냥꾼)', ref: '묘성과 삼성을 만드시며 (암 5:8)', pts: [[-0.3, -0.45], [0.3, -0.42], [-0.08, 0], [0, -0.02], [0.08, -0.04], [-0.28, 0.42], [0.3, 0.45]], lines: [[0, 2], [1, 4], [2, 3], [3, 4], [2, 5], [4, 6]] },
   { id: 'bear', n: '북두 (일곱 별)', ref: '북두성과 삼성과 묘성과 남방의 밀실을 만드셨으며 (욥 9:9)', pts: [[-0.45, -0.1], [-0.28, -0.05], [-0.12, 0], [0.04, 0.02], [0.08, 0.2], [0.34, 0.24], [0.36, 0.04]], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]] },
-  { id: 'eleven', n: '열한 별', ref: '해와 달과 열한 별이 내게 절하더이다 (창 37:9)', pts: Array.from({ length: 11 }, (_, i) => { const a = PI * 1.1 + i / 10 * PI * 0.8; return [Math.cos(a) * 0.45, Math.sin(a) * 0.45 + 0.25]; }) },
+  { id: 'eleven', n: '열한 별', ref: '해와 달과 열 한 별이 내게 절하더이다 (창 37:9)', pts: Array.from({ length: 11 }, (_, i) => { const a = PI * 1.1 + i / 10 * PI * 0.8; return [Math.cos(a) * 0.45, Math.sin(a) * 0.45 + 0.25]; }) },
   { id: 'abraham', n: '아브라함의 별 세기', ref: '하늘을 우러러 뭇별을 셀 수 있나 보라 … 네 자손이 이와 같으리라 (창 15:5)', count: 25 } ];
 const sbtn = document.createElement('button'); sbtn.id = 'starBtn'; sbtn.hidden = true; sbtn.innerHTML = '✦<small>별자리</small>'; document.body.appendChild(sbtn);
 const night = () => { const h = H(S()); return h > 19.6 || h < 4.8; };

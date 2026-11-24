@@ -68,16 +68,16 @@ function pickVeh() { const s = S(), own2 = s.flags.vehOwn || {}, V = G.Cart && G
      has not been back since the flood and the famine. Joseph carries his greeting; the father, whose hands now shake, sends back his adze
      and the drawing of the coach he always wanted to build. Father and son are reconciled (Joseph speaks of his own father).
    2 「총리의 유람 마차」 — Keti builds his father's coach for the vizier; afterwards the old man comes to the stable to see it. */
-const DAD = '늙은 수레장이 네브세니', KID = 'ketiDad', DADAT = [-141.5, 131.5];
-Object.assign(Game.ITEMS, { kTools: { n: '아버지의 자귀와 마차 그림', cat: 'quest', p: 0, ic: 'tool', c: '#c8a070', d: '네브세니가 아들 케티에게 보내는 것 · 퀘스트 물건' } });
+const DAD = '늙은 수레장이 세넵카', KID = 'ketiDad', DADAT = [-141.5, 131.5];
+Object.assign(Game.ITEMS, { kTools: { n: '아버지의 자귀와 마차 그림', cat: 'quest', p: 0, ic: 'tool', c: '#c8a070', d: '세넵카가 아들 케티에게 보내는 것 · 퀘스트 물건' } });
 const Q = EP.quests = EP.quests || {};
 Q.ketiQ = { giver: 'stKeeper', title: '케티의 작은 바퀴', when: s => !!(s.flags && s.flags.free) && !s.flags.ketiStory,
   offer: [{ n: KN, t: '(작은 나무 바퀴를 만지작거리다가) …아, 총리님. 오셨어요?', e: 'sad' },
     { n: KN, t: '이건 제 아버지가 깎아 주신 장난감 바퀴예요. 아버지는 남쪽 마을의 수레장이셨어요. 바로의 수레도 고치던 솜씨 좋은 분이셨지요.' },
     { n: KN, t: '저는 바퀴보다 말이 좋아서, 아버지 뜻을 거스르고 도성으로 왔어요. 그 뒤로 큰물이 나고 흉년이 들면서… 한 번도 찾아뵙지 못했어요.', e: 'sad' },
     { n: KN, t: '아버지가 아직 저를 서운해하실까 봐 겁이 나요. 총리님, 남쪽 마을에 가시거든 아버지 안부만 좀 여쭤 주시겠어요?' }],
-  prog: s => Game.inv('kTools') > 0 ? { n: KN, t: '아버지를 만나셨어요? …무슨 말씀을 하시던가요?' } : { n: KN, t: '아버지 이름은 네브세니예요. 남쪽 마을 우물가 가까이에 사세요.' },
-  obj: [{ t: '남쪽 마을의 늙은 수레장이 네브세니 만나기', ok: s => !!s.flags.ketiMet }, { t: '아버지가 보낸 것을 케티에게 전하기', ok: s => Game.inv('kTools') > 0 }],
+  prog: s => Game.inv('kTools') > 0 ? { n: KN, t: '아버지를 만나셨어요? …무슨 말씀을 하시던가요?' } : { n: KN, t: '아버지 이름은 세넵카예요. 남쪽 마을 우물가 가까이에 사세요.' },
+  obj: [{ t: '남쪽 마을의 늙은 수레장이 세넵카 만나기', ok: s => !!s.flags.ketiMet }, { t: '아버지가 보낸 것을 케티에게 전하기', ok: s => Game.inv('kTools') > 0 }],
   loc: s => s.flags.ketiMet ? 'npc:stKeeper' : Game.npc(KID) ? 'npc:' + KID : { x: DADAT[0], z: DADAT[1] }, /* v18.60 the way pointed at Keti the whole time: now to his father in the south village */
   take: { kTools: 1 },
   done: [{ n: '요셉', t: '케티, 아버님께서 이것을 전해 달라 하셨소.' },

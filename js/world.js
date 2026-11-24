@@ -109,6 +109,9 @@ class World {
     return { x, y, z };
   }
   finishStatics() {
+    /* v18.85 trees, bushes and rocks the map scattered are put down now that every house, tent and wall stands; then no gatherable plant grows inside a building */
+    if (this._defer) { const d = this._defer; this._defer = null; for (const f of d) f(); }
+    if (this.nodes && this.nodes.length) this.nodes = this.nodes.filter(n => /reed/.test(n.type) || !this.inBuilding(n.x, n.z, 0.3));
     // v18.5: a chunk's vertices are plain JS numbers (8 bytes each); on a phone holding all of them while the GPU copies are made crashed the tab (iOS memory limit).
     // So each chunk is converted to one Float32Array, uploaded, handed to the cell-sort worker, and its JS array is released before the next chunk starts.
     for (const [k, g] of this.chunks) { if (!g.count) continue; const bs = g.bounds(), q = g.takeBlocks(); const m = R.meshBlocks(q.blocks, q.n); m.bs = bs; this.statics.push(m); if (!(G.Game && G.Game.cellAskBlocks && G.Game.cellAskBlocks(m, q))) q.blocks.length = 0; } // v18.12: uploaded from the blocks, then the blocks are handed to the worker (transferred = freed on the spot, not waiting for the garbage collector) // v17.3 P13: the worker sorts big chunks into 12 m cells
@@ -125,6 +128,9 @@ class World {
     }
     this.cols.push(c); return c;
   }
+  /* v18.85 is (x, z) inside a building, tent, pyramid or cave mouth (a solid box wider than a fence), or under a walk-in roof? (m: how far outside it still counts · above: only walls that reach higher than this, for a tree's crown) */
+  inBuilding(x, z, m, above) { m = m || 0; const H = this.HC, seen = new Set(); for (let gx = Math.floor((x - m) / H); gx <= Math.floor((x + m) / H); gx++) for (let gz = Math.floor((z - m) / H); gz <= Math.floor((z + m) / H); gz++) for (const c of this.hash.get(gx * 10007 + gz) || []) { if (seen.has(c)) continue; seen.add(c); if (!c.on || c.t !== 'b' || c.hw < 0.3 || c.hd < 0.3 || c.npcOnly || (above !== undefined && c.y1 < above)) continue; const dx = x - c.x, dz = z - c.z, lx = dx * c.ca - dz * c.sa, lz = dx * c.sa + dz * c.ca; if (Math.abs(lx) < c.hw + m && Math.abs(lz) < c.hd + m) return true; }
+    for (const r of this.roofs || []) { if (above !== undefined && r.y < above) continue; const dx = x - r.x, dz = z - r.z, ca = Math.cos(r.a || 0), sa = Math.sin(r.a || 0), lx = dx * ca - dz * sa, lz = dx * sa + dz * ca; if (Math.abs(lx) < r.w / 2 + m && Math.abs(lz) < r.d / 2 + m) return true; } return false; }
   near(x, z) { return this.hash.get(Math.floor(x / this.HC) * 10007 + Math.floor(z / this.HC)) || []; }
   collide(p, r, y) {
     const list = this.near(p.x, p.z);
@@ -151,6 +157,9 @@ class World {
     return p;
   }
   // ------------------------------------------------ roofs (for the indoor camera) & keep-out zones (pits) & ladders
+  /* v18.85 something overhead that keeps the rain off but is no room (an awning, a booth's leafy top): rain cover only, the camera ignores it */
+  addCover(x, z, w, d, a, y) { const c = { x, z, w, d, hw: w / 2, hd: d / 2, a: a || 0, ca: Math.cos(a || 0), sa: Math.sin(a || 0), y }; (this.covers || (this.covers = [])).push(c); return c; }
+  coverAt(x, z, y) { for (const c of this.covers || []) { if (c.y < y + 1.3 || c.y > y + 5) continue; const dx = x - c.x, dz = z - c.z, lx = dx * c.ca - dz * c.sa, lz = dx * c.sa + dz * c.ca; if (Math.abs(lx) <= c.hw && Math.abs(lz) <= c.hd) return c; } return null; }
   addRoof(o) { const r = Object.assign({ a: 0 }, o); r.ca = Math.cos(r.a); r.sa = Math.sin(r.a); r.hw = r.w / 2; r.hd = r.d / 2; this.roofs.push(r); return r; }
   roofAt(x, z, y) { // the lowest roof above a standing person at (x, y, z), or null
     let best = null;
