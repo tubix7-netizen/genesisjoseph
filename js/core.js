@@ -905,7 +905,7 @@ R.render = function (S, W, H) {
     P = R.P.dInst; gl.useProgram(P.p); setCommonDepth(P, SV);
     for (const s of S.insts) if (s.n && s.shadow && visible(s.bs)) instDraw(s, true, f, shFar);
     P = R.P.dSkin; gl.useProgram(P.p); setCommonDepth(P, SV);
-    for (const k of S.skinned) { if (k.shadow === false || (k.bs && !visible(k.bs))) continue; gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindVertexArray(k.mesh.vao); R.draw(k.mesh); }
+    for (const k of S.skinned) { if (k.shadow === false || (k.bs && !visible(k.bs))) continue; const mm = k.meshS || k.mesh; gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindVertexArray(mm.vao); R.draw(mm); } /* v18.94 k.meshS: a coarser body for the shadow pass */
     gl.disable(gl.POLYGON_OFFSET_FILL); gl.enable(gl.CULL_FACE);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }

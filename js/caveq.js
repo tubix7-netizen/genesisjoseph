@@ -32,7 +32,7 @@ const sitP = on0 => { P().cpose = on0 ? { k: 'sitg', t: 0, dur: 90, hold: true }
 const stageObj = (key, list) => list.map(([t, k]) => ({ t, ok: typeof k === 'function' ? k : () => (E(key).s | 0) >= k }));
 const tidy = (id, extra) => { const q = QS[id]; delete q.repeat; delete q.take; Object.assign(q, extra); };
 let WT = null;
-function waitAt(key, at, r, secs, endH, done) { const h = hour(); if (!(h >= 6 && h < endH)) { done(); return; } WT = { key, at, r, left: secs, rate: (endH - h) / secs, done, endH, note: 0 }; sitP(true); G.UI.quest(); }
+function waitAt(key, at, r, secs, endH, done) { if (G.Overnight && G.Overnight.need(endH)) { const A = arguments; G.Overnight.ask(() => waitAt.apply(null, A)); return; } /* v18.93 a daytime hour already gone: sleep here, go on tomorrow */ const h = hour(); if (!(h >= 6 && h < endH)) { done(); return; } WT = { key, at, r, left: secs, rate: (endH - h) / secs, done, endH, note: 0 }; sitP(true); G.UI.quest(); }
 const waiting = k => !!(WT && WT.key === k);
 const puff = () => { if (G.FX) for (let i = 0; i < 4; i++) G.FX.burst(CX + 1.4, CY + 1.3, CZ + 46.2, 6, { c: [0.6, 0.58, 0.55], sp: 1.2, up: 1.6, size: 0.6, a: 0.7, g: -0.2, life: 1.6 }); sfx('hit', { pitch: 0.5 }); };
 
@@ -64,8 +64,7 @@ tidy('k_crystal', {
   done: [K('보게! 하늘 창의 햇빛이 거울을 타고 공방까지 들어왔어! 이제 등잔 기름을 아끼겠군. 하하하!', 'happy'), T('(펑! 이번엔 거울에서 눈부신 빛이 번쩍해요)'), K('이 작은 거울은 자네 거야. 무덤 속 그림 그리는 장인들도 이렇게 빛을 들여간다네.')] });
 function cryPolish() { if (!Game.have('crystal', 3)) { toast('빛나는 돌 셋이 필요해요'); return; } Game.take('crystal', 3); mg('push', { title: '구리판 갈기', hint: '모래와 기름을 묻혀 꾹꾹 눌러 갈아요. 얼굴이 비칠 때까지.', btn: '갈기' }, () => { E('cry').s = 2; sfx('coin', { pitch: 1.3 }); G.UI.quest(); toast('얼굴이 비쳐요 · 이제 돌을 박아요'); }); }
 function crySet() { mg('count', { title: '거울 틀에 돌 박기', hint: '빛나는 돌을 하나씩 테두리 홈에 끼우고 송진으로 붙여요.', need: 3, btn: '끼우기', onPress: () => sfx('click', { pitch: 1.5 }) }, () => { E('cry').s = 3; G.UI.quest(); say([K('이제 하늘 창 아래로! 해가 머리 위에 올 때까지 기다려야 하네.')]); }); }
-function cryNoon() { const h = hour(); if (h >= 12 && h < 15) { E('cry').s = 4; G.UI.quest(); cryAim(); return; } if (!(h >= 6 && h < 12)) { toast('해가 높이 뜬 한낮에 해야 해요 · 자고 나서 아침에 다시 와요'); return; }
-  say([T('거울을 무릎에 얹고 하늘 창 아래 앉아요. 빛 기둥이 바닥을 천천히 기어 와요 · 자리를 뜨면 기다림이 멈춰요')], () => waitAt('cry', W2(SKYP), 3, 9, 12.2, () => { E('cry').s = 4; G.UI.quest(); cryAim(); })); }
+function cryNoon() { const h = hour(); if (h >= 12 && h < 15) { E('cry').s = 4; G.UI.quest(); cryAim(); return; } say([T('거울을 무릎에 얹고 하늘 창 아래 앉아요. 빛 기둥이 바닥을 천천히 기어 와요 · 자리를 뜨면 기다림이 멈춰요')], () => waitAt('cry', W2(SKYP), 3, 9, 12.2, () => { E('cry').s = 4; G.UI.quest(); cryAim(); })); }
 function cryAim() { mg('balance', { title: '빛 꺾기', hint: '거울을 들어 하늘에서 떨어지는 빛을 공방 쪽으로 꺾어요. 빛이 흔들리지 않게 ◀ ▶ 로 바로잡아요.', dur: 10 }, () => { E('cry').s = 5; S().flags.kMirror = 1; sfx('insight'); G.UI.quest(); toast('빛줄기가 공방까지 닿았어요 · 네브세니에게'); }); }
 
 // ------------------------------------------------------------------ ③ 하늘을 재는 막대
