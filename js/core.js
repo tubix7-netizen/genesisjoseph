@@ -294,7 +294,7 @@ uniform mat4 uVP,uModel,uShadowVP;uniform float uTime,uWind;
 uniform mat4 uBones[20];
 #endif
 #ifdef TEX
-layout(location=6) in vec2 aUV;out vec2 vUV; // v19 GLB 캐릭터: 텍스처 좌표 (assets/heroes, js/heroasset.js)
+layout(location=6) in vec2 aUV;out vec2 vUV;out vec3 vBP; // v19 GLB 캐릭터: 텍스처 좌표 (assets/heroes, js/heroasset.js) · v24 vBP: the bind-pose position (the face is drawn on in these metres)
 #endif
 #ifdef OUTLINE
 uniform float uOutline;uniform vec3 uCamPos;
@@ -303,7 +303,7 @@ out vec3 vN;out vec3 vC;out vec3 vW;out vec4 vS;out float vSoft;
 void main(){
   vec4 p=vec4(aPos,1.0);vec3 n=aNrm;
 #ifdef TEX
-  vUV=aUV;
+  vUV=aUV;vBP=aPos;
 #endif
 #ifdef SKIN
   int bi=int(aBone+0.5);int b0=bi&31;int b1=(bi>>5)&31;float bw=float(bi>>10)/255.0;
@@ -363,6 +363,16 @@ in vec3 vN;in vec3 vC;in vec3 vW;in vec4 vS;in float vSoft;
 uniform vec3 uTint,uEmis,uRock;uniform float uTime,uCloudSh,uCloudLo; // uCloudSh: v18.3 P10 how dark a passing cloud's shadow is (0 = none)
 #ifdef TEX
 in vec2 vUV;uniform sampler2D uTex;
+/* v23 마을 사람: 요셉 모델 하나를 사람마다 다시 칠한다 (js/folk.js). uMask 층 0 = 피부·머리카락·겉옷, 1 = 밝은 천·가죽·수염 자리,
+   2 = 입술·볼. 새 색 × (텍셀 / 그 부위의 기준 색)이라 그려진 명암과 천의 짜임은 그대로 남는다. */
+uniform mediump sampler2DArray uMask;uniform float uRe;uniform vec3 uRcSkin,uRcHair,uRcCoatA,uRcCoatB,uRcCloth,uRcLeath,uRcRosy,uRefS;uniform vec4 uRcK,uRefL;
+/* v24 얼굴: the painted brows are wiped and drawn again per person (uFx0: height, thickness, tilt (+ = inner ends up: worried;
+   - = down: stern), arch), with eye colour, lashes, age lines, the corners of the mouth and freckles (uFx1: smile, age, lashes,
+   freckles). Emotions in a scene move the brows and the mouth (js/folk.js). Coordinates: the Joseph mesh's bind pose, metres. */
+in vec3 vBP;uniform float uFx;uniform vec4 uFx0,uFx1;uniform vec3 uBrowC,uEyeC;
+float sdSeg(vec2 p,vec2 a,vec2 b){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);return length(pa-ba*h);}
+float line(vec2 p,vec2 a,vec2 b,float w,float px){return 1.0-smoothstep(w*0.5-px,w*0.5+px,sdSeg(p,a,b));}
+float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 #endif
 out vec4 o;
 ` + NOISE + FS_COMMON + `
@@ -371,6 +381,41 @@ void main(){
   vec3 col=vC;
 #ifdef TEX
   col=texture(uTex,vUV).rgb; // v19: the painted texture replaces the vertex colour (same cel shading below)
+  if(uRe>0.5){
+    vec3 t=col;float L=dot(t,vec3(0.3,0.59,0.11));
+    vec3 ma=texture(uMask,vec3(vUV,0.0)).rgb,mb=texture(uMask,vec3(vUV,1.0)).rgb,mf=texture(uMask,vec3(vUV,2.0)).rgb;
+    col=mix(col,uRcSkin*clamp(t/uRefS,vec3(0.3),vec3(1.12)),ma.r); // v25 (was ≤1.5): whitish paint round Joseph's eyes no longer leaves a pale ring on darker skin
+    col=mix(col,uRcHair*clamp(pow(L/uRefL.x,0.7),0.3,2.0),ma.g);
+    float sel=smoothstep(-0.07,0.07,t.b+t.g*0.35-t.r*0.92); // blue and green bands take the second colour, red, orange and yellow the first
+    col=mix(col,mix(uRcCoatA,uRcCoatB,sel)*mix(1.0,clamp(L/uRefL.y,0.5,1.6),uRcK.x),ma.b);
+    col=mix(col,uRcCloth*clamp(mix(1.0,L/uRefL.z,0.85),0.55,1.2),mb.r);
+    col=mix(col,uRcLeath*clamp(L/uRefL.w,0.45,1.7),mb.g*uRcK.w);
+    col=mix(col,mix(col,uRcHair,0.6),mb.b*uRcK.y); // stubble / the edge of a beard
+    col=mix(col,col*uRcRosy,mf.r*uRcK.z); // lips and cheeks
+  }
+  if(uFx>0.5&&vBP.z>0.03&&vBP.y>1.535&&vBP.y<1.7&&abs(vBP.x)<0.1){
+    vec2 f=vec2(abs(vBP.x),vBP.y);float px=max(fwidth(f.y),0.00025);
+    vec4 mm=texture(uMask,vec3(vUV,0.0));vec3 sk=(uRe>0.5?uRcSkin:vec3(0.957,0.71,0.62))*0.97;
+    float eb=(1.0-smoothstep(0.7,1.0,length(vec2((f.x-0.044)/0.043,(f.y-1.6675)/0.011))))*(1.0-mm.g); // wipe the painted brow (hair strands over it stay)
+    col=mix(col,sk,eb);
+    float u=(f.x-0.011)/0.068,yc=1.6635+uFx0.x+uFx0.w*0.026*u*(1.0-u)+uFx0.z*(0.5-u)*0.013,th=uFx0.y*(1.0-0.5*u)*smoothstep(-0.03,0.07,u);
+    float bw=(1.0-smoothstep(th*0.5-px,th*0.5+px,abs(f.y-yc)))*step(0.0,u)*(1.0-smoothstep(0.88,1.02,u))*max(mm.r,eb);
+    col=mix(col,uBrowC,bw*0.95);
+    float Lt=dot(col,vec3(0.3,0.59,0.11)),ir=length(vec2((f.x-0.0472)/0.0125,(f.y-1.6325)/0.0135));
+    col=mix(col,uEyeC*clamp(Lt/0.36,0.4,1.5),(1.0-smoothstep(0.8,1.0,ir))*smoothstep(0.07,0.15,Lt)*(1.0-smoothstep(0.48,0.6,Lt))*0.85*step(0.001,uEyeC.r+uEyeC.g+uEyeC.b)); // iris colour (pupil and highlights stay)
+    vec3 dk=col*0.45;float sm=uFx1.x,ag=uFx1.y,la=uFx1.z;
+    if(la>0.0){float lid=1.6325+0.0148*sqrt(max(0.0,1.0-pow((f.x-0.047)/0.0245,2.0)));
+      float w=(1.0-smoothstep(0.0018*la-px,0.0018*la+px,f.y-lid))*step(lid-0.0005,f.y)*step(0.024,f.x)*step(f.x,0.072)+line(f,vec2(0.066,1.6435),vec2(0.0765,1.6505),0.0017,px)+line(f,vec2(0.069,1.6395),vec2(0.079,1.6435),0.0014,px);
+      col=mix(col,vec3(0.08,0.05,0.05),clamp(w,0.0,1.0)*la*mm.r);}
+    if(ag>0.0){float w=line(f,vec2(0.075,1.6375),vec2(0.085,1.6415),0.0011,px)+line(f,vec2(0.075,1.6325),vec2(0.084,1.6295),0.0011,px)
+        +line(f,vec2(0.031,1.6175),vec2(0.047,1.6145),0.001,px)+line(f,vec2(0.047,1.6145),vec2(0.063,1.618),0.001,px)
+        +line(f,vec2(0.0205,1.5965),vec2(0.032,1.584),0.0013,px)+line(f,vec2(0.032,1.584),vec2(0.0375,1.5665),0.0013,px);
+      col=mix(col,col*0.62,clamp(w,0.0,1.0)*ag*mm.r);}
+    if(abs(sm)>0.05){float w=sm>0.0?line(f,vec2(0.026,1.5668),vec2(0.0355,1.5712+0.002*sm),0.0013,px):line(f,vec2(0.026,1.5672),vec2(0.0345,1.5628+0.002*sm),0.0013,px);
+      col=mix(col,dk,clamp(w,0.0,1.0)*min(1.0,abs(sm))*0.8);}
+    if(uFx1.w>0.0){vec2 c=floor(f/0.0042),o2=f-(c+0.5)*0.0042-(vec2(hash2(c),hash2(c+7.3))-0.5)*0.0025;float e=length(vec2((f.x-0.03)/0.042,(f.y-1.603)/0.012));
+      col=mix(col,col*vec3(0.78,0.64,0.55),(1.0-smoothstep(0.0006,0.0009,length(o2)))*step(hash2(c+3.1),0.45)*(1.0-smoothstep(0.8,1.0,e))*uFx1.w*mm.r);}
+  }
 #endif
 #ifdef TERRAIN
   float n1=noise(vW.xz*0.35),n2=noise(vW.xz*2.1),n3=noise(vW.xz*7.0);
@@ -749,6 +794,16 @@ R.meshTex = function (data, uv, idx, bs) {
   gl.bindVertexArray(null);
   m.ub = ub; m.ib = ib; m.it = gl.UNSIGNED_SHORT; m.count = idx.length; if (bs) m.bs = bs; return m;
 };
+/* v23 a stack of equal square layers (one image, the layers one under another) as a 2D texture array, with mipmaps per layer */
+R.texArray = function (img, layers) {
+  const t = gl.createTexture(), w = img.width, h = img.height / layers; gl.bindTexture(gl.TEXTURE_2D_ARRAY, t);
+  gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA, w, h, layers, 0, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
+  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+};
+R.dummyArr = function () { if (R._da) return R._da; const t = R._da = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, t);
+  gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA, 1, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); return t; };
 R.texture = function (img) { // an sRGB-ish colour texture with mipmaps (glTF uv: no y flip)
   const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
@@ -978,9 +1033,17 @@ R.render = function (S, W, H) {
     if (k.tint) gl.uniform3f(P.U.uTint, 1, 1, 1); if (k.emis) gl.uniform3f(P.U.uEmis, 0, 0, 0);
   }
   if (nTex) { // v19 textured GLB characters: the same cel shading, colour from their texture (unit 3)
-    P = R.P.skinTex; gl.useProgram(P.p); setCommon(P, S); gl.activeTexture(gl.TEXTURE3); gl.uniform1i(P.U.uTex, 3);
+    P = R.P.skinTex; gl.useProgram(P.p); setCommon(P, S); gl.uniform1i(P.U.uTex, 3);
+    gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D_ARRAY, R.folkMask || R.dummyArr()); gl.uniform1i(P.U.uMask, 4);
+    if (R.folkRef) { gl.uniform3fv(P.U.uRefS, R.folkRef.s); gl.uniform4fv(P.U.uRefL, R.folkRef.l); } let re = -1;
+    gl.activeTexture(gl.TEXTURE3);
     for (const k of S.skinned) {
       if (k.cull || !k.tex) continue; gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindTexture(gl.TEXTURE_2D, k.tex);
+      const rc = k.rc && R.folkMask ? k.rc : null; if (rc || re !== 0) { gl.uniform1f(P.U.uRe, rc ? 1 : 0); re = rc ? 1 : 0; }
+      const fx = k.fx && R.folkMask ? k.fx : null; gl.uniform1f(P.U.uFx, fx ? 1 : 0);
+      if (fx) { gl.uniform4fv(P.U.uFx0, fx.f0); gl.uniform4fv(P.U.uFx1, fx.f1); gl.uniform3fv(P.U.uBrowC, fx.brow); gl.uniform3fv(P.U.uEyeC, fx.eye); }
+      if (rc) { gl.uniform3fv(P.U.uRcSkin, rc.skin); gl.uniform3fv(P.U.uRcHair, rc.hair); gl.uniform3fv(P.U.uRcCoatA, rc.coatA); gl.uniform3fv(P.U.uRcCoatB, rc.coatB);
+        gl.uniform3fv(P.U.uRcCloth, rc.cloth); gl.uniform3fv(P.U.uRcLeath, rc.leath); gl.uniform3fv(P.U.uRcRosy, rc.rosy); gl.uniform4fv(P.U.uRcK, rc.k); }
       if (k.tint) gl.uniform3fv(P.U.uTint, k.tint); if (k.emis) gl.uniform3fv(P.U.uEmis, k.emis);
       gl.bindVertexArray(k.mesh.vao); R.draw(k.mesh);
       if (k.tint) gl.uniform3f(P.U.uTint, 1, 1, 1); if (k.emis) gl.uniform3f(P.U.uEmis, 0, 0, 0);
@@ -990,7 +1053,7 @@ R.render = function (S, W, H) {
   // outlines (back faces)
   gl.cullFace(gl.FRONT);
   P = R.P.outSkin; gl.useProgram(P.p); setCommon(P, S); gl.uniform1f(P.U.uOutline, 0.0058); gl.uniform3fv(P.U.uLineCol, [0.27, 0.18, 0.15]); // v16.7 야숨: a finer, warmer line round the characters
-  for (const k of S.skinned) { if (!k.outline || k.cull) continue; gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindVertexArray(k.mesh.vao); R.draw(k.mesh); }
+  for (const k of S.skinned) { if (!k.outline || k.cull) continue; const mo = k.meshO || k.mesh; /* v24 a lighter body is enough for the ink line beyond a few metres */ gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindVertexArray(mo.vao); R.draw(mo); }
   P = R.P.out; gl.useProgram(P.p); setCommon(P, S); gl.uniform1f(P.U.uOutline, 0.016); gl.uniform3fv(P.U.uLineCol, env.line || [0.16, 0.11, 0.09]);
   for (const d of S.dyn) { if (!d.outline || !visible(d.mesh.bs, d.m)) continue; gl.uniformMatrix4fv(P.U.uModel, false, d.m); gl.bindVertexArray(d.mesh.vao); R.draw(d.mesh); }
   for (const m of S.statics) { if (!m.outline || !visible(m.bs)) continue; gl.uniformMatrix4fv(P.U.uModel, false, IDM); drawStatic(m); }

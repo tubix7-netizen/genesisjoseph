@@ -36,7 +36,7 @@ M.FEEL = {
   bal: { acc: 22, dec: 30, turn: 14, air: 8, brake: 1, n: '균형' }, // v10: stops in ≈0.35 s instead of sliding 0.9 m
   snappy: { acc: 42, dec: 48, turn: 24, air: 12, brake: 0.5, n: '경쾌하게' },
   wild: { acc: 30, dec: 26, turn: 19, air: 10, brake: 0.85, n: '자유롭게' },
-  calm: { acc: 13, dec: 15, turn: 9.5, air: 6, brake: 1.15, n: '느긋하게' } }; // v18.66 default: weight in every step — a gentle start, a short settle on stopping, unhurried turns // v16.7 default: quick to start, a short skid on hard stops, crisp turns
+  calm: { acc: 20, dec: 26, turn: 13, air: 7, brake: 1.1, n: '느긋하게' } }; // v24 조작감: still weighty, but full pace in ≈0.45 s and a stop in ≈0.35 s (was 0.7 s / 0.6 s), quicker turns // v18.66 default: weight in every step — a gentle start, a short settle on stopping, unhurried turns // v16.7 default: quick to start, a short skid on hard stops, crisp turns
 M.feel = () => M.FEEL[(G.Game && G.Game.SET && G.Game.SET.feel) || 'calm'] || M.FEEL.calm;
 
 // body info from a look (sex / build / age), cached on the rig
@@ -214,6 +214,18 @@ pose('warmHands', false, (rig, p, t) => { // v12: down on one knee by the fire (
   rig.off[1] = -0.46; set(rig, B.pelvis, 0.05); set(rig, B.thighL, -1.69, 0, 0.12); set(rig, B.shinL, 1.64); set(rig, B.thighR, -0.08, 0, -0.06); set(rig, B.shinR, 1.62); /* v18.34 1.5 → 1.62: the kneeling foot lay 4 cm in the ground */ /* v18.34 front foot on the ground, as in squat */
   set(rig, B.chest, 0.3); set(rig, B.head, 0.1);
   set(rig, B.uArmL, -1.1, 0, -0.3 + rub); set(rig, B.uArmR, -1.1, 0, 0.3 + rub); set(rig, B.fArmL, -0.7); set(rig, B.fArmR, -0.7);
+});
+/* v23 sitting on a log seat by the fire (the opening): the hips rest on a 0.46 m seat, thighs level, shins upright, the body
+   leans toward the fire and both hands are held out to its warmth, now and then rubbed together. The seat height is taken from
+   this rig's own hip height, so the code-built and the GLB heroes both sit on the log instead of in it or above it. */
+pose('stoolWarm', false, (rig, p, t) => {
+  const d = rig.def, hipY = (d[B.thighL][3] + d[B.thighR][3]) / 2, seat = 0.46 + 0.075;
+  const rubOn = Math.max(0, Math.sin(t * 0.55)), rub = Math.sin(t * 8.5) * 0.1 * rubOn, breath = Math.sin(t * 1.6) * 0.015;
+  rig.off[1] = seat - hipY; rig.off[2] = 0.02; set(rig, B.pelvis, 0.08);
+  set(rig, B.thighL, -1.5, 0.04, 0.1); set(rig, B.thighR, -1.5, -0.04, -0.1); set(rig, B.shinL, 1.38, 0, -0.04); set(rig, B.shinR, 1.4, 0, 0.04);
+  set(rig, B.chest, 0.32 + breath, 0, 0); set(rig, B.head, -0.06 + Math.sin(t * 0.3) * 0.04, Math.sin(t * 0.21) * 0.12, 0);
+  set(rig, B.uArmL, -1.0 - 0.1 * rubOn, 0, -0.2 + rub); set(rig, B.uArmR, -1.0 - 0.1 * rubOn, 0, 0.2 + rub);
+  set(rig, B.fArmL, -0.55 - 0.2 * rubOn, -0.25 * rubOn, 0); set(rig, B.fArmR, -0.55 - 0.2 * rubOn, 0.25 * rubOn, 0);
 });
 
 // ---- worship
@@ -748,7 +760,7 @@ M.groundFn = function (ent) { // st.gnd sampler: height of the ground at a point
   return ent.gndFn || (ent.gndFn = (lx, lz) => { const W = G.Game && G.Game.W && G.Game.W(); if (!W) return 0; const f = ent.face || 0, c = Math.cos(f), s = Math.sin(f);
     const k = ent.scale || 1; return (W.heightAt(ent.x + (lx * c + lz * s) * k, ent.z + (-lx * s + lz * c) * k) - (ent.y || 0) + (ent.gndOff || 0)) / k; });
 };
-M.isRest = k => k === 'sitg' || k === 'sitHug' || k === 'lie' || k === 'kneelRest' || k === 'squat' || k === 'warmHands';
+M.isRest = k => k === 'stoolWarm' || k === 'sitg' || k === 'sitHug' || k === 'lie' || k === 'kneelRest' || k === 'squat' || k === 'warmHands';
 G.animHuman = animHuman; G.animAnimal = animAnimal; M.legIK = legIK; M.swimPose = swimPose;
 // v17.1 P11: with ?perf=1 the animators are timed (M.animMs, summed per frame, read by js/perf.js); game.js picks these up when it loads
 if (/[?&]perf\b/.test(location.search)) { M.animMs = 0; const ah = animHuman, aa = animAnimal;

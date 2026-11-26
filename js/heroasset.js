@@ -4,19 +4,19 @@
    ?glb=0 이면 끈다 (예전 코드 캐릭터와 비교할 때). */
 'use strict';
 (function (G) {
-const H = G.HeroAsset = { assets: {}, off: /[?&]glb=0/.test(location.search) };
+const H = G.HeroAsset = { assets: {}, off: /[?&]glb=0/.test(location.search), av: 'a25' }; // av: bump when the files in assets/heroes change (browser cache)
 const LINE = [0.55, 0.42, 0.36]; // 외곽선 색이 섞일 정점색 (따뜻한 갈색)
 
 H.load = function (name, base) {
   if (H.off) return Promise.resolve(null);
   if (H.assets[name]) return H.assets[name].ready;
   const a = H.assets[name] = { name, mesh: null, tex: null, def: null };
-  const dir = (base || 'assets/heroes/') + name;
+  const root = base || 'assets/heroes/', dir = root + name;
+  /* v23 the texture is the one the json names (a LOD mesh shares its full mesh's texture: one image, one GL texture) */
   a.ready = Promise.all([
-    fetch(dir + '.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
-    fetch(dir + '.bin').then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }),
-    new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = dir + '.jpg'; })
-  ]).then(([meta, bin, img]) => {
+    fetch(dir + '.json?' + H.av).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(meta => H.img(root + (meta.tex || name + '.jpg')).then(img => [meta, img])),
+    fetch(dir + '.bin?' + H.av).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+  ]).then(([[meta, img], bin]) => {
     const nv = meta.verts; let o = 0;
     const take = (T, n) => { const v = new T(bin, o, n); o += n * T.BYTES_PER_ELEMENT; return v; };
     const pos = take(Float32Array, nv * 3), nrm = take(Float32Array, nv * 3), uv = take(Float32Array, nv * 2),
@@ -26,12 +26,14 @@ H.load = function (name, base) {
       d[b] = pos[i * 3]; d[b + 1] = pos[i * 3 + 1]; d[b + 2] = pos[i * 3 + 2];
       d[b + 3] = nrm[i * 3]; d[b + 4] = nrm[i * 3 + 1]; d[b + 5] = nrm[i * 3 + 2];
       d[b + 6] = LINE[0]; d[b + 7] = LINE[1]; d[b + 8] = LINE[2]; d[b + 9] = soft[i]; d[b + 10] = bone[i]; }
-    a.mesh = G.R.meshTex(d, uv, idx); a.tex = G.R.texture(img);
-    a.def = meta.def.map(e => [e[0], e[1], e[2], e[3], e[4]]); a.meta = meta;
+    a.mesh = G.R.meshTex(d, uv, idx); a.tex = img.glTex || (img.glTex = G.R.texture(img));
+    a.def = meta.def.map(e => [e[0], e[1], e[2], e[3], e[4]]); a.meta = meta; a.cpu = { pos, bone }; // v23 js/folk.js measures the head and body outlines from these
     return a;
   }).catch(e => { console.warn('[HeroAsset] ' + name + ' 불러오기 실패', e); a.failed = true; return null; });
   return a.ready;
 };
+const IMGS = {};
+H.img = url => IMGS[url] || (IMGS[url] = new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = url + (url.includes('?') ? '' : '?' + H.av); }));
 H.get = name => { const a = H.assets[name]; return a && a.mesh ? a : null; };
 
 /* 같은 객체의 rig를 다른 뼈 위치(def)의 rig로 바꾼다. 동작 상태(브레이크, IK, 천 시뮬레이션 등 rig에 붙은 값)는 그대로 옮긴다. */

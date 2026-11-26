@@ -245,7 +245,7 @@ Game.start = function (epId, fresh, preview) {
   else if (W) { for (const n of ENT.nodes) if (n.col) n.col.on = false; for (const k in ENT.npcs) { const n = ENT.npcs[k]; if (n && n.col) n.col.on = false; } for (const s of ENT.sites || []) if (s._col) s._col.on = false; for (const k in ENT.cropSets) R.free(ENT.cropSets[k]); ENT.cropSets = {}; if (ENT.soilMesh) R.free(ENT.soilMesh); ENT.soilMesh = null; ENT.dyn.forEach(d => d.own && R.free(d.mesh)); ENT.dyn = []; ENT.animals = []; ENT.nodes = []; }
   S = saved && saved.v === 2 ? saved : newState(EP);
   // world
-  { const lm = /[?&]lod=(\d+)\b/.exec(location.search); R.lodDist = lm ? +lm[1] : (COARSE ? 75 : 0); R.lodGs = 0.8; } // v18.9 far LOD (phones): cells beyond 75 m are drawn simplified; ?lod=0 off, ?lod=70 on desktop
+  { const lm = /[?&]lod=(\d+)\b/.exec(location.search); R.lodDist = lm ? +lm[1] : (COARSE ? 75 : 110); /* v24 desktops too, from 110 m (deep in the haze) */ R.lodGs = 0.8; } // v18.9 far LOD (phones): cells beyond 75 m are drawn simplified; ?lod=0 off, ?lod=70 on desktop
   { const tm = /[?&]trees=(hi|lo)\b/.exec(location.search); G.treeLod = tm ? (tm[1] === 'lo' ? 1 : 0) : (COARSE && SET.quality !== 'high' ? 1 : 0); } // v18.6 tree detail (phones: lighter)
   if (!reuse) {
     if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
@@ -901,7 +901,15 @@ function updatePlayer(dt) {
   const tvx = dx * target, tvz = dz * target;
   const FL = G.Motion.feel(), acc = target > P.spd ? (P.grounded ? FL.acc : FL.air) : FL.dec;
   const k = 1 - Math.exp(-acc * dt / 3);
-  P.vx = lerp(P.vx, tvx, k); P.vz = lerp(P.vz, tvz, k); if (cartV) { P.vx = cartV[0]; P.vz = cartV[1]; }
+  /* v24 조작감: on the ground the speed and the heading are eased separately — a change of direction swings the run round at full
+     pace instead of blending the old and new velocity through zero (that felt like sliding on ice). A near-reversal at speed still
+     brakes through, as a body would. */
+  const sp0 = Math.hypot(P.vx, P.vz), want = Math.atan2(dx, dz), hd = sp0 > 0.05 ? Math.atan2(P.vx, P.vz) : want, dA = angDiff(hd, want);
+  if (mag > 0 && target > 0 && P.grounded && !P.swim && !cartV && !(Math.abs(dA) > 2.5 && sp0 > 2.2)) {
+    const h1 = hd + dA * (1 - Math.exp(-dt * FL.turn * (1.6 + 1.4 * (1 - Math.min(1, sp0 / 4))))), sp1 = lerp(sp0, target, k);
+    P.vx = Math.sin(h1) * sp1; P.vz = Math.cos(h1) * sp1; }
+  else { P.vx = lerp(P.vx, tvx, k); P.vz = lerp(P.vz, tvz, k); }
+  if (cartV) { P.vx = cartV[0]; P.vz = cartV[1]; }
   if (P.dodgeT > 0) { // dodge roll: quick dash in the stick direction (or backwards from the target), brief invulnerability
     if (!P.dodgeDir) { let ddx = mag > 0 ? dx : -Math.sin(P.face), ddz = mag > 0 ? dz : -Math.cos(P.face); P.dodgeDir = [ddx, ddz]; P.face = mag > 0 ? Math.atan2(ddx, ddz) : P.face; }
     P.dodgeT -= dt; const sp = 9.5 * (P.limp ? 0.75 : 1) * Math.min(1, P.dodgeT * 4 + 0.3); P.vx = P.dodgeDir[0] * sp; P.vz = P.dodgeDir[1] * sp; }
@@ -1034,6 +1042,7 @@ function updateNPCs(dt, t) { npcFrame++;
       const vx = -Math.sin(CAM.yaw), vz = -Math.cos(CAM.yaw), bx = n.x - CAM.x, bz = n.z - CAM.z, behind = dist > 7 && vx * bx + vz * bz < -0.25 * Math.hypot(bx, bz);
       const k = behind ? 4 : dist > 55 ? 3 : dist > 28 ? 2 : 1; if (k > 1 && (npcFrame + n._ah) % k) { n.rig.update(m4trs(n.M, n.x, n.y + (n.d.dy || 0) + (n.hopY || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale)); continue; } } /* (only the pose maths is skipped; the bones follow the body every frame) */
     if (n.d.animal) animAnimal(n.rig, n.st, t); else animHuman(n.rig, n.st, t + (n._to === undefined ? (n._to = Math.random() * 50) : n._to)); /* v18.34 a steady clock per person (it ran with the x position) */
+    if (n.fk && G.Folk) G.Folk.shape(n); // v23 their own build on the shared Joseph model
     n.rig.update(m4trs(n.M || (n.M = m4()), n.x, n.y + (n.d.dy || 0) + (n.hopY || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale));
   }
 }
@@ -1332,7 +1341,7 @@ function render(dt) {
   animHuman(P.rig, pst, tAll);
   if (P.swim) { P.rig.off[1] -= 0.0; }
   if (P.ride && G.Ride) G.Ride.riderMatrix(TMPM); else m4trs(TMPM, P.x, P.y + (EP.rootY ? EP.rootY(S, Game) : 0), P.z, P.face); P.rig.update(TMPM);
-  if (Game.mode === 'play' || (Game.mode === 'title' && Game.titleHero)) scene.skinned.push(P.sk || (P.sk = { /* v18.73 titleHero: the hero stands in the title picture (after the ending) */ mesh: null, bones: P.rig.bones, outline: true, bs: [0, 0, 0, 1.8] })); if (P.sk) { P.sk.mesh = P.ha ? P.ha.mesh : P.mesh; P.sk.tex = P.ha ? P.ha.tex : null; P.sk.bs[0] = P.x; P.sk.bs[1] = P.y + 1; P.sk.bs[2] = P.z; P.sk.tint = P.tint || null; }
+  if (Game.mode === 'play' || (Game.mode === 'title' && Game.titleHero)) scene.skinned.push(P.sk || (P.sk = { /* v18.73 titleHero: the hero stands in the title picture (after the ending) */ mesh: null, bones: P.rig.bones, outline: true, bs: [0, 0, 0, 1.8] })); if (P.sk) { P.sk.mesh = P.ha ? P.ha.mesh : P.mesh; P.sk.tex = P.ha ? P.ha.tex : null; P.sk.fx = P.ha && G.Folk && G.Folk.heroFace ? G.Folk.heroFace(P.rig) : null; /* v24 his brows and mouth act too */ P.sk.meshS = P.ha && G.Folk && G.Folk.ready && P.ha === G.Folk.hi ? G.Folk.lo2.mesh : null; /* v24 his shadow from the 4k copy of his own mesh */ P.sk.bs[0] = P.x; P.sk.bs[1] = P.y + 1; P.sk.bs[2] = P.z; P.sk.tint = P.tint || null; }
   // held prop
   // only one thing in the hand: the action's own tool > a drawn weapon > the tool the player chose to hold
   const freeHand = !P.carry && !P.ride && !P.sleeping && !Game.cineOn && !(P.emote && (P.emote.k === 'eat' || P.emote.k === 'drink' || P.emote.k === 'sit_eat' || P.emote.k === 'sit_drink' || P.emote.k === 'sitg')) && !(pst.act && pst.act !== P.act && !(G.Acts && G.Acts.walkable(pst.act)));
@@ -1357,7 +1366,7 @@ function render(dt) {
   /* v18.33 phones: people are drawn out to 62 m (not 85), the ink outline only within 24 m, and in a big crowd the ones past 40 m are left out */
   let crowd = 0; if (COARSE) for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (n.vis && n.near && Math.hypot(n.x - CAM.x, n.z - CAM.z) < 62) crowd++; }
   const ND = COARSE ? (crowd > 55 ? 40 : 62) : 85, OD = COARSE ? 24 : 40, SHD = COARSE ? 22 : 34;
-  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || !n.near) continue; const d = Math.hypot(n.x - CAM.x, n.z - CAM.z); if ((d > ND && !n.follow && !(Game.curTarget && Game.curTarget.npc === id)) || (d < 1.0 && Game.mode === 'play')) continue; const sk = n.sk || (n.sk = { bones: n.rig.bones, bs: [0, 0, 0, 1.8] }); sk.mesh = npcMesh(n, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : 1)); sk.outline = d < OD && !n.d.emis; sk.shadow = !!(d < SHD || n.follow || Game.cineOn); sk.meshS = sk.shadow && !Game.cineOn ? npcMesh(n, d < 11 ? 12 : 33) : null; /* (and one level coarser in the shadow map: nobody sees a shadow's fingers) */ /* v18.94 a far person's shadow is a smudge in the shadow map: only the near ones cast it (people were half of the shadow pass) */ sk.emis = n.d.emis; sk.tint = n.tint || n.d.tint; sk.bs[0] = n.x; sk.bs[1] = n.y + 1; sk.bs[2] = n.z; sk.bs[3] = 1.8 * (n.scale || 1); scene.skinned.push(sk); if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); }
+  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || !n.near) continue; const d = Math.hypot(n.x - CAM.x, n.z - CAM.z); if ((d > ND && !n.follow && !(Game.curTarget && Game.curTarget.npc === id)) || (d < 1.0 && Game.mode === 'play')) continue; if (G.Folk && G.Folk.dress(n, n.sk, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : 1), scene.skinned)) { /* v23 drawn as a Joseph-model villager (js/folk.js) */ if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); continue; } const sk = n.sk || (n.sk = { bones: n.rig.bones, bs: [0, 0, 0, 1.8] }); sk.mesh = npcMesh(n, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : 1)); sk.outline = d < OD && !n.d.emis; sk.shadow = !!(d < SHD || n.follow || Game.cineOn); sk.meshS = sk.shadow && !Game.cineOn ? npcMesh(n, d < 11 ? 12 : 33) : null; /* (and one level coarser in the shadow map: nobody sees a shadow's fingers) */ /* v18.94 a far person's shadow is a smudge in the shadow map: only the near ones cast it (people were half of the shadow pass) */ sk.emis = n.d.emis; sk.tint = n.tint || n.d.tint; sk.bs[0] = n.x; sk.bs[1] = n.y + 1; sk.bs[2] = n.z; sk.bs[3] = 1.8 * (n.scale || 1); scene.skinned.push(sk); if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); }
   for (const a of ENT.animals) { if (!a.near) continue; const d = Math.hypot(a.x - CAM.x, a.z - CAM.z); if (d > (COARSE ? 50 : 65) || d < 0.9) continue; const sk = a.sk || (a.sk = { mesh: a.mesh, bones: a.rig.bones, bs: [0, 0, 0, 1.6] }); sk.outline = d < (COARSE ? 20 : 30); sk.shadow = d < (COARSE ? 18 : 28); sk.bs[0] = a.x; sk.bs[1] = a.y + 0.7; sk.bs[2] = a.z; scene.skinned.push(sk); }
   if (EP.skinned) EP.skinned(scene.skinned, S, Game, tAll);
   if (G.Ride) G.Ride.skinned(scene.skinned, tAll); if (G.NpcAI) G.NpcAI.skinned(scene.skinned, tAll);

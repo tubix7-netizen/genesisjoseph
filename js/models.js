@@ -713,12 +713,12 @@ function faceAnim(rig, st, t) {
 }
 /* secondary motion for the cape bone: a damped spring that keeps the cloth hanging under gravity,
    flares it back with speed and acceleration, and swings it sideways when turning */
-const LOWC = { warmHands: 0.3, kneelRest: 0.4, kneel: 0.38, kneelPray: 0.4, pray: 0.38, beg: 0.38, weep: 0.38, tearClothes: 0.34, squat: 0.34, sitg: 0.3, sitHug: 0.3, smoothMat: 0.4, gather: 0.4, pick: 0.4, plant: 0.4, water: 0.4, harvest: 0.4, bow: 0.3, prostrate: 0.15, lie: 0.05 };
+const LOWC = { stoolWarm: 0.3, warmHands: 0.3, kneelRest: 0.4, kneel: 0.38, kneelPray: 0.4, pray: 0.38, beg: 0.38, weep: 0.38, tearClothes: 0.34, squat: 0.34, sitg: 0.3, sitHug: 0.3, smoothMat: 0.4, gather: 0.4, pick: 0.4, plant: 0.4, water: 0.4, harvest: 0.4, bow: 0.3, prostrate: 0.15, lie: 0.05 };
 /* v18.58 seated or kneeling, the coat used to fan straight out behind (a metre of cloth on the ground). Now it hangs: a small swing back, and the hem gathers up (the cape bone shortens) so it folds at the ground instead of trailing */
 /* v18.66 sitting or kneeling, the coat no longer shrinks to half (it looked cut short over a bare seat): it keeps most of its length so the hem reaches the ground
    behind the hips and spreads a little there (wider at the hem, LOWW), the way a heavy cloak pools when you sit in it */
-const LOWS = { warmHands: 0.74, kneelRest: 0.8, kneel: 0.8, kneelPray: 0.8, pray: 0.8, beg: 0.8, weep: 0.8, tearClothes: 0.8, squat: 0.72, sitg: 0.74, sitHug: 0.74, gather: 0.78, pick: 0.8, plant: 0.78, water: 0.82, harvest: 0.86, smoothMat: 0.78 };
-const LOWW = { warmHands: 1.1, kneelRest: 1.14, kneel: 1.12, kneelPray: 1.14, pray: 1.14, beg: 1.12, weep: 1.12, tearClothes: 1.1, squat: 1.1, sitg: 1.2, sitHug: 1.18, smoothMat: 1.12 };
+const LOWS = { stoolWarm: 0.74, warmHands: 0.74, kneelRest: 0.8, kneel: 0.8, kneelPray: 0.8, pray: 0.8, beg: 0.8, weep: 0.8, tearClothes: 0.8, squat: 0.72, sitg: 0.74, sitHug: 0.74, gather: 0.78, pick: 0.8, plant: 0.78, water: 0.82, harvest: 0.86, smoothMat: 0.78 };
+const LOWW = { stoolWarm: 1.2, warmHands: 1.1, kneelRest: 1.14, kneel: 1.12, kneelPray: 1.14, pray: 1.14, beg: 1.12, weep: 1.12, tearClothes: 1.1, squat: 1.1, sitg: 1.2, sitHug: 1.18, smoothMat: 1.12 };
 /* v18.66 cloth by what it is made of: heavy wool hangs and swings slowly, linen is light and lifts in the wind, a dyed wool coat sits between */
 const CLOTHM = { wool: { k: 55, d: 7.5, sw: 0.08, acc: 0.01, wind: 0.02 }, coat: { k: 42, d: 6, sw: 0.1, acc: 0.013, wind: 0.035 }, linen: { k: 28, d: 4.2, sw: 0.13, acc: 0.017, wind: 0.07 } };
 G.clothMat = look => !look ? 'wool' : look.cloth || (look.mantleWeave || look.mantleStripes ? 'coat' : look.collar || look.collar2 ? 'linen' : 'wool');
@@ -764,8 +764,10 @@ function gaitKey(keys, u) {
   return [lerp(a[1], b[1], blend) + left*m[i][0] + right*m[i+1][0],
           lerp(a[2], b[2], blend) + left*m[i][1] + right*m[i+1][1]];
 }
-function gaitLeg(u, R, kW, kR) { const w = gaitKey(GAIT_W, u), r = gaitKey(GAIT_R, u);
-  return [w[0] * kW * (1 - R) + r[0] * kR * R, w[1] * Math.min(1, kW * 1.1) * (1 - R) + r[1] * R]; }
+/* v23 kick: the run's heel kick (knee bend above ~57°) is scaled — a jog in trousers kicks the heel half way up, only a sprint
+   brings it to the seat (with the GLB heroes the legs are no longer hidden under a robe, and the full kick read as flailing) */
+function gaitLeg(u, R, kW, kR, kick) { const w = gaitKey(GAIT_W, u), r = gaitKey(GAIT_R, u), k = kick === undefined ? 1 : kick, rk = r[1] > 1 ? 1 + (r[1] - 1) * k : r[1];
+  return [w[0] * kW * (1 - R) + r[0] * kR * R, w[1] * Math.min(1, kW * 1.1) * (1 - R) + rk * R]; }
 function animPose(rig, st, t) { if (!locoPose(rig, st, t)) actPose(rig, st, t); }
 function locoPose(rig, st, t) { // returns true when a full-body hold pose (sleep/kneel/ride/sit) owns the rig
   rig.zero();
@@ -823,21 +825,25 @@ function locoPose(rig, st, t) { // returns true when a full-body hold pose (slee
   const Ag = Math.max(A, lm.amp), phE = ph + lm.ext, turnK = lm.mode === 'turn' ? 1 : 0;
   const uL = (((phE - PI / 2) / (2 * PI)) % 1 + 1) % 1, uR = (uL + 0.5) % 1;
   const kW = clamp(stp / 0.95, 0.45, 1.25) * Ag * robe, kR = clamp(stp / 1.6, 0.6, 1.3) * robe;
-  const legL = gaitLeg(uL, R, kW, kR), legR = gaitLeg(uR, R, kW, kR);
+  const kick = st.sprint ? 0.92 : 0.66, legL = gaitLeg(uL, R, kW, kR, kick), legR = gaitLeg(uR, R, kW, kR, kick);
   const tw = clamp(lm.turn, -3, 3) * 0.09 * turnK; // stepping round: the feet open toward the turn
   rig.set(B.thighL, -legL[0] * limpK, tw, 0.03 + R * 0.02 + Math.max(0, tw) * 0.5); rig.set(B.thighR, -legR[0], tw, -0.03 - R * 0.02 + Math.min(0, tw) * 0.5);
   rig.set(B.shinL, legL[1] * (st.limp ? 0.7 : 1) + lm.land * 0.8, 0, 0); rig.set(B.shinR, legR[1] + lm.land * 0.8, 0, 0); /* v18.34 the knees take the landing dip (feet sank ~9 cm) */
   if (lm.land > 0) { rig.rot[B.thighL * 3] -= lm.land * 0.4; rig.rot[B.thighR * 3] -= lm.land * 0.4; }
   const cyc = 2 * PI * uL, lag = 0.20; // the arm trails the leg a little
-  const armW = 0.27 * Ag * (1 - turnK * 0.6) * W1 * (0.6 + 0.4 * Math.min(1, sp / 1.6)), armR = (0.68 + 0.14 * (st.sprint ? 1 : 0)) * R;
+  const armW = 0.27 * Ag * (1 - turnK * 0.6) * W1 * (0.6 + 0.4 * Math.min(1, sp / 1.6)), armR = (0.5 + 0.16 * (st.sprint ? 1 : 0)) * R; /* v23 0.68 → 0.5: running hands no longer fly up to the shoulders */
   /* v17.0 부위별 위상 (움직임 연구 보고서 3장 ③, Local Motion Phases): the arms have their own phase and swing size. The phase
      is pulled toward the legs' (with the usual lag) instead of being copied from them, and the swing size eases in and out, so
      arms build up over the first steps, keep swinging a moment after a stop, and each person swings a little unevenly. */
   if (lm.aph === undefined) { lm.aph = cyc - lag; lm.aamp = 0; lm.asym = 0.92 + 0.16 * ((Math.abs(lm.seed || 0) * 7.13) % 1); }
   lm.aph = cyc - lag; const aw = armW + armR; lm.aamp += (aw - lm.aamp) * -Math.expm1(-ldt * (aw > lm.aamp ? 8 : 5));
   const swL = Math.cos(lm.aph), swR = -swL, aL = lm.aamp * lm.asym, aR = lm.aamp * (2 - lm.asym); // left arm forward (negative) when the right leg leads
-  rig.set(B.uArmL, aL * swL + 0.06 * A * W1 - R * 0.08, 0, 0.1 + R * 0.06); rig.set(B.uArmR, aR * swR + 0.06 * A * W1 - R * 0.08, 0, -0.1 - R * 0.06); // arms hang slightly back of the body line when walking
-  rig.set(B.fArmL, -0.3 - 0.32 * A * W1 * Math.max(0, -swL) - R * (1.25 + 0.25 * Math.max(0, -swL)), R * 0.25, 0); rig.set(B.fArmR, -0.3 - 0.32 * A * W1 * Math.max(0, -swR) - R * (1.25 + 0.25 * Math.max(0, -swR)), -R * 0.25, 0);
+  /* v23: the forward swing is a little shorter than the back swing (the hand comes up to the chest, not out in front of the face),
+     and a running elbow stays bent near 90° through the whole pump instead of opening and closing */
+  const fw = s => s < 0 ? s * (1 - 0.28 * R) : s;
+  rig.set(B.uArmL, aL * fw(swL) + 0.06 * A * W1 - R * 0.04, 0, 0.1 - R * 0.03); rig.set(B.uArmR, aR * fw(swR) + 0.06 * A * W1 - R * 0.04, 0, -0.1 + R * 0.03); // arms hang slightly back of the body line when walking
+  /* v23: the bent forearms turn in toward the body's midline as they pump (they used to turn out, so the hands flew wide) */
+  rig.set(B.fArmL, -0.3 - 0.32 * A * W1 * Math.max(0, -swL) - R * (1.18 + 0.12 * Math.max(0, -swL)), -R * (0.26 + 0.08 * Math.max(0, -swL)), 0); rig.set(B.fArmR, -0.3 - 0.32 * A * W1 * Math.max(0, -swR) - R * (1.18 + 0.12 * Math.max(0, -swR)), R * (0.26 + 0.08 * Math.max(0, -swR)), 0);
   const lean = clamp(-lm.turn * sp * 0.04, -0.34, 0.34), accLean = clamp(lm.acc * 0.022, -0.14, 0.2);
   const breath = Math.sin(t * 1.7 + lm.seed) * 0.018 * (1 - A), shift = Math.sin(t * 0.33 + lm.seed) * (1 - A);
   const twP = -0.12 * Ag * (W1 + R * 0.6) * Math.cos(cyc) + clamp(lm.turn, -3, 3) * 0.06 * turnK, twC = 0.2 * Ag * (W1 * 0.8 + R) * Math.cos(cyc) * (1 - turnK * 0.7);

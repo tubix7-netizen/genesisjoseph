@@ -78,6 +78,11 @@ def main():
     ap.add_argument('glb'); ap.add_argument('out'); ap.add_argument('name')
     ap.add_argument('--tex', type=int, default=1024, help='텍스처 한 변 크기 (px)')
     ap.add_argument('--arm-out', type=float, default=9.0, help='팔을 내린 뒤 몸에서 벌어지는 각도 (도)')
+    ap.add_argument('--leg-gap', type=float, default=0.004, help='발목이 엉덩이 관절보다 바깥에 놓이는 거리 (m)')
+    ap.add_argument('--toe-out', type=float, default=3.0, help='발끝이 바깥으로 벌어지는 각도 (도)')
+    ap.add_argument('--eyes', default=None, help='눈 자리 cx,cy[,rx,ry] (m): 두 눈 중심의 |x|와 높이')
+    ap.add_argument('--mouth', default=None, help='입 자리 cy[,rx,ry] (m)')
+    ap.add_argument('--hem-free', type=float, default=1.0, help='겉옷 자락을 다리에서 떼어 골반에 나눠 주는 정도 (0 = Meshy 그대로)')
     a = ap.parse_args()
 
     j, acc, image = load_glb(a.glb)
@@ -121,6 +126,30 @@ def main():
             k = names.index(n); M = M1 if n == side + 'Arm' else M2 @ M1
             S[k] = M @ S[k]
             pos[n] = (M @ np.append(pos[n], 1))[:3]
+    # ---- 1b. 다리 모으기 (v23): Meshy A-포즈는 발목이 엉덩이보다 바깥(약 7 cm)에 있고 발끝도 벌어져 있어서, 게임에서 걸으면
+    # 팔자걸음처럼 보였다. 다리 전체를 엉덩이 관절을 중심으로 안쪽으로 돌려 발목을 엉덩이 바로 아래로 모으고,
+    # 발은 발목을 중심으로 돌려 발끝이 거의 앞(--toe-out 도)을 보게 한다. 무릎 회전축이 다리 가운데 오도록 하는 효과도 있다.
+    for side, sx in (('Left', 1), ('Right', -1)):
+        hp, an = pos[side + 'UpLeg'].copy(), pos[side + 'Foot'].copy()
+        tgt = np.array([sx * (abs(hp[0]) + a.leg_gap), an[1], an[2]])
+        M1 = about(rot_between(an - hp, tgt - hp), hp)
+        for n in desc(side + 'UpLeg'):
+            k = names.index(n); S[k] = M1 @ S[k]; pos[n] = (M1 @ np.append(pos[n], 1))[:3]
+        # 발끝 방향: 발바닥 정점(이 발에 붙은)의 뒤꿈치 → 발끝
+        fk = [names.index(side + 'Foot'), names.index(side + 'ToeBase')]
+        wf = sum(W[:, i] * np.isin(J[:, i], fk) for i in range(4))
+        Ph0 = np.c_[P, np.ones(len(P))]
+        Pf = np.einsum('ij,nj->ni', M1, Ph0)[:, :3]
+        y0 = Pf[wf > 0.5, 1].min(); sole = (wf > 0.5) & (Pf[:, 1] < y0 + 0.03)   # 발바닥 (아래 3 cm)
+        f = Pf[sole]; z0, z1 = f[:, 2].min(), f[:, 2].max()
+        toe = f[f[:, 2] > z1 - 0.05].mean(0); heel = f[f[:, 2] < z0 + 0.04].mean(0)
+        cur = np.degrees(np.arctan2((toe[0] - heel[0]) * sx, toe[2] - heel[2]))   # +: 바깥으로 벌어짐
+        yaw = np.radians(-(cur - a.toe_out) * sx)
+        c, s = np.cos(yaw), np.sin(yaw); Ry = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+        M2 = about(Ry, pos[side + 'Foot'])
+        for n in desc(side + 'Foot'):
+            k = names.index(n); S[k] = M2 @ S[k]; pos[n] = (M2 @ np.append(pos[n], 1))[:3]
+        print(f'  {side}: 발목 x {an[0]:+.3f} → {pos[side + "Foot"][0]:+.3f}, 발끝 {cur:.1f}° → {a.toe_out:.1f}°')
     Ph = np.c_[P, np.ones(len(P))]
     P2 = np.zeros_like(P); N2 = np.zeros_like(N)
     for i in range(4):
@@ -179,6 +208,20 @@ def main():
     G = np.zeros((len(P), len(GAME)))
     for i in range(4):
         np.add.at(G, (np.arange(len(P)), gidx[J[:, i]]), W[:, i])
+    # ---- 4b. 겉옷 자락 (v23): Meshy는 무릎 위 코트 자락을 허벅지·정강이에 통째로 붙여서, 쪼그려 앉거나 앉으면 자락이
+    # 허벅지를 따라 앞으로 들려 풍선처럼 부풀었다. 다리 축에서 멀리 떨어진 바깥 층(코트)은 다리 가중치의 절반만 허벅지에 남기고
+    # 나머지는 골반에 준다. 정강이(무릎 아래)로는 접히지 않게 한다. 바지처럼 다리에 붙은 정점은 그대로다.
+    x_, y_, z_ = P.T
+    for g_, s_ in (('L', 1), ('R', -1)):
+        th, sh, ft = D['thigh' + g_], D['shin' + g_], D['foot' + g_]
+        side = (x_ * s_) > 0
+        t = np.clip((y_ - ft[1]) / (th[1] - ft[1]), 0, 1); ax = ft[0] + (th[0] - ft[0]) * t; az = ft[2] + (th[2] - ft[2]) * t
+        dist = np.hypot(x_ - ax, z_ - az)
+        outer = side & (y_ < th[1] + 0.02) & (y_ > 0.3)
+        k = np.clip((dist - 0.1) / 0.05, 0, 1) * outer * a.hem_free
+        ti, si, pi = GI['thigh' + g_], GI['shin' + g_], GI['pelvis']
+        leg = G[:, ti] + G[:, si]
+        G[:, pi] += leg * k * 0.5; G[:, ti] = G[:, ti] * (1 - k) + leg * k * 0.5; G[:, si] *= (1 - k)
     order = np.argsort(-G, axis=1)
     b0 = order[:, 0]; b1 = order[:, 1]
     w0 = G[np.arange(len(P)), b0]; w1 = G[np.arange(len(P)), b1]
@@ -189,12 +232,18 @@ def main():
     # 머리(얼굴·머리카락)는 엔진의 '얼굴' 셰이딩을 받는다 (aCol.a = 0.5: 부드럽고 고른 명암, 얇은 외곽선)
     soft = np.where(b0 == GI['head'], 0.5, 0.0).astype(np.float32)
 
-    # Landmarks measured on the front of the Joseph mesh, in game metres.
-    if a.name == 'joseph' and os.path.basename(a.glb) == 'joseph_3d.glb':
+    # 눈·입 자리 (게임 좌표, m): 깜빡임과 말할 때 입 움직임이 붙는 정점. 요셉은 앞에서 잰 값, 다른 캐릭터는 --eyes/--mouth로 준다
+    # (tools/folkmask.py와 같은 방식으로 얼굴 정면도를 뽑아서 잰다).
+    marks = None
+    if a.eyes and a.mouth:
+        e = [float(v) for v in a.eyes.split(',')]; mo = [float(v) for v in a.mouth.split(',')]
+        marks = [('eyes', e[0], e[1], e[2] if len(e) > 2 else 0.04, e[3] if len(e) > 3 else 0.026), ('mouth', 0, mo[0], mo[1] if len(mo) > 1 else 0.042, mo[2] if len(mo) > 2 else 0.016)]
+    elif a.name == 'joseph' and os.path.basename(a.glb) == 'joseph_3d.glb':
+        marks = [('eyes', 0.049, 1.634, 0.041, 0.028), ('mouth', 0, 1.565, 0.044, 0.016)]
+    if marks:
         x, y, z = P.T
         front = (b0 == GI['head']) & (z > 0.045)
-        for name, cx, cy, rx, ry in [('eyes', 0.049, 1.634, 0.041, 0.028),
-                                      ('mouth', 0, 1.565, 0.044, 0.016)]:
+        for name, cx, cy, rx, ry in marks:
             distance = ((np.abs(x) - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
             influence = np.clip((1.45 - distance) / 0.7, 0, 1)
             mask = front & (influence > 0)

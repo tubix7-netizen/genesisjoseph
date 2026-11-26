@@ -404,12 +404,12 @@ const OPENING = {
   setup: true, setupArt: OPEN_ART[5],
   after(S, G) {
     /* v18.35 he begins out in the open, sitting by the morning fire (he used to wake up in the tent and had to find his way out of it) */
-    const bx = 177.9, bz = 154.3, h = hAt(bx, bz), jx = 170.6, jz = 150.8, ff = Math.atan2(176 - bx, 153 - bz);
-    G.teleport(bx, bz, ff); cpose('warmHands', 0, true); S.time = 6.4;
+    const bx = 177.11, bz = 153.76, h = hAt(bx, bz), jx = 170.6, jz = 150.8, ff = Math.atan2(176 - bx, 153 - bz);
+    G.teleport(bx, bz, ff); cpose('stoolWarm', 0, true); S.time = 6.4; /* v23 on the log seat beside the fire (he crouched on the bare ground) */
     cine([{ hour: 6.4, cam: [bx + 30, h + 26, bz + 34], cam2: [bx + 7, h + 4, bz + 7], look: [176, h + 1, 152], look2: [bx, h + 0.8, bz], dur: 7, music: 'j_canaan', t: '헤브론 골짜기에 아침이 밝았습니다.', ref: '창세기 37:14' },
       { cam: [bx + 2.6, h + 1.15, bz + 2.2], look: [176.6, h + 0.55, 153.4], dur: 5, fov: 0.72, t: '요셉은 모닥불 곁에 앉아 아침 공기에 손을 녹이고 있었습니다.' },
       { cam: [bx - 0.7, h + 1.35, bz + 1.4], look: [jx, hAt(jx, jz) + 1.5, jz], dur: 4.5, fov: 0.62, n: '야곱', t: '요셉아! 이리 오너라!', e: 'tender' },
-      { fn: () => { cpose(null); G.P.face = Math.atan2(jx - bx, jz - bz); }, cam: [bx + 2.2, h + 1.45, bz + 1.6], look: [bx, h + 1.1, bz], dur: 4.2, fov: 0.8, n: '요셉', t: '네, 아버지! 지금 가요!', e: 'happy' },
+      { fn: () => { cpose(null); { const ux = jx - bx, uz = jz - bz, ul = Math.hypot(ux, uz); G.teleport(bx + ux / ul * 0.55, bz + uz / ul * 0.55); } /* v23 he stands up off the log, a step toward his father */ G.P.face = Math.atan2(jx - bx, jz - bz); }, cam: [bx + 2.2, h + 1.45, bz + 1.6], look: [bx, h + 1.1, bz], dur: 4.2, fov: 0.8, n: '요셉', t: '네, 아버지! 지금 가요!', e: 'happy' },
       { cam: [jx + 3, hAt(jx, jz) + 1.7, jz + 4], look: [jx, hAt(jx, jz) + 1.4, jz], dur: 3.6, t: '아버지 야곱이 장막 앞에서 요셉을 기다리고 있었습니다.' }],
     () => { GG.Game.musicOverride = null; { const C = GG.Game.CAM, f = Math.atan2(jx - G.P.x, jz - G.P.z); G.P.face = f; if (C) { C.yaw = f + Math.PI; C.yv = 0; C.hold = 1; } } /* v18.56 the first look: from behind Joseph, toward his father (as before v18.40) */ narr([{ kick: '조작 안내', title: '프롤로그 · 형들을 찾아서', t: '왼쪽 아래를 끌어 걷고, 오른쪽 화면을 끌어 둘러봐요. 사람이나 물건 가까이에서 A를 누르면 말하거나 챙길 수 있어요. 갈 곳은 오른쪽 위 미니맵의 노란 길과 화살표가 알려 줘요.', ref: '' }]); }, { noSkip: false });
   },
@@ -426,7 +426,7 @@ G.EP.joseph = {
   spec: { size: SIZE, cell: 2, seed: 37, height, color, water: { level: -0.35, shallow: [0.36, 0.62, 0.56], deep: [0.14, 0.32, 0.36] } },
   build, npcs, pens, fields, sites, specials, shops, stations, spots: SPOTS, steps, talk, chatter, envx: ENVX, quests: QUESTS,
   outfits: Object.assign({ default: LOOK.josephCoat }, ...['josephCoat', 'josephPlain', 'josephSlave', 'josephServant', 'josephSteward', 'josephFled', 'josephPrisoner', 'josephFettered', 'josephShaved', 'josephVizier'].map(k => ({ [k]: LOOK[k] })), { prisoner: LOOK.josephPrisoner }, WARD_LOOKS),
-  start: { step: 'p_wake', x: 177.9, z: 154.3, face: -2.2, /* v18.35 by the fire, out in the open */ time: 6.4, silver: 0, inv: {}, tools: {}, outfit: 'josephCoat' },
+  start: { step: 'p_wake', x: 177.11, z: 153.76, face: -2.2, /* v18.35 by the fire, out in the open */ time: 6.4, silver: 0, inv: {}, tools: {}, outfit: 'josephCoat' },
   recipes: ['bread', 'bbread', 'linen', 'brick', 'grain', 'grainW', 'hay', 'torch'],
   showStaff: false, rain: 0.02, sleepFrom: 17, titleCam: { x: 176, z: 152, r: 32, h: 9, ty: 1.5 }, titleTime: 17.6, titleMusic: 'j_theme', timeScale: 1,
   openWardrobe, wardOk: S => !before(S, 'c5_patrol'),

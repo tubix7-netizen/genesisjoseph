@@ -158,7 +158,7 @@ function build(W, Game) {
       g.box(1.7, 0.06, 0.6, { m: M, at: [0.05, 0.07, -0.05], c: 0x6a5a4a, j: 0.04 }); g.sph(0.2, 8, 6, { m: M, at: [0.78, 0.12, 0], s: [1, 0.45, 1.2], c: 0xd8c8a8 }); }, mx, mz, { ry: -2.24, col: null }); }
   P('tent', 163, 162, { ry: 0.9, args: [0x5a4636], col: { w: 5.8, d: 3.8, h: 2.2, cam: true, a: 0.9 } });
   P('tent', 189, 141, { ry: -1.1, args: [0x3e342e], col: { w: 5.8, d: 3.8, h: 2.2, cam: true, a: -1.1 } });
-  P('campfire', 176, 153, { col: { r: 0.8, h: 0.5 } }); P('sacks', 179, 147); P('pots', 188.3, 157.3, { ry: -0.5 }); // v18.13 the camp's pots stand together beside Joseph's tent, not in the middle
+  P('campfire', 176, 153, { col: { r: 0.8, h: 0.5 } }); /* v23 */ P('logSeat', 177.11, 153.76, { ry: 0.6 }); P('logSeat', 174.7, 154.05, { ry: -0.9 }); P('fireWood', 177.4, 151.6, { ry: 0.3, col: { r: 0.4, h: 0.4 } }); P('sheepskinRug', 175.0, 151.8, { ry: 0.5 }); P('waterSkin', 180.2, 155.4, { ry: 0.4, s: 1.25 }); P('quern', 166.2, 150.6, { ry: 0.3 }); P('loomUp', 158.4, 156.2, { ry: 0.5, col: { w: 1.4, d: 0.4, h: 2, a: 0.9 } }); P('herbRack', 186.6, 154.6, { ry: -0.6, col: { w: 1.8, d: 0.3, h: 1.6, a: -0.6 } }); P('sacks', 179, 147); P('pots', 188.3, 157.3, { ry: -0.5 }); // v18.13 the camp's pots stand together beside Joseph's tent, not in the middle
   P('well', 160, 150, { col: { r: 1.7, h: 1 } }); penF(192, 171, 12, 9, 'n');
   for (const [x, z] of [[156, 140], [196, 150], [165, 172], [190, 130]]) P('olive', x, z, { s: 1.1, col: tree });
   P('oak', 148, 156, { s: 1.5, col: tree }); // 마므레의 상수리나무 (창 35:27)
@@ -169,7 +169,7 @@ function build(W, Game) {
   // rest stop under the oak
   P('oak', 190, 29, { s: 1.7, col: { r: 0.7, h: 3 } }); P('campfire', SPOTS.restOak[0], SPOTS.restOak[1], { col: { r: 0.8, h: 0.5 } }); P('straw', SPOTS.restBed[0], SPOTS.restBed[1], { ry: 0.4 }); P('rock', 182, 30, { col: { r: 0.9, h: 1 } });
   // Shechem fields: grazing land, the brothers' old camp
-  P('campfire', SPOTS.clue1[0], SPOTS.clue1[1]); P('sacks', SPOTS.clue1[0] + 2, SPOTS.clue1[1] - 1.5); P('altar', SPOTS.clue3[0], SPOTS.clue3[1]);
+  P('campfire', SPOTS.clue1[0], SPOTS.clue1[1]); P('cookTripod', SPOTS.clue1[0], SPOTS.clue1[1]); P('logSeat', SPOTS.clue1[0] - 1.3, SPOTS.clue1[1] + 0.4, { ry: 1.2 }); P('sacks', SPOTS.clue1[0] + 2, SPOTS.clue1[1] - 1.5); P('altar', SPOTS.clue3[0], SPOTS.clue3[1]);
   for (let i = 0; i < 8; i++) P('olive', 170 + (i % 4) * 9 + r() * 3, -40 - Math.floor(i / 4) * 9, { col: tree });
   // Dothan: the brothers' camp, cisterns
   P('campfire', 158, -150, { col: { r: 0.8, h: 0.5 } }); P('sacks', 154, -146); P('pots', 161, -154); P('tent', 151, -156, { ry: 0.6, args: [0x4a3e38], col: { w: 5.8, d: 3.8, h: 2.2, cam: true, a: 0.6 } });
@@ -397,6 +397,43 @@ Object.assign(ENVX, {
   senet(g, M) { g.box(1.1, 0.4, 0.5, { m: M, at: [0, 0.2, 0], c: 0x8a6440, j: 0.02 }); g.box(1.04, 0.03, 0.36, { m: M, at: [0, 0.415, 0], c: (x, y, z) => ((Math.floor((x + 0.52) / 0.104) + Math.floor((z + 0.18) / 0.12)) % 2 ? 0xe8d8b0 : 0xb89060), j: 0 });
     for (let i = 0; i < 5; i++) { g.cyl(0.03, 0.035, 0.07, 6, { m: M, at: [-0.46 + i * 0.21, 0.46, -0.12], c: 0x2a1a10 }); g.cyl(0.03, 0.035, 0.05, 6, { m: M, at: [-0.36 + i * 0.21, 0.45, 0.12], c: 0xf0e8d0 }); }
     for (let i = 0; i < 4; i++) g.box(0.12, 0.01, 0.02, { m: M, at: [0.42, 0.44, -0.15 + i * 0.05], c: i % 2 ? 0x3a2a1a : 0xf0e0c0 }); },
+  /* v23 camp furniture by the morning fire (the opening: Joseph sits on the log instead of crouching on the bare ground) */
+  logSeat(g, M, r) { // a sawn oak round, bark on the sides and growth rings on the top, a folded fleece over it
+    g.cyl(0.215, 0.235, 0.44, 12, { m: M, at: [0, 0.22, 0], c: (x, y, z) => (Math.floor(Math.atan2(z, x) * 5 + y * 9) % 3 ? 0x5a3e28 : 0x4a3220), j: 0.05 });
+    for (let i = 0; i < 4; i++) g.cyl(0.2 - i * 0.05, 0.2 - i * 0.05, 0.008, 12, { m: M, at: [0, 0.441 + i * 0.002, 0], c: i % 2 ? 0xb88a5a : 0xcca070, j: 0 });
+    g.surf((u, v) => { const a = u * PI * 2, rr = 0.25 + 0.03 * Math.sin(a * 5) + 0.02 * Math.sin(a * 9 + 1), y = 0.455 + 0.025 * Math.sin(v * PI) - (v > 0.8 ? (v - 0.8) * 0.5 : 0); return [Math.cos(a) * rr * (1 - v * 0.15), y - Math.max(0, Math.cos(a) * 0.8 - 0.4) * v * 0.18, Math.sin(a) * rr * (1 - v * 0.15) * 0.85]; }, 20, 3, { m: M, c: 0xece0c4, j: 0.06, flat: true });
+    for (let i = 0; i < 14; i++) { const a = r() * PI * 2, d = r() * 0.17; g.sph(0.035, 5, 3, { m: M, at: [Math.cos(a) * d, 0.475, Math.sin(a) * d * 0.85], s: [1, 0.55, 1], c: i % 3 ? 0xf2e8d0 : 0xdccfae, j: 0.05 }); } },
+  fireWood(g, M, r) { // split logs stacked crosswise, a hatchet in the top one
+    for (let k = 0; k < 3; k++) for (let i = 0; i < 3 - (k > 1 ? 1 : 0); i++) { const ln = 0.62 + r() * 0.12; g.cyl(0.055, 0.06, ln, 6, { m: M, at: k % 2 ? [-0.14 + i * 0.13, 0.06 + k * 0.105, 0] : [0, 0.06 + k * 0.105, -0.14 + i * 0.13], rz: k % 2 ? 0 : PI / 2, rx: k % 2 ? PI / 2 : 0, c: [0x6a4a2e, 0x5a3e26, 0x7a5636][(i + k) % 3], j: 0.06, flat: true });
+      g.cyl(0.05, 0.05, 0.01, 6, { m: M, at: k % 2 ? [-0.14 + i * 0.13, 0.06 + k * 0.105, ln / 2] : [ln / 2, 0.06 + k * 0.105, -0.14 + i * 0.13], rz: k % 2 ? 0 : PI / 2, rx: k % 2 ? PI / 2 : 0, c: 0xc89a66, j: 0 }); }
+    g.cyl(0.014, 0.016, 0.42, 5, { m: M, at: [0.1, 0.42, 0.05], rz: -0.9, c: 0x8a6a48 }); g.box(0.1, 0.07, 0.015, { m: M, at: [-0.06, 0.53, 0.05], rz: -0.9, c: 0x9a9a98, j: 0 }); },
+  cookTripod(g, M, r) { // three poles lashed at the top, a blackened clay pot hanging over the fire on a cord
+    for (let i = 0; i < 3; i++) { const a = i * PI * 2 / 3 + 0.4; g.cyl(0.022, 0.028, 1.45, 5, { m: M, at: [Math.cos(a) * 0.34, 0.68, Math.sin(a) * 0.34], ry: -a, rz: 0.24, c: 0x6a4c30 }); }
+    g.cyl(0.035, 0.035, 0.08, 6, { m: M, at: [0, 1.38, 0], c: 0xb8a070 }); g.cyl(0.006, 0.006, 0.66, 3, { m: M, at: [0, 1.05, 0], c: 0x8a7a5a });
+    g.lathe([[0.06, 0.52], [0.15, 0.56], [0.18, 0.64], [0.16, 0.72], [0.11, 0.76], [0.12, 0.79]], 12, { m: M, c: (x, y) => y < 0.62 ? 0x2a2420 : 0x6a4434, j: 0.04 });
+    g.cyl(0.115, 0.115, 0.012, 12, { m: M, at: [0, 0.79, 0], c: 0x9a8a5a, j: 0 }); },
+  sheepskinRug(g, M, r) { g.surf((u, v) => { const a = u * PI * 2, rr = (0.5 + 0.06 * Math.sin(a * 6) + 0.04 * Math.sin(a * 11)) * v; return [Math.cos(a) * rr * 1.25, 0.02 + 0.012 * (1 - v), Math.sin(a) * rr * 0.8]; }, 24, 3, { m: M, c: (x, y, z) => Math.hypot(x, z) > 0.45 ? 0xdccfae : 0xece2c8, j: 0.05 }); },
+  waterSkin(g, M, r) { // a goatskin of water slung from a little three-pole stand, sweating in the shade
+    for (let i = 0; i < 3; i++) { const a = i * PI * 2 / 3; g.cyl(0.016, 0.02, 1.25, 4, { m: M, at: [Math.cos(a) * 0.2, 0.6, Math.sin(a) * 0.2], ry: -a, rz: 0.17, c: 0x7a5a3a }); }
+    g.cyl(0.006, 0.006, 0.18, 3, { m: M, at: [0, 1.06, 0], c: 0x8a7a5a });
+    g.surf((u, v) => { const a = u * PI * 2, y = 0.55 + v * 0.42, bulge = Math.sin(v * PI) * (0.16 - v * 0.05) + 0.02; return [Math.cos(a) * bulge * 1.15, y - Math.max(0, Math.cos(a)) * 0.04 * Math.sin(v * PI), Math.sin(a) * bulge * 0.8]; }, 14, 6, { m: M, c: (x, y) => (y > 0.92 ? 0x3a2a1a : 0x6e4a2e), j: 0.06 });
+    for (const s of [1, -1]) g.cyl(0.03, 0.02, 0.12, 5, { m: M, at: [s * 0.14, 0.62, 0.05], rz: s * 0.9, c: 0x5e3e26 }); },
+  quern(g, M, r) { // a saddle quern: the long lower stone, the rubbing stone, a spill of grain and a basket
+    g.box(0.62, 0.14, 0.34, { m: M, at: [0, 0.07, 0], rx: 0.08, taper: 0.9, c: 0x8a8278, j: 0.06 }); g.box(0.5, 0.02, 0.24, { m: M, at: [0, 0.155, 0], rx: 0.08, c: 0xa09888, j: 0.04 });
+    g.sph(0.09, 7, 5, { m: M, at: [0.06, 0.2, 0], s: [1.4, 0.55, 0.9], c: 0x6e6a62, flat: true });
+    for (let i = 0; i < 16; i++) g.sph(0.012, 3, 2, { m: M, at: [0.3 + r() * 0.12, 0.03, (r() - 0.5) * 0.2], c: 0xd8b878, j: 0.1 });
+    g.lathe([[0.1, 0], [0.16, 0.04], [0.18, 0.14], [0.17, 0.15]], 10, { m: M, at: [-0.48, 0, 0.08], c: (x, y) => (Math.floor(y * 40) % 2 ? 0xb8925a : 0x9a7444) }); g.cyl(0.15, 0.15, 0.03, 10, { m: M, at: [-0.48, 0.12, 0.08], c: 0xe0c890 }); },
+  loomUp(g, M, r) { // an upright loom: two posts and a beam, warp threads weighted with clay rings, a band of striped cloth begun at the top
+    for (const s of [1, -1]) g.cyl(0.035, 0.04, 1.9, 6, { m: M, at: [s * 0.62, 0.95, 0], rx: -0.12, c: 0x6a4a30 });
+    g.cyl(0.03, 0.03, 1.36, 6, { m: M, at: [0, 1.84, -0.11], rz: PI / 2, c: 0x7a5636 });
+    const cols = [0xb3472e, 0xe8dcc0, 0x2e4a78, 0xe8dcc0, 0xd4a238];
+    for (let i = 0; i < 12; i++) { const y = 1.79 - i * 0.05; g.box(1.16, 0.05, 0.02, { m: M, at: [0, y, -0.11 + (1.84 - y) * 0.12], rx: -0.12, c: cols[i % cols.length], j: 0.03 }); }
+    for (let i = 0; i < 22; i++) { const x = -0.55 + i * 0.052; g.cyl(0.003, 0.003, 0.72, 3, { m: M, at: [x, 0.84, 0.03], rx: -0.12, c: 0xe8dcc0, j: 0 }); g.cyl(0.03, 0.03, 0.035, 6, { m: M, at: [x, 0.44, 0.08], rx: PI / 2, c: 0x9a6a46, j: 0.08 }); } },
+  herbRack(g, M, r) { // a rail between two forked sticks, bundles of herbs and a fleece hung to dry
+    for (const s of [1, -1]) { g.cyl(0.025, 0.03, 1.45, 5, { m: M, at: [s * 0.8, 0.72, 0], c: 0x6a4c30 }); g.cyl(0.015, 0.02, 0.2, 4, { m: M, at: [s * 0.8 + 0.05, 1.47, 0], rz: -0.5, c: 0x6a4c30 }); }
+    g.cyl(0.02, 0.02, 1.7, 5, { m: M, at: [0, 1.42, 0], rz: PI / 2, c: 0x7a5a3a });
+    for (let i = 0; i < 5; i++) { const x = -0.6 + i * 0.22; g.cyl(0.004, 0.004, 0.1, 3, { m: M, at: [x, 1.36, 0], c: 0x8a7a5a }); g.lathe([[0.005, 0.95], [0.05, 1.08], [0.035, 1.24], [0.012, 1.31]], 6, { m: M, at: [x, 0, 0], c: [0x6e8a3a, 0x8a9a4a, 0x5a7a32, 0xa08a3a, 0x7a8a42][i], j: 0.08 }); }
+    g.surf((u, v) => [0.15 + u * 0.55, 1.4 - v * 0.75, 0.03 + 0.04 * Math.sin(u * 9 + v * 4)], 8, 6, { m: M, c: 0xece2c8, ds: true, j: 0.05 }); },
   stool(g, M) { g.box(0.42, 0.06, 0.36, { m: M, at: [0, 0.42, 0], c: 0x8a6440 }); for (const [x, z] of [[-0.16, -0.13], [0.16, -0.13], [-0.16, 0.13], [0.16, 0.13]]) g.cyl(0.025, 0.03, 0.4, 4, { m: M, at: [x, 0.2, z], rz: x * 0.6, c: 0x6a4a30 }); },
   banner(g, M, r, h, col) { h = h || 2.2; g.box(0.04, 0.04, 1.0, { m: M, at: [0, h + 0.4, 0], c: 0x6a4a30 }); g.box(0.015, h, 0.9, { m: M, at: [0.02, h / 2 + 0.4, 0], c: (x, y) => { const k = Math.floor((y + h) * 3.2) % 6; return k === 0 ? (col || LAPIS) : k === 3 ? OCHRE : LINEN; }, j: 0 }); },
   scribeDesk(g, M) { g.box(1.2, 0.06, 0.6, { m: M, at: [0, 0.48, 0], c: 0x8a6440 }); for (const [x, z] of [[-0.5, -0.22], [0.5, -0.22], [-0.5, 0.22], [0.5, 0.22]]) g.cyl(0.03, 0.03, 0.46, 4, { m: M, at: [x, 0.24, z], c: 0x6a4a30 });
