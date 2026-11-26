@@ -392,7 +392,8 @@ function coachModel() { const g = new G.GB(43), PI = Math.PI, GOLD = 0xe2b440, G
   g.box(1.5, 0.44, 0.06, { at: [0, 0.7 + 0.2, -2.5 + 0.08], c: WHITE }); g.box(1.54, 0.05, 0.09, { at: [0, 0.7 + 0.44, -2.5 + 0.08], c: GOLD }); g.cyl(0.09, 0.09, 0.02, 12, { at: [0, 0.7 + 0.22, -2.5 + 0.04], rx: PI / 2, c: GOLDH });
   // the canopy: gold posts, a white linen roof, a red-and-gold border with a short gold fringe, gold finials at the corners and a sun disc on top
   for (const sx of [1, -1]) for (const z of [-0.55, -2.35]) { g.cyl(0.03, 0.03, 1.1, 8, { at: [sx * 0.72, 0.7 + 0.75, z], c: GOLD }); g.sph(0.055, 8, 6, { at: [sx * 0.8, 0.7 + 1.42, z], c: GOLDH }); }
-  g.box(1.66, 0.05, 2.04, { at: [0, 0.7 + 1.32, -1.45], c: WHITE }); g.box(1.2, 0.12, 1.6, { at: [0, 0.7 + 1.4, -1.45], taper: 0.55, c: WHITE });
+  g.surf((u,v) => [(u-0.5)*1.66, 2.02+0.22*Math.sin(u*PI)-0.04*Math.sin(v*PI), -2.47+2.04*v],
+    12, 6, {ds:true, cuv:(u,v) => Math.round(u*12)%4 === 1 ? 0x69979c : IVORY});
   for (const sx of [1, -1]) { g.box(0.03, 0.12, 2.04, { at: [sx * 0.83, 0.7 + 1.25, -1.45], c: RED }); g.box(0.035, 0.03, 2.04, { at: [sx * 0.835, 0.7 + 1.19, -1.45], c: GOLD }); for (let i = 0; i < 10; i++) g.box(0.02, 0.08, 0.05, { at: [sx * 0.835, 0.7 + 1.13, -0.5 - i * 0.21], c: GOLDH, j: 0 }); }
   for (const sz of [1, -1]) { g.box(1.66, 0.12, 0.03, { at: [0, 0.7 + 1.25, -1.45 + sz * 1.02], c: RED }); g.box(1.66, 0.03, 0.035, { at: [0, 0.7 + 1.19, -1.45 + sz * 1.025], c: GOLD }); }
   g.cyl(0.16, 0.16, 0.03, 18, { at: [0, 0.7 + 1.62, -1.45], rx: PI / 2, c: GOLDH }); g.cyl(0.025, 0.025, 0.18, 6, { at: [0, 0.7 + 1.5, -1.45], c: GOLD });

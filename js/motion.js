@@ -331,7 +331,7 @@ function convo(rig, st, t, A) {
 
 // =================================================================== 4. GAIT STYLE, BRAKE, PIVOT, SLOPE
 function gaitStyle(rig, st, t, A, dt) {
-  const bd = rig.body || {}, sp = st.speed || 0, R = clamp((sp - 3.0) / 2.1, 0, 1), W1 = 1 - R, ph = st.phase || 0, lm = rig.lm || {};
+  const bd = rig.body || {}, sp = st.speed || 0, R = G.smooth(2.2, 4.6, sp), W1 = 1 - R, ph = st.phase || 0, lm = rig.lm || {};
   if (bd.fem && !bd.kid) { // hip sway, narrow line, arms closer and softer
     add(rig, B.pelvis, 0, -rig.rot[B.pelvis * 3 + 1] * 0.35, Math.cos(ph) * 0.06 * A * W1, 1);
     add(rig, B.thighL, 0, 0, -0.035 * A, 1); add(rig, B.thighR, 0, 0, 0.035 * A, 1);

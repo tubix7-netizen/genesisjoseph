@@ -873,6 +873,7 @@ function townAt(x, z) { if (!S) return false; const f = S.flags || {}; if (f.inH
   return false; }
 Game.townAt = townAt;
 function updatePlayer(dt) {
+  P.travelSpeed = undefined;
   if (G.Climb) { G.Climb.frame(dt); if (P.climb) { G.Climb.update(dt); if (G.Acts) G.Acts.update(dt); return; } }
   const busy = G.UI.busy(); if (P.magnet && (busy || (G.Cine && G.Cine.on))) P.magnet = null;
   if (P.magnet) { const sm = Math.hypot(INPUT.mx, INPUT.my); if (P.magnet.held) { if (sm < 0.3) P.magnet.held = false; } else if (sm > 0.5) P.magnet = null; } /* the player steers away: cancel (v18.34 only a new push: A pressed while walking no longer does nothing) */
@@ -912,6 +913,7 @@ function updatePlayer(dt) {
     const want = Math.atan2(dx, dz), piv = 1 + 1.2 * (1 - Math.min(1, P.spd / 3)); P.face += angDiff(P.face, want) * (1 - Math.exp(-dt * (P.grounded ? FL.turn * piv : 5))); } /* v18.42 the same turn at 30 and 60 fps (it snapped round in one frame at 30) */
   // move with slope check
   // swept in short steps so a sprint, a dodge or a slow frame never tunnels through a wall
+  const stepStartX = P.x, stepStartZ = P.z;
   P.hit = null; const mvL = Math.hypot(P.vx, P.vz) * dt, nSub = Math.min(10, Math.max(1, Math.ceil(mvL / 0.16)));
   for (let si = 0; si < nSub; si++) {
     const ox = P.x, oz = P.z, oh = W.heightAt(ox, oz);
@@ -928,6 +930,9 @@ function updatePlayer(dt) {
   if (G.Climb && P.hit) G.Climb.tryGrab(P, dt, mag, dx, dz); else P.grabT = 0;
   const h = W.half - 6; if (!(EP.waterAt && EP.waterAt(P.x, P.z, S))) { P.x = clamp(P.x, -h, h); P.z = clamp(P.z, -h, h); } /* v18.34 a sea of its own (Byblos) reaches past the map's edge */
   if (EP.bounds) EP.bounds(P, S);
+  if (dt > 0 && P.grounded && !P.ride && !cartOn && !P.swim) {
+    P.travelSpeed = Math.min(P.spd, Math.hypot(P.x - stepStartX, P.z - stepStartZ) / dt);
+  }
   // vertical
   let gnd = W.heightAt(P.x, P.z); if (EP.floor) { const f2 = EP.floor(P.x, P.z, S); if (f2 !== null && f2 > gnd - 0.3) gnd = Math.max(gnd, f2); }
   if (G.climbTopAt) { const tp = G.climbTopAt(W, P.x, P.z, P.y); if (tp > gnd) gnd = tp; } /* flat roofs and wall tops you climbed onto */ const floor = P.swim ? Math.max(gnd, wl - 1.25) : gnd;
@@ -1305,13 +1310,14 @@ function render(dt) {
   // player
   const pst = P.pst || (P.pst = {}); const spk = G.UI.speaker && G.UI.speaker();
   { /* v18.58 Joseph looks down at a child he is talking with */ let want = 0; const dn = Game.dlgNpc; if (dn && dn.talking && dn.vis && !dn.d.animal && G.UI.inDialog && G.UI.inDialog() && !P.sit && !P.kneel) { const sc = dn.scale || (dn.d && dn.d.scale) || 1, low = dn.sit || (dn.d && dn.d.sit) ? 0.55 : 0, hh = 1.55 * sc - low, d = Math.max(0.8, Math.hypot(dn.x - P.x, dn.z - P.z)); if (hh < 1.3) want = clamp(Math.atan2(1.55 - hh, d) * 0.85, 0, 0.6); } pst.lookDn = (pst.lookDn || 0) + (want - (pst.lookDn || 0)) * Math.min(1, dt * 5); if (pst.lookDn < 0.005) pst.lookDn = 0; }
-  Object.assign(pst, { talk: !!spk && (spk === EP.hero || spk === '이스라엘'), face: P.face, speed: P.spd, phase: P.phase, air: !P.grounded && !P.swim, act: P.act, actT: P.act ? (P.actT % P.actDur) / P.actDur : 0, idle: 1, limp: P.limp, carry: P.carry ? (P.carryArms ? 'arms' : 'head') : G.Phys && G.Phys.held ? (G.Phys.heavy(G.Phys.held) ? 'arms' : 'one') : null, staff: (hand() === 'staff' || hand() === 'hoe') && !P.act && !P.ride && !P.carry && !P.sit && !P.kneel && !P.sleeping && !Game.cineOn && !(G.Combat && G.Combat.heldProp()), long: P.look.long, kneel: P.kneel, sleep: P.sleeping, sit: P.sit, ride: !!P.ride, rideSp: P.spd, ridePh: P.ride ? P.ride.ph || 0 : 0, shiver: G.Surv ? G.Surv.shiver : 0 });
+  const poseSpeed = Game.cineOn ? P.spd : (P.travelSpeed ?? P.spd);
+  P.phase += G.stepRate(poseSpeed) * dt * (Game.cineOn ? 1 : (Game.worldScale || 1));
+  Object.assign(pst, { talk: !!spk && (spk === EP.hero || spk === '이스라엘'), face: P.face, speed: poseSpeed, phase: P.phase, air: !P.grounded && !P.swim, act: P.act, actT: P.act ? (P.actT % P.actDur) / P.actDur : 0, idle: 1, limp: P.limp, carry: P.carry ? (P.carryArms ? 'arms' : 'head') : G.Phys && G.Phys.held ? (G.Phys.heavy(G.Phys.held) ? 'arms' : 'one') : null, staff: (hand() === 'staff' || hand() === 'hoe') && !P.act && !P.ride && !P.carry && !P.sit && !P.kneel && !P.sleeping && !Game.cineOn && !(G.Combat && G.Combat.heldProp()), long: P.look.long, kneel: P.kneel, sleep: P.sleeping, sit: P.sit, ride: !!P.ride, rideSp: P.spd, ridePh: P.ride ? P.ride.ph || 0 : 0, shiver: G.Surv ? G.Surv.shiver : 0 });
   { pst.vy = P.vy; pst.hero = true; pst.sprint = P.sprint && P.spd > 5.8; // v16.7 야숨: the hero glances at what he could use / who he could talk to
     let lk = 0; const c = ctx; if (c && c.x !== undefined && !P.act && !P.ride && !Game.cineOn && !G.UI.busy()) { const d = Math.hypot(c.x - P.x, c.z - P.z); if (d > 0.4 && d < 7) lk = clamp(angDiff(P.face, Math.atan2(c.x - P.x, c.z - P.z)), -1.05, 1.05); }
     P.lookS = lerp(P.lookS || 0, lk, 0.1); if (Math.abs(P.lookS) > 0.02) pst.look = P.lookS; else delete pst.look; }
   pst.gnd = P.grounded && !P.swim && !(EP.floor && EP.floor(P.x, P.z, S) !== null) ? G.Motion.groundFn(P) : null; pst.listen = !pst.talk && !!spk; pst.swim = P.swim; { const wO = EP.waterAt ? EP.waterAt(P.x, P.z, S) : null, wl0 = wO ? wO.level : W.water ? W.water.level : -99; pst.swimLift = P.swim ? Math.max(0, P.y - (wl0 - 1.25)) : 0; } /* v18.34 the same float height in shallower deep water */
   if (!pst.act && P.emote) { pst.act = P.emote.k; pst.actT = P.emote.dur ? Math.min(1, P.emote.t / P.emote.dur) : (P.emote.t % 2) / 2; }
-  P.phase += G.stepRate(P.spd) * dt;
   if (P.atkPose) { pst.act = P.atkPose; pst.actT = 0.5; } else if (P.atk) { pst.act = P.atk.anim; pst.actT = P.atk.t / P.atk.dur; } else if (P.dodgeT > 0) { pst.act = 'dodge'; pst.actT = 1 - P.dodgeT / (P.dodgeDur || 0.45); } pst.hurt = P.tintT > 0;
   if (pst.staff && pst.act && !(G.Acts && G.Acts.walkable(pst.act))) pst.staff = false; // kneeling, praying, bowing… the staff is set aside
   pst.crouch = !!P.crouch && !P.ride && !P.swim; if (G.Phys && G.Phys.held && !pst.carry) pst.carry = 'head'; /* a lifted jar is held up on the head with both hands */ pst.landT = P.landT > 0 ? P.landT : 0;

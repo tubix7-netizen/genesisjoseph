@@ -290,7 +290,7 @@ function humanoid(o, lod) {
       }, Q(28, 16, 10), 3, J({ c: o.yoke, b: B.chest, ds: true }));
     }
     if (!lo2 && !o.collar) // neckline trim
-      g.surf((u, v) => { const a = u * 2 * PI, y = neckTop(a) - 0.016 * (1 - v), r = tunR(y, 0.0135), e = 2 / r[4] - 1; return [Math.cos(a) * Math.pow(Math.abs(Math.cos(a)), e) * r[0], y, r[3] + Math.sin(a) * Math.pow(Math.abs(Math.sin(a)), e) * r[1]]; },
+      g.surf((u, v) => { const a = u * 2 * PI, y = neckTop(a) - 0.016 * (1 - v), r = tunR(y, 0.0135), e = 2 / r[4]; return [Math.sign(Math.cos(a)) * Math.pow(Math.abs(Math.cos(a)), e) * r[0], y, r[3] + Math.sign(Math.sin(a)) * Math.pow(Math.abs(Math.sin(a)), e) * r[1]]; },
         Q(48, 24), 1, J({ c: trim, b: 1 }));
   }
   // belt / sash
@@ -313,8 +313,8 @@ function humanoid(o, lod) {
   // cross strap (right shoulder -> left hip) with a shepherd's bag, optional rolled cloak on the back
   if (o.bag || o.strap) {
     const sc = o.strap || shade(o.bag, -0.15), yc = 1.235, kk = 1.6;
-    const loop = t => { const a = t * 2 * PI; let y = yc; for (let i = 0; i < 5; i++) { const r = tunR(y, 0.016); y = yc - kk * Math.cos(a) * r[0] * Math.abs(Math.cos(a)) ** (2 / r[4] - 1); y = clamp(y, 0.96, 1.47); }
-      const r = tunR(y, 0.016), ca = Math.cos(a), sa = Math.sin(a), e = 2 / r[4] - 1, bk = bustF(a, y); return [ca * Math.abs(ca) ** e * r[0] * bk, y, r[3] + sa * Math.abs(sa) ** e * r[1] * bk]; };
+    const loop = t => { const a = t * 2 * PI; let y = yc; for (let i = 0; i < 5; i++) { const r = tunR(y, 0.016); y = yc - kk * Math.sign(Math.cos(a)) * r[0] * Math.abs(Math.cos(a)) ** (2 / r[4]); y = clamp(y, 0.96, 1.47); }
+      const r = tunR(y, 0.016), ca = Math.cos(a), sa = Math.sin(a), e = 2 / r[4], bk = bustF(a, y); return [Math.sign(ca) * Math.abs(ca) ** e * r[0] * bk, y, r[3] + Math.sign(sa) * Math.abs(sa) ** e * r[1] * bk]; };
     strand(g, loop, p => vnrm([p[0], 0, p[2]]), () => 0.018, () => 0.004, Q(4, 4, 3), Q(48, 24, 12), J({ c: sc, bf: jY(0, 1, 1.0, 1.12), ol: 0.6 }));
     if (o.bag && !lo2) { const bx = 0.185, by = 0.9, bz = 0.03; // bag with flap and buckle
       g.tube(() => [0.026, 0.068, bx, bz, 4], by, by + 0.12, Q(14, 8), 3, J({ c: o.bag, b: 0, cap0: 0.018, cap1: 0.006, capN: 2 }));
@@ -606,6 +606,37 @@ function humanoid(o, lod) {
       for (const s of [1, -1]) lock3([dp(s * 0.002, -0.041, 0.004), dp(s * 0.014, -0.0445, 0.0045), dp(s * 0.026, -0.05, 0.004), dp(s * 0.034, -0.058, 0.003)], 0.0085, 0.0042, { ref: p => vnrm(vsub(p, HC)), nv: 6, sharp: 1.4 }); // moustache
     }
   }
+  if (o.patriarch) {
+    // Three carved locks keep the beard's forked silhouette even at distant LOD.
+    for (const side of [-1, 0, 1]) {
+      const x = side * 0.044, length = side ? 0.20 : 0.255;
+      g.surf((u, v) => {
+        const a = u * 2 * PI, width = 0.003 + 0.05 * Math.sin(v * 1.85);
+        return [x * (0.72 + 0.28*v) + width*Math.cos(a),
+          1.55 - length*(1-v), 0.12 + 0.035*(1-v) + width*0.64*Math.sin(a)];
+      }, Q(12, 8, 6), Q(7, 5, 3), J({ c: side ? 0xd5ccbb : 0xeee5d4, b: B.head }));
+    }
+  }
+  // A diagonal woven shoulder wrap. The cut and silhouette survive all three LODs.
+  if (o.wrap || o.wovenWrap) {
+    const dye = o.wrap || o.trim || 0x81654b;
+    const elder = !!o.patriarch, accent = elder ? 0xd6ac72 : mixHex(dye, 0xf5e4b5, 0.62);
+    g.surf((u,v) => {
+      const a = u * 2 * PI, cs = Math.cos(a), sn = Math.sin(a);
+      const drop = (kid ? 0.18 : elder ? 0.38 : 0.28) + cs * 0.105;
+      const flare = Math.sin(v * PI / 2), fold = 1 + 0.055*Math.sin(a*7)*v;
+      return [cs * (0.098 + (elder ? 0.24 : 0.20)*flare)*fold,
+        1.51 - v*drop, -0.012 + sn*(0.088 + (elder ? 0.132 : 0.105)*flare)*fold];
+    }, Q(32,20,12), 8, J({ ds: true, flip: true, b: B.chest,
+      cuv: (u,v) => v >= 0.86 && v < 0.99 ? accent : dye }));
+  }
+  if (o.linenPanel) {
+    const silk = o.sash || o.collar2 || 0x47847f;
+    g.surf((u,v) => {
+      const x = (u-0.5)*(0.19+0.07*v);
+      return [x, 0.60+0.44*v+0.065*Math.abs(2*u-1)*(1-v), 0.19-0.038*v-0.03*(2*u-1)**2];
+    }, 6, 6, J({ ds:true, bf:waistBF, cuv:(u,v) => u<0.17 || u>0.83 || v<0.17 ? 0xd6ad62 : silk }));
+  }
   // ---------------------------------------------------------------- headwear
   const headBand = (atF, atB, hwA, add, thick, col, opt) => { opt = opt || {}; const k = opt.k || 1;
     g.surf((u, v) => { const ph = u * 2 * PI, ac = atF + (atB - atF) * (0.5 - 0.5 * Math.sin(ph)), at = ac + (v - 0.5) * 2 * hwA; return hk(at * PI, ph, k, add + thick * Math.sin(v * PI)); },
@@ -709,14 +740,36 @@ function clothSim(rig, st, t) {
 // gait keyframes (cycle fraction 0 = this foot's heel strike): [u, hip flexion (+ forward), knee flexion]
 const GAIT_W = [[0, 0.42, 0.06], [0.1, 0.38, 0.28], [0.25, 0.16, 0.1], [0.45, -0.14, 0.12], [0.58, -0.2, 0.55], [0.7, 0.05, 1.05], [0.82, 0.38, 0.62], [0.93, 0.46, 0.12], [1, 0.42, 0.06]];
 const GAIT_R = [[0, 0.5, 0.42], [0.12, 0.25, 0.75], [0.32, -0.38, 0.32], [0.45, -0.3, 1.25], [0.6, 0.35, 2.05], [0.76, 0.9, 1.45], [0.9, 0.72, 0.6], [1, 0.5, 0.42]];
-function gaitKey(K, u) { let i = 0; while (i < K.length - 2 && K[i + 1][0] <= u) i++; const a = K[i], b = K[i + 1], k = (u - a[0]) / (b[0] - a[0] || 1), e = k * k * (3 - 2 * k);
-  return [a[1] + (b[1] - a[1]) * e, a[2] + (b[2] - a[2]) * e]; }
+// Periodic monotone Hermite curves. Preserve contact poses without stopping
+// the joint at every intermediate sample, including the cycle boundary.
+function gaitTangents(keys) {
+  const count = keys.length - 1;
+  return keys.map((key, index) => {
+    const i = index % count, prev = keys[(i + count - 1) % count], next = keys[i + 1];
+    const before = keys[i][0] - prev[0] + (i === 0 ? 1 : 0);
+    const after = next[0] - keys[i][0];
+    return [1, 2].map(j => {
+      const a = (key[j] - prev[j]) / before, b = (next[j] - key[j]) / after;
+      return a * b > 0 ? 2 * a * b / (a + b) : 0;
+    });
+  });
+}
+const walkTangents = gaitTangents(GAIT_W), runTangents = gaitTangents(GAIT_R);
+function gaitKey(keys, u) {
+  let i = 0;
+  while (i < keys.length - 2 && keys[i + 1][0] <= u) i++;
+  const a = keys[i], b = keys[i + 1], span = b[0] - a[0], t = (u - a[0]) / span;
+  const t2 = t*t, blend = t2*(3-2*t), m = keys === GAIT_W ? walkTangents : runTangents;
+  const left = span*t*(1-t)*(1-t), right = span*t2*(t-1);
+  return [lerp(a[1], b[1], blend) + left*m[i][0] + right*m[i+1][0],
+          lerp(a[2], b[2], blend) + left*m[i][1] + right*m[i+1][1]];
+}
 function gaitLeg(u, R, kW, kR) { const w = gaitKey(GAIT_W, u), r = gaitKey(GAIT_R, u);
   return [w[0] * kW * (1 - R) + r[0] * kR * R, w[1] * Math.min(1, kW * 1.1) * (1 - R) + r[1] * R]; }
 function animPose(rig, st, t) { if (!locoPose(rig, st, t)) actPose(rig, st, t); }
 function locoPose(rig, st, t) { // returns true when a full-body hold pose (sleep/kneel/ride/sit) owns the rig
   rig.zero();
-  const sp = st.speed || 0, A = Math.min(1, sp / 2.2), R = clamp((sp - 3.0) / 2.1, 0, 1);
+  const sp = st.speed || 0, A = Math.min(1, sp / 2.2), R = G.smooth(2.2, 4.6, sp);
   const ph = st.phase || 0, s = Math.sin(ph), c = Math.cos(ph);
   if (st.sleep) { rig.off[1] = -0.72; rig.set(B.pelvis, -PI / 2, 0, 0); rig.set(B.uArmL, 0, 0, 0.2); rig.set(B.uArmR, 0, 0, -0.2); rig.set(B.head, -0.2, 0, 0.2); return true; }
   if (st.kneel) {
@@ -775,13 +828,13 @@ function locoPose(rig, st, t) { // returns true when a full-body hold pose (slee
   rig.set(B.thighL, -legL[0] * limpK, tw, 0.03 + R * 0.02 + Math.max(0, tw) * 0.5); rig.set(B.thighR, -legR[0], tw, -0.03 - R * 0.02 + Math.min(0, tw) * 0.5);
   rig.set(B.shinL, legL[1] * (st.limp ? 0.7 : 1) + lm.land * 0.8, 0, 0); rig.set(B.shinR, legR[1] + lm.land * 0.8, 0, 0); /* v18.34 the knees take the landing dip (feet sank ~9 cm) */
   if (lm.land > 0) { rig.rot[B.thighL * 3] -= lm.land * 0.4; rig.rot[B.thighR * 3] -= lm.land * 0.4; }
-  const cyc = 2 * PI * uL, lag = 0.55; // the arm trails the leg a little
+  const cyc = 2 * PI * uL, lag = 0.20; // the arm trails the leg a little
   const armW = 0.27 * Ag * (1 - turnK * 0.6) * W1 * (0.6 + 0.4 * Math.min(1, sp / 1.6)), armR = (0.68 + 0.14 * (st.sprint ? 1 : 0)) * R;
   /* v17.0 부위별 위상 (움직임 연구 보고서 3장 ③, Local Motion Phases): the arms have their own phase and swing size. The phase
      is pulled toward the legs' (with the usual lag) instead of being copied from them, and the swing size eases in and out, so
      arms build up over the first steps, keep swinging a moment after a stop, and each person swings a little unevenly. */
   if (lm.aph === undefined) { lm.aph = cyc - lag; lm.aamp = 0; lm.asym = 0.92 + 0.16 * ((Math.abs(lm.seed || 0) * 7.13) % 1); }
-  lm.aph += angDiff(lm.aph, cyc - lag) * Math.min(1, ldt * 9); const aw = armW + armR; lm.aamp += (aw - lm.aamp) * Math.min(1, ldt * (aw > lm.aamp ? 5 : 2.2));
+  lm.aph = cyc - lag; const aw = armW + armR; lm.aamp += (aw - lm.aamp) * -Math.expm1(-ldt * (aw > lm.aamp ? 8 : 5));
   const swL = Math.cos(lm.aph), swR = -swL, aL = lm.aamp * lm.asym, aR = lm.aamp * (2 - lm.asym); // left arm forward (negative) when the right leg leads
   rig.set(B.uArmL, aL * swL + 0.06 * A * W1 - R * 0.08, 0, 0.1 + R * 0.06); rig.set(B.uArmR, aR * swR + 0.06 * A * W1 - R * 0.08, 0, -0.1 - R * 0.06); // arms hang slightly back of the body line when walking
   rig.set(B.fArmL, -0.3 - 0.32 * A * W1 * Math.max(0, -swL) - R * (1.25 + 0.25 * Math.max(0, -swL)), R * 0.25, 0); rig.set(B.fArmR, -0.3 - 0.32 * A * W1 * Math.max(0, -swR) - R * (1.25 + 0.25 * Math.max(0, -swR)), -R * 0.25, 0);
@@ -1055,7 +1108,12 @@ function animal(sp, o) {
     g.sph(0.14 * k, 10, 8, { at: hc, s: [0.82, 1, 1.12], c: hide, b: 1 }); seg(g, hc, at(0.33), 0.115 * k, 0.078 * k, { c: hide, b: 1, nu: 10, nv: 3, j: 0 }); g.sph(0.086 * k, 10, 8, { at: at(0.34), s: [1, 0.9, 1.05], c: D ? 0xd8d0c4 : shade(hide, -0.3), b: 1, j: 0 });
     for (const sx of [1, -1]) { g.sph(0.022 * k, 6, 5, { at: [0.085 * k * sx, hc[1] + 0.04 * k, hc[2] + 0.06 * k], c: 0x1a1412, b: 1, j: 0 });
       g.cyl(0.034 * k, 0.006, D ? 0.28 : 0.13, 6, { at: [0.055 * k * sx, hc[1] + (D ? 0.24 : 0.16) * k, hc[2] - 0.05 * k], rz: -(D ? 0.3 : 0.18) * sx, rx: -0.15, c: hide, b: 1 }); }
-    for (let i = 0; i < (D ? 7 : 9); i++) { const u = i / (D ? 6 : 8), y = H[3] + (0.28 - u * 0.5) * k, z = H[4] + (-0.04 - u * 0.5) * k; g.box(D ? 0.035 : 0.05, (D ? 0.08 : 0.14 - u * 0.03) * k, 0.09 * k, { at: [0, y, z], rx: 0.6, c: MANE, b: u < 0.5 ? 1 : 0, j: 0.04 }); }
+    // One swept crest replaces the staircase of rectangular mane blocks.
+    g.surf((u,v) => {
+      const a = u*2*PI, width = (D ? 0.029 : 0.045)*k;
+      return [width*Math.cos(a), H[3]+(0.30-v*0.52)*k+Math.sin(a)*width,
+        H[4]-(0.09+v*0.51)*k+Math.sin(a)*width*1.6];
+    }, 8, 8, {c:MANE, bf:(x,y,z) => BW(0,1,clamp((y-H[3]+0.18*k)/(0.42*k),0,1))});
     if (D) { legs2(g, def, def[2][3], 0.1 * k, 0.052 * k, hide, 0x2a2220); for (let i = 2; i <= 5; i++) { const q = def[i]; g.sph(0.13 * k, 9, 7, { at: [q[2] * 1.2, q[3] - 0.08 * k, q[4]], s: [0.75, 1.35, 1.05], c: hide, b: i, j: 0.02 }); } }
     else horseLegs(g, def, hide, 0x2a2220);
     if (D) { g.cyl(0.025, 0.035, 0.5, 6, { at: [0, def[6][3] - 0.24, def[6][4] - 0.06], rx: -0.2, c: hide, b: 6 }); g.sph(0.06, 7, 6, { at: [0, def[6][3] - 0.5, def[6][4] - 0.12], s: [0.8, 1.4, 0.8], c: MANE, b: 6 }); }
@@ -1337,7 +1395,15 @@ env.oak = function (g, M, r) { M = scaledM(M, 1.85 + r() * 0.35); // v12: a big 
 env.palm = function (g, M, r) {
   const h = 9 + r() * 4, lean = (r() - 0.5) * 0.5; let x = 0, y = 0;
   for (let i = 0; i < 6; i++) { const t = i / 6, nx = Math.sin(lean) * h * (t + 1 / 6) * (t + 1 / 6) * 0.6; g.cyl(0.17 - t * 0.04, 0.2 - t * 0.04, h / 6 + 0.05, 7, { m: M, at: [(x + nx) / 2, y + h / 12, 0], rz: -lean * (0.4 + t), c: i % 2 ? 0x8a6a48 : 0x7a5c3e, j: 0.03 }); x = nx; y += h / 6; }
-  for (let k = 0; k < 9; k++) { const a = k / 9 * PI * 2 + r() * 0.3; for (let j = 0; j < 4; j++) { const d = 0.4 + j * 0.65, dy = 0.15 - j * j * 0.12; g.box(0.5 - j * 0.08, 0.03, 0.7, { m: M, at: [x + Math.cos(a) * d, y + dy, Math.sin(a) * d], ry: -a + PI / 2, rx: 0.15 + j * 0.25, c: [0x4f8f3a, 0x5a9a40, 0x4a8434][k % 3], j: 0.06, sw: 0.4 + j * 0.25 }); } }
+  for (let k = 0; k < 10; k++) {
+    const angle = k * PI / 5 + r()*0.18, length = 2.55 + r()*0.65;
+    g.surf((u,v) => {
+      const across = (2*u-1) * (0.015+0.42*Math.sin(PI*v)**0.8), reach = length*v;
+      return [x + Math.cos(angle)*reach - Math.sin(angle)*across,
+        y + 1.05*Math.sin(PI*v) - 0.58*v - 0.36*Math.abs(across),
+        Math.sin(angle)*reach + Math.cos(angle)*across];
+    }, 2, 8, { m:M, ds:true, sw:0.5, cuv:(u,v) => mixHex(k%2 ? 0x488453 : 0x63975a, 0xacc776, v*0.48+u*0.19) });
+  }
   for (let k = 0; k < 4; k++) g.sph(0.1, 5, 4, { m: M, at: [x + Math.cos(k * 1.6) * 0.18, y - 0.25, Math.sin(k * 1.6) * 0.18], c: 0x8a4a20 });
 };
 env.acacia = function (g, M, r) { M = scaledM(M, 1.4); // v13: the umbrella thorn — a leaning trunk forking into a vase of thin limbs under a flat, layered crown
@@ -1378,7 +1444,15 @@ env.flowers = function (g, M, r, col) {
 env.tent = function (g, M, r, col) { // bedouin goat-hair tent, ~6 x 4 (v18.34 raised 0.45 m: Joseph's head went through the roof)
   const c = col || 0x3e3532;
   for (const [x, z, h] of [[-2.6, -1.6, 2.45], [2.6, -1.6, 2.45], [-2.6, 1.6, 2.28], [2.6, 1.6, 2.28], [0, 0, 2.4], [-1.4, 1.8, 2.27], [1.4, 1.8, 2.27]]) g.cyl(0.05, 0.06, h, 5, { m: M, at: [x, h / 2, z], c: 0x7a5a3a });
-  g.box(5.6, 0.12, 3.6, { m: M, at: [0, 2.4, 0], rx: 0.05, c, j: 0.05 });
+  // A high ridge and sagging spans read as stretched wool against the sky.
+  g.surf((u,v) => {
+    const ridge = 1-Math.abs(u*2-1);
+    return [(u-0.5)*5.7, 2.41 + 0.59*ridge**1.4 - 0.09*Math.sin(PI*v) - 0.07*v, (v-0.5)*3.8];
+  }, 12, 6, { m:M, ds:true, cuv:(u,v) => Math.round(u*12)%4 === 1 ? mixHex(c,0xbf9668,0.52) : c });
+  for (const side of [-1,1]) {
+    g.surf((u,v) => [side*(2.72-u*(0.42+0.46*v)), 0.48+1.88*v, 1.83+0.065*Math.sin(u*PI*3)],
+      6, 4, {m:M, ds:true, cuv:(u,v) => u>0.80 ? 0xc29562 : mixHex(c,0x975046,0.52)});
+  }
   g.box(5.6, 2.5, 0.08, { m: M, at: [0, 1.25, -1.7], rx: 0.18, c, j: 0.05 });
   for (const s of [1, -1]) g.box(0.08, 2.45, 3.4, { m: M, at: [2.75 * s, 1.22, 0], rz: 0.15 * s, c, j: 0.05 });
   g.box(5.4, 0.1, 0.1, { m: M, at: [0, 2.35, 1.85], c: (x) => (Math.floor((x + 3) * 2) % 2 ? 0xd8c090 : 0x9a3a2a) });
