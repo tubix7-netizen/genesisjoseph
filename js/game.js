@@ -245,7 +245,7 @@ Game.start = function (epId, fresh, preview) {
   else if (W) { for (const n of ENT.nodes) if (n.col) n.col.on = false; for (const k in ENT.npcs) { const n = ENT.npcs[k]; if (n && n.col) n.col.on = false; } for (const s of ENT.sites || []) if (s._col) s._col.on = false; for (const k in ENT.cropSets) R.free(ENT.cropSets[k]); ENT.cropSets = {}; if (ENT.soilMesh) R.free(ENT.soilMesh); ENT.soilMesh = null; ENT.dyn.forEach(d => d.own && R.free(d.mesh)); ENT.dyn = []; ENT.animals = []; ENT.nodes = []; }
   S = saved && saved.v === 2 ? saved : newState(EP);
   // world
-  { const lm = /[?&]lod=(\d+)\b/.exec(location.search); R.lodDist = lm ? +lm[1] : (COARSE ? 75 : 110); /* v24 desktops too, from 110 m (deep in the haze) */ R.lodGs = 0.8; } // v18.9 far LOD (phones): cells beyond 75 m are drawn simplified; ?lod=0 off, ?lod=70 on desktop
+  { const lm = /[?&]lod=(\d+)\b/.exec(location.search); R.lodDist = lm ? +lm[1] : (COARSE ? 48 : 110); /* v24 desktops too, from 110 m (deep in the haze) */ R.lodGs = 0.8; } // v18.9 far LOD (phones): cells beyond 75 m are drawn simplified; ?lod=0 off, ?lod=70 on desktop
   { const tm = /[?&]trees=(hi|lo)\b/.exec(location.search); G.treeLod = tm ? (tm[1] === 'lo' ? 1 : 0) : (COARSE && SET.quality !== 'high' ? 1 : 0); } // v18.6 tree detail (phones: lighter)
   if (!reuse) {
     if (window.__bc) __bc('terrain'); W = new World(EP.spec); W.buildTerrain();
@@ -294,8 +294,8 @@ Game.applyQuality = function () {
   const q = SET.quality; R.setShadow(q === 'high' ? 2048 : q === 'mid' ? 1024 : 0);
   R.setFarK(PERF.farMax = (/[?&]far=(\d(?:\.\d+)?)\b/.exec(location.search) || [])[1] ? +RegExp.$1 : (COARSE ? (q === 'high' ? 0.85 : q === 'mid' ? 0.7 : 0.6) : 1)); // v18.6 phone draw distance (?far=1 for the old one)
   R.cloudLo = COARSE; R.waterLite = COARSE && q !== 'high' && !/[?&]wlite=0\b/.test(location.search); R.cloudSh = R.skyOn && q !== 'low' ? 1 : 0; // v18.3 P10: cloud shadows (a little noise per pixel) are off on the lowest quality, as are shadows; ?sky=0 turns the whole new sky/fog look off
-  if (R.grass) R.grass.n = q === 'high' ? 9000 : q === 'mid' ? 5000 : 0;
-  Game.dpr = Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : q === 'mid' ? (COARSE ? 1.4 : 1.5) : 1);
+  if (R.grass) R.grass.n = q === 'high' ? (COARSE ? 5500 : 9000) : q === 'mid' ? (COARSE ? 2800 : 5000) : 0;
+  Game.dpr = Math.min(window.devicePixelRatio || 1, q === 'high' ? (COARSE ? 1.65 : 2) : q === 'mid' ? (COARSE ? 1.25 : 1.5) : 1);
   G.UI.resize && G.UI.resize();
 };
 Game.snapCam = () => snapCam();
@@ -403,8 +403,26 @@ function nodeModel(type, alt) {
   if (alt && !t.tree) { g.cyl(0.3, 0.3, 0.02, 6, { m: M, at: [0, 0.01, 0], c: 0x8a7a60 }); }
   return g;
 }
+// Static gathering nodes are indexed in every cell within interaction reach.
+const nodeCells = new Map();
+const nodeCellSize = 8;
+const emptyNodes = [];
+function nodeCellKey(x, z) { return x * 10007 + z; }
 function buildNodeSets() {
   ENT.nodes = W.nodes || [];
+  nodeCells.clear();
+  for (const node of ENT.nodes) {
+    const reach = NODE[node.type].r + 1.6;
+    const maxX = Math.floor((node.x + reach) / nodeCellSize);
+    const maxZ = Math.floor((node.z + reach) / nodeCellSize);
+    for (let x = Math.floor((node.x - reach) / nodeCellSize); x <= maxX; x++) {
+      for (let z = Math.floor((node.z - reach) / nodeCellSize); z <= maxZ; z++) {
+        const key = nodeCellKey(x, z);
+        if (!nodeCells.has(key)) nodeCells.set(key, []);
+        nodeCells.get(key).push(node);
+      }
+    }
+  }
   for (const n of ENT.nodes) if (NODE[n.type].tree && !n.col) n.col = W.addCol({ x: n.x, z: n.z, r: 0.42, h: 3 });
   for (const k in ENT.nodeSets) R.free(ENT.nodeSets[k]);
   ENT.nodeSets = {};
@@ -786,7 +804,8 @@ function resolveContext() {
   const t = tileAt(P.x + fx * 1.05, P.z + fz * 1.05) || tileAt(P.x, P.z);
   if (t) { const a = plotAction(t); if (a) cands.push(Object.assign({ d: 0.6, x: t.x, z: t.z, y: 0.8, tile: t, key: 'plot:' + t.id }, a)); }
   // nodes
-  for (const n of ENT.nodes) { const d = Math.hypot(n.x - P.x, n.z - P.z) - NODE[n.type].r; if (d > 1.6) continue; const a = nodeAction(n); if (a) cands.push(Object.assign({ d: d + 0.1, x: n.x, z: n.z, yAbs: n.y + (NODE[n.type].tree ? 2.4 : 0.9), node: n, key: 'node:' + n.id, repeat: true }, a)); }
+  const nearbyNodes = nodeCells.get(nodeCellKey(Math.floor(P.x / nodeCellSize), Math.floor(P.z / nodeCellSize)));
+  for (const n of nearbyNodes || emptyNodes) { const d = Math.hypot(n.x - P.x, n.z - P.z) - NODE[n.type].r; if (d > 1.6) continue; const a = nodeAction(n); if (a) cands.push(Object.assign({ d: d + 0.1, x: n.x, z: n.z, yAbs: n.y + (NODE[n.type].tree ? 2.4 : 0.9), node: n, key: 'node:' + n.id, repeat: true }, a)); }
   if (G.Combat) for (const c of G.Combat.context()) cands.push(c);
   for (const pv of Game.CTX) { if (EP.dlc && !pv.dlcOk) continue; /* v18.64 a story's own map: Joseph's fires, doors and beds are not offered there */ const cs = pv(S, Game); if (cs) for (const c of cs) if (c) cands.push(c); }
   if (EP.context) for (const c of EP.context(S, Game) || []) cands.push(c);
@@ -932,7 +951,7 @@ function updatePlayer(dt) {
     if (steep(P.x, P.z)) { // too steep: keep whichever axis still goes somewhere, so the hero slides along the hillside instead of sticking
       const ax = !steep(P.x, oz), az = !steep(ox, P.z);
       if (ax && (!az || Math.abs(P.vx) >= Math.abs(P.vz))) { P.z = oz; P.vz *= 0.5; } else if (az) { P.x = ox; P.vx *= 0.5; } else { P.x = ox; P.z = oz; P.vx *= 0.3; P.vz *= 0.3; } }
-    W.collide(P, 0.38, P.y); W.collide(P, 0.38, P.y);
+    W.settle(P, 0.38, P.y);
   }
   for (const n of P.follow) { } // followers don't block
   if (G.Climb && P.hit) G.Climb.tryGrab(P, dt, mag, dx, dz); else P.grabT = 0;
@@ -989,6 +1008,7 @@ function updateNPCs(dt, t) { npcFrame++;
   for (const id in ENT.npcs) {
     const n = ENT.npcs[id]; n.vis = npcVisible(n); n.col.on = n.vis && !n.follow && !n.pass; if (!n.vis) continue;
     const dist = Math.hypot(n.x - P.x, n.z - P.z); const cc = Game.cineCam; n.near = dist < 90 || (!!cc && Math.hypot(n.x - cc.x, n.z - cc.z) < 90); if (!n.near) continue;
+    const startX = n.x, startZ = n.z;
     let speed = 0;
     if (n._inCart) { /* v18.23 seated in the chariot: cart.js places them */ }
     else if (n.follow) {
@@ -1030,6 +1050,10 @@ function updateNPCs(dt, t) { npcFrame++;
     if (!n.pass) { let gy = W.heightAt(n.x, n.z); if (EP.floor && !n.d.animal) { const f2 = EP.floor(n.x, n.z, S); if (f2 !== null && f2 !== undefined && f2 > gy - 0.3) gy = Math.max(gy, f2); }
       gy += n.seatY || 0; n.y = n.y === undefined || Math.abs(gy - n.y) > 1.2 ? gy : n.y + (gy - n.y) * Math.min(1, dt * 14); } // ease over steps; snap only on a real jump
     n.col.x = n.x; n.col.z = n.z;
+    // Drive the walking pose by the distance left after wall and slope constraints.
+    if (speed && dt > 0 && !n.pass && !n._inCart) {
+      speed = Math.min(speed, Math.hypot(n.x - startX, n.z - startZ) / dt);
+    }
     n.aspd = (n.aspd || 0) + (speed - (n.aspd || 0)) * Math.min(1, dt * 7); n.st.face = n.face; const nsc = n.d.animal ? 1 : (n.scale || 1); n.st.speed = n.aspd / nsc; n.st.phase = (n.st.phase || 0) + (n.d.animal ? n.aspd * dt * 3.2 : G.stepRate(n.aspd / nsc) * dt); /* v18.34 small people take small steps (children's feet slid) */ n.st.idle = 1;
     n.st.talk = n.talking && ((G.UI.speaker && G.UI.speaker() === n.name) || (G.NpcAI && G.NpcAI.speaking === n));
     if (n.rig.bodyLook !== n.d.look) { n.rig.body = G.Motion.bodyOf(n.d.look); n.rig.bodyLook = n.d.look; } n.gndOff = -(n.d.dy || 0); n.st.gnd = (cc ? Math.min(dist, Math.hypot(n.x - cc.x, n.z - cc.z)) : dist) < 30 && !n.d.animal && !(n.d.sit || n.sit) ? G.Motion.groundFn(n) : null; /* v18.35 seated legs don't reach for the ground (on a dais they trembled) */ n.st.npcLoop = true;
@@ -1341,6 +1365,11 @@ function render(dt) {
   animHuman(P.rig, pst, tAll);
   if (P.swim) { P.rig.off[1] -= 0.0; }
   if (P.ride && G.Ride) G.Ride.riderMatrix(TMPM); else m4trs(TMPM, P.x, P.y + (EP.rootY ? EP.rootY(S, Game) : 0), P.z, P.face); P.rig.update(TMPM);
+  scene.footL = scene.footR = null;
+  if ((Game.mode === 'play' || Game.titleHero) && !P.swim && !P.ride) {
+    scene.footL = P.rig.world[HBI.footL];
+    scene.footR = P.rig.world[HBI.footR];
+  }
   if (Game.mode === 'play' || (Game.mode === 'title' && Game.titleHero)) scene.skinned.push(P.sk || (P.sk = { /* v18.73 titleHero: the hero stands in the title picture (after the ending) */ mesh: null, bones: P.rig.bones, outline: true, bs: [0, 0, 0, 1.8] })); if (P.sk) { P.sk.mesh = P.ha ? P.ha.mesh : P.mesh; P.sk.tex = P.ha ? P.ha.tex : null; P.sk.fx = P.ha && G.Folk && G.Folk.heroFace ? G.Folk.heroFace(P.rig) : null; /* v24 his brows and mouth act too */ P.sk.meshS = P.ha && G.Folk && G.Folk.ready && P.ha === G.Folk.hi ? G.Folk.lo2.mesh : null; /* v24 his shadow from the 4k copy of his own mesh */ P.sk.bs[0] = P.x; P.sk.bs[1] = P.y + 1; P.sk.bs[2] = P.z; P.sk.tint = P.tint || null; }
   // held prop
   // only one thing in the hand: the action's own tool > a drawn weapon > the tool the player chose to hold

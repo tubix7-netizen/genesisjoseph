@@ -278,10 +278,10 @@ F.dress = function (n, sk, d, list) {
     sk = null;
   }
   if (!sk) { sk = n.sk = { bones: n.rig.bones, bs: [0, 0, 0, 1.8] }; }
-  const C = G.Game.COARSE, lv = d > (C ? 26 : 34) ? F.lo2 : d > (C ? 12 : 18) ? F.lo : F.hi; // 15.5k / 7.5k / 3k triangles
+  const C = G.Game.COARSE, lv = d > (C ? 19 : 34) ? F.lo2 : d > (C ? 9 : 18) ? F.lo : F.hi; // 15.5k / 7.5k / 3k triangles
   sk.mesh = lv.mesh; sk.tex = F.hi.tex; sk.rc = palette(L); sk.bones = n.rig.bones;
   sk.fx = lv === F.lo2 ? null : act(faceOf(L, n.id), n.rig); // (far away the face is a few pixels)
-  sk.outline = d < (G.Game.COARSE ? 24 : 40) && !n.d.emis; sk.shadow = !!(d < (G.Game.COARSE ? 22 : 34) || n.follow || G.Game.cineOn); sk.meshS = sk.shadow ? F.lo2.mesh : null;
+  sk.outline = d < (G.Game.COARSE ? 17 : 40) && !n.d.emis; sk.shadow = !!(d < (G.Game.COARSE ? 22 : 34) || n.follow || G.Game.cineOn); sk.meshS = sk.shadow ? F.lo2.mesh : null;
   sk.meshO = lv === F.hi && d > 7 ? F.lo.mesh : null; // v24 the outline pass draws the body again: beyond 7 m the 10k copy draws the same line
   sk.emis = n.d.emis; sk.tint = n.tint || n.d.tint; sk.bs[0] = n.x; sk.bs[1] = n.y + 1; sk.bs[2] = n.z; sk.bs[3] = 1.9 * (n.scale || 1);
   list.push(sk);

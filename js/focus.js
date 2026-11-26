@@ -82,7 +82,8 @@ F.off = function () { F.aim = false; F.pref = false; btn.classList.remove('armed
 F.update = function (dt) { const S = Game.S(), P = Game.P, W = Game.W(), CAM = Game.CAM; if (!S || !W) return;
   btn.hidden = Game.mode !== 'play'; const lk = locked(); if (!lk && F.aim) { F.aim = false; btn.classList.remove('armed'); }
   else if (lk && slingOut() && F.pref && !F.aim && mind() >= 6) { F.aim = true; btn.classList.add('armed'); } // v18.12 stays armed for the next target (it used to switch off every time the target changed or fell)
-  btn.classList.toggle('low', mind() < 15 && !(lk && slingOut())); btn.querySelector('span').textContent = lk && slingOut() ? (F.aim ? '집중 켬' : '집중') : '집중';
+  btn.classList.toggle('low', mind() < 15 && !(lk && slingOut())); const label = lk && slingOut() && F.aim ? '집중 켬' : '집중';
+  if (btn.dataset.label !== label) { btn.dataset.label = label; btn.firstElementChild.textContent = label; }
   // slow motion while a focused sling spins
   const sl = G.Sling && G.Sling.on, slowNow = !!(sl && sl.focus) && !calm();
   if (slowNow) { const H = S.hero; H.mind = Math.max(0, mind() - 5 * dt); H.mindT = 0; if (H.mind <= 0) { sl.focus = false; G.UI.toast('정신력이 다했어요 · 시간이 돌아와요'); $('slingBar') && $('slingBar').classList.remove('focus'); } }

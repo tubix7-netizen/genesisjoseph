@@ -149,11 +149,16 @@ class World {
       }
     }
   }
+  settle(p, r, y) {
+    const x = p.x, z = p.z;
+    this.collide(p, r, y);
+    if (p.x !== x || p.z !== z) this.collide(p, r, y);
+  }
   /* swept move: walk p by (dx,dz) in steps no longer than half the radius, resolving walls after every step, so a fast
      dash, a dodge roll or a long frame can't tunnel through a thin wall. Two passes per step settle corners. */
   move(p, dx, dz, r, y) {
     const L = Math.hypot(dx, dz), n = Math.min(12, Math.max(1, Math.ceil(L / Math.max(0.08, r * 0.5))));
-    for (let i = 0; i < n; i++) { p.x += dx / n; p.z += dz / n; this.collide(p, r, y); this.collide(p, r, y); }
+    for (let i = 0; i < n; i++) { p.x += dx / n; p.z += dz / n; this.settle(p, r, y); }
     return p;
   }
   // ------------------------------------------------ roofs (for the indoor camera) & keep-out zones (pits) & ladders
@@ -202,10 +207,17 @@ class World {
         if (ok && t0 > 0.02 && t0 < 0.98) return false; } }
     return true; }
   ray(ax, ay, az, bx, by, bz) {
-    let best = 1; const seen = new Set(); const steps = 6;
+    let best = 1;
+    const seen = this._raySet || (this._raySet = new Set());
+    seen.clear();
+    let previousCell;
+    const steps = 6;
     for (let i = 0; i <= steps; i++) {
       const x = lerp(ax, bx, i / steps), z = lerp(az, bz, i / steps);
-      for (const c of this.near(x, z)) {
+      const cell = this.hash.get(Math.floor(x / this.HC) * 10007 + Math.floor(z / this.HC));
+      if (!cell || cell === previousCell) continue;
+      previousCell = cell;
+      for (const c of cell) {
         if (!c.on || seen.has(c) || !c.cam) continue; seen.add(c);
         let t = 1;
         if (c.t === 'b') {

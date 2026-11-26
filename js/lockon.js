@@ -28,7 +28,7 @@ L.press = function () { if (G.UI.busy() || (G.Cine && G.Cine.on)) return; const 
   if (L.aim) { L.aim = null; sfx('click', { pitch: 0.8 }); return; }
   if (L.target) { L.release(); return; } // v16.1: while locked the button reads 「해제」 and lets go
   if (c.length) { L.target = c[0].t; sfx('click', { pitch: 1.2 }); if (!Game.S().flags.tipLock) { Game.S().flags.tipLock = 1; G.UI.toast('조준 · 한 번 더 누르면 해제돼요'); } return; }
-  if (G.Phys && G.Phys.held) { const P = Game.P; L.aim = { x: P.x + Math.sin(P.face) * 6, z: P.z + Math.cos(P.face) * 6 }; sfx('click', { pitch: 1.1 }); G.UI.toast('던질 곳 정하기 · 왼쪽 스틱으로 표시를 옮기고 A로 던져요'); return; }
+  if (G.Phys && G.Phys.held) { const P = Game.P; L.aim = { x: P.x + Math.sin(P.face) * 6, z: P.z + Math.cos(P.face) * 6 }; sfx('click', { pitch: 1.1 }); G.UI.toast('던질 곳 정하기 · 이동 조작으로 표시를 옮기고 던지기(B·F)를 눌러요'); return; }
   G.UI.toast('조준할 대상이 없어요'); };
 L.release = function () { L.target = null; L.aim = null; L.pick = null; sfx('click', { pitch: 0.8 }); };
 L.point = function () { if (L.aim) return { x: L.aim.x, y: Game.W().heightAt(L.aim.x, L.aim.z) + 0.2, z: L.aim.z }; if (L.target && (L.target.K ? !L.target.gone : alive(L.target))) return posOf(L.target); return null; };
@@ -52,7 +52,7 @@ L.update = function (dt) { const P = Game.P, CAM = Game.CAM, IN = Game.INPUT;
   if (L.pick && !L.target && !G.UI.busy() && !Game.cineOn) { const n = L.pick, q = R.project(n.x, (n.y || 0) + 1.25, n.z, G.UI.W, G.UI.H); if (q) { ring.hidden = false; ring.style.transform = `translate(${q[0]}px,${q[1]}px) translate(-50%,-50%) scale(${Math.max(0.55, Math.min(1.1, 8 / q[2]))})`; } else ring.hidden = true; } else
   if (L.target && !G.UI.busy() && !Game.cineOn) { const q = R.project(p.x, p.y + 0.3, p.z, G.UI.W, G.UI.H); if (q) { ring.hidden = false; ring.style.transform = `translate(${q[0]}px,${q[1]}px) translate(-50%,-50%) scale(${Math.max(0.55, Math.min(1.1, 8 / q[2]))})`; } else ring.hidden = true; } else ring.hidden = true;
   if (L.aim && !G.UI.busy() && !Game.cineOn) { const q = R.project(p.x, p.y, p.z, G.UI.W, G.UI.H); if (q) { mark.hidden = false; mark.style.transform = `translate(${q[0]}px,${q[1]}px) translate(-50%,-50%) scale(${Math.max(0.5, Math.min(1.6, 10 / q[2]))}) rotateX(62deg)`; } else mark.hidden = true; } else mark.hidden = true;
-  const b = $('btnLock'); if (b) { const lab = L.target || L.aim ? '해제' : L.pick ? '다음' : '조준'; if (b.dataset.l !== lab) { b.dataset.l = lab; b.querySelector('span').textContent = lab; } b.classList.toggle('on', !!(L.target || L.aim || L.pick)); } };
+  const b = $('btnLock'); if (b) { const lab = L.target || L.aim ? '해제' : L.pick ? '다음' : '조준'; if (b.dataset.l !== lab) { b.dataset.l = lab; b.setAttribute('aria-label', lab); b.querySelector('span').textContent = lab; } b.classList.toggle('on', !!(L.target || L.aim || L.pick)); } };
 // the sling / bow / staff go for the locked target
 if (G.Combat) { const pick0 = G.Combat.pickTarget; G.Combat.pickTarget = function () { if (L.target && !L.target.K && alive(L.target)) return L.target; return null; }; } // v16.6: no auto-target — the target (and its health bar) only when you lock on
 // thrown things fly in an arc onto the target or the mark

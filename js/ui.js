@@ -89,7 +89,7 @@ const itemIcon = k => { const it = Game.ITEMS[k]; return icon(it ? it.ic : 'sack
 const canvas = $('view');
 UI.resize = function () {
   UI.W = innerWidth; UI.H = innerHeight; const dpr = (Game.dpr || Math.min(devicePixelRatio || 1, 2)) * ((Game.perf && Game.perf.scale) || 1);
-  UI.cw = Math.round(UI.W * dpr); UI.ch = Math.round(UI.H * dpr); canvas.width = UI.cw; canvas.height = UI.ch;
+  UI.cw = Math.round(UI.W * dpr); UI.ch = Math.round(UI.H * dpr); if (canvas.width !== UI.cw) canvas.width = UI.cw; if (canvas.height !== UI.ch) canvas.height = UI.ch;
   document.body.classList.toggle('portrait', UI.H > UI.W * 1.05); UI.applyUIScale(); UI.checkRotate();
 };
 /* UI scale. A phone that lays the page out at desktop width (a scaled-down preview frame, "desktop site" mode, a missing
@@ -173,7 +173,7 @@ addEventListener('keydown', e => {
   else if (e.code === 'ControlLeft') { if (!UI.busy()) G.Vitals && G.Vitals.crouch(); }
   else if (e.code === 'KeyT') { G.Combat && G.Combat.toggleMode(); }
   else if (e.code === 'KeyM') { if (!UI.busy()) UI.bigMap(); }
-  else if (e.code === 'KeyR') { if (G.Build && G.Build.placing) G.Build.rotate(); else UI.rideBtn(); }
+  else if (e.code === 'KeyR') { if (G.Phys && G.Phys.held) { if (!e.repeat && !UI.busy() && !Game.cineOn) G.Phys.place(); return; } if (G.Build && G.Build.placing) G.Build.rotate(); else UI.rideBtn(); }
 });
 addEventListener('keyup', e => { Game.INPUT.keys[e.code] = false; if (e.code === 'KeyE' || e.code === 'Enter') { Game.INPUT.actHeld = false; if (mgHold) mgHold(false); } if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') Game.P.sprint = false; if (e.code === 'Space') Game.jumpRelease(); });
 addEventListener('blur', () => { for (const k in Game.INPUT.keys) Game.INPUT.keys[k] = false; Game.INPUT.actHeld = false; });
@@ -761,7 +761,7 @@ UI.frame = function (dt) {
         n._los = !W || !W.sees || (W.sees(P.x, P.y + 1.6, P.z, n.x, hy, n.z) && (C.x === undefined || W.sees(C.x, C.y, C.z, n.x, hy, n.z))); }
       if (n._los === false) show = false; }
     if (!show) { if (el) el.hidden = true; continue; }
-    if (!el) { el = document.createElement('div'); el.className = 'tag'; $('tags').appendChild(el); tagEls[id] = el; } const mk = G.Life && G.Life.mark(id); const key = (mk || '') + n.name; if (el.dataset.k !== key) { el.dataset.k = key; el._hw = 0; el.innerHTML = (mk ? `<i class="mk ${mk === '?' ? 'q' : ''}">${mk}</i>` : '') + esc(n.name); }
+    if (!el) { el = document.createElement('div'); el.className = 'tag'; $('tags').appendChild(el); tagEls[id] = el; } const mk = mk0; const key = (mk || '') + n.name; if (el.dataset.k !== key) { el.dataset.k = key; el._hw = 0; el.innerHTML = (mk ? `<i class="mk ${mk === '?' ? 'q' : ''}">${mk}</i>` : '') + esc(n.name); }
     const s = R.project(n.x, n.y + (n.d.animal ? 1.6 : 2.5) * (n.scale || 1), n.z, UI.W, UI.H); if (!s) { el.hidden = true; continue; }
     if (id !== goal) { /* v18.48 a name never lies over the quest box or the map */ if ((UI._tbT = (UI._tbT || 0) - 1) <= 0) { UI._tbT = 40; UI._tb = ['questBox', 'mapwrap'].map(k => { const e = $(k); if (!e || !e.offsetParent || getComputedStyle(e).visibility === 'hidden') return null; const r = e.getBoundingClientRect(); return r.width ? r : null; }).filter(Boolean); } let cov = false; for (const r of UI._tb || []) if (s[0] > r.left - 34 && s[0] < r.right + 34 && s[1] > r.top && s[1] < r.bottom + 24) { cov = true; break; } if (cov) { el.hidden = true; continue; } }
     el.hidden = false; if (!el._hw) { el.style.transform = `translate(${s[0]}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; el._hw = el.getBoundingClientRect().width / 2 || 40; } const tx = Math.max(el._hw + 4, Math.min(UI.W - el._hw - 4, s[0])); /* v18.42 a name at the screen's edge is kept whole */ el.style.transform = `translate(${tx}px,${s[1]}px) translate(-50%,-100%) scale(var(--uik,1))`; { const op = UI.tagReveal > 0 && n._los === false ? String(Math.min(1, UI.tagReveal / 0.8)) : ''; if (el.style.opacity !== op) el.style.opacity = op; } el.classList.toggle('goal', id === goal); el.classList.toggle('sideGoal', id === goal && !!tg.side); }
