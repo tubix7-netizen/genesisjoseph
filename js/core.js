@@ -280,8 +280,8 @@ class GB {
 // ------------------------------------------------------------------ shaders
 const HEAD = '#version 300 es\nprecision highp float;\nprecision highp sampler2DShadow;\n';
 const NOISE = `
-float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
+uniform highp sampler2D uNoise; // v26: the lattice values come from a 256×256 table (R.init: each texel holds its own corner and its three neighbours), one texelFetch instead of four sin() hashes per noise()
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);vec4 h=texelFetch(uNoise,ivec2(mod(i,256.0)),0);return mix(mix(h.x,h.y,f.x),mix(h.z,h.w,f.x),f.y);}
 float fbm(vec2 p){float s=0.0,a=0.5;for(int i=0;i<5;i++){s+=a*noise(p);p=p*2.03+vec2(1.7,9.2);a*=0.5;}return s/0.97;}
 `;
 const VS_LIT = `
@@ -670,6 +670,13 @@ R.init = function (canvas, opt) { // v18.11 opt.aa === false: no multisampling (
   P.dLit = compile(VS_LIT, FS_DEPTH, ['DEPTH']); P.dSkin = compile(VS_LIT, FS_DEPTH, ['DEPTH', 'SKIN']); P.dInst = compile(VS_LIT, FS_DEPTH, ['DEPTH', 'INST']);
   P.grass = compile(VS_GRASS, FS_GRASS); P.water = compile(VS_WATER, FS_WATER); P.waterLite = compile(VS_WATER, FS_WATER, ['LITE']); /* v18.24 phones: the same water with fewer noise lookups per pixel */ P.sky = compile(VS_SKY, FS_SKY);
   P.flat = compile(VS_FLAT, FS_FLAT); P.pts = compile(VS_PTS, FS_PTS); P.fire = compile(VS_PTS, FS_FIRE); P.rain = compile(VS_RAIN, FS_RAIN);
+  /* v26 noise table for the shaders' noise() (terrain grain, cloud shadows, sky, water): texel (x, y) = the random values at the lattice corners
+     (x, y), (x+1, y), (x, y+1), (x+1, y+1), wrapping at 256. It sits on texture unit 7 for good (nothing else uses that unit). */
+  { const N = 256, h = new Uint8Array(N * N), r = rng(2611); for (let i = 0; i < N * N; i++) h[i] = Math.floor(r() * 256) & 255;
+    const d = new Uint8Array(N * N * 4); for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const o = (y * N + x) * 4, x1 = (x + 1) & 255, y1 = (y + 1) & 255; d[o] = h[y * N + x]; d[o + 1] = h[y * N + x1]; d[o + 2] = h[y1 * N + x]; d[o + 3] = h[y1 * N + x1]; }
+    const t = R.noiseTex = gl.createTexture(); gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, d);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); gl.activeTexture(gl.TEXTURE0);
+    for (const k in P) if (P[k].U.uNoise) { gl.useProgram(P[k].p); gl.uniform1i(P[k].U.uNoise, 7); } gl.useProgram(null); }
   // fullscreen tri
   R.fs = R.mesh(new Float32Array([-1, -1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 3, -1, 0, 0, 0, 0, 1, 1, 1, 0, 0, -1, 3, 0, 0, 0, 0, 1, 1, 1, 0, 0]));
   // grass blade
@@ -688,15 +695,21 @@ R.init = function (canvas, opt) { // v18.11 opt.aa === false: no multisampling (
 };
 R.setShadow = function (size) {
   if (R.shadowTex) { gl.deleteTexture(R.shadowTex); gl.deleteFramebuffer(R.shadowFB); R.shadowTex = null; }
+  if (R.shadowTex0) { gl.deleteTexture(R.shadowTex0); gl.deleteFramebuffer(R.shadowFB0); R.shadowTex0 = null; R.shadowFB0 = null; }
   R.shadowSize = size; R.shadowValid = false; if (!size) return;
-  const t = R.shadowTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
-  gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT24, size, size);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
-  const fb = R.shadowFB = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, t, 0); gl.drawBuffers([gl.NONE]); gl.readBuffer(gl.NONE);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  const mk = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT24, size, size);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+    const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, t, 0); gl.drawBuffers([gl.NONE]); gl.readBuffer(gl.NONE);
+    const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE; gl.bindFramebuffer(gl.FRAMEBUFFER, null); return { t, fb, ok }; };
+  const a = mk(); R.shadowTex = a.t; R.shadowFB = a.fb;
+  /* v26 split shadows: when the map is redrawn only every few frames (R.shadowRate > 1, phones), the still casters (ground, buildings, trees) go into a
+     map of their own that is kept, and each frame it is copied into the shadow map and the moving ones (people, animals, carried things) are drawn on top.
+     So a walking person's shadow moves every frame (it stepped at 30 Hz on phones) while the heavy part is still drawn only every 3rd frame. ?ssplit=0 = the old way. */
+  if (!R.noSplit && !/[?&]ssplit=0\b/.test(location.search)) { const b = mk(); if (b.ok && a.ok) { R.shadowTex0 = b.t; R.shadowFB0 = b.fb; } else { gl.deleteTexture(b.t); gl.deleteFramebuffer(b.fb); } }
 };
 /* v18.13 packed vertices on the GPU: 44 → 28 bytes each (position float ×3, normal snorm8 ×4, colour half ×4, bone float).
    The JS side keeps the 11-float layout (GB, the worker, weld, LOD); only the upload packs. Same picture, ~36% less vertex memory
@@ -968,11 +981,18 @@ R.dummyShadow = function () {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   return t;
 };
+/* v18.6: only things that could throw a shadow into the map's ±ext square are drawn: a caster of height h at horizontal distance D from the focus reaches it only if h ≥ D·tan(sun height),
+   so with ~16 m the tallest caster that matters, D ≤ ext·1.42 + 16/tan(sun) (cells wholly beyond that are skipped; R.noShadowFar = true draws them all, for comparing) */
+function shFarOf(sd, ext) { const sunH = Math.hypot(sd[0], sd[2]); return R.noShadowFar ? 0 : Math.min(150, ext * 1.42 + 16 * sunH / Math.max(sd[1], 0.08)); }
+function shadowMovers(S, SV, P) { for (const d of S.dyn) if (d.shadow !== false && visible(d.mesh.bs, d.m)) { gl.uniformMatrix4fv(P.U.uModel, false, d.m); gl.bindVertexArray(d.mesh.vao); R.draw(d.mesh); } }
+function shadowSkinned(S, SV) { const P = R.P.dSkin; gl.useProgram(P.p); setCommonDepth(P, SV);
+  for (const k of S.skinned) { if (k.shadow === false || (k.bs && !visible(k.bs))) continue; const mm = k.meshS || k.mesh; gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindVertexArray(mm.vao); R.draw(mm); } } /* v18.94 k.meshS: a coarser body for the shadow pass */
 /* scene: {cam:[x,y,z], target:[x,y,z], fov, near, far, env:{...}, time, focus:[x,y,z], shadowOn,
    terrain:[mesh], statics:[mesh], insts:[inst], dyn:[{mesh, m, tint, emis, outline}], skinned:[{mesh, bones, outline, tint}],
    grass:{on, center, player, map, heightTex, colTex, h}, water:{mesh, level, ...}, flats:[{mesh,m,color}], pts:{n}} */
 R.render = function (S, W, H) {
   const env = S.env;
+  if (R.noiseTex) { gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, R.noiseTex); gl.activeTexture(gl.TEXTURE0); } // v26 (kept on unit 7)
   // ---- camera matrices
   m4persp(PR, S.fov, W / H, S.near || 0.15, S.far || 900); // (the sky is drawn separately; geometry beyond R_FAR is culled above)
   m4look(V, S.cam[0], S.cam[1], S.cam[2], S.target[0], S.target[1], S.target[2], 0, 1, 0);
@@ -981,8 +1001,10 @@ R.render = function (S, W, H) {
   /* v17.3 P13 shadow update rate: R.shadowRate = 2 redraws the shadow map every second frame and reuses the last map (and its matrix) in between.
      Game sets it only while frames are slow; at 1 (the default) nothing changes. A fresh map is forced when the hero has moved >2.5 m since the last one. */
   const useShadow = R.shadowSize && S.shadowOn; let redo = useShadow;
+  const split = !!(useShadow && R.shadowFB0 && (R.shadowRate || 1) > 1), rate = (R.shadowRate || 1) + (split ? 1 : 0); // v26 (split: the still casters every 3rd frame, the moving ones every frame)
+  if (split !== R.shadowSplit) { R.shadowSplit = split; R.shadowValid = false; }
   if (!useShadow) R.shadowValid = false;
-  else if ((R.shadowRate || 1) > 1 && R.shadowValid && R.shadowAge + 1 < R.shadowRate && Math.hypot(S.focus[0] - R.shadowFx, S.focus[2] - R.shadowFz) < 2.5) { redo = false; R.shadowAge++; }
+  else if (rate > 1 && R.shadowValid && R.shadowAge + 1 < rate && Math.hypot(S.focus[0] - R.shadowFx, S.focus[2] - R.shadowFz) < 2.5) { redo = false; R.shadowAge++; }
   if (redo) {
     R.shadowValid = true; R.shadowAge = 0; R.shadowFx = S.focus[0]; R.shadowFz = S.focus[2];
     const ext = S.shadowExt || 30, sd = env.sunDir, f = S.focus;
@@ -998,7 +1020,7 @@ R.render = function (S, W, H) {
     // snap translation in light space
     LV[12] = Math.round(LV[12] / texel) * texel; LV[13] = Math.round(LV[13] / texel) * texel;
     m4ortho(LP, -ext, ext, -ext, ext, 1, 260); m4mul(LVP, LP, LV);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, R.shadowFB); gl.viewport(0, 0, R.shadowSize, R.shadowSize);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, split ? R.shadowFB0 : R.shadowFB); gl.viewport(0, 0, R.shadowSize, R.shadowSize);
     gl.clear(gl.DEPTH_BUFFER_BIT); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2.0, 4.0);
     gl.disable(gl.CULL_FACE);
     frustum(LVP);
@@ -1006,31 +1028,33 @@ R.render = function (S, W, H) {
     // static + terrain
     let P = R.P.dLit; gl.useProgram(P.p); setCommonDepth(P, SV);
     for (const m of S.terrain) if (visible(m.bs)) { gl.bindVertexArray(m.vao); gl.drawArrays(gl.TRIANGLES, 0, m.count); }
-    // v18.6: only things that could throw a shadow into the map's ±ext square are drawn: a caster of height h at horizontal distance D from the focus reaches it only if h ≥ D·tan(sun height),
-    // so with ~16 m the tallest caster that matters, D ≤ ext·1.42 + 16/tan(sun) (cells wholly beyond that are skipped; R.noShadowFar = true draws them all, for comparing)
-    const sunH = Math.hypot(sd[0], sd[2]), shFar = R.noShadowFar ? 0 : Math.min(150, ext * 1.42 + 16 * sunH / Math.max(sd[1], 0.08));
+    const shFar = shFarOf(sd, ext); // (v18.6, see shFarOf)
     for (const m of S.statics) if (m.shadow !== false && !(m.cullDist && farOff(m, S.cam, 40)) && visible(m.bs)) drawStatic(m, shFar ? f : null, shFar);
-    for (const d of S.dyn) if (d.shadow !== false && visible(d.mesh.bs, d.m)) { gl.uniformMatrix4fv(P.U.uModel, false, d.m); gl.bindVertexArray(d.mesh.vao); R.draw(d.mesh); }
+    if (!split) shadowMovers(S, SV, P);
     gl.uniformMatrix4fv(P.U.uModel, false, IDM);
     P = R.P.dInst; gl.useProgram(P.p); setCommonDepth(P, SV);
     for (const s of S.insts) if (s.n && s.shadow && visible(s.bs)) instDraw(s, true, f, shFar);
-    P = R.P.dSkin; gl.useProgram(P.p); setCommonDepth(P, SV);
-    for (const k of S.skinned) { if (k.shadow === false || (k.bs && !visible(k.bs))) continue; const mm = k.meshS || k.mesh; gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindVertexArray(mm.vao); R.draw(mm); } /* v18.94 k.meshS: a coarser body for the shadow pass */
+    if (!split) shadowSkinned(S, SV);
     gl.disable(gl.POLYGON_OFFSET_FILL); gl.enable(gl.CULL_FACE);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+  if (split && R.shadowValid) { // v26 every frame: the kept still-caster map, then the moving casters on top (with the same light matrix)
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, R.shadowFB0); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, R.shadowFB);
+    const chk = !R.blitOk; if (chk) gl.getError(); // (the first copy only: if this browser refuses it, the split is switched off for good and the map is drawn whole again)
+    gl.blitFramebuffer(0, 0, R.shadowSize, R.shadowSize, 0, 0, R.shadowSize, R.shadowSize, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+    if (chk) { R.blitOk = true; if (gl.getError()) { gl.deleteTexture(R.shadowTex0); gl.deleteFramebuffer(R.shadowFB0); R.shadowTex0 = R.shadowFB0 = null; R.shadowValid = false; R.noSplit = true; } }
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); gl.bindFramebuffer(gl.FRAMEBUFFER, R.shadowFB); gl.viewport(0, 0, R.shadowSize, R.shadowSize);
+    gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2.0, 4.0); gl.disable(gl.CULL_FACE); frustum(LVP);
+    const SV = { cam: S.cam, env, time: S.time, shadowOn: 0 }; const P = R.P.dLit; gl.useProgram(P.p); setCommonDepth(P, SV);
+    shadowMovers(S, SV, P); gl.uniformMatrix4fv(P.U.uModel, false, IDM); shadowSkinned(S, SV);
+    gl.disable(gl.POLYGON_OFFSET_FILL); gl.enable(gl.CULL_FACE); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
   // ---- main pass
   gl.viewport(0, 0, W, H);
   gl.clearColor(env.fogCol[0], env.fogCol[1], env.fogCol[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   frustum(VP);
-  // sky
-  let P = R.P.sky; gl.useProgram(P.p); gl.depthMask(false);
-  gl.uniformMatrix4fv(P.U.uInvVP, false, IVP); gl.uniform3fv(P.U.uCamPos, S.cam); gl.uniform3fv(P.U.uSunDir, env.sunDir); gl.uniform3fv(P.U.uSunCol, env.sunCol);
-  gl.uniform3fv(P.U.uTop, env.skyTop); gl.uniform3fv(P.U.uHor, env.skyHor); gl.uniform3fv(P.U.uGround, env.fogCol); gl.uniform3fv(P.U.uCloudCol, env.cloudCol);
-  gl.uniform1f(P.U.uTime, S.time); gl.uniform1f(P.U.uNight, env.night); gl.uniform1f(P.U.uCloud, env.cloud); gl.uniform1f(P.U.uFlash, env.flash || 0);
-  gl.bindVertexArray(R.fs.vao); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.depthMask(true);
-  // terrain
-  P = R.P.terrain; gl.useProgram(P.p); setCommon(P, S); gl.uniform3fv(P.U.uRock, env.rock || [0.6, 0.5, 0.42]);
+  // terrain (v26: the sky is drawn after the solid things, below, so its clouds and stars are worked out only where the sky shows)
+  let P = R.P.terrain; gl.useProgram(P.p); setCommon(P, S); gl.uniform3fv(P.U.uRock, env.rock || [0.6, 0.5, 0.42]);
   for (const m of S.terrain) if (!farOff(m, S.cam, R_FAR) && visible(m.bs)) { gl.bindVertexArray(m.vao); gl.drawArrays(gl.TRIANGLES, 0, m.count); }
   // statics + dynamic
   P = R.P.lit; gl.useProgram(P.p); setCommon(P, S);
@@ -1092,6 +1116,13 @@ R.render = function (S, W, H) {
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, g.colTex); gl.uniform1i(P.U.uColTex, 2);
     gl.bindVertexArray(R.grass.vao); gl.drawArraysInstanced(gl.TRIANGLES, 0, 27, g.count || R.grass.n); gl.enable(gl.CULL_FACE);
   }
+  /* sky — v26: after every solid thing and before the see-through ones. It sits at the far depth and is depth-tested, so the GPU skips every pixel
+     already covered by ground, walls, trees or people (it used to run its cloud maths over the whole screen first). Same picture. */
+  P = R.P.sky; gl.useProgram(P.p); gl.depthMask(false);
+  gl.uniformMatrix4fv(P.U.uInvVP, false, IVP); gl.uniform3fv(P.U.uCamPos, S.cam); gl.uniform3fv(P.U.uSunDir, env.sunDir); gl.uniform3fv(P.U.uSunCol, env.sunCol);
+  gl.uniform3fv(P.U.uTop, env.skyTop); gl.uniform3fv(P.U.uHor, env.skyHor); gl.uniform3fv(P.U.uGround, env.fogCol); gl.uniform3fv(P.U.uCloudCol, env.cloudCol);
+  gl.uniform1f(P.U.uTime, S.time); gl.uniform1f(P.U.uNight, env.night); gl.uniform1f(P.U.uCloud, env.cloud); gl.uniform1f(P.U.uFlash, env.flash || 0);
+  gl.bindVertexArray(R.fs.vao); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.depthMask(true);
   // water
   if (S.water && S.water.mesh) {
     const w = S.water; P = R.waterLite ? R.P.waterLite : R.P.water; gl.useProgram(P.p); setCommon(P, S);
@@ -1133,8 +1164,26 @@ R.render = function (S, W, H) {
     gl.bindVertexArray(pb.vao); gl.drawArrays(gl.POINTS, 0, S.pts.n);
     gl.depthMask(true); gl.disable(gl.BLEND);
   }
+  if (R.warm > 0) { R.warm--; try { warmUp(S); } catch (e) { R.warm = 0; } finally { gl.disable(gl.SCISSOR_TEST); gl.disable(gl.BLEND); gl.depthMask(true); gl.enable(gl.CULL_FACE); } }
   gl.bindVertexArray(null);
 };
+/* v26 warm-up: Safari (Metal) prepares each kind of draw the first time it is used, which can hold that frame for a tenth of a second — the first rain,
+   the first campfire, the first look at the river. In the first frames (the title picture) each of those is drawn once into a single pixel in the corner,
+   so the preparing happens before play. The pixel is drawn over by the next frame. */
+R.warm = 3;
+function warmUp(S) {
+  gl.enable(gl.SCISSOR_TEST); gl.scissor(0, 0, 1, 1); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.CULL_FACE);
+  let P;
+  if (!R.rain) R.rainInit(1600, 34);
+  P = R.P.rain; gl.useProgram(P.p); gl.uniformMatrix4fv(P.U.uVP, false, VP); gl.uniform1f(P.U.uRain, 1); gl.uniform1f(P.U.uBox, R.rain.box); gl.bindVertexArray(R.rain.vao); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, 1);
+  const wm = (S.water && S.water.mesh) || (S.terrain && S.terrain[0]); // (the water program with any mesh of the usual layout)
+  if (wm) for (const W of [R.P.water, R.P.waterLite]) { gl.useProgram(W.p); setCommon(W, S); if (W.U.uHeight) gl.uniform1i(W.U.uHeight, 1); gl.bindVertexArray(wm.vao); gl.drawArrays(gl.TRIANGLES, 0, 3); }
+  if (R.ptsBuf) { P = R.P.pts; gl.useProgram(P.p); gl.uniformMatrix4fv(P.U.uVP, false, VP); gl.bindVertexArray(R.ptsBuf.vao); gl.drawArrays(gl.POINTS, 0, 1); }
+  if (!R.fireBuf && R.fireInit) R.fireInit(320);
+  if (R.fireBuf) { P = R.P.fire; gl.useProgram(P.p); gl.uniformMatrix4fv(P.U.uVP, false, VP); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.bindVertexArray(R.fireBuf.vao); gl.drawArrays(gl.POINTS, 0, 1); }
+  P = R.P.flat; gl.useProgram(P.p); gl.uniformMatrix4fv(P.U.uVP, false, VP); gl.blendFunc(gl.SRC_ALPHA, gl.ONE); gl.uniformMatrix4fv(P.U.uModel, false, IDM); gl.bindVertexArray(R.fs.vao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+}
 function setCommonDepth(P, S) {
   const u = P.U; gl.uniformMatrix4fv(u.uVP, false, LVP); if (u.uModel) gl.uniformMatrix4fv(u.uModel, false, IDM);
   if (u.uTime) gl.uniform1f(u.uTime, S.time); if (u.uWind) gl.uniform1f(u.uWind, S.env.wind);

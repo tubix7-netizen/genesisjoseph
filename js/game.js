@@ -294,7 +294,7 @@ Game.applyQuality = function () {
   const q = SET.quality; R.setShadow(q === 'high' ? 2048 : q === 'mid' ? 1024 : 0);
   R.setFarK(PERF.farMax = (/[?&]far=(\d(?:\.\d+)?)\b/.exec(location.search) || [])[1] ? +RegExp.$1 : (COARSE ? (q === 'high' ? 0.85 : q === 'mid' ? 0.7 : 0.6) : 1)); // v18.6 phone draw distance (?far=1 for the old one)
   R.cloudLo = COARSE; R.waterLite = COARSE && q !== 'high' && !/[?&]wlite=0\b/.test(location.search); R.cloudSh = R.skyOn && q !== 'low' ? 1 : 0; // v18.3 P10: cloud shadows (a little noise per pixel) are off on the lowest quality, as are shadows; ?sky=0 turns the whole new sky/fog look off
-  if (R.grass) R.grass.n = q === 'high' ? (COARSE ? 5500 : 9000) : q === 'mid' ? (COARSE ? 2800 : 5000) : 0;
+  if (R.grass) { R.grass.n0 = Math.min(R.grass.max, q === 'high' ? (COARSE ? 5500 : 9000) : q === 'mid' ? (COARSE ? 2800 : 5000) : 0); R.grass.n = PERF.lod < 1 ? Math.round(R.grass.n0 * (0.45 + 0.55 * (PERF.lod - 0.55) / 0.45)) : R.grass.n0; } // v26 n0: the quality's count (never past the buffer: a phone switched 중간 → 높음 asked for 5500 of 5000 and drew no grass at all); n: thinned by the distance detail
   Game.dpr = Math.min(window.devicePixelRatio || 1, q === 'high' ? (COARSE ? 1.65 : 2) : q === 'mid' ? (COARSE ? 1.25 : 1.5) : 1);
   G.UI.resize && G.UI.resize();
 };
@@ -1064,7 +1064,7 @@ function updateNPCs(dt, t) { npcFrame++;
     /* v18.24 phones: people far away or behind the camera re-pose every 2nd-4th frame (their place still moves every frame; the pose clock is absolute, so nothing drifts) */
     if (COARSE && !Game.cineOn && !n.talking && n.rig.bones && n.M) { if (n._ah === undefined) { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0; n._ah = Math.abs(h); }
       const vx = -Math.sin(CAM.yaw), vz = -Math.cos(CAM.yaw), bx = n.x - CAM.x, bz = n.z - CAM.z, behind = dist > 7 && vx * bx + vz * bz < -0.25 * Math.hypot(bx, bz);
-      const k = behind ? 4 : dist > 55 ? 3 : dist > 28 ? 2 : 1; if (k > 1 && (npcFrame + n._ah) % k) { n.rig.update(m4trs(n.M, n.x, n.y + (n.d.dy || 0) + (n.hopY || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale)); continue; } } /* (only the pose maths is skipped; the bones follow the body every frame) */
+      const lk = PERF.lod, k = behind ? 4 : dist > 55 * lk ? 3 : dist > 28 * lk ? 2 : 1; /* v26 (lk: the distance detail, 1 = as before) */ if (k > 1 && (npcFrame + n._ah) % k) { n.rig.update(m4trs(n.M, n.x, n.y + (n.d.dy || 0) + (n.hopY || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale)); continue; } } /* (only the pose maths is skipped; the bones follow the body every frame) */
     if (n.d.animal) animAnimal(n.rig, n.st, t); else animHuman(n.rig, n.st, t + (n._to === undefined ? (n._to = Math.random() * 50) : n._to)); /* v18.34 a steady clock per person (it ran with the x position) */
     if (n.fk && G.Folk) G.Folk.shape(n); // v23 their own build on the shared Joseph model
     n.rig.update(m4trs(n.M || (n.M = m4()), n.x, n.y + (n.d.dy || 0) + (n.hopY || 0), n.z, n.face, 0, 0, n.scale, n.scale, n.scale));
@@ -1232,10 +1232,15 @@ if (COARSE) R.shadowRate = 2;
    · Shadow map every 2nd frame (R.shadowRate) when p90 stays over 1.25× the target for 3 s (back after 3 s of good frames). ?shadowrate=1|2 pins it.
    Game.fpsTarget() → 0 (display rate) / 30 / 60 · Game.perfTick(rawMs, dt) · PERF.hist (ring of the last 120 frame times). */
 PERF.hist = new Float32Array(120); PERF.hn = 0; PERF.slow = PERF.fast = 0; PERF.autoLock = false; PERF.lockAt = 0; PERF.trial = 0; PERF.sticky = false; PERF.dropAt = -99; PERF.raiseAt = -99; PERF.lockN = 0; PERF.ceil = 1; PERF.ceilAt = -999;
-/* v18.10 smart frame rate (phones, SET.fps 'auto'): it starts locked at 30 (cool), and when the device has time to spare it tries 60 for 3 s: if the picture holds ≥ ~51 fps at nearly full size it
-   runs at 60 (never above: a 120 Hz screen is held to 60), then gives the heat a rest at 30 after 8 minutes, and drops back to 30 at once if 60 stumbles (and waits longer before the next try). */
-const smart = () => COARSE && SET.fps !== '30' && SET.fps !== 'f60'; /* v18.12h '60' (default) and 'auto' = aim for 60, fall back to an even 30 when it wobbles; 'f60' = locked 60 */
-PERF.sm = { ph: 'lock', at: 0, cool: 5, bad: 0, runStart: 0, scale0: 1 };
+/* v26 60프레임 우선 (phones, SET.fps '60' = the default, or 'auto'): it starts at 60 and stays there. When the slow end of the frame times (p90) runs over,
+   the picture gets cheaper one step at a time instead — first the distance detail (PERF.lod 1 → 0.55: people, ink lines, shadows of people, animals and
+   grass are drawn less far, far people re-pose less often; nobody near changes), then the resolution (down to 60%), then the draw distance — and only when
+   all of that is used up and frames are still slow for ~5 s does it fall back to an even 30. It tries 60 again after 20 s (then 40, 80 … 240 s after each
+   failed try), keeping the cheaper settings. While at 60 and fast again, resolution comes back first, then the distance detail.
+   The old 8-minute 「heat rest」 at 30 is gone (asked for: 60 on the iPhone). 'f60' = locked 60 with no fallback; '30' = locked 30. */
+const smart = () => COARSE && SET.fps !== '30' && SET.fps !== 'f60';
+const LODMIN = 0.55; PERF.lod = 1; PERF.lodAt = -99; PERF.good = 0;
+PERF.sm = { ph: 'run', at: 0, cool: 20, bad: 0 };
 Game.fpsTarget = () => { const m = SET.fps; if (m === '30') return 30; if (m === 'f60') return 60; if (smart()) return PERF.sm.ph === 'lock' ? 30 : 60; if (m === '60') return 60; return PERF.autoLock ? 30 : 0; };
 function p90() { const n = Math.min(PERF.hn, 120); if (n < 30) return PERF.avg; const a = Array.prototype.slice.call(PERF.hist, 0, n).sort((x, y) => x - y); return a[Math.floor(n * 0.9)]; }
 PERF.p90 = p90;
@@ -1243,22 +1248,39 @@ function perfTick(rawMs, dt) {
   if (!(rawMs > 0 && rawMs < 250) || document.hidden) return;
   if (G.UI.overlayOn && G.UI.overlayOn()) { PERF.ovl = true; return; } if (PERF.ovl) { PERF.ovl = false; PERF.hn = 0; } // a menu is open (drawn at 15 fps on phones): those frame times are not a measurement
   PERF.avg += (rawMs - PERF.avg) * 0.05; PERF.hist[PERF.hn++ % 120] = rawMs; PERF.t += dt; if (PERF.t < 0.75) return; PERF.t = 0;
-  const tg = Game.fpsTarget(), tgt = tg ? 1000 / tg : 16.7, p = p90(), old = PERF.scale;
-  if (smart() && Game.mode === 'play') { const sm = PERF.sm;
-    if (sm.ph === 'lock') { if (tAll - sm.at > sm.cool && PERF.scale >= 0.85) { sm.ph = 'probe'; sm.at = tAll; sm.scale0 = PERF.scale; PERF.hn = 0; } }
-    else if (sm.ph === 'probe') { if (tAll - sm.at > 3) { if (p <= 19.5 && PERF.scale >= 0.85) { sm.ph = 'run'; sm.at = sm.runStart = tAll; sm.bad = 0; sm.cool = 15; } else { sm.ph = 'lock'; sm.at = tAll; sm.cool = Math.min(600, sm.cool * 2); PERF.scale = sm.scale0; G.UI.resize(); } PERF.hn = 0; } }
-    else { sm.bad = (p > 22 || PERF.scale < 0.8) ? sm.bad + 1 : 0; if (sm.bad >= 3 || tAll - sm.runStart > 480) { const stumble = sm.bad >= 3; sm.ph = 'lock'; sm.at = tAll; sm.cool = stumble ? Math.min(120, sm.cool * 2) : 120; sm.bad = 0; if (stumble) { PERF.scale = Math.max(PERF.scale, sm.scale0); G.UI.resize(); } PERF.hn = 0; } }
+  const tg = Game.fpsTarget(), tgt = tg ? 1000 / tg : 16.7, p = p90(), old = PERF.scale, oldLod = PERF.lod;
+  const sm = PERF.sm, run60 = !smart() || sm.ph !== 'probe';
+  /* the slowest display frame interval of the last ~second: when not one frame came at 60 Hz the screen itself is giving 30 (iPhone 저전력 모드), not the game being slow */
+  const capped = () => { if (PERF.hn < 45) return false; let mn = 1e9; for (let k = 1; k <= 45; k++) { const v = PERF.hist[(PERF.hn - k) % 120]; if (v < mn) mn = v; } return mn >= 28; }; // (the last 45 frames, ~1.5 s at 30)
+  const setQ = q => { if (!q) return; PERF.scale = q.scale; PERF.lod = q.lod; };
+  if (smart() && Game.mode === 'play') {
+    if (sm.ph === 'lock') { if (tAll - sm.at > sm.cool) { sm.ph = 'probe'; sm.at = tAll; PERF.hn = 0; sm.q30 = { scale: PERF.scale, lod: PERF.lod }; if (sm.q60) setQ(sm.q60); } } // the try at 60 starts from the settings 60 last needed
+    else if (sm.ph === 'probe') { if (tAll - sm.at > 3 && PERF.hn >= 60) { if (p <= 20) { sm.ph = 'run'; sm.at = tAll; sm.bad = 0; sm.cool = Math.max(20, sm.cool * 0.75); sm.q = { scale: PERF.scale, lod: PERF.lod }; } else { sm.ph = 'lock'; sm.at = tAll; sm.cool = Math.min(240, sm.cool * 2); setQ(sm.q30); } PERF.hn = 0; } }
+    else if (sm.capT) { /* every frame came at 30 Hz: is it the screen (iPhone 저전력 모드) or a phone too busy for 60? The picture was made much cheaper for two seconds to see */
+      if (tAll - sm.capT.at > 2 && PERF.hn >= 45) { if (capped()) { sm.ph = 'lock'; sm.at = tAll; sm.cool = 60; sm.bad = 0; PERF.hn = 0; sm.q60 = null; setQ(sm.capT.q); PERF.lowPow = (PERF.lowPow || 0) + 1; } // still 30: the screen — back to the full picture at 30 (try 60 again in a minute: 저전력 모드 may be off by then)
+        else { PERF.dropAt = tAll; PERF.lodAt = tAll; } /* faster: the phone was busy — stay at 60 with the cheaper picture, which comes back step by step if there is room */ sm.capT = null; } }
+    else { const spent = PERF.lod <= LODMIN + 1e-3 && PERF.scale <= 0.6 + 1e-3; sm.bad = p > 24 && spent ? sm.bad + 1 : 0; if (!sm.q) sm.q = { scale: PERF.scale, lod: PERF.lod };
+      if (capped()) { sm.capT = { at: tAll, q: { scale: Math.max(PERF.scale, sm.q.scale), lod: Math.max(PERF.lod, sm.q.lod) } }; PERF.scale = 0.6; PERF.lod = LODMIN; PERF.hn = 0; }
+      else if (sm.bad >= 6) { sm.ph = 'lock'; sm.at = tAll; sm.bad = 0; PERF.hn = 0; sm.q60 = { scale: PERF.scale, lod: PERF.lod }; } }
   }
   // shadow update rate
-  PERF.slow = p > tgt * 1.25 ? PERF.slow + 1 : 0; PERF.fast = p <= tgt * 1.1 ? PERF.fast + 1 : 0;
+  PERF.slow = p > tgt * 1.25 ? PERF.slow + 1 : 0; PERF.fast = p <= tgt * 1.1 ? PERF.fast + 1 : 0; PERF.good = p <= tgt * 1.1 ? PERF.good + 1 : 0;
   if (R.shadowLock) R.shadowRate = R.shadowLock; else if (PERF.slow >= 4) R.shadowRate = 2; else if (PERF.fast >= 4) R.shadowRate = COARSE ? 2 : 1; // v18.8: phones keep the shadow map at every 2nd frame (a fresh map is still forced when the hero moves > 2.5 m)
   // v18.6 draw distance: still slow after the shadows are halved and the picture is at 70% size or less → draw a little less far (never raised again until the quality is set)
-  if (Game.mode === 'play' && PERF.slow >= 6 && R.shadowRate === 2 && PERF.scale <= 0.7 && R.farK > 0.5) { R.setFarK(R.farK - 0.1); PERF.slow = 0; }
-  // resolution
+  if (Game.mode === 'play' && PERF.slow >= 6 && R.shadowRate === 2 && PERF.scale <= 0.7 && (!COARSE || PERF.lod <= LODMIN + 1e-3) && R.farK > 0.5) { R.setFarK(R.farK - 0.1); PERF.slow = 0; }
+  // resolution (and on phones the distance detail first)
   if (tAll - PERF.ceilAt > 180) PERF.ceil = 1; // (a ceiling set by a failed rise is forgotten after three minutes)
-  if (p > tgt * 1.3 && PERF.scale > 0.6) { PERF.scale = Math.max(0.6, PERF.scale - 0.1); if (tAll - PERF.raiseAt < 25) { PERF.ceil = PERF.scale; PERF.ceilAt = tAll; } PERF.dropAt = tAll; } // a drop soon after a rise: that size was too much, do not try it again for a while
-  else if (p <= tgt * 1.1 && PERF.scale < PERF.ceil && tAll - PERF.dropAt > 30 && tAll - PERF.raiseAt > 12) { PERF.scale = Math.min(PERF.ceil, PERF.scale + 0.05); PERF.raiseAt = tAll; }
+  const fresh = PERF.hn >= 30 && !(sm && sm.capT); // v26 (right after a switch between 30 and 60 there are no fresh frame times yet: the old average would have cut the detail for nothing)
+  if (!fresh) { }
+  else if (p > tgt * 1.3) {
+    if (COARSE && Game.mode === 'play' && PERF.lod > LODMIN + 1e-3 && PERF.scale > 0.75) { PERF.lod = Math.max(LODMIN, PERF.lod - 0.15); PERF.lodAt = tAll; } // v26 the cheap step first: nobody near is touched
+    else if (PERF.scale > 0.6) { PERF.scale = Math.max(0.6, PERF.scale - 0.1); if (tAll - PERF.raiseAt < 25) { PERF.ceil = PERF.scale; PERF.ceilAt = tAll; } PERF.dropAt = tAll; } // a drop soon after a rise: that size was too much, do not try it again for a while
+    else if (COARSE && Game.mode === 'play' && PERF.lod > LODMIN + 1e-3) { PERF.lod = Math.max(LODMIN, PERF.lod - 0.15); PERF.lodAt = tAll; }
+  }
+  else if (run60 && p <= tgt * 1.1 && PERF.scale < PERF.ceil && tAll - PERF.dropAt > 30 && tAll - PERF.raiseAt > 12) { PERF.scale = Math.min(PERF.ceil, PERF.scale + 0.05); PERF.raiseAt = tAll; }
+  else if (run60 && COARSE && PERF.lod < 1 && PERF.good >= 27 && PERF.scale >= PERF.ceil - 1e-3 && tAll - PERF.lodAt > 20 && tAll - PERF.dropAt > 20) { PERF.lod = Math.min(1, PERF.lod + 0.15); PERF.lodAt = tAll; PERF.good = 0; } // v26 ~20 s of good frames at full size: the distance detail comes back a step
   if (old !== PERF.scale) G.UI.resize();
+  if (oldLod !== PERF.lod && R.grass && R.grass.n0) R.grass.n = Math.round(R.grass.n0 * (0.45 + 0.55 * (PERF.lod - LODMIN) / (1 - LODMIN))); // fewer blades (they are scattered at random, so the first n are an even thinning)
   // auto frame lock
   if (SET.fps !== '30' && SET.fps !== '60' && SET.fps !== 'f60' && !smart()) {
     if (!PERF.autoLock) { PERF.lockN = p > 22 && PERF.scale <= 0.8 ? PERF.lockN + 1 : 0;
@@ -1267,8 +1289,14 @@ function perfTick(rawMs, dt) {
   }
 }
 Game.perfTick = perfTick;
+/* v26 even steps: with a frame target (60 or 30) the display's own frame times wobble by a millisecond or so; feeding that wobble into every move made walking,
+   the camera and the animals shimmer a little. A frame that lands within 2.2 ms of a whole number of target frames now advances the world by exactly that many,
+   and the small difference is paid back a little at a time (never more than 0.3 ms a frame), so the game clock still keeps real time. */
+const FP = { debt: 0 };
 Game.frame = function (now) {
-  const rawMs = now - lastNow; let dt = Math.max(0, Math.min(0.05, rawMs / 1000)); lastNow = now; tAll += dt; // never backwards (clock jumps)
+  const rawMs = now - lastNow; lastNow = now; let ms = rawMs; const per = (G.Main && G.Main.per) || 0;
+  if (per > 0 && rawMs > 0 && rawMs < 250) { const n = Math.round(rawMs / per); if (n >= 1 && n <= 4 && Math.abs(rawMs - n * per) < 2.2) { FP.debt += rawMs - n * per; const c = clamp(FP.debt * 0.1, -0.3, 0.3); ms = n * per + c; FP.debt -= c; } else FP.debt = 0; }
+  let dt = Math.max(0, Math.min(0.05, ms / 1000)); tAll += dt; // never backwards (clock jumps)
   if (Game.mode !== 'play' && Game.worldScale !== 1) { Game.worldScale = 1; if (G.Focus) G.Focus.slow = 1; } // never leave slow motion switched on outside play
   perfTick(rawMs, dt); // adaptive resolution / frame lock / shadow rate (below)
   if (Game.mode === 'play' && W) {
@@ -1348,7 +1376,7 @@ function render(dt) {
   Object.assign(pst, { talk: !!spk && (spk === EP.hero || spk === '이스라엘'), face: P.face, speed: poseSpeed, phase: P.phase, air: !P.grounded && !P.swim, act: P.act, actT: P.act ? (P.actT % P.actDur) / P.actDur : 0, idle: 1, limp: P.limp, carry: P.carry ? (P.carryArms ? 'arms' : 'head') : G.Phys && G.Phys.held ? (G.Phys.heavy(G.Phys.held) ? 'arms' : 'one') : null, staff: (hand() === 'staff' || hand() === 'hoe') && !P.act && !P.ride && !P.carry && !P.sit && !P.kneel && !P.sleeping && !Game.cineOn && !(G.Combat && G.Combat.heldProp()), long: P.look.long, kneel: P.kneel, sleep: P.sleeping, sit: P.sit, ride: !!P.ride, rideSp: P.spd, ridePh: P.ride ? P.ride.ph || 0 : 0, shiver: G.Surv ? G.Surv.shiver : 0 });
   { pst.vy = P.vy; pst.hero = true; pst.sprint = P.sprint && P.spd > 5.8; // v16.7 야숨: the hero glances at what he could use / who he could talk to
     let lk = 0; const c = ctx; if (c && c.x !== undefined && !P.act && !P.ride && !Game.cineOn && !G.UI.busy()) { const d = Math.hypot(c.x - P.x, c.z - P.z); if (d > 0.4 && d < 7) lk = clamp(angDiff(P.face, Math.atan2(c.x - P.x, c.z - P.z)), -1.05, 1.05); }
-    P.lookS = lerp(P.lookS || 0, lk, 0.1); if (Math.abs(P.lookS) > 0.02) pst.look = P.lookS; else delete pst.look; }
+    P.lookS = lerp(P.lookS || 0, lk, 1 - Math.exp(-dt * 6.3)); /* v26 the same ease at any frame rate (was 0.1 per frame) */ if (Math.abs(P.lookS) > 0.02) pst.look = P.lookS; else delete pst.look; }
   pst.gnd = P.grounded && !P.swim && !(EP.floor && EP.floor(P.x, P.z, S) !== null) ? G.Motion.groundFn(P) : null; pst.listen = !pst.talk && !!spk; pst.swim = P.swim; { const wO = EP.waterAt ? EP.waterAt(P.x, P.z, S) : null, wl0 = wO ? wO.level : W.water ? W.water.level : -99; pst.swimLift = P.swim ? Math.max(0, P.y - (wl0 - 1.25)) : 0; } /* v18.34 the same float height in shallower deep water */
   if (!pst.act && P.emote) { pst.act = P.emote.k; pst.actT = P.emote.dur ? Math.min(1, P.emote.t / P.emote.dur) : (P.emote.t % 2) / 2; }
   if (P.atkPose) { pst.act = P.atkPose; pst.actT = 0.5; } else if (P.atk) { pst.act = P.atk.anim; pst.actT = P.atk.t / P.atk.dur; } else if (P.dodgeT > 0) { pst.act = 'dodge'; pst.actT = 1 - P.dodgeT / (P.dodgeDur || 0.45); } pst.hurt = P.tintT > 0;
@@ -1394,9 +1422,10 @@ function render(dt) {
   if (P.carry && Game.mode === 'play') scene.dyn.push({ mesh: propMesh(P.carry), m: P.carryArms ? P.rig.world[HBI.handR] : m4mul(P.carryM || (P.carryM = m4()), P.rig.world[HBI.head], m4trs(TMP2, 0, 0.36, 0)), outline: true });
   /* v18.33 phones: people are drawn out to 62 m (not 85), the ink outline only within 24 m, and in a big crowd the ones past 40 m are left out */
   let crowd = 0; if (COARSE) for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (n.vis && n.near && Math.hypot(n.x - CAM.x, n.z - CAM.z) < 62) crowd++; }
-  const ND = COARSE ? (crowd > 55 ? 40 : 62) : 85, OD = COARSE ? 24 : 40, SHD = COARSE ? 22 : 34;
-  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || !n.near) continue; const d = Math.hypot(n.x - CAM.x, n.z - CAM.z); if ((d > ND && !n.follow && !(Game.curTarget && Game.curTarget.npc === id)) || (d < 1.0 && Game.mode === 'play')) continue; if (G.Folk && G.Folk.dress(n, n.sk, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : 1), scene.skinned)) { /* v23 drawn as a Joseph-model villager (js/folk.js) */ if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); continue; } const sk = n.sk || (n.sk = { bones: n.rig.bones, bs: [0, 0, 0, 1.8] }); sk.mesh = npcMesh(n, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : 1)); sk.outline = d < OD && !n.d.emis; sk.shadow = !!(d < SHD || n.follow || Game.cineOn); sk.meshS = sk.shadow && !Game.cineOn ? npcMesh(n, d < 11 ? 12 : 33) : null; /* (and one level coarser in the shadow map: nobody sees a shadow's fingers) */ /* v18.94 a far person's shadow is a smudge in the shadow map: only the near ones cast it (people were half of the shadow pass) */ sk.emis = n.d.emis; sk.tint = n.tint || n.d.tint; sk.bs[0] = n.x; sk.bs[1] = n.y + 1; sk.bs[2] = n.z; sk.bs[3] = 1.8 * (n.scale || 1); scene.skinned.push(sk); if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); }
-  for (const a of ENT.animals) { if (!a.near) continue; const d = Math.hypot(a.x - CAM.x, a.z - CAM.z); if (d > (COARSE ? 50 : 65) || d < 0.9) continue; const sk = a.sk || (a.sk = { mesh: a.mesh, bones: a.rig.bones, bs: [0, 0, 0, 1.6] }); sk.outline = d < (COARSE ? 20 : 30); sk.shadow = d < (COARSE ? 18 : 28); sk.bs[0] = a.x; sk.bs[1] = a.y + 0.7; sk.bs[2] = a.z; scene.skinned.push(sk); }
+  const LK = COARSE && Game.mode === 'play' && !Game.cineOn ? PERF.lod : 1; /* v26 distance detail (perfTick): < 1 when the phone falls behind 60 */
+  const ND = COARSE ? (crowd > 55 ? 40 : 62) * Math.max(0.7, LK) : 85, OD = COARSE ? 24 * LK : 40, SHD = COARSE ? 22 * LK : 34;
+  for (const id in ENT.npcs) { const n = ENT.npcs[id]; if (!n.vis || !n.near) continue; const d = Math.hypot(n.x - CAM.x, n.z - CAM.z); if ((d > ND && !n.follow && !(Game.curTarget && Game.curTarget.npc === id)) || (d < 1.0 && Game.mode === 'play')) continue; if (G.Folk && G.Folk.dress(n, n.sk, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : LK), scene.skinned)) { /* v23 drawn as a Joseph-model villager (js/folk.js) */ if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); continue; } const sk = n.sk || (n.sk = { bones: n.rig.bones, bs: [0, 0, 0, 1.8] }); sk.mesh = npcMesh(n, d / (Game.cineOn || Game.dlgW > 0.5 ? 2.5 : LK)); sk.outline = d < OD && !n.d.emis; sk.shadow = !!(d < SHD || n.follow || Game.cineOn); sk.meshS = sk.shadow && !Game.cineOn ? npcMesh(n, d < 11 ? 12 : 33) : null; /* (and one level coarser in the shadow map: nobody sees a shadow's fingers) */ /* v18.94 a far person's shadow is a smudge in the shadow map: only the near ones cast it (people were half of the shadow pass) */ sk.emis = n.d.emis; sk.tint = n.tint || n.d.tint; sk.bs[0] = n.x; sk.bs[1] = n.y + 1; sk.bs[2] = n.z; sk.bs[3] = 1.8 * (n.scale || 1); scene.skinned.push(sk); if (n.d.prop) scene.dyn.push({ mesh: propMesh(n.d.prop), m: n.rig.world[HBI.handR], outline: d < 30 }); }
+  for (const a of ENT.animals) { if (!a.near) continue; const d = Math.hypot(a.x - CAM.x, a.z - CAM.z); if (d > (COARSE ? 50 * Math.max(0.7, LK) : 65) || d < 0.9) continue; const sk = a.sk || (a.sk = { mesh: a.mesh, bones: a.rig.bones, bs: [0, 0, 0, 1.6] }); sk.outline = d < (COARSE ? 20 * LK : 30); sk.shadow = d < (COARSE ? 18 * LK : 28); sk.bs[0] = a.x; sk.bs[1] = a.y + 0.7; sk.bs[2] = a.z; scene.skinned.push(sk); }
   if (EP.skinned) EP.skinned(scene.skinned, S, Game, tAll);
   if (G.Ride) G.Ride.skinned(scene.skinned, tAll); if (G.NpcAI) G.NpcAI.skinned(scene.skinned, tAll);
   // grass

@@ -86,7 +86,12 @@ addEventListener('pagehide', () => { if (playing) Game.save(true); });
 setInterval(() => { if (playing && Game.mode === 'play' && !UI.busy() && !Game.cineOn && !(G.Cine && G.Cine.on)) Game.save(true); }, 40000); /* v18.34 not in the middle of a cutscene */ // v18.23 auto-save to the slot being played
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing) Game.save(true); });
 let lastRun = 0; // v18.4 P15: with a frame lock (30 / 60) display frames are skipped so that the ones that run are evenly spaced
-Main.shouldRun = now => { let tg = Game.fpsTarget ? Game.fpsTarget() : 0; if (Game.COARSE && Game.mode === 'play' && UI.overlayOn && UI.overlayOn() && !/[?&]ov=0\b/.test(location.search)) tg = 15; if (Game.COARSE && Game.mode === 'title' && !/[?&]ov=0\b/.test(location.search)) tg = 20; /* v18.12: the title backdrop only needs 20 fps */ if (tg && now - lastRun < 1000 / tg - 2.5) return false; lastRun = now; return true; };
+const OV0 = /[?&]ov=0\b/.test(location.search);
+Main.per = 0; // v26 the frame length the loop is aiming at (ms; 0 = the display's own rate). game.js evens the world's steps to it.
+Main.shouldRun = now => { let tg = Game.fpsTarget ? Game.fpsTarget() : 0; if (Game.COARSE && Game.mode === 'play' && UI.overlayOn && UI.overlayOn() && !OV0) tg = 15; if (Game.COARSE && Game.mode === 'title' && !OV0) tg = 20; /* v18.12: the title backdrop only needs 20 fps */
+  const per = tg ? 1000 / tg : 0, el = now - lastRun; Main.per = per; if (per && el < per - 2.5) return false;
+  /* v26 the schedule keeps its phase: a frame that came a little late (a 144 Hz screen, a skipped display frame) does not push the next one later too (at most half a frame is carried) */
+  lastRun = per && el < per * 1.5 ? now - Math.max(0, Math.min(el - per, per * 0.5)) : now; return true; };
 let okFrames = 0;
 function loop(now) { if (window.__bc && ++okFrames === 1) __bc('frame1'); if (window.__bcDone && okFrames === 120) __bcDone(); if (!Main.shouldRun(now)) { requestAnimationFrame(loop); return; } try { Game.frame(now); } catch (e) { console.error(e); if (!Main.errShown) { Main.errShown = 1; UI.toast('문제가 생겼어요: ' + (e && e.message || e)); } } requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
