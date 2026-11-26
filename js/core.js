@@ -293,12 +293,18 @@ uniform mat4 uVP,uModel,uShadowVP;uniform float uTime,uWind;
 #ifdef SKIN
 uniform mat4 uBones[20];
 #endif
+#ifdef TEX
+layout(location=6) in vec2 aUV;out vec2 vUV; // v19 GLB 캐릭터: 텍스처 좌표 (assets/heroes, js/heroasset.js)
+#endif
 #ifdef OUTLINE
 uniform float uOutline;uniform vec3 uCamPos;
 #endif
 out vec3 vN;out vec3 vC;out vec3 vW;out vec4 vS;out float vSoft;
 void main(){
   vec4 p=vec4(aPos,1.0);vec3 n=aNrm;
+#ifdef TEX
+  vUV=aUV;
+#endif
 #ifdef SKIN
   int bi=int(aBone+0.5);int b0=bi&31;int b1=(bi>>5)&31;float bw=float(bi>>10)/255.0;
   mat4 B=uBones[b0]*(1.0-bw)+uBones[b1]*bw;p=B*p;n=mat3(B)*n;
@@ -355,11 +361,17 @@ vec3 fog(vec3 c,vec3 w){
 const FS_LIT = `
 in vec3 vN;in vec3 vC;in vec3 vW;in vec4 vS;in float vSoft;
 uniform vec3 uTint,uEmis,uRock;uniform float uTime,uCloudSh,uCloudLo; // uCloudSh: v18.3 P10 how dark a passing cloud's shadow is (0 = none)
+#ifdef TEX
+in vec2 vUV;uniform sampler2D uTex;
+#endif
 out vec4 o;
 ` + NOISE + FS_COMMON + `
 void main(){
   vec3 N=normalize(vN);if(!gl_FrontFacing)N=-N;
   vec3 col=vC;
+#ifdef TEX
+  col=texture(uTex,vUV).rgb; // v19: the painted texture replaces the vertex colour (same cel shading below)
+#endif
 #ifdef TERRAIN
   float n1=noise(vW.xz*0.35),n2=noise(vW.xz*2.1),n3=noise(vW.xz*7.0);
   col*=0.88+0.16*n1+0.07*n2+0.04*n3;
@@ -596,6 +608,7 @@ R.init = function (canvas, opt) { // v18.11 opt.aa === false: no multisampling (
   R.gl = gl;
   const P = R.P = {};
   P.lit = compile(VS_LIT, FS_LIT); P.skin = compile(VS_LIT, FS_LIT, ['SKIN']); P.inst = compile(VS_LIT, FS_LIT, ['INST']);
+  P.skinTex = compile(VS_LIT, FS_LIT, ['SKIN', 'TEX']); // v19 textured GLB characters
   P.terrain = compile(VS_LIT, FS_LIT, ['TERRAIN']);
   P.outSkin = compile(VS_LIT, FS_OUT, ['SKIN', 'OUTLINE']); P.out = compile(VS_LIT, FS_OUT, ['OUTLINE']);
   P.dLit = compile(VS_LIT, FS_DEPTH, ['DEPTH']); P.dSkin = compile(VS_LIT, FS_DEPTH, ['DEPTH', 'SKIN']); P.dInst = compile(VS_LIT, FS_DEPTH, ['DEPTH', 'INST']);
@@ -726,6 +739,23 @@ R.meshWelded = function (w, bs) {
   return { vao, buf, ibuf, count: n, ib: true, it: big ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT, uniq: uc, bs: bs || [0, 0, 0, 1e6] };
 };
 R.meshIdx = function (src) { let bs = [0, 0, 0, 1e6]; if (src instanceof GB) bs = src.bounds(); return R.meshWelded(G.weld(src), bs); };
+/* v19 textured, indexed mesh for GLB characters (tools/glb2hero.py → js/heroasset.js): data = 11 floats per vertex (as GB),
+   uv = 2 floats per vertex (attribute 6, only read by the TEX programs), idx = Uint16Array triangle indices */
+R.meshTex = function (data, uv, idx, bs) {
+  const m = R.mesh(data); gl.bindVertexArray(m.vao);
+  const ub = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, ub); gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(6); gl.vertexAttribPointer(6, 2, gl.FLOAT, false, 8, 0);
+  const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  m.ub = ub; m.ib = ib; m.it = gl.UNSIGNED_SHORT; m.count = idx.length; if (bs) m.bs = bs; return m;
+};
+R.texture = function (img) { // an sRGB-ish colour texture with mipmaps (glTF uv: no y flip)
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+};
 R.draw = function (m) { if (m.ib) gl.drawElements(gl.TRIANGLES, m.count, m.it, 0); else gl.drawArrays(gl.TRIANGLES, 0, m.count); };
 R.updateMesh = function (m, src) {
   const data = src instanceof Float32Array ? src : src instanceof GB ? src.d : new Float32Array(src.d);
@@ -940,11 +970,22 @@ R.render = function (S, W, H) {
   // skinned
   P = R.P.skin; gl.useProgram(P.p); setCommon(P, S);
   for (const k of S.skinned) { k.cull = !!(k.bs && !visible(k.bs)); }
+  let nTex = 0;
   for (const k of S.skinned) {
-    if (k.cull) continue; gl.uniformMatrix4fv(P.U.uBones, false, k.bones);
+    if (k.cull) continue; if (k.tex) { nTex++; continue; } gl.uniformMatrix4fv(P.U.uBones, false, k.bones);
     if (k.tint) gl.uniform3fv(P.U.uTint, k.tint); if (k.emis) gl.uniform3fv(P.U.uEmis, k.emis);
     gl.bindVertexArray(k.mesh.vao); R.draw(k.mesh);
     if (k.tint) gl.uniform3f(P.U.uTint, 1, 1, 1); if (k.emis) gl.uniform3f(P.U.uEmis, 0, 0, 0);
+  }
+  if (nTex) { // v19 textured GLB characters: the same cel shading, colour from their texture (unit 3)
+    P = R.P.skinTex; gl.useProgram(P.p); setCommon(P, S); gl.activeTexture(gl.TEXTURE3); gl.uniform1i(P.U.uTex, 3);
+    for (const k of S.skinned) {
+      if (k.cull || !k.tex) continue; gl.uniformMatrix4fv(P.U.uBones, false, k.bones); gl.bindTexture(gl.TEXTURE_2D, k.tex);
+      if (k.tint) gl.uniform3fv(P.U.uTint, k.tint); if (k.emis) gl.uniform3fv(P.U.uEmis, k.emis);
+      gl.bindVertexArray(k.mesh.vao); R.draw(k.mesh);
+      if (k.tint) gl.uniform3f(P.U.uTint, 1, 1, 1); if (k.emis) gl.uniform3f(P.U.uEmis, 0, 0, 0);
+    }
+    gl.activeTexture(gl.TEXTURE0);
   }
   // outlines (back faces)
   gl.cullFace(gl.FRONT);

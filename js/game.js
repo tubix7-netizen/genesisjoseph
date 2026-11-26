@@ -324,6 +324,16 @@ Game.refreshLook = function () { if (!S) return; const base = (EP.outfits && EP.
   if (MW.ok && P.mesh && !meshCache[lk]) { P.pend = lk; P.pendT = performance.now(); mwAsk(lk, look, 0, 0, true); } else { P.pend = null; P.mesh = lookMesh(look); }
   P.rig.body = G.Motion.bodyOf(look); P.limp = !!base.limp || !!S.flags.limp; };
 Game.setOutfit = setOutfit;
+/* v19 GLB 캐릭터 (js/heroasset.js): 옷 → 에셋 이름. 표에 있는 옷을 입은 동안만 그 모델을 쓰고, 다른 옷(찢긴 옷, 종의 옷,
+   총리 옷 …)으로 갈아입으면 예전처럼 코드로 만든 몸으로 돌아간다. 에피소드가 EP.heroAssets로 직접 정할 수도 있다. */
+const HERO_ASSETS = { '요셉': { default: 'joseph', josephCoat: 'joseph' } };
+function heroAsset() {
+  const HA = G.HeroAsset, map = EP && (EP.heroAssets || HERO_ASSETS[EP.hero]), name = HA && !HA.off && map && S ? map[S.outfit] : null;
+  if (name && !HA.assets[name]) HA.load(name);
+  const a = name ? HA.get(name) : null;
+  if (a !== (P.ha || null)) { // 바뀌는 순간: 뼈 위치가 다른 rig로 옮기고, 그리기 목록이 새 뼈 배열을 보게 한다
+    P.rig = HA.swapRig(P.rig, a ? a.def : HB); P.ha = a; P.sk = null; }
+}
 
 // =================================================================== NPCs
 /* v18.34 villagers who share a costume look like brothers: each one gets their own hair, beard, skin tone and hair colour (story characters keep theirs) */
@@ -1302,10 +1312,11 @@ function render(dt) {
   if (EP.pose) EP.pose(pst, S, Game);
   if (P.downed) { pst.act = 'fallen'; pst.actT = 1; pst.speed = 0; }
   if (P.climb) { pst.act = 'climb'; pst.actT = ((P.climbPh || 0) / (PI * 2)) % 1; pst.speed = 0; pst.air = false; pst.gnd = null; pst.staff = false; }
+  heroAsset();
   animHuman(P.rig, pst, tAll);
   if (P.swim) { P.rig.off[1] -= 0.0; }
   if (P.ride && G.Ride) G.Ride.riderMatrix(TMPM); else m4trs(TMPM, P.x, P.y + (EP.rootY ? EP.rootY(S, Game) : 0), P.z, P.face); P.rig.update(TMPM);
-  if (Game.mode === 'play' || (Game.mode === 'title' && Game.titleHero)) scene.skinned.push(P.sk || (P.sk = { /* v18.73 titleHero: the hero stands in the title picture (after the ending) */ mesh: null, bones: P.rig.bones, outline: true, bs: [0, 0, 0, 1.8] })); if (P.sk) { P.sk.mesh = P.mesh; P.sk.bs[0] = P.x; P.sk.bs[1] = P.y + 1; P.sk.bs[2] = P.z; P.sk.tint = P.tint || null; }
+  if (Game.mode === 'play' || (Game.mode === 'title' && Game.titleHero)) scene.skinned.push(P.sk || (P.sk = { /* v18.73 titleHero: the hero stands in the title picture (after the ending) */ mesh: null, bones: P.rig.bones, outline: true, bs: [0, 0, 0, 1.8] })); if (P.sk) { P.sk.mesh = P.ha ? P.ha.mesh : P.mesh; P.sk.tex = P.ha ? P.ha.tex : null; P.sk.bs[0] = P.x; P.sk.bs[1] = P.y + 1; P.sk.bs[2] = P.z; P.sk.tint = P.tint || null; }
   // held prop
   // only one thing in the hand: the action's own tool > a drawn weapon > the tool the player chose to hold
   const freeHand = !P.carry && !P.ride && !P.sleeping && !Game.cineOn && !(P.emote && (P.emote.k === 'eat' || P.emote.k === 'drink' || P.emote.k === 'sit_eat' || P.emote.k === 'sit_drink' || P.emote.k === 'sitg')) && !(pst.act && pst.act !== P.act && !(G.Acts && G.Acts.walkable(pst.act)));
