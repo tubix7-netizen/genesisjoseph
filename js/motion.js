@@ -347,7 +347,7 @@ function gaitStyle(rig, st, t, A, dt) {
     add(rig, B.chest, 0.15, 0, 0, 1); add(rig, B.head, -0.12, 0, 0, 1); for (const b of [B.thighL, B.thighR]) rig.rot[b * 3] *= 0.8; add(rig, B.shinL, 0.06, 0, 0, 1); add(rig, B.shinR, 0.06, 0, 0, 1); rig.off[1] -= 0.012;
   }
   // braking skid: lead leg plants forward, torso leans back, arms come forward
-  const fl = M.feel(), br = (rig.brk = lerp(rig.brk || 0, clamp((-(lm.acc || 0) - 3.2) / 6, 0, 1) * sst(2.6, 5, lm.sp0 = Math.max(sp, (lm.sp0 || 0) * 0.9)) * fl.brake * (st.act ? 0 : 1), Math.min(1, dt * 10)));
+  const fl = M.feel(), br = (rig.brk = lerp(rig.brk || 0, clamp((-(lm.acc || 0) - 3.2) / 6, 0, 1) * sst(2.6, 5, lm.sp0 = Math.max(sp, (lm.sp0 || 0) * Math.exp(-6.32 * dt))) * fl.brake * (st.act ? 0 : 1), Math.min(1, dt * 10)));
   if (br > 0.01) { const b = Math.min(1.2, br);
     add(rig, B.chest, -0.3, 0, 0, b); add(rig, B.pelvis, -0.08, 0, 0, b); add(rig, B.head, 0.15, 0, 0, b);
     rig.rot[B.thighL * 3] = lerp(rig.rot[B.thighL * 3], -0.6, Math.min(1, b)); rig.rot[B.shinL * 3] = lerp(rig.rot[B.shinL * 3], 0.12, Math.min(1, b));
@@ -402,23 +402,30 @@ function swimPose(rig, st, t, dt) {
 }
 
 // =================================================================== 5. FOOT IK (two-bone, analytic)
-const L1 = 0.43, L2 = 0.44, FX = 0.095;
+function legLengths(rig, th, sh) {
+  const key = th === B.thighL ? 'leftLegLengths' : 'rightLegLengths';
+  const cached = rig[key];
+  if (cached && cached.def === rig.def) return cached;
+  const thigh = rig.def[th], knee = rig.def[sh], foot = rig.def[th === B.thighL ? B.footL : B.footR];
+  return rig[key] = { def: rig.def, L1: thigh[3] - knee[3], L2: knee[3] - foot[3] };
+}
 // ankle position relative to the hip in the leg's sagittal plane: dir(θ) = (y: −cosθ, z: −sinθ)
 function legIK(rig, th, sh, e) {
+  const {L1, L2} = legLengths(rig, th, sh);
   const t1 = rig.rot[th * 3], t2 = rig.rot[sh * 3];
   let ay = -L1 * Math.cos(t1) - L2 * Math.cos(t1 + t2); const az = -L1 * Math.sin(t1) - L2 * Math.sin(t1 + t2);
   ay += e; const D = clamp(Math.hypot(ay, az), 0.14, L1 + L2 - 0.003);
   const phi = Math.atan2(-az, -ay), knee = PI - Math.acos(clamp((L1 * L1 + L2 * L2 - D * D) / (2 * L1 * L2), -1, 1)), al = Math.acos(clamp((L1 * L1 + D * D - L2 * L2) / (2 * L1 * D), -1, 1));
   rig.rot[th * 3] = phi - al; rig.rot[sh * 3] = knee;
   return [az]; }
-const ankleZ = (rig, th, sh) => { const t1 = rig.rot[th * 3], t2 = rig.rot[sh * 3]; return -L1 * Math.sin(t1) - L2 * Math.sin(t1 + t2); };
+const ankleZ = (rig, th, sh) => { const {L1, L2} = legLengths(rig, th, sh); const t1 = rig.rot[th * 3], t2 = rig.rot[sh * 3]; return -L1 * Math.sin(t1) - L2 * Math.sin(t1 + t2); };
 function footIK(rig, st, A, dt) {
   const ik = rig.ik || (rig.ik = { l: 0, r: 0, w: 0 });
   const onT = st.gnd && Math.abs(st.gnd(0, 0)) < 0.08; // standing on the terrain (not a floor, deck or roof)
   const on = onT && !st.air && !st.ride && !st.sleep && !st.swim && !st.noIK;
   ik.w = lerp(ik.w, on ? 1 - 0.55 * A : 0, Math.min(1, dt * 8)); if (ik.w < 0.01 || !st.gnd) return;
   const zl = ankleZ(rig, B.thighL, B.shinL), zr = ankleZ(rig, B.thighR, B.shinR);
-  const hl = clamp(st.gnd(FX, zl), -0.35, 0.35), hr = clamp(st.gnd(-FX, zr), -0.35, 0.35), k = Math.min(1, dt * 14);
+  const hl = clamp(st.gnd(rig.def[B.footL][2], zl), -0.35, 0.35), hr = clamp(st.gnd(rig.def[B.footR][2], zr), -0.35, 0.35), k = -Math.expm1(-14 * dt);
   ik.l = lerp(ik.l, hl, k); ik.r = lerp(ik.r, hr, k);
   const w = ik.w, pd = clamp(Math.min(ik.l, ik.r, 0.12), -0.22, 0.12); // pelvis goes down to the lower foot
   rig.off[1] += pd * w;
@@ -730,7 +737,7 @@ function blendA(rig, st, dt, rate) {
   const n = rig.rot.length, m = rig.am || (rig.am = { rot: new Float32Array(n), scl: new Float32Array(n), off: [0, 0, 0], init: false, key: '' });
   const key = (st.lie ? 'L' : '') + (st.graze ? 'G' : '') + (st.atk || ''); // v17.0: gait changes are blended by gaitW, not here
   if (!m.init) { m.rot.set(rig.rot); m.scl.set(rig.scl); m.off = rig.off.slice(); m.init = true; m.key = key; return; }
-  const k = key !== m.key || m.blend > 0 ? Math.min(1, dt * (rate || 7)) : 1;
+  const k = key !== m.key || m.blend > 0 ? -Math.expm1(-dt * (rate || 7)) : 1;
   if (key !== m.key) { m.blend = 0.6; m.key = key; } if (m.blend > 0) m.blend -= dt;
   for (let i = 0; i < n; i++) { m.rot[i] += (rig.rot[i] - m.rot[i]) * k; rig.rot[i] = m.rot[i]; m.scl[i] += (rig.scl[i] - m.scl[i]) * k; rig.scl[i] = m.scl[i]; }
   for (let c = 0; c < 3; c++) { m.off[c] += (rig.off[c] - m.off[c]) * k; rig.off[c] = m.off[c]; }

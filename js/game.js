@@ -343,6 +343,16 @@ function folkLook(d) { if (!d.folk || !d.look || d._fv || d.look.vary === false)
     if (!fem && L.beard === undefined && L.age !== 'old' && r(2) < 0.38) o.beard = 'short'; }
   if (L.skin !== undefined) o.skin = G.mixHex(L.skin, r(3) < 0.5 ? 0x000000 : 0xffffff, r(4) * 0.12);
   if (L.hair !== undefined && L.age !== 'old') o.hair = [L.hair, 0x1a120c, 0x2e1e14, 0x3a2618][Math.floor(r(5) * 4)];
+  // A small set of naturally dyed woven trims, shared by villagers of all ages.
+  const dyes = [0x627b78, 0xab694c, 0x776386, 0x947943];
+  const dye = dyes[Math.floor(r(7) * dyes.length)];
+  if (!L.bare && !L.noArmor && !L.collar) {
+    if (L.trim === undefined) o.trim = dye;
+    if (!L.mantle && r(10) < 0.48) o.yoke = G.mixHex(dye, L.top || 0xd9c9a6, 0.25);
+    if (!L.sash && !L.belt && r(8) < 0.55) o.sash = dye;
+    if (L.trim2 === undefined) o.trim2 = G.mixHex(dye, 0xeee1ba, 0.5);
+  }
+  if (L.kid && !L.headwear && !L.hairStyle) o.hairStyle = (fem ? ['braid', 'tied'] : ['short', 'curly'])[Math.floor(r(9) * 2)];
   o.seed = (L.seed || 0) + Math.floor(r(6) * 1000); d.look = o; }
 function addNPC(d) { folkLook(d);
   const n = { d, id: d.id, name: d.name, rig: new Rig(d.animal ? AB[d.animal] : d.look && d.look.kid ? HBK : HB), mesh: d.animal ? animalMesh(d.animal, d.pattern || 'plain', d.extra) : null, meshLo: null,

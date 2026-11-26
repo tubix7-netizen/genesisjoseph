@@ -278,6 +278,17 @@ function humanoid(o, lod) {
     const nvT = o.stripes ? Q(Math.round(0.52 / 0.0065), 30, 12) : Q(16, 8, 4);
     const tfold = (a, y) => 0.014 * Math.sin(a * 9) * G2(y - 1.1, 0.045) + 0.006 * Math.sin(a * 5 + 1) * sst(1.3, 1.0, y);
     g.tube(y => tunR(y, 0.011), 0.985, neckTop, Q(24, 14, 8), nvT, J({ c: o.stripes ? topC : (x, y, z) => { const a = Math.atan2(z, x); return shade(top, clamp(tfold(a, y) * 6, -0.14, 0.05) - 0.08 * G2(y - 1.0, 0.025) - 0.05 * G2(Math.abs(x) - 0.15, 0.03) * G2(y - 1.3, 0.06)); }, flatC: !!o.stripes, bf: waistBF, mod: (a, y) => (1 + tfold(a, y)) * bustF(a, y) }));
+    // A woven shoulder yoke follows the tunic cross-section and chest bone.
+    if (o.yoke) {
+      g.surf((u, v) => {
+        const a = 2 * PI * u, front = Math.max(0, Math.sin(a));
+        const bottom = 1.395 - (kid ? 0.036 : 0.074) * front ** 4;
+        const y = lerp(bottom, neckTop(a) - 0.008, v), r = tunR(y, 0.018);
+        const x = Math.cos(a), z = Math.sin(a), exponent = 2 / r[4];
+        return [Math.sign(x) * Math.abs(x) ** exponent * r[0], y,
+          r[3] + Math.sign(z) * Math.abs(z) ** exponent * r[1] * bustF(a, y)];
+      }, Q(28, 16, 10), 3, J({ c: o.yoke, b: B.chest, ds: true }));
+    }
     if (!lo2 && !o.collar) // neckline trim
       g.surf((u, v) => { const a = u * 2 * PI, y = neckTop(a) - 0.016 * (1 - v), r = tunR(y, 0.0135), e = 2 / r[4] - 1; return [Math.cos(a) * Math.pow(Math.abs(Math.cos(a)), e) * r[0], y, r[3] + Math.sin(a) * Math.pow(Math.abs(Math.sin(a)), e) * r[1]]; },
         Q(48, 24), 1, J({ c: trim, b: 1 }));
@@ -414,6 +425,12 @@ function humanoid(o, lod) {
   const riK = o.realFace ? 1 : old ? 1.07 : KID2 ? 1.45 : !YA ? (fem ? 1.14 : 1.3) : fem ? 1.2 : 1.4; // v17.0: kids' iris 1.3 -> 1.45 (big, glassy irises in a smaller eye) // v16.9 미형: 연구 보고서 2-1 — 홍채 남 1.3→1.4, 여 1.14→1.2
   const MALE = !fem && !kid; const E = { x: (MALE ? 0.0333 : 0.0338) * (kid ? 0.97 : 1), y: !old && !o.realFace ? -0.0048 : -0.003, w: (MALE ? 0.0187 : 0.0198) * ES, hu: (fem || kid ? 0.0126 : 0.0109) * ES * (o.narrow ? 0.78 : 1) * huK, hl: 0.0071 * ES * (!old && !o.realFace ? 0.92 : 1), tilt: (o.tilt === undefined ? (!old && !o.realFace ? 0.0022 : 0.0012) : o.tilt), ri: (MALE ? 0.0111 : 0.0116) * ES * riK };
   if (YA) E.x = fem ? 0.0372 : 0.038; if (KID2) E.x = 0.0425; E.x *= 1 + vh(2) * 0.16; if (o.tilt === undefined) E.tilt += vh(3) * 0.0034; E.hu *= 1 + vh(9) * 0.3; // round or narrow eyes // v17.0: kid spacing 0.19 -> ~0.7 eye; per-person spacing and tilt // v16.9 미형: 연구 보고서 2-1 — 미간 남 0.0362→0.038, 여 0.0352→0.0372 (표의 0.036은 미간÷눈 0.65라 목표 0.8에 맞춤)
+  // Readable at the portrait camera distance, with separate child proportions.
+  if (!o.realFace) {
+    E.w *= kid ? 1.06 : fem ? 1.10 : 1.08;
+    E.hu *= old ? 1.03 : kid ? 1.11 : 1.09;
+    E.ri *= old ? 1.03 : 1.07;
+  }
   if (G.faceLog) G.faceLog.push({ fem, kid, old, real: !!o.realFace, ES, Ex: E.x, Ew: E.w, W: sec(E.y, [0, 0, 0, 0, 0, 0])[0], W2: sec(-0.011, [0, 0, 0, 0, 0, 0])[0] }); // dev: face proportions (set G.faceLog = [] before building a look)
   if (!lo2) for (const s of [1, -1]) {
     const top = x => { const q = (x - 0.12 * E.w) / (1.06 * E.w); return E.hu * Math.pow(Math.max(0, 1 - q * q), 0.62) + E.tilt * x / E.w; };
@@ -955,7 +972,7 @@ function animal(sp, o) {
   else if (sp === 'sheep') {
     const wool = o.wool || 0xf3eee2, dark = o.dark || 0x4a3a30, face = o.face || 0xf0e6d6;
     const fn = patternFn(pat, wool, dark);
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 16; i++) {
       const a = r() * PI * 2, z = (r() - 0.5) * 0.62, rr = 0.17 + r() * 0.06, y = 0.62 + Math.sin(a) * 0.17 * 0.9, x = Math.cos(a) * 0.17;
       let c = typeof fn === 'function' ? fn(0, 0, z) : wool; if (pat === 'spotted' && r() < 0.3) c = dark;
       g.sph(rr, 8, 6, { at: [x, Math.max(0.5, y), z], c, b: 0, j: 0.04 });
@@ -963,6 +980,10 @@ function animal(sp, o) {
     g.sph(0.3, 10, 8, { at: [0, 0.64, 0], s: [0.85, 0.75, 1.25], c: pat === 'streaked' ? fn : wool, b: 0, j: 0.03 });
     if (pat === 'speckled') for (let i = 0; i < 26; i++) { const a = r() * PI * 2, z = (r() - 0.5) * 0.6; g.sph(0.035 + r() * 0.02, 5, 4, { at: [Math.cos(a) * 0.27, 0.64 + Math.abs(Math.sin(a)) * 0.2, z], c: dark, b: 0, j: 0 }); }
     g.sph(0.12, 8, 7, { at: [0, 0.8, 0.46], s: [0.85, 1, 1.25], c: face, b: 1, j: 0 });
+    // Broad scallops give the fleece a readable silhouette in the flock.
+    for (const side of [-1, 1]) {
+      for (const z of [-0.18, 0.06]) g.sph(0.12, 6, 4, { at: [side * 0.17, 0.72, z], s: [0.8, 1, 1.35], c: pat === 'plain' ? wool : fn(side * 0.17, 0.72, z), b: 0, j: 0.02 });
+    }
     g.sph(0.1, 7, 6, { at: [0, 0.88, 0.4], c: pat === 'plain' ? wool : fn(0, 0, 0.4), b: 1, j: 0.03 });
     for (const s of [1, -1]) { g.sph(0.05, 6, 4, { at: [0.11 * s, 0.84, 0.42], s: [1.6, 0.6, 0.9], c: face, b: 1 }); g.sph(0.018, 5, 4, { at: [0.05 * s, 0.84, 0.56], c: 0x1a1210, b: 1, j: 0 }); }
     legs(g, def, 0.48, 0.035, o.legCol || 0x5a4a3e);
@@ -1303,8 +1324,8 @@ function limbTree(g, M, r, o) {
       const up = clamp((y - ey + R0 * 0.3) / (R0 * 1.2), 0, 1), c0 = C[Math.floor(r() * C.length)];
       // v16.1: soft, rounded leaf masses (smooth shading, more facets) with a smaller tuft on many of them, so the crown reads as
       // clustered leaves instead of cut gems
-      const lr = o.leaf * (0.6 + r() * 0.55) * (lod ? 1.16 : 1), lc = mixHex(mixHex(c0, 0x1c2812, 0.38 * (1 - up)), 0xd8e0a0, 0.12 * up);
-      g.sph(lr, sA, sB, { m: M, at: [x, y, z], s: [1, 0.78, 1], ry: r() * 6, c: lc, j: 0.07, sw: 0.6 });
+      const lr = o.leaf * (0.72 + r() * 0.48) * (lod ? 1.16 : 1), lc = mixHex(mixHex(c0, 0x1c2812, 0.38 * (1 - up)), 0xd8e0a0, 0.12 * up);
+      g.sph(lr, sA, sB, { m: M, at: [x, y, z], s: [1.14, 0.71, 0.94], ry: r() * 6, c: lc, j: 0.04, sw: 0.6 });
       if (r() < (lod ? 0.4 : 0.6)) { const ta = r() * PI * 2; g.sph(lr * 0.55, lod ? 5 : 6, lod ? 3 : 4, { m: M, at: [x + Math.cos(ta) * lr * 0.75, y + lr * 0.35, z + Math.sin(ta) * lr * 0.75], s: [1, 0.8, 1], c: mixHex(lc, 0xe8f0a8, 0.1), j: 0.08, sw: 0.7 }); } } }
 }
 env.olive = function (g, M, r) { M = scaledM(M, 1.55); // v12: 4–5 m

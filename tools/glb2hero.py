@@ -189,6 +189,19 @@ def main():
     # 머리(얼굴·머리카락)는 엔진의 '얼굴' 셰이딩을 받는다 (aCol.a = 0.5: 부드럽고 고른 명암, 얇은 외곽선)
     soft = np.where(b0 == GI['head'], 0.5, 0.0).astype(np.float32)
 
+    # Landmarks measured on the front of the Joseph mesh, in game metres.
+    if a.name == 'joseph' and os.path.basename(a.glb) == 'joseph_3d.glb':
+        x, y, z = P.T
+        front = (b0 == GI['head']) & (z > 0.045)
+        for name, cx, cy, rx, ry in [('eyes', 0.049, 1.634, 0.041, 0.028),
+                                      ('mouth', 0, 1.565, 0.044, 0.016)]:
+            distance = ((np.abs(x) - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
+            influence = np.clip((1.45 - distance) / 0.7, 0, 1)
+            mask = front & (influence > 0)
+            weight = np.rint(255 * influence[mask])
+            code[mask] = GI['head'] + GI[name] * 32 + weight * 1024
+            D[name][1] = cy
+
     # ---- 쓰기
     os.makedirs(a.out, exist_ok=True)
     nv = len(P)

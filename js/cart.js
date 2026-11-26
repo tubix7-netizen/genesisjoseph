@@ -420,10 +420,10 @@ Ct.setVeh = function (k) { const s = S(); if (!VEH[k]) return false; if (s.q.rid
   const paxN = (s.q.cartPax ? 1 : 0) + (s.q.cartPax2 || []).length; if (paxN) { G.UI.toast('태운 사람을 먼저 내려 주세요'); return false; }
   s.flags.veh = k; applyVeh(); pop(`${VEH[k].n}로 다녀요`, '「수레 부르기」로 불러요', 'donkey'); return true; };
 /* one open spoked wheel centred on its hub (axle along x), white and gold */
-function wheelMesh(r, n) { const g = new G.GB(44 + n), PI = Math.PI, GOLD = 0xe2b440, GOLDH = 0xf6d878, WHITE = 0xf4efe4, N = 22, seg = 2 * PI * r / N * 1.12;
+function wheelMesh(r, n) { const g = new G.GB(44 + n), PI = Math.PI, GOLD = 0xe2b440, GOLDH = 0xf6d878, WHITE = 0xf4efe4, N = 24, seg = 2 * PI * r / N * 1.12;
   for (let k = 0; k < N; k++) { const a = k / N * 2 * PI; g.box(0.075, 0.07, seg, { at: [0, Math.cos(a) * (r - 0.035), Math.sin(a) * (r - 0.035)], rx: a, c: GOLD, j: 0 });
     g.box(0.085, 0.025, seg, { at: [0, Math.cos(a) * (r - 0.085), Math.sin(a) * (r - 0.085)], rx: a, c: WHITE, j: 0 }); }
-  for (let k = 0; k < n; k++) g.box(0.035, 0.035, (r - 0.08) * 2, { at: [0, 0, 0], rx: k * PI / n, c: k % 2 ? GOLD : WHITE, j: 0 });
+  for (let k = 0; k < n; k++) g.box(0.035, 0.035, (r - 0.08) * 2, { at: [0, 0, 0], rx: k * PI / n, c: k % 2 ? 0xb6844d : 0xd2aa72, j: 0 });
   g.cyl(0.1, 0.1, 0.16, 12, { at: [0, 0, 0], rz: PI / 2, c: GOLD, j: 0 }); g.cyl(0.055, 0.055, 0.2, 10, { at: [0, 0, 0], rz: PI / 2, c: GOLDH, j: 0 }); return G.R.mesh(g); }
 let WHEELS = [[0.84, -0.42, 0.55, 3], [-0.84, -0.42, 0.55, 3]]; const WMs = [G.m4(), G.m4(), G.m4(), G.m4()]; /* v18.43 two six-spoked wheels (3 diameters = 6 spokes) */
 let wheelMs = null;

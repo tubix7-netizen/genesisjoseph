@@ -466,10 +466,10 @@ const LOOK = {
   josephShaved: Object.assign({}, JO, { skin: 0xd09868, bare: true, kilt: true, bottom: LINEN, hairStyle: 'short', build: 0.9, jaw: 0 }),
   josephVizier: Object.assign({}, JO, { skin: 0xd09868, long: true, top: LINEN, under: LINEN, trim: GOLD, trim2: LAPIS, collar: GOLD, collar2: LAPIS, sash: GOLD, bands: GOLD, hairStyle: 'wig', hair: 0x15100c, build: 0.95, jaw: 0.05, sandal: GOLD }),
   // family in Canaan
-  jacob: { skin: 0xd8a070, top: 0x8a4434, trim: 0x2e4a78, trim2: 0xd8c49a, under: 0xd8c49a, hair: 0xd8d0c4, hairStyle: 'short', beard: 'long', beardCol: 0xece6dc, mantle: 0x6a5a48, mantleTrim: 0x2e4a78,
+  jacob: { yoke: 0x6e5845, skin: 0xd8a070, top: 0x8a4434, trim: 0x2e4a78, trim2: 0xd8c49a, under: 0xd8c49a, hair: 0xd8d0c4, hairStyle: 'short', beard: 'long', beardCol: 0xece6dc, mantle: 0x6a5a48, mantleTrim: 0x2e4a78,
     headwear: 'cloth', clothCol: 0xece4d0, clothStripe: 0x3a6aa0, bandCol: 0x5a3a24, belt: 0x5a3a24, legWrap: 0x8a7458, limp: true, age: 'old', eye: 0x6a3e22, browAng: -0.1, long: true },
   jacobMourn: { skin: 0xd8a070, top: 0x5a4e40, trim: 0x3a3228, hair: 0xd8d0c4, hairStyle: 'wild', beard: 'long', beardCol: 0xece6dc, belt: 0x3a3228, age: 'old', long: true, eye: 0x6a3e22, browAng: -0.45 },   // 굵은 베 (창 37:34)
-  benjamin: KID({ top: 0xe0c8a0, trim: 0x3e8a66, sash: 0x3e8a66, hairStyle: 'curly', skin: 0xe8b48a }),
+  benjamin: KID({ yoke: 0x509473, top: 0xe0c8a0, trim: 0x3e8a66, sash: 0x3e8a66, hairStyle: 'curly', skin: 0xe8b48a }),
   reuben: HEB({ top: 0x9a5a3a, trim: 0x5a3a22, under: 0xd8c8a8, mantle: 0x6a5a40, mantleShort: true, hairStyle: 'short', beard: 'long', beardCol: 0x3a2414, browAng: -0.1, build: 1.1 }),
   simeon: HEB({ top: 0x6a5a48, trim: 0x2a2018, sleeveless: true, hairStyle: 'wild', browAng: 0.65, build: 1.25, wraps: 0x4a3426 }),
   levi: HEB({ top: 0x5a6a7a, trim: 0x2a3a4a, hairStyle: 'tied', browAng: 0.5, build: 1.1 }),
@@ -481,7 +481,7 @@ const LOOK = {
   issachar: HEB({ top: 0x8a7a5a, trim: 0x4a3a2a, hairStyle: 'short', build: 1.35, browAng: 0.15 }),
   zebulun: HEB({ top: 0x7a9ab8, trim: 0x3a5a7a, headwear: 'cloth', clothCol: 0xe0d8c8, bandCol: 0x3a5a7a, browAng: 0.3 }),
   servantH: HEB({ top: 0xb8a888, trim: 0x6a4a30, headwear: 'cloth', clothCol: 0xd8ccb0, bandCol: 0x6a4a30, beard: 'short' }),
-  leah: { skin: 0xe0b088, top: 0x98708e, long: true, trim: 0x5a3a5a, trim2: 0xe0c070, under: 0x98708e, hair: 0x6a5a50, hairStyle: 'bun', headwear: 'veil', clothCol: 0xd8c8a0, clothStripe: 0xa86a8a, age: 'old', browAng: -0.3 },
+  leah: { yoke: 0xb28c98, skin: 0xe0b088, top: 0x98708e, long: true, trim: 0x5a3a5a, trim2: 0xe0c070, under: 0x98708e, hair: 0x6a5a50, hairStyle: 'bun', headwear: 'veil', clothCol: 0xd8c8a0, clothStripe: 0xa86a8a, age: 'old', browAng: -0.3 },
   dinah: { skin: 0xe2ab7c, top: 0xd88a9a, long: true, trim: 0xa84a5a, hair: 0x2a1810, hairStyle: 'long', headwear: 'veil', clothCol: 0xe8dcc0, clothStripe: 0xa84a5a, fem: true, sash: 0xe0b040 },
   man: { skin: 0xc8a080, top: 0xd8d0c0, long: true, trim: 0x8a7a60, under: 0xd8d0c0, hair: 0x3a3028, headwear: 'cloth', clothCol: 0xe8e4dc, bandCol: 0x8a7a60, mantle: 0xb8b0a0, beard: 'short', beardCol: 0x5a5048, browAng: 0.2, age: 'old' },
   ishmael: { skin: 0xa86e44, long: true, stripes: [0x8a7458, 0x8a7458, 0x3a2a1a, 0x8a7458, 0xc8a050, 0x8a7458], stripesB: [0x8a7458, 0x3a2a1a, 0x8a7458, 0x8a7458, 0xc8a050, 0x8a7458], beard: 'long', beardCol: 0x1a1410, hair: 0x1a1410, headwear: 'turban', clothCol: 0xf0e8d8, bandCol: 0x3a2a1a, sash: 0xb3472e, boots: 0x4a3426, browAng: 0.3 },
