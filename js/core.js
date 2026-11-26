@@ -345,7 +345,7 @@ float shadowF(vec4 S){
   if(uShadowOn<0.5)return 1.0;
   vec3 c=S.xyz/S.w*0.5+0.5;
   if(c.x<0.0||c.x>1.0||c.y<0.0||c.y>1.0||c.z>1.0)return 1.0;
-  float t=uShadowTexel,z=c.z-0.0012;
+  float t=uShadowTexel,z=c.z-0.00035;
   float s=texture(uShadow,vec3(c.xy+vec2(-t,-t),z))+texture(uShadow,vec3(c.xy+vec2(t,-t),z))+texture(uShadow,vec3(c.xy+vec2(-t,t),z))+texture(uShadow,vec3(c.xy+vec2(t,t),z));
   float e=smoothstep(0.9,1.0,max(abs(c.x-0.5),abs(c.y-0.5))*2.0);
   return mix(s*0.25,1.0,e);
@@ -360,6 +360,14 @@ vec3 fog(vec3 c,vec3 w){
 `;
 const FS_LIT = `
 in vec3 vN;in vec3 vC;in vec3 vW;in vec4 vS;in float vSoft;
+#ifdef CONTACT
+uniform vec3 uFootL,uFootR;
+float contact(vec3 foot){
+  vec3 delta=vW-foot;
+  float radial=dot(delta.xz,delta.xz);
+  return (1.0-smoothstep(0.001,0.055,radial))*(1.0-smoothstep(0.065,0.34,abs(delta.y+0.055)));
+}
+#endif
 uniform vec3 uTint,uEmis,uRock;uniform float uTime,uCloudSh,uCloudLo; // uCloudSh: v18.3 P10 how dark a passing cloud's shadow is (0 = none)
 #ifdef TEX
 in vec2 vUV;uniform sampler2D uTex;
@@ -449,7 +457,7 @@ void main(){
   c+=col*uSunCol*rim*0.3*(0.3+0.7*lit)+uSkyAmb*rim*0.06;
   // v17.0 테두리 빛: a crisp, light rim on the side facing the sun (a cel "kick" that lifts the figure off a hazy background)
   vec2 sx=normalize(uSunDir.xz+vec2(1e-4)),nx=N.xz/max(length(N.xz),1e-3);float side=smoothstep(-0.2,0.6,dot(nx,sx));
-  c+=(col*0.6+uSunCol*0.25)*smoothstep(0.55,0.72,fr)*side*0.85*mix(sh,1.0,0.4);
+  c+=(col*0.6+uSunCol*0.25)*smoothstep(0.55,0.72,fr)*side*0.55*mix(sh,1.0,0.3);
   // a little sheen on hair (the half-soft strands)
   float hairK=1.0-abs(vSoft-0.45)*6.0; if(hairK>0.0){vec3 H2=normalize(uSunDir+V);c+=uSunCol*col*pow(max(dot(N,H2),0.0),28.0)*0.5*hairK*lit;}
 #else
@@ -458,6 +466,9 @@ void main(){
   float rim=pow(1.0-max(dot(N,V),0.0),4.0);
   vec3 c=col*(amb+uSunCol*lit);
   c+=col*uSunCol*rim*0.28*(0.35+0.65*lit);
+#endif
+#ifdef CONTACT
+  c*=1.0-0.38*max(contact(uFootL),contact(uFootR))*smoothstep(0.35,0.85,N.y);
 #endif
   c=c*uTint+uEmis;
   o=vec4(tone(fog(c,vW)),1.0);
@@ -652,9 +663,9 @@ R.init = function (canvas, opt) { // v18.11 opt.aa === false: no multisampling (
   if (!gl) return false;
   R.gl = gl;
   const P = R.P = {};
-  P.lit = compile(VS_LIT, FS_LIT); P.skin = compile(VS_LIT, FS_LIT, ['SKIN']); P.inst = compile(VS_LIT, FS_LIT, ['INST']);
+  P.lit = compile(VS_LIT, FS_LIT, ['CONTACT']); P.skin = compile(VS_LIT, FS_LIT, ['SKIN']); P.inst = compile(VS_LIT, FS_LIT, ['INST']);
   P.skinTex = compile(VS_LIT, FS_LIT, ['SKIN', 'TEX']); // v19 textured GLB characters
-  P.terrain = compile(VS_LIT, FS_LIT, ['TERRAIN']);
+  P.terrain = compile(VS_LIT, FS_LIT, ['TERRAIN','CONTACT']);
   P.outSkin = compile(VS_LIT, FS_OUT, ['SKIN', 'OUTLINE']); P.out = compile(VS_LIT, FS_OUT, ['OUTLINE']);
   P.dLit = compile(VS_LIT, FS_DEPTH, ['DEPTH']); P.dSkin = compile(VS_LIT, FS_DEPTH, ['DEPTH', 'SKIN']); P.dInst = compile(VS_LIT, FS_DEPTH, ['DEPTH', 'INST']);
   P.grass = compile(VS_GRASS, FS_GRASS); P.water = compile(VS_WATER, FS_WATER); P.waterLite = compile(VS_WATER, FS_WATER, ['LITE']); /* v18.24 phones: the same water with fewer noise lookups per pixel */ P.sky = compile(VS_SKY, FS_SKY);
@@ -741,10 +752,12 @@ R.applyCells = function (m, data, cells, lod) {
 function drawStatic(m, cam, far, lodD) { // draws the cells of m that are inside the current frustum (R.noCellCull = true draws it whole, for comparing); v18.6: with cam/far, cells wholly beyond the draw distance (all fog there) are skipped too
   gl.bindVertexArray(m.vao); const cs = m.cells;
   if (!cs || R.noCellCull) { gl.drawArrays(gl.TRIANGLES, 0, m.count); return; }
-  let first = -1, cnt = 0; const lod = lodD && m.lvao && cam && !R.noLod, L = lod ? [] : null; // v18.9: cells farther than lodD from the camera are drawn from the simplified copy (second pass below)
+  let first = -1, cnt = 0; const lod = lodD && m.lvao && cam && !R.noLod, L = lod ? (m.visibleLod || (m.visibleLod = [])) : null; if (L) L.length = 0; // v18.9: cells farther than lodD from the camera are drawn from the simplified copy (second pass below)
   for (let i = 0; i < cs.length; i++) { const e = cs[i];
-    let ok = visible(e.bs) && !(cam && far && Math.hypot(e.bs[0] - cam[0], e.bs[2] - cam[2]) - e.bs[3] > far);
-    if (ok && lod && e.lc !== undefined && Math.hypot(e.bs[0] - cam[0], e.bs[2] - cam[2]) > lodD) { if (e.lc) L.push(e); ok = false; }
+    const dx = cam ? e.bs[0] - cam[0] : 0, dz = cam ? e.bs[2] - cam[2] : 0;
+    const dist2 = dx * dx + dz * dz, limit = far + e.bs[3];
+    let ok = visible(e.bs) && !(cam && far && dist2 > limit * limit);
+    if (ok && lod && e.lc !== undefined && dist2 > lodD * lodD) { if (e.lc) L.push(e); ok = false; }
     if (ok) { if (first < 0) first = e.first; cnt += e.count; } else if (first >= 0) { gl.drawArrays(gl.TRIANGLES, first, cnt); first = -1; cnt = 0; } }
   if (first >= 0) gl.drawArrays(gl.TRIANGLES, first, cnt);
   if (L && L.length) { gl.bindVertexArray(m.lvao); let lf = -1, lc = 0; for (const e of L) { if (lf >= 0 && lf + lc === e.lf) lc += e.lc; else { if (lf >= 0) gl.drawArrays(gl.TRIANGLES, lf, lc); lf = e.lf; lc = e.lc; } } if (lf >= 0) gl.drawArrays(gl.TRIANGLES, lf, lc); }
@@ -836,9 +849,11 @@ function instDraw(s, shadow, cam, farArg) {
     const d = s.data, o = s.cdata || (s.cdata = new Float32Array(d.length)), bs = s.mesh.bs, br = (bs ? bs[3] + Math.hypot(bs[0], bs[2]) : 4), by = bs ? bs[1] : 0;
     n = 0; let n2 = 0; const lodD = !shadow && cam && s.lodMesh && R.lodDist && !R.noLod ? R.lodDist : 0, lodD2 = lodD * lodD, o2 = lodD ? (s.cdata2 || (s.cdata2 = new Float32Array(d.length))) : null; const far = farArg || (!shadow && cam && R.farK < 1 ? R_FAR : 0); // v18.6: with a shortened draw distance (phones) instances wholly beyond it (all fog) are skipped
     for (let i = 0, N = s.n; i < N; i++) {
-      const b = i * 8, sc = d[b + 4] || 1, x = d[b], y = d[b + 1] + by * sc, z = d[b + 2], r = br * sc + 1.5; let ok = !(far && Math.hypot(x - cam[0], z - cam[2]) - r > far);
+      const b = i * 8, sc = d[b + 4] || 1, x = d[b], y = d[b + 1] + by * sc, z = d[b + 2], r = br * sc + 1.5; const dx = cam ? x - cam[0] : 0, dz = cam ? z - cam[2] : 0;
+      const distance2 = dx * dx + dz * dz;
+      let ok = !far || distance2 <= (far + r) * (far + r);
       if (ok) for (let p = 0; p < 24; p += 4) if (FR[p] * x + FR[p + 1] * y + FR[p + 2] * z + FR[p + 3] < -r) { ok = false; break; }
-      if (ok) { if (lodD && (x - cam[0]) * (x - cam[0]) + (z - cam[2]) * (z - cam[2]) > lodD2) { const q = n2 * 8; for (let k = 0; k < 8; k++) o2[q + k] = d[b + k]; n2++; } else { const q = n * 8; for (let k = 0; k < 8; k++) o[q + k] = d[b + k]; n++; } }
+      if (ok) { if (lodD && distance2 > lodD2) { const q = n2 * 8; for (let k = 0; k < 8; k++) o2[q + k] = d[b + k]; n2++; } else { const q = n * 8; for (let k = 0; k < 8; k++) o[q + k] = d[b + k]; n++; } }
     }
     if (n2) { if (!s.ibufL) { s.ibufL = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, s.ibufL); gl.bufferData(gl.ARRAY_BUFFER, s.max * 32, gl.DYNAMIC_DRAW); s.vaoL = instVao(s.lodMesh, s.ibufL); }
       gl.bindBuffer(gl.ARRAY_BUFFER, s.ibufL); gl.bufferSubData(gl.ARRAY_BUFFER, 0, o2, 0, n2 * 8); gl.bindVertexArray(s.vaoL); gl.drawArraysInstanced(gl.TRIANGLES, 0, s.lodMesh.count, n2); s.dirty = true; } // the far ones, from the simplified mesh
@@ -915,6 +930,16 @@ R.skyOn = !/[?&]sky=0\b/.test(location.search); R.fogX = R.skyOn ? [0.6, 0.03] :
 const VP = m4(), V = m4(), PR = m4(), IVP = m4(), LV = m4(), LP = m4(), LVP = m4(), IDM = m4();
 R.VP = VP; R.LVP = LVP; R.V = V; R.PR = PR;
 function setCommon(P, S) {
+  if (P.U.uFootL) {
+    const l = S.footL, r = S.footR;
+    if (l && r) {
+      gl.uniform3f(P.U.uFootL, l[12], l[13], l[14]);
+      gl.uniform3f(P.U.uFootR, r[12], r[13], r[14]);
+    } else {
+      gl.uniform3f(P.U.uFootL, 0, -10000, 0);
+      gl.uniform3f(P.U.uFootR, 0, -10000, 0);
+    }
+  }
   const u = P.U;
   if (u.uVP) gl.uniformMatrix4fv(u.uVP, false, VP);
   if (u.uShadowVP) gl.uniformMatrix4fv(u.uShadowVP, false, LVP);

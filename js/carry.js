@@ -94,7 +94,7 @@ qBtn.addEventListener('pointerdown', e => { e.preventDefault(); const k = S().qu
 Ca.setQuick = k => { S().quick = k || null; if (k) { if (!(G.UI.help && G.UI.help('quick', '퀵슬롯', '점프 단추 위 작은 단추로 바로 먹어요'))) G.UI.pop ? G.UI.pop('퀵슬롯 등록', Game.ITEMS[k].n, 'bread') : G.UI.toast('퀵슬롯 · ' + Game.ITEMS[k].n); } else G.UI.toast('퀵슬롯을 비웠어요'); G.UI.hud(); };
 Ca.edible = edible;
 function quickHud() { const k = S().quick, n = k ? Game.inv(k) : 0; qBtn.hidden = !k; if (!k) return; const lab = `${Game.ITEMS[k] ? Game.ITEMS[k].n : ''}\n×${n}`; if (qBtn.dataset.l !== lab) { qBtn.dataset.l = lab; qBtn.innerHTML = `${G.UI.itemIcon(k)}<small>${n}</small>`; qBtn.title = Game.ITEMS[k].n; /* v18.22 an icon, not words */ } qBtn.classList.toggle('low', n <= 0); }
-addEventListener('keydown', e => { if (Game.mode !== 'play' || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return; if (e.code === 'KeyQ') qBtn.dispatchEvent(new PointerEvent('pointerdown')); if (e.code === 'KeyR') { const b = Ph && Ph.held; if (b && Ph.held) Ph.place(); } });
+addEventListener('keydown', e => { if (Game.mode !== 'play' || e.repeat || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return; if (e.code === 'KeyQ') qBtn.dispatchEvent(new PointerEvent('pointerdown')); });
 
 const css = document.createElement('style'); css.textContent = `
 #aDrop{position:absolute;right:calc(var(--gr) + 18px);bottom:calc(env(safe-area-inset-bottom,0px) + 92px);display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;background:rgba(9,16,34,.62);color:#f4e8cc;font-size:10.5px;pointer-events:none;transition:background .15s}#aDrop i{font-style:normal;font-size:13px;line-height:1}#aDrop.go{background:rgba(160,110,40,.9);color:#fff}
