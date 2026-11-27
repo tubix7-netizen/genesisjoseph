@@ -766,8 +766,14 @@ function gaitKey(keys, u) {
 }
 /* v23 kick: the run's heel kick (knee bend above ~57°) is scaled — a jog in trousers kicks the heel half way up, only a sprint
    brings it to the seat (with the GLB heroes the legs are no longer hidden under a robe, and the full kick read as flailing) */
-function gaitLeg(u, R, kW, kR, kick) { const w = gaitKey(GAIT_W, u), r = gaitKey(GAIT_R, u), k = kick === undefined ? 1 : kick, rk = r[1] > 1 ? 1 + (r[1] - 1) * k : r[1];
-  return [w[0] * kW * (1 - R) + r[0] * kR * R, w[1] * Math.min(1, kW * 1.1) * (1 - R) + rk * R]; }
+function gaitLeg(u, R, kW, kR, kick = 1) {
+  const walk = R < 1 ? gaitKey(GAIT_W, u) : null;
+  if (R === 0) return [walk[0] * kW, walk[1] * Math.min(1, kW * 1.1)];
+  const run = gaitKey(GAIT_R, u);
+  const knee = run[1] > 1 ? 1 + (run[1] - 1) * kick : run[1];
+  if (R === 1) return [run[0] * kR, knee];
+  return [lerp(walk[0] * kW, run[0] * kR, R), lerp(walk[1] * Math.min(1, kW * 1.1), knee, R)];
+}
 function animPose(rig, st, t) { if (!locoPose(rig, st, t)) actPose(rig, st, t); }
 function locoPose(rig, st, t) { // returns true when a full-body hold pose (sleep/kneel/ride/sit) owns the rig
   rig.zero();
@@ -797,7 +803,8 @@ function locoPose(rig, st, t) { // returns true when a full-body hold pose (slee
   // locomotion — stride-matched legs, pelvis bob/roll/twist, counter-rotating shoulders, lagging arm swing, a head that
   // stays level, lean into acceleration and turns, breathing and weight shifts at rest
   const lm = rig.lm || (rig.lm = { t, sp: 0, face: st.face || 0, turn: 0, acc: 0, land: 0, air: false, seed: Math.random() * 10 });
-  let ldt = t - lm.t; lm.t = t; if (!(ldt > 0) || ldt > 0.1) ldt = 1 / 60;
+  const elapsed = t - lm.t; lm.t = t;
+  const ldt = elapsed > 0 ? Math.min(elapsed, 0.15) : 1 / 60;
   lm.acc += (clamp((sp - lm.sp) / ldt, -12, 12) - lm.acc) * Math.min(1, ldt * 6); lm.sp = sp;
   if (st.face !== undefined) { lm.turn += (clamp(angDiff(lm.face, st.face) / ldt, -6, 6) - lm.turn) * Math.min(1, ldt * 8); lm.face = st.face; }
   if (lm.air && !st.air) lm.land = 1; lm.air = !!st.air; lm.land = Math.max(0, lm.land - ldt * 4.5);
@@ -1388,8 +1395,8 @@ function limbTree(g, M, r, o) {
       const up = clamp((y - ey + R0 * 0.3) / (R0 * 1.2), 0, 1), c0 = C[Math.floor(r() * C.length)];
       // v16.1: soft, rounded leaf masses (smooth shading, more facets) with a smaller tuft on many of them, so the crown reads as
       // clustered leaves instead of cut gems
-      const lr = o.leaf * (0.72 + r() * 0.48) * (lod ? 1.16 : 1), lc = mixHex(mixHex(c0, 0x1c2812, 0.38 * (1 - up)), 0xd8e0a0, 0.12 * up);
-      g.sph(lr, sA, sB, { m: M, at: [x, y, z], s: [1.14, 0.71, 0.94], ry: r() * 6, c: lc, j: 0.04, sw: 0.6 });
+      const lr = o.leaf * (0.72 + r() * 0.48) * (lod ? 1.16 : 1), lc = mixHex(mixHex(c0, 0x284741, 0.47 * (1 - up)), 0xdbce81, 0.27 * up);
+      g.sph(lr, sA, sB, { m: M, at: [x, y, z], s: [1.06 + 0.33*up, 0.78 - 0.24*up, 0.89 + 0.16*Math.cos(u)], ry: r() * 6, c: lc, j: 0.04, sw: 0.6 });
       if (r() < (lod ? 0.4 : 0.6)) { const ta = r() * PI * 2; g.sph(lr * 0.55, lod ? 5 : 6, lod ? 3 : 4, { m: M, at: [x + Math.cos(ta) * lr * 0.75, y + lr * 0.35, z + Math.sin(ta) * lr * 0.75], s: [1, 0.8, 1], c: mixHex(lc, 0xe8f0a8, 0.1), j: 0.08, sw: 0.7 }); } } }
 }
 env.olive = function (g, M, r) { M = scaledM(M, 1.55); // v12: 4–5 m
@@ -1406,7 +1413,7 @@ env.palm = function (g, M, r) {
     g.surf((u,v) => {
       const across = (2*u-1) * (0.015+0.42*Math.sin(PI*v)**0.8), reach = length*v;
       return [x + Math.cos(angle)*reach - Math.sin(angle)*across,
-        y + 1.05*Math.sin(PI*v) - 0.58*v - 0.36*Math.abs(across),
+        y + 1.05*Math.sin(PI*v) - 0.58*v - 0.36*Math.abs(across) - 0.12*Math.sin(PI*v)*Math.abs(2*u-1)*Math.cos(PI*8*v),
         Math.sin(angle)*reach + Math.cos(angle)*across];
     }, 2, 8, { m:M, ds:true, sw:0.5, cuv:(u,v) => mixHex(k%2 ? 0x488453 : 0x63975a, 0xacc776, v*0.48+u*0.19) });
   }
@@ -1453,7 +1460,7 @@ env.tent = function (g, M, r, col) { // bedouin goat-hair tent, ~6 x 4 (v18.34 r
   // A high ridge and sagging spans read as stretched wool against the sky.
   g.surf((u,v) => {
     const ridge = 1-Math.abs(u*2-1);
-    return [(u-0.5)*5.7, 2.41 + 0.59*ridge**1.4 - 0.09*Math.sin(PI*v) - 0.07*v, (v-0.5)*3.8];
+    return [(u-0.5)*5.7, 2.41 + 0.59*ridge**1.4 - 0.15*Math.sin(PI*v) - 0.07*v - 0.055*Math.sin(PI*u*4)**2, (v-0.5)*3.8];
   }, 12, 6, { m:M, ds:true, cuv:(u,v) => Math.round(u*12)%4 === 1 ? mixHex(c,0xbf9668,0.52) : c });
   for (const side of [-1,1]) {
     g.surf((u,v) => [side*(2.72-u*(0.42+0.46*v)), 0.48+1.88*v, 1.83+0.065*Math.sin(u*PI*3)],
@@ -1477,7 +1484,8 @@ function doorway(g, M, x, z0, col) { const WD = col || 0x7a5232, WD2 = shade(WD,
 env.doorway = doorway;
 env.house = function (g, M, r, o) { // flat-roof stone/mudbrick house w x d
   o = o || {}; const w = o.w || 6, d = o.d || 5, h = o.h || 3, c = o.c || 0xcfb48c;
-  g.box(w, h, d, { m: M, at: [0, h / 2, 0], c, j: 0.03 });
+  g.box(w, h, d, { m: M, at: [0, h / 2, 0], j: 0,
+    c: (x,y) => mixHex(mixHex(c,0x896747,0.24),mixHex(c,0xffe4b4,0.21),clamp(y/h+0.5,0,1)) });
   g.box(w + 0.24, 2.6, d + 0.24, { m: M, at: [0, -1.22, 0], c: mixHex(c, 0x5a4a3a, 0.35), j: 0.04 }); /* v18.34 a footing of packed stone that goes down into the ground: on a slope the low side shows a plinth instead of a gap under the house */
   g.box(w + 0.3, 0.25, d + 0.3, { m: M, at: [0, h + 0.1, 0], c: mixHex(c, 0x6a5040, 0.3), j: 0.03 });
   for (let i = -2; i <= 2; i++) g.cyl(0.07, 0.07, 0.6, 5, { m: M, at: [i * w / 5.5, h - 0.15, d / 2 + 0.25], rx: PI / 2, c: 0x7a5a3a });
@@ -1485,7 +1493,10 @@ env.house = function (g, M, r, o) { // flat-roof stone/mudbrick house w x d
   g.box(0.6, 0.45, 0.08, { m: M, at: [-w / 3.2, 2.0, d / 2 + 0.02], c: 0x2a2018, j: 0 });
   if (h > 3.6) { for (const x of [-w / 3.2, w / 4]) g.box(0.55, 0.4, 0.08, { m: M, at: [x, h - 1.05, d / 2 + 0.02], c: 0x2a2018, j: 0 }); g.box(w + 0.32, 0.4, 0.12, { m: M, at: [0, h + 0.4, d / 2 + 0.1], c: mixHex(c, 0xffffff, 0.1), j: 0.03 }); // upper windows + parapet
     for (let i = 0; i < 3; i++) g.box(0.12, 0.12, 0.5, { m: M, at: [-w / 2 + 0.6 + i * 0.4, 0.8 + i * 0.05, d / 2 + 0.3], c: 0x7a5a3a }); }
-  if (o.awning) { g.box(2.2, 0.06, 1.4, { m: M, at: [o.doorX || 0, 2.2, d / 2 + 0.7], rx: 0.15, c: o.awning }); for (const s of [1, -1]) g.cyl(0.04, 0.04, 2.2, 5, { m: M, at: [(o.doorX || 0) + 1.0 * s, 1.1, d / 2 + 1.3], c: 0x7a5a3a }); }
+  if (o.awning) { g.surf((u,v) => [(o.doorX || 0)+(u-0.5)*2.2,
+      2.43 - 0.22*v - 0.13*Math.sin(PI*u)*v + 0.035*Math.cos(PI*6*u)*v,
+      d/2 + 1.42*v], 8, 2, { m:M, ds:true,
+      cuv:(u,v) => mixHex(o.awning,0xe4c694,(v===1 ? 0.28 : 0.04) + (Math.round(u*8)%4===1 ? 0.19 : 0)) }); for (const s of [1, -1]) g.cyl(0.04, 0.04, 2.2, 5, { m: M, at: [(o.doorX || 0) + 1.0 * s, 1.1, d / 2 + 1.3], c: 0x7a5a3a }); }
   if (o.stair) g.box(0.9, h, 2.4, { m: M, at: [w / 2 + 0.45, h / 2 - 0.2, -d / 2 + 1.3], rx: -0.75, c: mixHex(c, 0x000000, 0.08) });
   for (let i = 0; i < 3; i++) g.lathe([[0.05, 0], [0.18, 0.1], [0.2, 0.3], [0.1, 0.5], [0.1, 0.56]], 8, { m: M, at: [w / 2 - 0.4 - i * 0.45, 0, d / 2 + 0.45], c: [0xb5673a, 0xa85a30, 0xc0784a][i] });
 };

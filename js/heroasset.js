@@ -4,7 +4,7 @@
    ?glb=0 이면 끈다 (예전 코드 캐릭터와 비교할 때). */
 'use strict';
 (function (G) {
-const H = G.HeroAsset = { assets: {}, off: /[?&]glb=0/.test(location.search), av: 'a25' }; // av: bump when the files in assets/heroes change (browser cache)
+const H = G.HeroAsset = { assets: {}, off: /[?&]glb=0/.test(location.search), av: 'a28' }; // av: bump when the files in assets/heroes change (browser cache)
 const LINE = [0.55, 0.42, 0.36]; // 외곽선 색이 섞일 정점색 (따뜻한 갈색)
 
 H.load = function (name, base) {

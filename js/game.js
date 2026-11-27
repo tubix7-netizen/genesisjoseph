@@ -1136,7 +1136,8 @@ function updateCamera(dt, snap) {
   const k = snap ? 1 : 1 - Math.exp(-dt * (sh ? 16 : 12)), kv = snap ? 1 : 1 - Math.exp(-dt * 8);
   const rideUp = P.ride && G.Ride ? G.Ride.spec(P.ride).camUp : S.q && S.q.riding && S.q.chariotOk ? (G.Cart && G.Cart.camUp ? G.Cart.camUp() : 1.0) : 0; /* v18.43 no canopy on the chariot: the camera comes down to see Joseph standing at the reins */ /* v18.41 0.7 → 1.7: high enough to look over the canopy roof */ /* v18.30 over the canopy on the wagon, so you see Joseph and the horses */ CAM.rideK = lerp(CAM.rideK || 0, rideUp, snap ? 1 : 1 - Math.exp(-dt * 3));
   CAM.tx = lerp(CAM.tx, P.x, k); CAM.tz = lerp(CAM.tz, P.z, k); CAM.ty = lerp(CAM.ty, P.y + lerp(C.piv, AC.piv, aw2) + CAM.rideK, kv);
-  const run = P.sprint && P.spd > 5.8 ? 1 : 0;
+  const sprintFraming = P.sprint ? clamp((P.spd - 4.8) / 2, 0, 1) : 0;
+  const run = CAM.runFrame = snap ? sprintFraming : lerp(CAM.runFrame || 0, sprintFraming, 1 - Math.exp(-dt * 5));
   /* indoors: under a roof the boom stays below the ceiling, the view levels out and comes in a little, so the people in
      the room are in shot instead of the roof (RDR2-style interior camera). Eases in and out at the doorway. */
   const roof = W.roofAt(P.x, P.z, P.y); P.indoor = !!roof; if (roof) CAM.ceil = roof.y;
@@ -1159,9 +1160,9 @@ function updateCamera(dt, snap) {
   if (snap || CAM.cDist === undefined || dist < CAM.cDist) CAM.cDist = dist; else CAM.cDist = lerp(CAM.cDist, dist, 1 - Math.exp(-dt * 3.5)); /* v18.42 the boom shortens at once when a wall comes between (it slid behind walls for a few frames), and eases back out */
   let ex2 = px + dx * CAM.cDist, ey2 = py + dy * CAM.cDist, ez2 = pz + dz * CAM.cDist;
   const gAt = (x, z) => { const h = W.heightAt(x, z); if (!EP.floor) return h; const f = EP.floor(x, z, S); return f != null && f > h ? f : h; }; /* v18.34 floors (caves, rooms, the stage) count as ground for the camera too: it sank under the cave floor */
-  for (let i = 1; i <= 3; i++) { const tt = i / 3; const gx = lerp(px, ex2, tt), gz = lerp(pz, ez2, tt), gy = lerp(py, ey2, tt); const gh = gAt(gx, gz) + 0.35; if (gy < gh) { ey2 += (gh - gy) * (1 / tt); } }
-  const gh = gAt(ex2, ez2) + 0.4; if (ey2 < gh) ey2 = gh;
-  CAM.gy = snap || CAM.gy === undefined ? ey2 - (py + dy * CAM.cDist) : lerp(CAM.gy, ey2 - (py + dy * CAM.cDist), 1 - Math.exp(-dt * 12));
+  for (let i = 1; i <= 3; i++) { const tt = i / 3; const gx = lerp(px, ex2, tt), gz = lerp(pz, ez2, tt), gy = lerp(py, ey2, tt); const gh = gAt(gx, gz) + (i === 3 ? 0.4 : 0.35); if (gy < gh) { ey2 += (gh - gy) * (1 / tt); } }
+  const groundLift = ey2 - (py + dy * CAM.cDist);
+  CAM.gy = snap || CAM.gy === undefined || groundLift > CAM.gy ? groundLift : lerp(CAM.gy, groundLift, 1 - Math.exp(-dt * 12));
   CAM.x = ex2; CAM.y = py + dy * CAM.cDist + CAM.gy; CAM.z = ez2;
   if (CAM.shake > 0) { CAM.shake = Math.max(0, CAM.shake - dt * 2.2); const a = CAM.shake * CAM.shake * 0.22; CAM.x += (Math.random() - 0.5) * a; CAM.y += (Math.random() - 0.5) * a; CAM.z += (Math.random() - 0.5) * a; }
   // look point: parallel to view direction so the hero sits off-centre (일반 3인칭 looks at the hero, blending to parallel while aiming)
