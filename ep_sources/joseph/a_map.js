@@ -103,22 +103,24 @@ const INDOOR = [[-41.5, -14.5, 26.5, 47], [-14, -7, 40, 50], [-18, -7, 59, 70], 
 function color(x, z, h, ny) { const c = color1(x, z, h, ny); for (const q of INDOOR) if (x > q[0] && x < q[1] && z > q[2] && z < q[3]) { c[3] = 0; break; } return c; }
 function color1(x, z, h, ny) {
   const n = fbm(x * 0.045, z * 0.045, 3), n2 = vnoise(x * 0.18, z * 0.18), C = canaanK(x), F = Math.max(fert(x, z), goshK(x, z)) * (1 - C);
-  const sand = [0.86 + n * 0.05, 0.74 + n * 0.04, 0.52 + n2 * 0.04];
+  const sand = [0.79 + n * 0.15, 0.64 + n * 0.16, 0.43 + n * 0.13 + n2 * 0.025];
   let c = sand, dens = 0.08 + n * 0.08;
   // Canaan: green-gold hill pasture with grey limestone
-  if (C > 0) { const g = [0.44 + n * 0.08, 0.58 + n * 0.06, 0.28 + n2 * 0.03]; c = c.map((v, i) => lerp(v, g[i], C)); dens = lerp(dens, 0.8 * (0.6 + 0.4 * n), C);
+  if (C > 0) { const dry = smooth(0.32, 0.76, n + 0.12*(1-ny));
+    const g = [0.32 + dry*0.36, 0.52 + dry*0.13, 0.31 - dry*0.065 + n2*0.04]; c = c.map((v, i) => lerp(v, g[i], C)); dens = lerp(dens, 0.8 * (0.6 + 0.4 * n), C);
     const rock = smooth(0.3, 0.5, 1 - ny) * 0.9 + Math.max(0, n2 - 0.72) * 2; if (rock > 0) { c = c.map((v, i) => lerp(v, [0.72, 0.69, 0.62][i] * (0.92 + n2 * 0.1), clamp(rock, 0, 1) * C)); dens *= 1 - clamp(rock, 0, 0.9); } }
   // Egypt: black fertile soil and green fields near the river
   if (F > 0) { const lush = LAND === 'famine' ? [0.62, 0.52, 0.34] : LAND === 'plenty' ? [0.3, 0.6, 0.2] : [0.36, 0.56, 0.24];
     const soil = LAND === 'famine' ? [0.55, 0.46, 0.33] : [0.32, 0.28, 0.2];
-    const field = Math.sin(x * 0.21) * Math.sin(z * 0.17) > -0.2 ? lush : soil;
+    const growth = smooth(-0.42, 0.26, Math.sin(x*0.21+n) * Math.sin(z*0.17+n2));
+    const field = soil.map((v,i) => lerp(v,lush[i],growth));
     c = c.map((v, i) => lerp(v, lerp(field[i], lush[i], 0.5) * (0.92 + n * 0.12), F)); dens = lerp(dens, LAND === 'famine' ? 0.12 : LAND === 'plenty' ? 1 : 0.85, F); }
   // rocky desert plateaus
   const west = smooth(-150, -185, x); if (west > 0) { c = c.map((v, i) => lerp(v, [0.84, 0.7, 0.5][i] * (0.94 + n2 * 0.08), west)); dens *= 1 - west; }
   if (x > 120) { const db = Math.abs(z - brookZ(x)); if (db < 3.5) { const k = 1 - smooth(1.2, 3.5, db); c = c.map((v, i) => lerp(v, [0.7, 0.66, 0.58][i] * (0.9 + n2 * 0.2), k)); dens *= 1 - k * 0.8; } }
   const dw = waterDist(x, z); if (dw < 6) { const k = 1 - smooth(1.5, 6, dw); c = c.map((v, i) => lerp(v, [0.42, 0.4, 0.3][i], k * 0.8)); dens *= 1 - k * 0.7; }
   for (const p of PADS) if (p.set) { const d = Math.hypot(x - p.x, z - p.z); if (d < p.r) { const k = 1 - smooth(p.r * 0.55, p.r, d); const pc = C > 0.5 ? [0.74, 0.66, 0.5] : [0.85, 0.77, 0.6]; c = c.map((v, i) => lerp(v, pc[i] * (0.95 + n2 * 0.08), k * 0.85)); dens *= 1 - k; } }
-  const rd = roadD(x, z); if (rd < 3) { const k = 1 - smooth(1.2, 3, rd); c = c.map((v, i) => lerp(v, [0.8, 0.7, 0.52][i], k * 0.9)); dens *= 1 - k; }
+  const rd = roadD(x, z); if (rd < 3) { const k = 1 - smooth(1.1, 2.4 + n2*0.6, rd); c = c.map((v, i) => lerp(v, [0.82, 0.69, 0.49][i]*(0.89+0.15*n2), k * 0.94)); dens *= 1 - k; }
   const dp = Math.hypot(x - PIT.x, z - PIT.z); if (dp < PIT.r + 2) { c = [0.55, 0.47, 0.38]; dens = 0; }
   { const db = Math.hypot(x - SPOTS.restBed[0], z - SPOTS.restBed[1]); if (db < 2.8) dens *= smooth(1.7, 2.8, db); } /* v18.42 trampled ground round the first night's straw bed: no grass through Joseph's body */
   const e = Math.max(Math.abs(x), Math.abs(z)); if (e > 196) { const k = smooth(196, 225, e); c = c.map((v, i) => lerp(v, C > 0.5 ? [0.58, 0.56, 0.48][i] : [0.78, 0.64, 0.46][i], k)); }
