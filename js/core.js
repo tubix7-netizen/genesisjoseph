@@ -195,7 +195,8 @@ class GB {
     for (let j = 0; j < hs; j++) for (let i = 0; i < ws; i++) {
       const a = pt(i, j), b = pt(i + 1, j), c = pt(i + 1, j + 1), d = pt(i, j + 1);
       const add = (p, q, s) => { P.push(p[0] * r, p[1] * r, p[2] * r, q[0] * r, q[1] * r, q[2] * r, s[0] * r, s[1] * r, s[2] * r); if (o.flat) { const n = [(p[0] + q[0] + s[0]) / 3, (p[1] + q[1] + s[1]) / 3, (p[2] + q[2] + s[2]) / 3]; N.push(...n, ...n, ...n); } else N.push(...p, ...q, ...s); };
-      if (j > 0 || t0 > 0) add(a, c, b); add(a, d, c);
+      if (j > 0 || t0 > 0) add(a, c, b);
+      if (j + 1 < hs || Math.abs(t0 + tl - Math.PI) > 1e-8) add(a, d, c);
     }
     return this._emit(P, N, o);
   }
@@ -389,9 +390,11 @@ void main(){
   vec3 col=vC;
 #ifdef TEX
   col=texture(uTex,vUV).rgb; // v19: the painted texture replaces the vertex colour (same cel shading below)
+  vec3 mask0=vec3(0.0);
   if(uRe>0.5){
+    mask0=texture(uMask,vec3(vUV,0.0)).rgb;
     vec3 t=col;float L=dot(t,vec3(0.3,0.59,0.11));
-    vec3 ma=texture(uMask,vec3(vUV,0.0)).rgb,mb=texture(uMask,vec3(vUV,1.0)).rgb,mf=texture(uMask,vec3(vUV,2.0)).rgb;
+    vec3 ma=mask0,mb=texture(uMask,vec3(vUV,1.0)).rgb,mf=texture(uMask,vec3(vUV,2.0)).rgb;
     col=mix(col,uRcSkin*clamp(t/uRefS,vec3(0.3),vec3(1.12)),ma.r); // v25 (was ≤1.5): whitish paint round Joseph's eyes no longer leaves a pale ring on darker skin
     col=mix(col,uRcHair*clamp(pow(L/uRefL.x,0.7),0.3,2.0),ma.g);
     float sel=smoothstep(-0.07,0.07,t.b+t.g*0.35-t.r*0.92); // blue and green bands take the second colour, red, orange and yellow the first
@@ -403,7 +406,7 @@ void main(){
   }
   if(uFx>0.5&&vBP.z>0.03&&vBP.y>1.535&&vBP.y<1.7&&abs(vBP.x)<0.1){
     vec2 f=vec2(abs(vBP.x),vBP.y);float px=max(fwidth(f.y),0.00025);
-    vec4 mm=texture(uMask,vec3(vUV,0.0));vec3 sk=(uRe>0.5?uRcSkin:vec3(0.957,0.71,0.62))*0.97;
+    vec3 mm=uRe>0.5?mask0:texture(uMask,vec3(vUV,0.0)).rgb;vec3 sk=(uRe>0.5?uRcSkin:vec3(0.957,0.71,0.62))*0.97;
     float eb=(1.0-smoothstep(0.7,1.0,length(vec2((f.x-0.044)/0.043,(f.y-1.6675)/0.011))))*(1.0-mm.g); // wipe the painted brow (hair strands over it stay)
     col=mix(col,sk,eb);
     float u=(f.x-0.011)/0.068,yc=1.6635+uFx0.x+uFx0.w*0.026*u*(1.0-u)+uFx0.z*(0.5-u)*0.013,th=uFx0.y*(1.0-0.5*u)*smoothstep(-0.03,0.07,u);
@@ -412,27 +415,34 @@ void main(){
     float Lt=dot(col,vec3(0.3,0.59,0.11)),ir=length(vec2((f.x-0.0472)/0.0125,(f.y-1.6325)/0.0135));
     col=mix(col,uEyeC*clamp(Lt/0.36,0.4,1.5),(1.0-smoothstep(0.8,1.0,ir))*smoothstep(0.07,0.15,Lt)*(1.0-smoothstep(0.48,0.6,Lt))*0.85*step(0.001,uEyeC.r+uEyeC.g+uEyeC.b)); // iris colour (pupil and highlights stay)
     vec3 dk=col*0.45;float sm=uFx1.x,ag=uFx1.y,la=uFx1.z;
-    if(la>0.0){float lid=1.6325+0.0148*sqrt(max(0.0,1.0-pow((f.x-0.047)/0.0245,2.0)));
+    if(la>0.0){float eyeX=(f.x-0.047)/0.0245;float lid=1.6325+0.0148*sqrt(max(0.0,1.0-eyeX*eyeX));
       float w=(1.0-smoothstep(0.0018*la-px,0.0018*la+px,f.y-lid))*step(lid-0.0005,f.y)*step(0.024,f.x)*step(f.x,0.072)+line(f,vec2(0.066,1.6435),vec2(0.0765,1.6505),0.0017,px)+line(f,vec2(0.069,1.6395),vec2(0.079,1.6435),0.0014,px);
       col=mix(col,vec3(0.08,0.05,0.05),clamp(w,0.0,1.0)*la*mm.r);}
     if(ag>0.0){float w=line(f,vec2(0.075,1.6375),vec2(0.085,1.6415),0.0011,px)+line(f,vec2(0.075,1.6325),vec2(0.084,1.6295),0.0011,px)
         +line(f,vec2(0.031,1.6175),vec2(0.047,1.6145),0.001,px)+line(f,vec2(0.047,1.6145),vec2(0.063,1.618),0.001,px)
         +line(f,vec2(0.0205,1.5965),vec2(0.032,1.584),0.0013,px)+line(f,vec2(0.032,1.584),vec2(0.0375,1.5665),0.0013,px);
       col=mix(col,col*0.62,clamp(w,0.0,1.0)*ag*mm.r);}
-    if(abs(sm)>0.05){float w=sm>0.0?line(f,vec2(0.026,1.5668),vec2(0.0355,1.5712+0.002*sm),0.0013,px):line(f,vec2(0.026,1.5672),vec2(0.0345,1.5628+0.002*sm),0.0013,px);
-      col=mix(col,dk,clamp(w,0.0,1.0)*min(1.0,abs(sm))*0.8);}
+    if(abs(sm)>0.05){
+      float u=clamp((f.x-0.025)/0.011,0.0,1.0);
+      float lipY=1.567+0.006*sm*u*u;
+      float taper=smoothstep(0.025,0.027,f.x)*(1.0-smoothstep(0.033,0.036,f.x));
+      float ink=1.0-smoothstep(0.0011-px,0.0011+px,abs(f.y-lipY));
+      col=mix(col,dk,taper*ink*min(1.0,abs(sm))*0.8*mm.r);}
     if(uFx1.w>0.0){vec2 c=floor(f/0.0042),o2=f-(c+0.5)*0.0042-(vec2(hash2(c),hash2(c+7.3))-0.5)*0.0025;float e=length(vec2((f.x-0.03)/0.042,(f.y-1.603)/0.012));
       col=mix(col,col*vec3(0.78,0.64,0.55),(1.0-smoothstep(0.0006,0.0009,length(o2)))*step(hash2(c+3.1),0.45)*(1.0-smoothstep(0.8,1.0,e))*uFx1.w*mm.r);}
   }
 #endif
 #ifdef TERRAIN
   float n1=noise(vW.xz*0.35),n2=noise(vW.xz*2.1),n3=noise(vW.xz*7.0);
-  col*=0.88+0.16*n1+0.07*n2+0.04*n3;
+  float detail=1.0-smoothstep(0.04,0.21,max(fwidth(vW.x),fwidth(vW.z)));
+  col*=0.91+0.15*n1+0.065*n2+0.045*(n3-0.5)*detail;
   float slope=1.0-N.y;
-  col=mix(col,uRock*(0.88+0.18*n2),smoothstep(0.30,0.52,slope));
+  float strata=sin(vW.y*2.1+3.5*n1+0.55*n2);
+  vec3 stone=mix(uRock*vec3(0.79,0.83,0.89),uRock*vec3(1.14,1.08,0.99),smoothstep(-0.65,0.65,strata)*detail+0.5*(1.0-detail));
+  col=mix(col,stone*(0.91+0.17*n2),smoothstep(0.27,0.55,slope));
   float sandy=clamp((col.r-col.b)*3.2-0.75,0.0,1.0)*(1.0-smoothstep(0.2,0.45,slope));
-  float rip=sin(dot(vW.xz,vec2(0.83,0.56))*4.2+noise(vW.xz*0.37)*7.0);
-  col*=1.0+0.045*rip*sandy;
+  float rip=sin(dot(vW.xz,vec2(0.83,0.56))*4.2+n1*7.0);
+  col*=1.0+0.055*rip*sandy*detail;
 #endif
   float ndl=dot(N,uSunDir);
   float sh=shadowF(vS);
@@ -445,10 +455,10 @@ void main(){
   // back-lit face falls into shadow) so features read cleanly; shadows are tinted (warm peach on skin, cool violet on cloth)
   // instead of grey, lit areas are flat and bright, and a soft rim outlines the silhouette.
   float faceK=smoothstep(0.6,1.0,vSoft);
-  float bodyLit=smoothstep(-0.1,0.2,ndl)*mix(sh,1.0,0.15); // v16.6: a smoother body terminator (still two-tone, no hard facets)
-  float faceLit=mix(0.66,1.0,smoothstep(-0.22,0.12,ndl))*mix(sh,1.0,0.3); // v17.0 얼굴 그늘: one clean, softly edged cel shade on the far side (the smoothed face normals keep it from blotching) // v16.6: faces darken in shade with the body (no floating bright face) // faces: a wide, soft gradient (no hard edge, no facets) and no cast-shadow blotches
+  float bodyLit=(0.19+0.51*smoothstep(-0.23,0.17,ndl)+0.30*smoothstep(0.18,0.86,ndl))*mix(sh,1.0,0.12); // v16.6: a smoother body terminator (still two-tone, no hard facets)
+  float faceLit=mix(0.66,1.0,smoothstep(-0.34,0.28,ndl))*mix(sh,1.0,0.3); // v17.0 얼굴 그늘: one clean, softly edged cel shade on the far side (the smoothed face normals keep it from blotching) // v16.6: faces darken in shade with the body (no floating bright face) // faces: a wide, soft gradient (no hard edge, no facets) and no cast-shadow blotches
   float lit=mix(bodyLit,faceLit,faceK);
-  vec3 tintS=mix(vec3(0.78,0.74,0.84),vec3(0.9,0.68,0.64),faceK);
+  vec3 tintS=mix(vec3(0.78,0.74,0.84),vec3(0.94,0.77,0.73),faceK);
   vec3 cS=col*tintS*(amb*0.95+0.12);
   vec3 cL=col*(amb*0.5+uSunCol*0.92)*mix(1.0,1.05,faceK);
   if(faceK>0.0){cS=mix(cS,col*tintS*(amb*0.95+uSunCol*0.12),faceK);} // a face's shade side stays light and warm
@@ -493,12 +503,13 @@ void main(){
   float y01=aPos.y;
   vec3 p=vec3((aPos.x*c-aPos.z*s)*(0.6+0.4*sc),aPos.y*sc,(aPos.x*s+aPos.z*c)*(0.6+0.4*sc));
   float wv=sin(uTime*1.9+base.x*0.31+base.y*0.23)*0.6+sin(uTime*3.1+base.x*0.83+base.y*0.5)*0.25;
-  vec2 bend=vec2(0.75,0.45)*wv*uWind*0.28*y01*y01*sc;
+  float gust=0.52+0.48*sin(dot(base,vec2(0.095,0.073))-uTime*1.1);
+  vec2 bend=vec2(0.83,0.39)*(0.16+wv*0.25+gust*0.32)*uWind*y01*y01*sc;
   vec2 aw=base-uPlayer.xz;float pd=length(aw);
   if(pd<1.3&&pd>0.001)bend+=aw/pd*(1.3-pd)*0.55*y01*sc;
   vec3 w=vec3(base.x+p.x+bend.x,h+p.y-length(bend)*0.3*y01,base.y+p.z+bend.y);
   vec3 gc=ct.rgb;
-  vC=mix(gc*0.55,gc*1.22+vec3(0.05,0.06,0.0),y01);
+  vC=mix(gc*vec3(0.48,0.61,0.59),gc*vec3(1.15,1.23,0.89)+vec3(0.085,0.073,0.012)*iA.w,smoothstep(0.0,0.85,y01));
   vY=y01;vW=w;vS=uShadowVP*vec4(w,1.0);
   gl_Position=uVP*vec4(w,1.0);
 }`;
@@ -539,7 +550,7 @@ void main(){
   float n0=noise(q),nx=noise(q+vec2(e,0.0)),nz=noise(q+vec2(0.0,e));g+=vec2(n0-nx,n0-nz)*(0.85/e)*0.05*fine;
 #endif
   vec3 N=normalize(vec3(-g.x,1.0,-g.y));
-  float cv=max(dot(N,V),0.0);float F=0.02+0.98*pow(1.0-cv,5.0);
+  float cv=max(dot(N,V),0.0);float F=0.055+0.945*pow(1.0-cv,4.2);
   vec3 R=reflect(-V,N);R.y=abs(R.y);
   vec3 sky=mix(uSkyHor,uSkyTop,pow(clamp(R.y,0.0,1.0),0.55));sky+=uSunCol*pow(max(dot(R,uSunDir),0.0),20.0)*0.22;
   float sh=shadowF(uShadowVP*vec4(vW,1.0));
@@ -550,9 +561,11 @@ void main(){
 #else
   float ca=noise(p*1.35+uTime*vec2(0.33,0.21))*noise(p*1.8-uTime*vec2(0.24,0.3));
 #endif
-  bed+=uSunCol*sh*pow(ca,2.0)*1.5*smoothstep(1.8,0.0,depth);
+  bed+=uSunCol*sh*pow(ca,2.0)*1.5*(1.0-smoothstep(0.0,1.8,depth));
   vec3 body=uDeep*(uSkyAmb*0.85+uSunCol*0.3*sh);
   vec3 c=mix(bed*T+body*(1.0-T),sky,F);
+  float shelf=(1.0-smoothstep(0.2,2.3,depth))*smoothstep(0.0,0.36,depth);
+  c+=vec3(0.018,0.105,0.083)*shelf*uSunCol*sh;
   c+=uDeep*uSunCol*clamp(hs*7.0,0.0,1.0)*0.22*sh*(1.0-F);
   vec3 Hh=normalize(V+uSunDir);float nh=max(dot(N,Hh),0.0);c+=uSunCol*(pow(nh,260.0)*3.2+pow(nh,48.0)*0.22)*sh;
 #ifdef LITE
@@ -560,7 +573,10 @@ void main(){
 #else
   float br=noise(p*2.3+uTime*vec2(0.5,-0.3))+0.35*sin(depth*24.0-uTime*2.6);
 #endif
-  float foam=smoothstep(0.38,0.0,depth)*smoothstep(0.25,0.75,br);
+  float bank=1.0-smoothstep(0.02,0.48,depth);
+  float wash=0.17+0.065*sin(uTime*1.6+br*3.0);
+  float lace=1.0-smoothstep(0.012,0.07+fwidth(depth),abs(depth-wash));
+  float foam=bank*(0.22+0.78*lace)*smoothstep(0.14,0.69,br);
   c=mix(c,vec3(0.95,0.96,0.94)*(uSkyAmb+uSunCol*0.7*sh),foam*0.7);
   float a=mix(0.3,0.95,1.0-T.g);a=clamp(a+F*0.5,0.0,0.97);a=max(a,foam*0.85);
   o=vec4(tone(fog(c,vW)),a);
@@ -581,7 +597,7 @@ void main(){
   c=mix(c,c*vec3(1.07,1.0,0.94)+vec3(0.035,0.025,0.01),side*(1.0-g)*0.55*day);
   c+=uSunCol*vec3(1.0,0.5,0.26)*low*pow(side,3.0)*exp(-max(h,0.0)*6.5)*0.6;
   c+=vec3(0.18,0.08,0.22)*low*pow(1.0-side,2.0)*exp(-max(h,0.0)*5.0)*0.35;
-  if(h<0.0)c=mix(c,uGround,smoothstep(0.0,-0.18,h));
+  if(h<0.0)c=mix(c,uGround,(1.0-smoothstep(-0.18,0.0,h)));
   // sun (disc + glare + wide glow) / moon (disc + halo)
   c+=uSunCol*(pow(sd,1500.0)*7.0+pow(sd,110.0)*0.42+pow(sd,10.0)*0.13+low*pow(sd,4.0)*0.18)*day*(1.0-uCloud*0.55);
   c+=vec3(0.92,0.95,1.0)*(smoothstep(0.99935,0.9997,sd)*1.5+pow(sd,70.0)*0.1+pow(sd,8.0)*0.03)*uNight*(1.0-uCloud*0.6);
@@ -605,7 +621,9 @@ void main(){
       float d1=fbm(uv*1.2+lxz*0.085);
       float lit=clamp(0.6+(d0-d1)*3.4,0.0,1.0);
       vec3 shC=mix(uCloudCol*vec3(0.6,0.64,0.76),uTop,0.22);
-      vec3 cc=mix(shC,uCloudCol*1.08,lit);
+      float lightBand=smoothstep(0.35,0.68,lit);
+      vec3 cc=mix(shC,uCloudCol*1.10,0.4*lit+0.6*lightBand);
+      cc+=vec3(0.15,0.065,0.018)*low*lightBand*side;
       cc+=uSunCol*pow(sd,6.0)*0.6*(1.0-dens*0.6)*day;
       cc=mix(cc,cc*vec3(0.55,0.57,0.62),uCloud*uCloud*0.75);
       c=mix(c,cc,dens*0.93);
@@ -614,7 +632,7 @@ void main(){
     float ci=fbm3(vec2(uv2.x*0.35+uv2.y*0.6,uv2.y*2.6));
     ci=smoothstep(0.56,0.92,ci)*smoothstep(0.06,0.4,h)*(1.0-uCloud*0.6)*0.32;
     c=mix(c,uCloudCol*1.05+uSunCol*0.08*day,ci*(0.35+0.65*day));
-    c=mix(c,mix(uHor,uGround,0.35),smoothstep(0.1,0.0,h)*0.3);
+    c=mix(c,mix(uHor,uGround,0.35),(1.0-smoothstep(0.0,0.1,h))*0.3);
   }
   c+=vec3(0.75,0.8,1.0)*uFlash;
   c*=0.98;c=clamp((c*(2.51*c+0.03))/(c*(2.43*c+0.59)+0.14),0.0,1.0);c=clamp(mix(vec3(dot(c,vec3(0.299,0.587,0.114))),c,1.3),0.0,1.0);

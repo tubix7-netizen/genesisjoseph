@@ -18,7 +18,7 @@
 (function (G) {
 const Game = G.Game, UI = G.UI, Au = G.Audio; if (!Game || !UI) return;
 const MUTE = /[?&]voice=0\b/.test(location.search);
-const on = () => false; /* v18.52d people make no sounds of their own any more, as asked (the recordings are kept outside the game, in 음성_보관); gestures stay */
+const on = () => !MUTE && Game.SET.voice !== 'off' && Game.SET.sfx !== 0;
 const hash = s => { let h = 2166136261; s = String(s || ''); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967296; };
 const pick = (a, r) => a[Math.floor((r === undefined ? Math.random() : r) * a.length) % a.length];
 const R_ = (a, b) => a + Math.random() * (b - a), ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -242,7 +242,7 @@ function findNpc(name) { if (!name) return null; const E = Game.ENT && Game.ENT.
 // ------------------------------------------------------------------ the feeling of a line
 const RX = { laugh: /하하|허허|호호|헤헤|히히|ㅎㅎ|ㅋㅋ|껄껄|깔깔|웃으며|웃음이|웃었/, surprise: /다니요!|라니요|이라니!|어머|세상에|헤에|정말(요|이오|이냐|이에요)?\?|뭐라고|깜짝|이럴 수가|놀랍|놀라|설마|우와|어찌 이런|아니[,!]|[?!]{2}|맙소사/,
   cry: /흑|엉엉|훌쩍|흐흑/, relief: /다행|휴우|휴,|살았다|한시름/, sigh: /아이고|에휴|하아|한숨/, angry: /흥[!.]|쳇|쯧|괘씸|어딜/, happy: /고맙|반갑|좋아요|좋소|좋구나|기쁘|잘됐|만세|축하|맛있/ };
-const EMAP = { laugh: 'laugh', happy: 'happy', cry: 'cry', sad: 'sigh', weary: 'sigh', tired: 'sigh', fear: 'fear', awe: 'awe', angry: 'angry', shout: 'angry', cold: 'hmm', calm: 'hmm', solemn: 'hmm', tender: 'tender', urgent: 'urgent' };
+const EMAP = { surprise: 'surprise', startle: 'surprise', think: 'hmm', relief: 'relief', laugh: 'laugh', happy: 'happy', cry: 'cry', sad: 'sigh', weary: 'sigh', tired: 'sigh', fear: 'fear', awe: 'awe', angry: 'angry', shout: 'angry', cold: 'hmm', calm: 'hmm', solemn: 'hmm', tender: 'tender', urgent: 'urgent' };
 function feelOf(L) { let t = String(L.t || ''); if (L.n) for (const w of String(L.n).split(/\s+/)) if (w.length > 1) t = t.split(w).join(' '); /* names (아이 하하, 히히 …) are not laughter */
   for (const k of ['laugh', 'surprise', 'cry']) if (RX[k].test(t)) return k;
   if (L.e && EMAP[L.e]) { const k = EMAP[L.e]; return k === 'happy' && /!/.test(t) && Math.random() < 0.35 ? 'laugh' : k === 'sigh' && RX.relief.test(t) ? 'relief' : k; }
@@ -251,48 +251,42 @@ function feelOf(L) { let t = String(L.t || ''); if (L.n) for (const w of String(
   if (/^…|…$|\.\.\.$/.test(t.trim())) return 'hmm';
   return null; }
 /* how the body answers each feeling: [gesture, seconds, hops] */
-const ACT = { laugh: ['laugh', 1.7, 0], surprise: ['surprise', 1.4, 2], happy: ['happy', 1.8, 1], greet: ['happy', 1.0, 0], hmm: ['think', 2.4, 0], sigh: ['weary', 2.2, 0], relief: ['tender', 2.0, 0], cry: ['cry', 2.6, 0], angry: ['angry', 1.8, 0], fear: ['fear', 1.6, 1], awe: ['awe', 2.2, 0], tender: ['tender', 2.2, 0], urgent: ['urgent', 1.6, 0] };
+const ACT = { laugh: ['laugh', 1.7, 0], surprise: ['surprise', 1.4, 1], happy: ['happy', 1.8, 0], greet: ['happy', 1.0, 0], hmm: ['think', 2.4, 0], sigh: ['weary', 2.2, 0], relief: ['tender', 2.0, 0], cry: ['cry', 2.6, 0], angry: ['angry', 1.8, 0], fear: ['fear', 1.6, 1], awe: ['awe', 2.2, 0], tender: ['tender', 2.2, 0], urgent: ['urgent', 1.6, 0] };
 const STRONG = { laugh: 1, surprise: 1, cry: 1, angry: 1, fear: 1, sigh: 1, relief: 1, happy: 1, awe: 1, urgent: 1 };
-
-// ------------------------------------------------------------------ v18.52b recorded voices (sound/voice/*.m4a)
-/* People sound most human as people: 36 short Korean interjections were voiced with an AI voice actor (Higgsfield · Seed Audio / ElevenLabs),
-   trimmed and levelled. A synthesized laugh is rated unnatural by listeners (1.71 of 5, ICASSP 2014), and breath intake is what makes a laugh
-   believable (Eusipco 2015) — so where a recording exists it is used, and the synthesizer above only fills the feelings without one.
-   Each speaker plays them a touch higher or lower (playback rate from their id), so two people never sound quite the same. */
-const CLIPS = { man: { laugh: 3, surprise: 3, greet: 1, hmm: 1, sigh: 1, awe: 1, relief: 2 }, /* only sounds of feeling — no words */ woman: { laugh: 2, surprise: 3, hmm: 1, sigh: 1, cry: 1, tender: 1, fear: 1 }, /* v18.52c the ones that sounded wrong to the ear are out */
-  oldman: { sigh: 1, laugh: 1, surprise: 1, hmm: 1 }, oldwoman: { laugh: 1, surprise: 1, sigh: 1, tender: 1 }, kid: { surprise: 1, happy: 1, cry: 1, laugh: 1 } };
-/* a feeling with no recording of its own borrows a near one: [voice, feeling, rate] */
-const ALIAS = { man: { happy: ['man', 'laugh'], fear: ['man', 'surprise'], urgent: ['man', 'surprise'] }, woman: { happy: ['woman', 'laugh'], relief: ['woman', 'sigh'], urgent: ['woman', 'surprise'] },
-  oldman: { happy: ['oldman', 'laugh'], greet: ['oldman', 'laugh'], angry: ['oldman', 'surprise'], tender: ['oldman', 'laugh'], awe: ['man', 'awe', 0.93], relief: ['man', 'relief', 0.93] },
-  oldwoman: { greet: ['oldwoman', 'tender'], happy: ['oldwoman', 'laugh'], hmm: ['woman', 'hmm', 0.93], cry: ['woman', 'cry', 0.93], relief: ['oldwoman', 'sigh'] }, kid: { greet: ['kid', 'happy'], awe: ['kid', 'surprise'] } };
-const BUF = {}; let clipsAsked = false;
-function loadClips() { const A = Au && Au.core && Au.core(); if (!on() || clipsAsked || !A) return; clipsAsked = true;
-  for (const vt in CLIPS) for (const k in CLIPS[vt]) for (let i = 1; i <= CLIPS[vt][k]; i++) { const nm = vt + '_' + k + '_' + i;
-    fetch('sound/voice/' + nm + '.m4a').then(r => r.ok ? r.arrayBuffer() : null).then(ab => ab && new Promise((ok, no) => A.ctx.decodeAudioData(ab, ok, no))).then(b => { if (b) BUF[nm] = b; }).catch(() => { }); } }
-function clipFor(kind, vt) { let v = vt, k = kind, rate = 1; if (!(CLIPS[v] && CLIPS[v][k])) { const al = ALIAS[vt] && ALIAS[vt][kind]; if (!al) return null; v = al[0]; k = al[1]; rate = al[2] || 1; }
-  const n = CLIPS[v] && CLIPS[v][k]; if (!n) return null; const pickN = []; for (let i = 1; i <= n; i++) if (BUF[v + '_' + k + '_' + i]) pickN.push(BUF[v + '_' + k + '_' + i]); return pickN.length ? { buf: pick(pickN), rate } : null; }
-function playClip(c, seed, vol, dest, when, pos) { const A = Au && Au.core && Au.core(); if (!A) return 0; const ac = A.ctx, SPc = Au.space, rate = c.rate * (0.95 + (seed || 0.5) * 0.1), dur = c.buf.duration / rate;
-  const s = ac.createBufferSource(); s.buffer = c.buf; s.playbackRate.value = rate; const g = ac.createGain(); g.gain.value = vol; s.connect(g);
-  if (pos && !dest && SPc && ac.createPanner) { const d = SPc.dist(pos.x, pos.y, pos.z); if (d > 40) return 0; const a = SPc.claim('voice', d, dur + 0.1, g, pos.npc); if (!a) return 0; const ch = SPc.chain(A.bus, pos.x, pos.y, pos.z, { ref: 2.5, ttl: dur + 1 }); a.pn = ch.pn; g.connect(ch.inp); }
-  else { g.connect(dest || A.bus); if (!dest && A.verb) { const sv = ac.createGain(); sv.gain.value = 0.1; g.connect(sv); sv.connect(A.verb); } }
-  s.start(Math.max(ac.currentTime + 0.02, when || 0)); s.onended = () => { try { g.disconnect(); } catch (e) { } }; return dur; }
-addEventListener('pointerdown', () => setTimeout(loadClips, 400), { once: true }); addEventListener('keydown', () => setTimeout(loadClips, 400), { once: true });
 
 // ------------------------------------------------------------------ react
 const V = G.Voice = { stats: { said: 0, acted: 0, beasts: 0, clips: 0 } };
-let lastSay = 0, talkKey = null;
-function speak(kind, vt, seed, vol, pan, dest, when, pos) { loadClips(); const cl = clipFor(kind, vt); if (cl) { V.stats.clips++; V.stats.said++; return playClip(cl, seed === undefined ? Math.random() : seed, (vol || 1) * 0.95 * ((EMO[kind] && EMO[kind].loud) || 1), dest, when, pos); }
-  const ph = phrase(kind, vt); if (!ph) return 0; if (ph === 'tsk') { tsk(vol, pan); return 0.4; }
-  const vo = voiceFor(vt, kind, seed === undefined ? Math.random() : seed); V.stats.said++; return playBuf(render(shape(ph, kind), vo), dest, when, (vol || 1) * vo.loud * 0.5, pan, pos); }
+let lastSay = -Infinity, talkKey = null;
+// Bound the sample cache. Two takes per voice keep repeated greetings varied.
+const samples = new Map();
+function speak(kind, vt, seed, vol, pan, dest, when, pos) {
+  if (!Au || !Au.core || !Au.core()) return 0;
+  if (pos && Au.space && Au.space.dist(pos.x, pos.y, pos.z) > 40) return 0;
+  const pitchBand = Math.round((seed === undefined ? Math.random() : seed) * 3);
+  const key = [kind, vt, pitchBand, ri(0, 1)].join('/');
+  let sound = samples.get(key);
+  if (!sound) {
+    const ph = phrase(kind, vt);
+    if (!ph) return 0;
+    if (ph === 'tsk') { tsk(vol, pan); return 0.4; }
+    const vo = voiceFor(vt, kind, pitchBand / 3);
+    sound = { data: render(shape(ph, kind), vo), gain: vo.loud * 0.42 };
+    if (samples.size >= 32) samples.delete(samples.keys().next().value);
+    samples.set(key, sound);
+  }
+  const duration = playBuf(sound.data, dest, when, (vol ?? 1) * sound.gain, pan, pos);
+  if (duration) V.stats.said++;
+  return duration;
+}
 V.say = function (kind, vt, seed, vol, pan, pos) { if (!on()) return 0; return speak(kind, vt, seed, vol, pan, null, 0, pos); };
 V.react = function (n, kind, o) { o = o || {}; if (!n || !kind) return; const a = ACT[kind];
   if (a && !o.noAct) { const vt = voiceOf(n); let g = a[0]; if (g === 'surprise' && (vt === 'man' || vt === 'oldman')) g = 'startle'; n._va = { k: g, dur: a[1], hops: vt === 'oldman' || vt === 'oldwoman' ? Math.min(1, a[2]) : vt === 'kid' && a[2] ? a[2] + 1 : a[2], t0: undefined }; V.stats.acted++; }
   if (!o.mute) V.say(kind, voiceOf(n), hash(n.id || n.name), o.vol || 1, 0, { x: n.x, y: (n.y || 0) + 1.55, z: n.z, npc: n }); };
 /* called by game.js for every person in sight while a reaction lasts: the gesture, and a hop (n.hopY, metres) */
-V.act = function (n, t, inScene) { if (n.talking && !inScene && !n.st.sit && !n.st.kneel && !n.st.sleep) { if (n.st.act) n.st.act = null; /* someone bent over their work straightens up to talk with the 총리 */ const P = Game.P; let d = Math.atan2(P.x - n.x, P.z - n.z) - n.face; d = Math.atan2(Math.sin(d), Math.cos(d)); n.face += d * 0.15; n.st.face = n.face; /* …and turns to face him */ } const a = n._va; if (!a) return; n.st.act = null; /* the reaction takes the whole body */ if (a.t0 === undefined) a.t0 = t; const e = t - a.t0;
+V.act = function (n, t, inScene) { if (n.talking && !inScene && !n.st.sit && !n.st.kneel && !n.st.sleep) { if (n.st.act) n.st.act = null; /* someone bent over their work straightens up to talk with the 총리 */ } const a = n._va; if (!a) return; n.st.act = null; /* the reaction takes the whole body */ if (a.t0 === undefined) a.t0 = t; const e = t - a.t0;
   if (e > a.dur || e < 0) { n._va = null; n.hopY = 0; if (n.rig) n.rig.hopK = 0; return; }
   n.st.emo = a.k; n.st.emoK = Math.min(1, e * 6, (a.dur - e) * 3);
-  let hy = 0; const HT = 0.3; if (a.hops && e < a.hops * HT) { const f = (e % HT) / HT; hy = Math.sin(Math.PI * f) * 0.16; }
+  let hy = 0; const HT = 0.3; if (!n.st.sit && !n.st.kneel && !n.st.sleep && !n.st.ride && a.hops && e < a.hops * HT) { const f = (e % HT) / HT; hy = 4 * f * (1 - f) * 0.065; }
   n.hopY = hy; if (n.rig) n.rig.hopK = hy / 0.16; if (hy > 0.01) n.st.gnd = null; };
 
 /* a line in a talk */
@@ -408,8 +402,8 @@ V.animal = function (k, o, dest, when) { if (!AN[k]) return 0; o = o || {}; cons
 if (Au) { const X0 = Au.ext = Au.ext || {}, sub = (d, v) => { const g = d.context.createGain(); g.gain.value = v; g.connect(d); return g; };
   for (const k in AN) X0[k] = (d, t, p, o) => { const n = k === 'howl' ? ri(2, 4) : 1; for (let i = 0; i < n; i++) V.animal(k, Object.assign({}, o, { p }), i ? sub(d, R_(0.4, 0.8)) : d, t + (i ? R_(0.3, 1.8) : 0)); };
   /* a crowd: many voices — a murmur of talk, or a cheer of 「와아!」 「오오!」 */
-  X0.crowd = (d, t, p, o, SFX) => { if (SFX && SFX.crowd) SFX.crowd(sub(d, 0.45), t, p, o); if (!on()) return; for (let i = 0; i < 9; i++) { const vt = pick(['man', 'man', 'woman', 'woman', 'oldman', 'oldwoman', 'kid']); playBuf(render(babble(), voiceFor(vt, 'greet', Math.random())), sub(d, R_(0.2, 0.45)), t + R_(0, 1.6), 0.5, 0); } };
-  X0.cheerC = (d, t, p, o, SFX) => { if (SFX && SFX.cheerC) SFX.cheerC(sub(d, 0.4), t, p, o); if (!on()) return; for (let i = 0; i < 10; i++) { const vt = pick(['man', 'man', 'man', 'woman', 'woman', 'kid', 'oldman']), k = pick(['happy', 'happy', 'awe', 'surprise']); speak(k, vt, Math.random(), R_(0.25, 0.55), 0, sub(d, 1), t + R_(0, 0.7)); } };
+  X0.crowd = (d, t, p, o, SFX) => { if (SFX && SFX.crowd) SFX.crowd(sub(d, 0.45), t, p, o); };
+  X0.cheerC = (d, t, p, o, SFX) => { if (SFX && SFX.cheerC) SFX.cheerC(sub(d, 0.4), t, p, o); };
   X0.sob = (d, t, p, o, SFX) => { if (!on()) { if (SFX && SFX.sob) SFX.sob(d, t, p, o); return; } speak('cry', p > 1.05 ? 'woman' : 'man', Math.random(), 1, 0, d, t); };
   /* the world's own animals, now and then, from where they stand */
   let nextAni = 0, nextNight = 0, nextDove = 0;

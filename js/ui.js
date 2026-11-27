@@ -162,6 +162,10 @@ addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   Game.INPUT.keys[e.code] = true;
   if (Game.mode !== 'play') return;
+  if (e.repeat && ['Tab', 'Escape', 'KeyI', 'KeyQ', 'KeyC', 'ControlLeft', 'KeyT', 'KeyM', 'KeyR'].includes(e.code)) {
+    e.preventDefault();
+    return;
+  }
   if (e.code === 'KeyE' || e.code === 'Enter') { e.preventDefault(); if (!e.repeat) { Game.INPUT.actHeld = true; if (mgHold) mgHold(true); else Game.pressAction(); } }
   else if (e.code === 'Space') { e.preventDefault(); if (e.repeat) return; if (busyFlags.narr) nextCard(); else if (busyFlags.dialog) UI.advance(); else if (!busyFlags.panel) Game.jump(); }
   else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') Game.P.sprint = true;
@@ -175,8 +179,16 @@ addEventListener('keydown', e => {
   else if (e.code === 'KeyM') { if (!UI.busy()) UI.bigMap(); }
   else if (e.code === 'KeyR') { if (G.Phys && G.Phys.held) { if (!e.repeat && !UI.busy() && !Game.cineOn) G.Phys.place(); return; } if (G.Build && G.Build.placing) G.Build.rotate(); else UI.rideBtn(); }
 });
-addEventListener('keyup', e => { Game.INPUT.keys[e.code] = false; if (e.code === 'KeyE' || e.code === 'Enter') { Game.INPUT.actHeld = false; if (mgHold) mgHold(false); } if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') Game.P.sprint = false; if (e.code === 'Space') Game.jumpRelease(); });
-addEventListener('blur', () => { for (const k in Game.INPUT.keys) Game.INPUT.keys[k] = false; Game.INPUT.actHeld = false; });
+addEventListener('keyup', e => { Game.INPUT.keys[e.code] = false; if (e.code === 'KeyE' || e.code === 'Enter') { Game.INPUT.actHeld = false; if (mgHold) mgHold(false); } if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') Game.P.sprint = !!(Game.INPUT.keys.ShiftLeft || Game.INPUT.keys.ShiftRight); if (e.code === 'Space') Game.jumpRelease(); });
+function releaseHeldInput() {
+  const keys = Game.INPUT.keys;
+  if (keys.ShiftLeft || keys.ShiftRight) Game.P.sprint = false;
+  for (const k in keys) keys[k] = false;
+  if (Game.INPUT.actHeld) relA();
+  if (Game.INPUT.jumpHeld) Game.jumpRelease();
+}
+addEventListener('blur', releaseHeldInput);
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseHeldInput(); });
 // swipe-look: dragging on open screen (outside the stick zones and buttons) turns the camera directly
 { let did = null, lx = 0, ly = 0;
   canvas.addEventListener('pointerdown', e => { if (did !== null || Game.mode !== 'play' || UI.busy()) return; did = e.pointerId; lx = e.clientX; ly = e.clientY; try { canvas.setPointerCapture(did); } catch (_) { } });
@@ -367,6 +379,7 @@ function renderMenu(tab, body) {
       <div class="set"><span>카메라 거리</span><input type="range" id="sDist" min="0.7" max="1.5" step="0.05" value="${SET.dist}"></div>
       <div class="set"><span>음악</span><input type="range" id="sMus" min="0" max="1" step="0.05" value="${SET.music === undefined ? 0.6 : SET.music}"></div>
       <div class="set"><span>효과음</span><input type="range" id="sSfx" min="0" max="1" step="0.05" value="${SET.sfx === undefined ? 0.8 : SET.sfx}"></div>
+      <div class="set"><span>대화 추임새</span><div class="seg"><button data-vc="on" class="${SET.voice !== 'off' ? 'on' : ''}">켜기</button><button data-vc="off" class="${SET.voice === 'off' ? 'on' : ''}">끄기</button></div></div>
       ${navigator.vibrate ? `<div class="set"><span>진동</span><div class="seg"><button data-hp="on" class="${SET.haptic !== 'off' ? 'on' : ''}">켜기</button><button data-hp="off" class="${SET.haptic === 'off' ? 'on' : ''}">끄기</button></div></div>` : ''}
       <div class="set"><span>연출 색감 (컷신 분위기 색)</span><div class="seg"><button data-cg="on" class="${SET.cgrade !== 'off' ? 'on' : ''}">켜기</button><button data-cg="off" class="${SET.cgrade === 'off' ? 'on' : ''}">끄기</button></div></div>
       <div class="set"><span>대사 자동 넘김</span><div class="seg"><button data-au="on" class="${SET.auto === 'on' ? 'on' : ''}">켜기</button><button data-au="off" class="${SET.auto !== 'on' ? 'on' : ''}">끄기</button></div></div>
